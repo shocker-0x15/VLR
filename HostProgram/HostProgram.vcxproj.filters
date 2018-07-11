@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ext\src\gl3w\gl3w.c">
+      <Filter>gl3w</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_demo.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_draw.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_impl_glfw_gl3.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="gl3w">
+      <UniqueIdentifier>{f1d96776-f3d0-4528-b4c8-1bf6b691e30b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imGui">
+      <UniqueIdentifier>{c87f610c-174a-4151-b19d-cdfb50062d04}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ext\include\GL\gl3w.h">
+      <Filter>gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GL\glcorearb.h">
+      <Filter>gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\imgui.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\imgui_impl_glfw_gl3.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\imgui_internal.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\stb_rect_pack.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\stb_textedit.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\stb_truetype.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\imGui\imconfig.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
