@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{6430930F-4932-457F-AC9C-AED74FACC5C7}</ProjectGuid>
+    <RootNamespace>HostProgram</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(CUDA_PATH)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(CUDA_PATH)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64" to "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optix.51.dll" "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optixu.1.dll" "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\cudart64_90.dll" "$(OutDir)"
+echo copy assimp dll
+copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64" to "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optix.51.dll" "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optixu.1.dll" "$(OutDir)"
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\cudart64_90.dll" "$(OutDir)"
+echo copy assimp dll
+copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ext\src\gl3w\gl3w.c" />
+    <ClCompile Include="ext\src\imGui\imgui.cpp" />
+    <ClCompile Include="ext\src\imGui\imgui_demo.cpp" />
+    <ClCompile Include="ext\src\imGui\imgui_draw.cpp" />
+    <ClCompile Include="ext\src\imGui\imgui_impl_glfw_gl3.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ext\include\GL\gl3w.h" />
+    <ClInclude Include="ext\include\GL\glcorearb.h" />
+    <ClInclude Include="ext\include\imGui\imconfig.h" />
+    <ClInclude Include="ext\include\imGui\imgui.h" />
+    <ClInclude Include="ext\include\imGui\imgui_impl_glfw_gl3.h" />
+    <ClInclude Include="ext\include\imGui\imgui_internal.h" />
+    <ClInclude Include="ext\include\imGui\stb_rect_pack.h" />
+    <ClInclude Include="ext\include\imGui\stb_textedit.h" />
+    <ClInclude Include="ext\include\imGui\stb_truetype.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

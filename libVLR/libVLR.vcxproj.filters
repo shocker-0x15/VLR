@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="scene.cpp" />
+    <ClCompile Include="debugPrintf.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\VLR\scene.h" />
+    <ClInclude Include="include\VLR\common.h" />
+    <ClInclude Include="include\VLR\VLR.h" />
+    <ClInclude Include="include\VLR\basic_types.h" />
+    <ClInclude Include="basic_types_internal.h" />
+    <ClInclude Include="GPU_kernels\kernel_common.cuh">
+      <Filter>GPU Kernels</Filter>
+    </ClInclude>
+    <ClInclude Include="GPU_kernels\random_distributions.cuh">
+      <Filter>GPU Kernels</Filter>
+    </ClInclude>
+    <ClInclude Include="scene_private.h" />
+    <ClInclude Include="shared.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="GPU Kernels">
+      <UniqueIdentifier>{cd8adf6e-4acf-43fa-89da-8cff4a35f48b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="GPU_kernels\triangle_intersection.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\materials.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\path_tracing.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>
