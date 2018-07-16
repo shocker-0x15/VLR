@@ -1,14 +1,16 @@
-#include "kernel_common.cuh"
+ï»¿#include "kernel_common.cuh"
 #include "random_distributions.cuh"
 
 namespace VLR {
+    // ----------------------------------------------------------------
+    // BSDF
+
     // per Material
+    rtDeclareVariable(progSigGetBaseColor, pv_progGetBaseColor, , );
     rtDeclareVariable(progSigBSDFMatches, pv_progBSDFmatches, , );
     rtDeclareVariable(progSigSampleBSDFInternal, pv_progSampleBSDFInternal, , );
     rtDeclareVariable(progSigEvaluateBSDFInternal, pv_progEvaluateBSDFInternal, , );
     rtDeclareVariable(progSigEvaluateBSDF_PDFInternal, pv_progEvaluateBSDF_PDFInternal, , );
-    rtDeclareVariable(progSigEvaluateEmittance, pv_progEvaluateEmittance, , );
-    rtDeclareVariable(progSigEvaluateEDFInternal, pv_progEvaluateEDFInternal, , );
 
     // Should texCoord be SurfacePoint instead of TexCoord2D? or dedicated type for identifying a point?
     RT_FUNCTION RGBSpectrum sampleBSDF(const TexCoord2D &texCoord, const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
@@ -36,21 +38,17 @@ namespace VLR {
         return ret;
     }
 
-    RT_FUNCTION RGBSpectrum evaluateEmittance(const TexCoord2D &texCoord) {
-        RGBSpectrum Le0 = pv_progEvaluateEmittance(texCoord);
-        return Le0;
-    }
-
-    RT_FUNCTION RGBSpectrum evaluateEDF(const TexCoord2D &texCoord, const EDFQuery &query, const Vector3D &dirLocal) {
-        RGBSpectrum Le1 = pv_progEvaluateEDFInternal(texCoord, query, dirLocal);
-        return Le1;
-    }
+    // END: BSDF
+    // ----------------------------------------------------------------
 
 
 
+    // ----------------------------------------------------------------
+    // Light
+    
     rtDeclareVariable(rtObject, pv_topGroup, , );
-    rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
-    rtBuffer<SurfaceLightDescriptor> pv_surfaceLightDescriptors;
+    //rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
+    //rtBuffer<SurfaceLightDescriptor> pv_surfaceLightDescriptors;
     
     RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, 
                                       Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
@@ -72,30 +70,32 @@ namespace VLR {
     }
 
     RT_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
-        *light = SurfaceLight(pv_surfaceLightDescriptors[lightIdx]);
+        //uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
+        //*light = SurfaceLight(pv_surfaceLightDescriptors[lightIdx]);
     }
 
+    // per Material
+    rtDeclareVariable(progSigEvaluateEmittance, pv_progEvaluateEmittance, , );
+    rtDeclareVariable(progSigEvaluateEDFInternal, pv_progEvaluateEDFInternal, , );
 
-
-    // JP: –@üƒ}ƒbƒv‚É]‚Á‚ÄƒVƒF[ƒfƒBƒ“ƒOƒtƒŒ[ƒ€‚ð•ÏX‚·‚éB
-    // EN: perturb the shading frame according to the normal map.
-    RT_FUNCTION void applyBumpMapping(const Normal3D &normalLocal, SurfacePoint* surfPt) {
-        const ReferenceFrame &originalFrame = surfPt->shadingFrame;
-
-        Vector3D nLocal = normalLocal;
-        Vector3D tLocal = Vector3D::Ex() - dot(nLocal, Vector3D::Ex()) * nLocal;
-        Vector3D bLocal = Vector3D::Ey() - dot(nLocal, Vector3D::Ey()) * nLocal;
-        Vector3D t = normalize(originalFrame.fromLocal(tLocal));
-        Vector3D b = normalize(originalFrame.fromLocal(bLocal));
-        Vector3D n = normalize(originalFrame.fromLocal(nLocal));
-        ReferenceFrame bumpFrame(t, b, n);
-
-        surfPt->shadingFrame = bumpFrame;
+    RT_FUNCTION RGBSpectrum evaluateEmittance(const TexCoord2D &texCoord) {
+        RGBSpectrum Le0 = pv_progEvaluateEmittance(texCoord);
+        return Le0;
     }
 
+    RT_FUNCTION RGBSpectrum evaluateEDF(const TexCoord2D &texCoord, const EDFQuery &query, const Vector3D &dirLocal) {
+        RGBSpectrum Le1 = pv_progEvaluateEDFInternal(texCoord, query, dirLocal);
+        return Le1;
+    }
+
+    // END: Light
+    // ----------------------------------------------------------------
 
 
+
+    // ----------------------------------------------------------------
+    // Camera
+    
     rtDeclareVariable(ThinLensCamera, pv_thinLensCamera, , );
     
     RT_FUNCTION RGBSpectrum sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
@@ -112,7 +112,7 @@ namespace VLR {
         shadingFrame.x = normalize(rotMat * Vector3D(1, 0, 0));
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 
-        SurfacePoint surfPt;
+        SurfacePoint &surfPt = result->surfPt;
         surfPt.position = rotMat * orgLocal + pv_thinLensCamera.position;
         surfPt.shadingFrame = shadingFrame;
         surfPt.atInfinity = false;
@@ -123,7 +123,6 @@ namespace VLR {
         surfPt.texCoord = TexCoord2D::Zero();
         //surfPt.tc0Direction = Vector3D::Zero();
 
-        result->surfPt = surfPt;
         result->areaPDF = pv_thinLensCamera.lensRadius > 0.0f ? 1.0f / (M_PIf * pv_thinLensCamera.lensRadius * pv_thinLensCamera.lensRadius) : 1.0f;
         result->posType = pv_thinLensCamera.lensRadius > 0.0f ? DirectionType::LowFreq() : DirectionType::Delta0D();
 
@@ -145,6 +144,55 @@ namespace VLR {
         return RGBSpectrum::One();
     }
 
+    // END: Camera
+    // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // NormalAlphaModifier
+
+    RT_CALLABLE_PROGRAM float Null_NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
+        return 1.0f;
+    }
+
+    RT_CALLABLE_PROGRAM Normal3D Null_NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
+        return Normal3D(0, 0, 1);
+    }
+
+    // per GeometryInstance
+    rtTextureSampler<uchar4, 2, cudaReadModeNormalizedFloat> pv_texNormalAlpha;
+
+    RT_CALLABLE_PROGRAM float NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
+        float alpha = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v).w;
+        return alpha;
+    }
+
+    RT_CALLABLE_PROGRAM Normal3D NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
+        float4 texValue = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v);
+        Normal3D normalLocal = 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
+        return normalLocal;
+    }
+
+    // JP: æ³•ç·šãƒžãƒƒãƒ—ã«å¾“ã£ã¦ã‚·ã‚§ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°ãƒ•ãƒ¬ãƒ¼ãƒ ã‚’å¤‰æ›´ã™ã‚‹ã€‚
+    // EN: perturb the shading frame according to the normal map.
+    RT_FUNCTION void applyBumpMapping(const Normal3D &normalLocal, SurfacePoint* surfPt) {
+        const ReferenceFrame &originalFrame = surfPt->shadingFrame;
+
+        Vector3D nLocal = normalLocal;
+        Vector3D tLocal = Vector3D::Ex() - dot(nLocal, Vector3D::Ex()) * nLocal;
+        Vector3D bLocal = Vector3D::Ey() - dot(nLocal, Vector3D::Ey()) * nLocal;
+        Vector3D t = normalize(originalFrame.fromLocal(tLocal));
+        Vector3D b = normalize(originalFrame.fromLocal(bLocal));
+        Vector3D n = normalize(originalFrame.fromLocal(nLocal));
+        ReferenceFrame bumpFrame(t, b, n);
+
+        surfPt->shadingFrame = bumpFrame;
+    }
+
+    // END: NormalAlphaModifier
+    // ----------------------------------------------------------------
+
 
 
     rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
@@ -159,8 +207,6 @@ namespace VLR {
     // per GeometryInstance
     rtDeclareVariable(progSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(progSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-
-    // per Material
     rtDeclareVariable(progSigFetchAlpha, pv_progFetchAlpha, , );
     rtDeclareVariable(progSigFetchNormal, pv_progFetchNormal, , );
 
@@ -195,6 +241,11 @@ namespace VLR {
         SurfacePoint surfPt;
         HitPointParameter hitPointParam = a_hitPointParam;
         pv_progDecodeHitPoint(hitPointParam, &surfPt);
+
+        // DELETE ME
+        sm_payload.contribution = pv_progGetBaseColor(surfPt.texCoord);
+        sm_payload.terminate = true;
+        return;
 
         applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
 
@@ -281,6 +332,10 @@ namespace VLR {
         sm_payload.terminate = false;
     }
 
+    RT_PROGRAM void pathTracingMiss() {
+        sm_payload.terminate = true;
+    }
+
     // Ray Generation Program
     RT_PROGRAM void pathTracing() {
         PCG32RNG &rng = pv_rngBuffer[sm_launchIndex];
@@ -317,5 +372,11 @@ namespace VLR {
 
         RGBSpectrum &contribution = pv_outputBuffer[sm_launchIndex];
         contribution += payload.contribution;
+    }
+
+    // Exception Program
+    RT_PROGRAM void exception() {
+        //uint32_t code = rtGetExceptionCode();
+        rtPrintExceptionDetails();
     }
 }

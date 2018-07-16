@@ -305,15 +305,8 @@ namespace VLR {
 
 
 
-    // per GeometryInstance
-    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> progSigDecodeTexCoord;
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*)> progSigDecodeHitPoint;
-
     // per Material
-    typedef rtCallableProgramX<float(const TexCoord2D &)> progSigFetchAlpha;
-    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> progSigFetchNormal;
-
-    // per Material
+    typedef rtCallableProgramX<RGBSpectrum(const TexCoord2D &)> progSigGetBaseColor;
     typedef rtCallableProgramX<bool(DirectionType)> progSigBSDFMatches;
     typedef rtCallableProgramX<RGBSpectrum(const TexCoord2D &, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> progSigSampleBSDFInternal;
     typedef rtCallableProgramX<RGBSpectrum(const TexCoord2D &, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDFInternal;
@@ -322,4 +315,10 @@ namespace VLR {
     // per Material
     typedef rtCallableProgramX<RGBSpectrum(const TexCoord2D &)> progSigEvaluateEmittance;
     typedef rtCallableProgramX<RGBSpectrum(const TexCoord2D &, const EDFQuery &, const Vector3D &)> progSigEvaluateEDFInternal;
+
+    // per GeometryIntance
+    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> progSigDecodeTexCoord;
+    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*)> progSigDecodeHitPoint;
+    typedef rtCallableProgramX<float(const TexCoord2D &)> progSigFetchAlpha;
+    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> progSigFetchNormal;
 }

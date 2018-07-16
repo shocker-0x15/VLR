@@ -6,45 +6,68 @@
 
 namespace VLR {
     class Context {
-        optix::Context m_optixContext;
-
-    public:
-        Context() {
-            m_optixContext = optix::Context::create();
+        static uint32_t NextID;
+        static uint32_t getInstanceID() {
+            return NextID++;
         }
 
+        uint32_t m_ID;
+        optix::Context m_optixContext;
+
+        optix::Program m_optixCallableProgramNullFetchAlpha;
+        optix::Program m_optixCallableProgramNullFetchNormal;
+        optix::Program m_optixCallableProgramFetchAlpha;
+        optix::Program m_optixCallableProgramFetchNormal;
+
+        optix::Program m_optixProgramStochasticAlphaAnyHit; // -- Any Hit Program
+        optix::Program m_optixProgramAlphaAnyHit; // ------------ Any Hit Program
+        optix::Program m_optixProgramPathTracingIteration; // --- Closest Hit Program
+
+        optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
+        optix::Program m_optixProgramPathTracing; // ------------ Ray Generation Program
+        optix::Program m_optixProgramException; // -------------- Exception Program
+
+    public:
+        Context();
+
+        uint32_t getID() const {
+            return m_ID;
+        }
+        
         optix::Context &getOptiXContext() {
             return m_optixContext;
         }
-    };
 
+        optix::Program &getOptiXCallableProgramNullFetchAlpha() {
+            return m_optixCallableProgramNullFetchAlpha;
+        }
+        optix::Program &getOptiXCallableProgramNullFetchNormal() {
+            return m_optixCallableProgramNullFetchNormal;
+        }
+        optix::Program &getOptiXCallableProgramFetchAlpha() {
+            return m_optixCallableProgramFetchAlpha;
+        }
+        optix::Program &getOptiXCallableProgramFetchNormal() {
+            return m_optixCallableProgramFetchNormal;
+        }
 
-
-    class Transform {
-    public:
-        virtual ~Transform() {}
-
-        virtual bool isStatic() const = 0;
-    };
-
-
-
-    class StaticTransform : public Transform {
-        Matrix4x4 m_matrix;
-        Matrix4x4 m_invMatrix;
-    public:
-        StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
-
-        bool isStatic() const override { return true; }
-
-        StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
-        StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
-        bool operator==(const StaticTransform &t) const { return m_matrix == t.m_matrix; }
-        bool operator!=(const StaticTransform &t) const { return m_matrix != t.m_matrix; }
-
-        void getArrays(float mat[16], float invMat[16]) const {
-            m_matrix.getArray(mat);
-            m_invMatrix.getArray(invMat);
+        optix::Program &getOptiXProgramStochasticAlphaAnyHit() {
+            return m_optixProgramStochasticAlphaAnyHit;
+        }
+        optix::Program &getOptiXProgramAlphaAnyHit() {
+            return m_optixProgramAlphaAnyHit;
+        }
+        optix::Program &getOptiXProgramPathTracingIteration() {
+            return m_optixProgramPathTracingIteration;
+        }
+        optix::Program &getOptiXProgramPathTracingMiss() {
+            return m_optixProgramPathTracingMiss;
+        }
+        optix::Program &getOptiXProgramPathTracing() {
+            return m_optixProgramPathTracing;
+        }
+        optix::Program &getOptiXProgramException() {
+            return m_optixProgramException;
         }
     };
 
@@ -61,11 +84,15 @@ namespace VLR {
     class SHGroup {
         optix::Group m_optixGroup;
         optix::Acceleration m_optixAcceleration;
-        std::set<const SHTransform*> m_transforms;
+        struct TransformStatus {
+            bool hasGeometryDescendant;
+        };
+        std::map<const SHTransform*, TransformStatus> m_transforms;
+        uint32_t m_numValidTransforms;
         std::set<const SHGeometryGroup*> m_geometryGroups;
 
     public:
-        SHGroup(Context &context) {
+        SHGroup(Context &context) : m_numValidTransforms(0) {
             optix::Context &optixContext = context.getOptiXContext();
             m_optixGroup = optixContext->createGroup();
             m_optixAcceleration = optixContext->createAcceleration("Trbvh");
@@ -76,18 +103,20 @@ namespace VLR {
         void addChild(SHGeometryGroup* geomGroup);
         void removeChild(SHTransform* transform);
         void removeChild(SHGeometryGroup* geomGroup);
-
-        void childUpdateEvent(const SHTransform* transform);
-        void childUpdateEvent(const SHGeometryGroup* geomGroup);
+        void updateChild(SHTransform* transform);
+        uint32_t getNumValidChildren() {
+            return (uint32_t)(m_geometryGroups.size() + m_numValidTransforms);
+        }
 
         optix::Group &getOptiXObject() {
             return m_optixGroup;
         }
+
+        void printOptiXHierarchy();
     };
 
     class SHTransform {
         std::string m_name;
-        SHGroup* m_parent;
         optix::Transform m_optixTransform;
 
         StaticTransform m_transform;
@@ -101,7 +130,7 @@ namespace VLR {
 
     public:
         SHTransform(const std::string &name, Context &context, const StaticTransform &transform, const SHTransform* childTransform) :
-            m_name(name), m_parent(nullptr), m_transform(transform), m_childTransform(childTransform), m_childIsTransform(childTransform != nullptr) {
+            m_name(name), m_transform(transform), m_childTransform(childTransform), m_childIsTransform(childTransform != nullptr) {
             optix::Context &optixContext = context.getOptiXContext();
             m_optixTransform = optixContext->createTransform();
 
@@ -113,11 +142,8 @@ namespace VLR {
         void setTransform(const StaticTransform &transform);
         void update();
 
-        void addChild(SHGeometryGroup* geomGroup);
-
-        void setParent(SHGroup* parent) {
-            m_parent = parent;
-        }
+        void setChild(SHGeometryGroup* geomGroup);
+        bool hasGeometryDescendant(SHGeometryGroup** descendant = nullptr) const;
 
         optix::Transform &getOptiXObject() {
             return m_optixTransform;
@@ -127,7 +153,7 @@ namespace VLR {
     class SHGeometryGroup {
         optix::GeometryGroup m_optixGeometryGroup;
         optix::Acceleration m_optixAcceleration;
-        std::vector<const SHGeometryInstance*> m_instances;
+        std::set<const SHGeometryInstance*> m_instances;
 
     public:
         SHGeometryGroup(Context &context) {
@@ -138,8 +164,10 @@ namespace VLR {
         }
 
         void addGeometryInstance(SHGeometryInstance* instance);
-
-        void childUpdateEvent(const SHGeometryInstance* instance);
+        void removeGeometryInstance(SHGeometryInstance* instance);
+        uint32_t getNumInstances() const {
+            return (uint32_t)m_instances.size();
+        }
 
         optix::GeometryGroup &getOptiXObject() {
             return m_optixGeometryGroup;
@@ -147,23 +175,12 @@ namespace VLR {
     };
 
     class SHGeometryInstance {
-        std::set<SHGeometryGroup*> m_parents;
         optix::GeometryInstance m_optixGeometryInstance;
-
-        void notifyUpdateToParent() const {
-            for (auto parent : m_parents) {
-                parent->childUpdateEvent(this);
-            }
-        }
 
     public:
         SHGeometryInstance(Context &context) {
             optix::Context &optixContext = context.getOptiXContext();
             m_optixGeometryInstance = optixContext->createGeometryInstance();
-        }
-
-        void setParent(SHGeometryGroup* parent) {
-            m_parents.insert(parent);
         }
 
         optix::GeometryInstance &getOptiXObject() {
@@ -186,7 +203,8 @@ namespace VLR {
         std::string m_name;
         Context &m_context;
     public:
-        Node(const std::string &name, Context &context) : m_name(name), m_context(context) {}
+        Node(const std::string &name, Context &context) : 
+            m_name(name), m_context(context) {}
         virtual ~Node() {}
     };
 
@@ -204,30 +222,19 @@ namespace VLR {
         SHGeometryGroup m_shGeomGroup;
 
     public:
-        ParentNode(const std::string &name, Context &context, const TransformRef &localToWorld) : Node(name, context), m_localToWorld(localToWorld), m_shGeomGroup(context) {
-            // JP: Ž©•ªŽ©g‚ÌTransform‚ðŽ‚Á‚½SHTransform‚ð¶¬B
-            // EN: 
-            if (m_localToWorld->isStatic()) {
-                StaticTransform* tr = (StaticTransform*)m_localToWorld.get();
-                m_shTransforms[nullptr] = new SHTransform(name, m_context, *tr, nullptr);
-            }
-            else {
-                VLRAssert_NotImplemented();
-            }
-        }
-        ~ParentNode() {
-            for (auto it = m_shTransforms.crbegin(); it != m_shTransforms.crend(); ++it)
-                delete it->second;
-            m_shTransforms.clear();
-        }
+        ParentNode(const std::string &name, Context &context, const TransformRef &localToWorld);
+        virtual ~ParentNode();
 
         enum class UpdateEvent {
-            Added = 0,
-            Removed,
-            Updated,
+            TransformAdded = 0,
+            TransformRemoved,
+            TransformUpdated,
+            GeometryAdded,
+            GeometryRemoved,
         };
 
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) = 0;
+        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta) = 0;
+        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
         virtual void setTransform(const TransformRef &localToWorld);
 
         void addChild(const InternalNodeRef &child);
@@ -242,10 +249,10 @@ namespace VLR {
         std::set<ParentNode*> m_parents;
 
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
     public:
-        InternalNode(const std::string &name, Context &context, const TransformRef &localToWorld) : ParentNode(name, context, localToWorld) {}
-        ~InternalNode() {}
+        InternalNode(const std::string &name, Context &context, const TransformRef &localToWorld);
 
         void setTransform(const TransformRef &localToWorld) override;
 
@@ -259,25 +266,30 @@ namespace VLR {
         SHGroup m_shGroup;
 
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
     public:
-        RootNode(Context &context, const TransformRef &localToWorld) : ParentNode("Root", context, localToWorld), m_shGroup(context) {
-            SHTransform* shtr = m_shTransforms[0];
-            m_shGroup.addChild(shtr);
+        RootNode(Context &context, const TransformRef &localToWorld);
+
+        SHGroup &getSHGroup() {
+            return m_shGroup;
         }
     };
 
 
 
     class SurfaceNode : public Node {
+    protected:
         std::set<ParentNode*> m_parents;
 
     public:
+        static void init(Context &context);
+
         SurfaceNode(const std::string &name, Context &context) : Node(name, context) {}
         virtual ~SurfaceNode() {}
 
-        void addParent(ParentNode* parent);
-        void removeParent(ParentNode* parent);
+        virtual void addParent(ParentNode* parent);
+        virtual void removeParent(ParentNode* parent);
     };
 
 
@@ -290,6 +302,18 @@ namespace VLR {
     };
     
     class TriangleMeshSurfaceNode : public SurfaceNode {
+        struct OptiXProgramSet {
+            optix::Program programIntersectTriangle; // Intersection Program
+            optix::Program programCalcBBoxForTriangle; // Bounding Box Program
+            optix::Program callableProgramDecodeHitPointForTriangle;
+            optix::Program callableProgramDecodeTexCoordForTriangle;
+            optix::Program callableProgramSampleTriangleMesh;
+            optix::Program callableProgramNullFetchAlpha;
+            optix::Program callableProgramNullFetchNormal;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
         struct OptiXGeometry {
             optix::Buffer optixIndexBuffer;
             optix::Geometry optixGeometry;
@@ -300,12 +324,17 @@ namespace VLR {
         std::vector<std::vector<uint32_t>> m_sameMaterialGroups;
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<SurfaceMaterialRef> m_materials;
-        std::vector<SHGeometryInstance> m_shGeometryInstances;
+        std::vector<SHGeometryInstance*> m_shGeometryInstances;
     public:
-        TriangleMeshSurfaceNode(const std::string &name, Context &context) : SurfaceNode(name, context) {}
+        static void init(Context &context);
+
+        TriangleMeshSurfaceNode(const std::string &name, Context &context);
+        ~TriangleMeshSurfaceNode();
+
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
 
         void setVertices(std::vector<Vertex> &&vertices);
-
         void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterialRef &material);
     };
 
@@ -314,17 +343,27 @@ namespace VLR {
     class Image2D {
         uint32_t m_width, m_height;
         DataFormat m_dataFormat;
+        optix::Buffer m_optixDataBuffer;
 
     public:
-        Image2D(uint32_t width, uint32_t height, DataFormat dataFormat) :
-            m_width(width), m_height(height), m_dataFormat(dataFormat) {}
+        static DataFormat getInternalFormat(DataFormat inputFormat);
+
+        Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat);
         virtual ~Image2D() {}
 
-        uint32_t getWidth() const { return m_width; }
-        uint32_t getHeight() const { return m_height; }
-        uint32_t getStride() const { return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat]; }
+        uint32_t getWidth() const {
+            return m_width;
+        }
+        uint32_t getHeight() const {
+            return m_height;
+        }
+        uint32_t getStride() const {
+            return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
+        }
 
-        static DataFormat getInternalFormat(DataFormat inputFormat);
+        optix::Buffer &getOptiXObject() {
+            return m_optixDataBuffer;
+        }
     };
 
 
@@ -333,67 +372,139 @@ namespace VLR {
         std::vector<uint8_t> m_data;
 
     public:
-        LinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat);
+        LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat);
     };
 
 
 
     class FloatTexture {
+    protected:
+        optix::TextureSampler m_optixTextureSampler;
+
     public:
+        FloatTexture(Context &context);
         virtual ~FloatTexture() {}
+
+        optix::TextureSampler &getOptiXObject() {
+            return m_optixTextureSampler;
+        }
     };
     
     
     
     class Float2Texture {
+    protected:
+        optix::TextureSampler m_optixTextureSampler;
+
     public:
+        Float2Texture(Context &context);
         virtual ~Float2Texture() {}
+
+        optix::TextureSampler &getOptiXObject() {
+            return m_optixTextureSampler;
+        }
     };
 
     
     
     class Float3Texture {
+    protected:
+        optix::TextureSampler m_optixTextureSampler;
+
     public:
+        Float3Texture(Context &context);
         virtual ~Float3Texture() {}
+
+        optix::TextureSampler &getOptiXObject() {
+            return m_optixTextureSampler;
+        }
     };
 
 
 
     class Float4Texture {
+    protected:
+        optix::TextureSampler m_optixTextureSampler;
+
     public:
+        Float4Texture(Context &context);
         virtual ~Float4Texture() {}
+
+        optix::TextureSampler &getOptiXObject() {
+            return m_optixTextureSampler;
+        }
     };
 
 
 
     class ImageFloat4Texture : public Float4Texture {
+        Image2DRef m_image;
+
     public:
-        ImageFloat4Texture() {}
+        ImageFloat4Texture(Context &context, const Image2DRef &image);
     };
 
 
 
     class SurfaceMaterial {
+    protected:
+        optix::Material m_optixMaterial;
+
     public:
+        static void init(Context &context);
+
+        SurfaceMaterial(Context &context);
         virtual ~SurfaceMaterial() {}
+
+        optix::Material &getOptiXObject() {
+            return m_optixMaterial;
+        }
     };
 
     
     
     class MatteSurfaceMaterial : public SurfaceMaterial {
-        Float4TextureRef m_albedoRoughnessTex;
+        struct OptiXProgramSet {
+            optix::Program callableProgramGetBaseColor;
+            optix::Program callableProgramBSDFmatches;
+            optix::Program callableProgramSampleBSDFInternal;
+            optix::Program callableProgramEvaluateBSDFInternal;
+            optix::Program callableProgramEvaluateBSDF_PDFInternal;
+            optix::Program callableProgramEvaluateEmittance;
+            optix::Program callableProgramEvaluateEDFInternal;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        Float4TextureRef m_texAlbedoRoughness;
 
     public:
-        MatteSurfaceMaterial(const Float4TextureRef &albedoRoughnessTex) : m_albedoRoughnessTex(albedoRoughnessTex) {}
+        static void init(Context &context);
+
+        MatteSurfaceMaterial(Context &context, const Float4TextureRef &texAlbedoRoughness);
     };
 
 
 
     class UE4SurfaceMaterial : public SurfaceMaterial {
-        Float3TextureRef m_baseColorTex;
-        Float2TextureRef m_roughnessMetallicTex;
+        struct OptiXProgramSet {
+            optix::Program callableProgramGetBaseColor;
+            optix::Program callableProgramBSDFmatches;
+            optix::Program callableProgramSampleBSDFInternal;
+            optix::Program callableProgramEvaluateBSDFInternal;
+            optix::Program callableProgramEvaluateBSDF_PDFInternal;
+            optix::Program callableProgramEvaluateEmittance;
+            optix::Program callableProgramEvaluateEDFInternal;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        Float3TextureRef m_texBaseColor;
+        Float2TextureRef m_texRoughnessMetallic;
+
     public:
-        UE4SurfaceMaterial(const Float3TextureRef &baseColorTex, const Float2TextureRef &roughnessMetallicTex) :
-            m_baseColorTex(baseColorTex), m_roughnessMetallicTex(roughnessMetallicTex) {}
+        static void init(Context &context);
+
+        UE4SurfaceMaterial(Context &context, const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic);
     };
 }

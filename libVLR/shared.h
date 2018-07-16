@@ -160,6 +160,14 @@ namespace VLR {
             float opWidth;
             float opHeight;
             float imgPlaneArea;
+
+            RT_FUNCTION ThinLensCamera() {}
+            ThinLensCamera(float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) : 
+                aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
+                opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
+                opWidth = opHeight * aspect;
+                imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+            }
         };
 
 

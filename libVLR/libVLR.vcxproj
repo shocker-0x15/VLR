@@ -58,9 +58,10 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>DEBUG;_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <CudaCompile>
-      <CompileOut>$(OutDir)ptxes\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)HostProgram\resources\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -88,6 +89,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -95,7 +97,7 @@
       <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optixu.1.lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optix.51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
-      <CompileOut>$(OutDir)ptxes\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)HostProgram\resources\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -134,6 +136,8 @@
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\path_tracing.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\triangle_intersection.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>

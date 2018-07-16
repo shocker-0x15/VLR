@@ -39,7 +39,6 @@ namespace VLR {
     using NodeRef = std::shared_ptr<Node>;
     using InternalNodeRef = std::shared_ptr<InternalNode>;
     using SurfaceNodeRef = std::shared_ptr<SurfaceNode>;
-    using TriangleMeshSurfaceNodeRef = std::shared_ptr<TriangleMeshSurfaceNode>;
 
     using Image2DRef = std::shared_ptr<Image2D>;
 
@@ -52,45 +51,44 @@ namespace VLR {
 
 
 
-//#define VLR_PIMPL_DECLARETION \
-//protected: \
-//    class Impl; \
-//private: \
-//    std::unique_ptr<Impl> m_privateImpl;
-//    
-//
-//    
-//    class VLR_API Transform {
-//        VLR_PIMPL_DECLARETION
-//
-//    public:
-//        Transform();
-//        virtual ~Transform();
-//
-//        bool isStatic() const;
-//    };
-//
-//
-//
-//    class VLR_API StaticTransform : public Transform {
-//        VLR_PIMPL_DECLARETION
-//
-//    public:
-//        StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity());
-//        StaticTransform(const Impl &impl);
-//        StaticTransform(StaticTransform &&v);
-//        ~StaticTransform();
-//
-//        StaticTransform operator*(const Matrix4x4 &m) const;
-//        StaticTransform operator*(const StaticTransform &t) const;
-//        bool operator==(const StaticTransform &t) const;
-//        bool operator!=(const StaticTransform &t) const;
-//
-//        void getArrays(float mat[16], float invMat[16]) const;
-//    };
-//
-//
-//
+#define VLR_PIMPL_DECLARETION \
+protected: \
+    class Impl; \
+private: \
+    std::unique_ptr<Impl> m_privateImpl;
+
+
+
+    class Transform {
+    public:
+        virtual ~Transform() {}
+
+        virtual bool isStatic() const = 0;
+    };
+
+
+
+    class StaticTransform : public Transform {
+        Matrix4x4 m_matrix;
+        Matrix4x4 m_invMatrix;
+    public:
+        StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
+
+        bool isStatic() const override { return true; }
+
+        StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
+        StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
+        bool operator==(const StaticTransform &t) const { return m_matrix == t.m_matrix; }
+        bool operator!=(const StaticTransform &t) const { return m_matrix != t.m_matrix; }
+
+        void getArrays(float mat[16], float invMat[16]) const {
+            m_matrix.getArray(mat);
+            m_invMatrix.getArray(invMat);
+        }
+    };
+
+
+
 //    class VLR_API Node {
 //        VLR_PIMPL_DECLARETION
 //
