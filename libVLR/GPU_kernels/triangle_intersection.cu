@@ -58,7 +58,7 @@ namespace VLR {
 
 
     
-    RT_CALLABLE_PROGRAM void decodeHitPoint(const HitPointParameter &param, SurfacePoint* surfPt) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
@@ -98,7 +98,7 @@ namespace VLR {
         //surfPt->tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, uDirection));
     }
 
-    RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoord(const HitPointParameter &param) {
+    RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoordForTriangle(const HitPointParameter &param) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];

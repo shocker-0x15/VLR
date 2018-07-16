@@ -3,32 +3,19 @@
 
 namespace VLR {
     // ----------------------------------------------------------------
-    // NormalAlphaModifier
-
-    // per GeometryInstance
-    rtTextureSampler<uchar4, 2, cudaReadModeNormalizedFloat> pv_texNormalAlpha;
-
-    RT_CALLABLE_PROGRAM float NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
-        float alpha = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v).w;
-        return alpha;
-    }
-
-    RT_CALLABLE_PROGRAM Normal3D NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
-        float4 texValue = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v);
-        Normal3D normalLocal = 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
-        return normalLocal;
-    }
-
-    // END: NormalAlphaModifier
-    // ----------------------------------------------------------------
-
-
-
-    // ----------------------------------------------------------------
     // LambertianBRDF
 
-    // per GeometryInstance
+    // per Material
     rtTextureSampler<uchar4, 2, cudaReadModeNormalizedFloat> texAlbedoRoughness;
+
+    RT_CALLABLE_PROGRAM RGBSpectrum LambertianBRDF_getBaseColor(const TexCoord2D &texCoord) {
+        // setup BSDF parameters.
+        float4 texValue = tex2D(texAlbedoRoughness, texCoord.u, texCoord.v);
+        RGBSpectrum albedo(texValue.x, texValue.y, texValue.z);
+        //float roughness = texValue.w;
+
+        return albedo;
+    }
 
     RT_CALLABLE_PROGRAM bool LambertianBRDF_matches(DirectionType flags) {
         DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq();
@@ -78,7 +65,66 @@ namespace VLR {
 
 
     // ----------------------------------------------------------------
+    // UE4 BRDF
+
+    // per Material
+    rtTextureSampler<uchar3, 2, cudaReadModeNormalizedFloat> texBaseColor;
+    rtTextureSampler<uchar2, 2, cudaReadModeNormalizedFloat> texRoughnessMetallic;
+
+    RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_getBaseColor(const TexCoord2D &texCoord) {
+        VLRAssert_NotImplemented();
+        return RGBSpectrum::Zero();
+    }
+    
+    RT_CALLABLE_PROGRAM bool UE4BRDF_matches(DirectionType flags) {
+        VLRAssert_NotImplemented();
+        return true;
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_sampleBSDFInternal(const TexCoord2D &texCoord, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        VLRAssert_NotImplemented();
+        return RGBSpectrum::Zero();
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_evaluateBSDFInternal(const TexCoord2D &texCoord, const BSDFQuery &query, const Vector3D &dirLocal) {
+        VLRAssert_NotImplemented();
+        return RGBSpectrum::Zero();
+    }
+
+    RT_CALLABLE_PROGRAM float UE4BRDF_evaluateBSDF_PDFInternal(const TexCoord2D &texCoord, const BSDFQuery &query, const Vector3D &dirLocal) {
+        VLRAssert_NotImplemented();
+        return 0.0f;
+    }
+
+    // END: UE4 BRDF
+    // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // NullEDF
+
+    RT_CALLABLE_PROGRAM RGBSpectrum NullEDF_evaluateEmittance(const TexCoord2D &texCoord) {
+        return RGBSpectrum::Zero();
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum NullEDF_evaluateEDFInternal(const TexCoord2D &texCoord, const EDFQuery &query, const Vector3D &dirLocal) {
+        return RGBSpectrum::Zero();
+    }
+
+    // END: NullEDF
+    // ----------------------------------------------------------------
+    
+    // ----------------------------------------------------------------
     // DiffuseEDF
+
+    // per Material
+    rtTextureSampler<float4, 2, cudaReadModeElementType> texEmittance;
+
+    RT_CALLABLE_PROGRAM RGBSpectrum DiffuseEDF_evaluateEmittance(const TexCoord2D &texCoord) {
+        float4 texValue = tex2D(texEmittance, texCoord.u, texCoord.v);
+        return RGBSpectrum(texValue.x, texValue.y, texValue.z);
+    }
     
     RT_CALLABLE_PROGRAM RGBSpectrum DiffuseEDF_evaluateEDFInternal(const TexCoord2D &texCoord, const EDFQuery &query, const Vector3D &dirLocal) {
         //if (!matches(query.flags))
