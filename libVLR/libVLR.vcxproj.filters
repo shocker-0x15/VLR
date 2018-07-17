@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="debugPrintf.cpp" />
+    <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\VLR\scene.h" />

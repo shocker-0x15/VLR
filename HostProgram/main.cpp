@@ -7,6 +7,14 @@
 
 #include <VLR/VLR.h>
 
+// DELETE ME
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_MSC_SECURE_CRT
+#include "stb_image_write.h"
+#include <random>
+
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -190,9 +198,63 @@ static void debugPrintf(const char* fmt, ...) {
 
 
 int32_t main(int32_t argc, const char* argv[]) {
+    using namespace VLRCpp;
     using namespace VLR;
 
-    test();
+    //try {
+
+    //}
+    //catch (optix::Exception ex) {
+    //    VLRDebugPrintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
+    //}
+
+    VLRCpp::Context context;
+
+    SceneRef scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
+
+    InternalNodeRef nodeA = context.createInternalNode("A", createShared<StaticTransform>(translate(-5.0f, 0.0f, 0.0f)));
+    InternalNodeRef nodeB = context.createInternalNode("B", createShared<StaticTransform>(translate(5.0f, 0.0f, 0.0f)));
+
+    scene->addChild(nodeA);
+    scene->addChild(nodeB);
+
+    InternalNodeRef nodeC = context.createInternalNode("C", createShared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
+
+    nodeA->addChild(nodeC);
+    nodeB->addChild(nodeC);
+
+    InternalNodeRef nodeD = context.createInternalNode("D", createShared<StaticTransform>(translate(0.0f, 0.0f, -5.0f)));
+    InternalNodeRef nodeE = context.createInternalNode("E", createShared<StaticTransform>(translate(0.0f, 0.0f, 5.0f)));
+
+    nodeC->addChild(nodeD);
+    nodeC->addChild(nodeE);
+
+    TriangleMeshSurfaceNodeRef meshA = context.createTriangleMeshSurfaceNode("MeshA");
+    {
+        std::vector<Vertex> vertices;
+        vertices.push_back(Vertex{ Point3D(-1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+        meshA->setVertices(vertices.data(), vertices.size());
+
+        Image2DRef image;
+        {
+            int32_t width, height, n;
+            uint8_t* imageData = stbi_load("resources/R.bmp", &width, &height, &n, 4);
+            image = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, imageData);
+            stbi_image_free(imageData);
+        }
+        Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
+        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+        std::vector<uint32_t> matGroup = { 0, 1, 2, 0, 2, 3 };
+        meshA->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+    }
+
+    nodeD->addChild(meshA);
+
+    scene->test();
 
     return 0;
 }

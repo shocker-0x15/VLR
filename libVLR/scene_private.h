@@ -29,11 +29,12 @@ namespace VLR {
 
     public:
         Context();
+        ~Context();
 
         uint32_t getID() const {
             return m_ID;
         }
-        
+
         optix::Context &getOptiXContext() {
             return m_optixContext;
         }
@@ -73,6 +74,60 @@ namespace VLR {
 
 
 
+    struct ObjectType {
+        struct Value {
+            uint64_t field0;
+
+            Value() {}
+            constexpr Value(uint64_t v);
+
+            bool operator==(const Value &v) const;
+            Value operator&(const Value &v) const;
+            Value operator|(const Value &v) const;
+        } value;
+
+        static const ObjectType E_Context;
+        static const ObjectType E_Image2D;
+        static const ObjectType E_LinearImage2D;
+        static const ObjectType E_FloatTexture;
+        static const ObjectType E_Float2Texture;
+        static const ObjectType E_Float3Texture;
+        static const ObjectType E_Float4Texture;
+        static const ObjectType E_ImageFloat4Texture;
+        static const ObjectType E_SurfaceMaterial;
+        static const ObjectType E_MatteSurfaceMaterial;
+        static const ObjectType E_UE4SurfaceMaterial;
+        static const ObjectType E_Node;
+        static const ObjectType E_SurfaceNode;
+        static const ObjectType E_TriangleMeshSurfaceNode;
+        static const ObjectType E_ParentNode;
+        static const ObjectType E_InternalNode;
+        static const ObjectType E_RootNode;
+        static const ObjectType E_Scene;
+
+        constexpr ObjectType(Value v = (Value)0) : value(v) { }
+
+        bool is(const ObjectType &v) const;
+        bool isMemberOf(const ObjectType &v) const;
+    };
+
+    class Object {
+    protected:
+        Context &m_context;
+
+    public:
+        Object(Context &context);
+        virtual ~Object() {}
+
+        virtual ObjectType getType() const = 0;
+
+        Context &getContext() {
+            return m_context;
+        }
+    };
+
+
+
     // ----------------------------------------------------------------
     // Shallow Hierarchy
 
@@ -97,6 +152,10 @@ namespace VLR {
             m_optixGroup = optixContext->createGroup();
             m_optixAcceleration = optixContext->createAcceleration("Trbvh");
             m_optixGroup->setAcceleration(m_optixAcceleration);
+        }
+        ~SHGroup() {
+            m_optixAcceleration->destroy();
+            m_optixGroup->destroy();
         }
 
         void addChild(SHTransform* transform);
@@ -136,6 +195,9 @@ namespace VLR {
 
             resolveTransform();
         }
+        ~SHTransform() {
+            m_optixTransform->destroy();
+        }
 
         const std::string &getName() const { return m_name; }
 
@@ -162,6 +224,10 @@ namespace VLR {
             m_optixAcceleration = optixContext->createAcceleration("Trbvh");
             m_optixGeometryGroup->setAcceleration(m_optixAcceleration);
         }
+        ~SHGeometryGroup() {
+            m_optixAcceleration->destroy();
+            m_optixGeometryGroup->destroy();
+        }
 
         void addGeometryInstance(SHGeometryInstance* instance);
         void removeGeometryInstance(SHGeometryInstance* instance);
@@ -182,6 +248,9 @@ namespace VLR {
             optix::Context &optixContext = context.getOptiXContext();
             m_optixGeometryInstance = optixContext->createGeometryInstance();
         }
+        ~SHGeometryInstance() {
+            m_optixGeometryInstance->destroy();
+        }
 
         optix::GeometryInstance &getOptiXObject() {
             return m_optixGeometryInstance;
@@ -198,149 +267,15 @@ namespace VLR {
 
 
 
-    class Node {
-    protected:
-        std::string m_name;
-        Context &m_context;
-    public:
-        Node(const std::string &name, Context &context) : 
-            m_name(name), m_context(context) {}
-        virtual ~Node() {}
-    };
+    struct RGB8x3 { uint8_t r, g, b; };
+    struct RGB_8x4 { uint8_t r, g, b, dummy; };
+    struct RGBA8x4 { uint8_t r, g, b, a; };
+    //struct RGBA16Fx4 { half r, g, b, a; };
+    struct Gray8 { uint8_t v; };
 
+    extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num];
 
-
-    class ParentNode : public Node {
-    protected:
-        std::set<NodeRef> m_children;
-        TransformRef m_localToWorld;
-
-        // key: child SHTransform
-        // SHTransform containing only the self transform uses nullptr as the key.
-        std::map<const SHTransform*, SHTransform*> m_shTransforms;
-
-        SHGeometryGroup m_shGeomGroup;
-
-    public:
-        ParentNode(const std::string &name, Context &context, const TransformRef &localToWorld);
-        virtual ~ParentNode();
-
-        enum class UpdateEvent {
-            TransformAdded = 0,
-            TransformRemoved,
-            TransformUpdated,
-            GeometryAdded,
-            GeometryRemoved,
-        };
-
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta) = 0;
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
-        virtual void setTransform(const TransformRef &localToWorld);
-
-        void addChild(const InternalNodeRef &child);
-        void addChild(const SurfaceNodeRef &child);
-        void removeChild(const InternalNodeRef &child);
-        void removeChild(const SurfaceNodeRef &child);
-    };
-
-
-
-    class InternalNode : public ParentNode {
-        std::set<ParentNode*> m_parents;
-
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
-
-    public:
-        InternalNode(const std::string &name, Context &context, const TransformRef &localToWorld);
-
-        void setTransform(const TransformRef &localToWorld) override;
-
-        void addParent(ParentNode* parent);
-        void removeParent(ParentNode* parent);
-    };
-
-
-
-    class RootNode : public ParentNode {
-        SHGroup m_shGroup;
-
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
-
-    public:
-        RootNode(Context &context, const TransformRef &localToWorld);
-
-        SHGroup &getSHGroup() {
-            return m_shGroup;
-        }
-    };
-
-
-
-    class SurfaceNode : public Node {
-    protected:
-        std::set<ParentNode*> m_parents;
-
-    public:
-        static void init(Context &context);
-
-        SurfaceNode(const std::string &name, Context &context) : Node(name, context) {}
-        virtual ~SurfaceNode() {}
-
-        virtual void addParent(ParentNode* parent);
-        virtual void removeParent(ParentNode* parent);
-    };
-
-
-
-    struct Vertex {
-        Point3D position;
-        Normal3D normal;
-        Vector3D tangent;
-        TexCoord2D texCoord;
-    };
-    
-    class TriangleMeshSurfaceNode : public SurfaceNode {
-        struct OptiXProgramSet {
-            optix::Program programIntersectTriangle; // Intersection Program
-            optix::Program programCalcBBoxForTriangle; // Bounding Box Program
-            optix::Program callableProgramDecodeHitPointForTriangle;
-            optix::Program callableProgramDecodeTexCoordForTriangle;
-            optix::Program callableProgramSampleTriangleMesh;
-            optix::Program callableProgramNullFetchAlpha;
-            optix::Program callableProgramNullFetchNormal;
-        };
-
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        struct OptiXGeometry {
-            optix::Buffer optixIndexBuffer;
-            optix::Geometry optixGeometry;
-        };
-
-        std::vector<Vertex> m_vertices;
-        optix::Buffer m_optixVertexBuffer;
-        std::vector<std::vector<uint32_t>> m_sameMaterialGroups;
-        std::vector<OptiXGeometry> m_optixGeometries;
-        std::vector<SurfaceMaterialRef> m_materials;
-        std::vector<SHGeometryInstance*> m_shGeometryInstances;
-    public:
-        static void init(Context &context);
-
-        TriangleMeshSurfaceNode(const std::string &name, Context &context);
-        ~TriangleMeshSurfaceNode();
-
-        void addParent(ParentNode* parent) override;
-        void removeParent(ParentNode* parent) override;
-
-        void setVertices(std::vector<Vertex> &&vertices);
-        void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterialRef &material);
-    };
-
-
-
-    class Image2D {
+    class Image2D : public Object {
         uint32_t m_width, m_height;
         DataFormat m_dataFormat;
         optix::Buffer m_optixDataBuffer;
@@ -349,7 +284,7 @@ namespace VLR {
         static DataFormat getInternalFormat(DataFormat inputFormat);
 
         Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat);
-        virtual ~Image2D() {}
+        virtual ~Image2D();
 
         uint32_t getWidth() const {
             return m_width;
@@ -373,47 +308,49 @@ namespace VLR {
 
     public:
         LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat);
+
+        virtual ObjectType getType() const override { return ObjectType::E_LinearImage2D; }
     };
 
 
 
-    class FloatTexture {
+    class FloatTexture : public Object {
     protected:
         optix::TextureSampler m_optixTextureSampler;
 
     public:
         FloatTexture(Context &context);
-        virtual ~FloatTexture() {}
+        virtual ~FloatTexture();
 
         optix::TextureSampler &getOptiXObject() {
             return m_optixTextureSampler;
         }
     };
-    
-    
-    
-    class Float2Texture {
+
+
+
+    class Float2Texture : public Object {
     protected:
         optix::TextureSampler m_optixTextureSampler;
 
     public:
         Float2Texture(Context &context);
-        virtual ~Float2Texture() {}
+        virtual ~Float2Texture();
 
         optix::TextureSampler &getOptiXObject() {
             return m_optixTextureSampler;
         }
     };
 
-    
-    
-    class Float3Texture {
+
+
+    class Float3Texture : public Object {
     protected:
         optix::TextureSampler m_optixTextureSampler;
 
     public:
         Float3Texture(Context &context);
-        virtual ~Float3Texture() {}
+        virtual ~Float3Texture();
 
         optix::TextureSampler &getOptiXObject() {
             return m_optixTextureSampler;
@@ -422,13 +359,13 @@ namespace VLR {
 
 
 
-    class Float4Texture {
+    class Float4Texture : public Object {
     protected:
         optix::TextureSampler m_optixTextureSampler;
 
     public:
         Float4Texture(Context &context);
-        virtual ~Float4Texture() {}
+        virtual ~Float4Texture();
 
         optix::TextureSampler &getOptiXObject() {
             return m_optixTextureSampler;
@@ -438,20 +375,23 @@ namespace VLR {
 
 
     class ImageFloat4Texture : public Float4Texture {
-        Image2DRef m_image;
+        Image2D* m_image;
 
     public:
-        ImageFloat4Texture(Context &context, const Image2DRef &image);
+        ImageFloat4Texture(Context &context, Image2D* image);
+
+        ObjectType getType() const override { return ObjectType::E_ImageFloat4Texture; }
     };
 
 
 
-    class SurfaceMaterial {
+    class SurfaceMaterial : public Object {
     protected:
         optix::Material m_optixMaterial;
 
     public:
-        static void init(Context &context);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
         SurfaceMaterial(Context &context);
         virtual ~SurfaceMaterial() {}
@@ -461,8 +401,8 @@ namespace VLR {
         }
     };
 
-    
-    
+
+
     class MatteSurfaceMaterial : public SurfaceMaterial {
         struct OptiXProgramSet {
             optix::Program callableProgramGetBaseColor;
@@ -476,12 +416,15 @@ namespace VLR {
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        Float4TextureRef m_texAlbedoRoughness;
+        Float4Texture* m_texAlbedoRoughness;
 
     public:
-        static void init(Context &context);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
-        MatteSurfaceMaterial(Context &context, const Float4TextureRef &texAlbedoRoughness);
+        MatteSurfaceMaterial(Context &context, Float4Texture* texAlbedoRoughness);
+
+        ObjectType getType() const override { return ObjectType::E_MatteSurfaceMaterial; }
     };
 
 
@@ -499,12 +442,189 @@ namespace VLR {
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        Float3TextureRef m_texBaseColor;
-        Float2TextureRef m_texRoughnessMetallic;
+        Float3Texture* m_texBaseColor;
+        Float2Texture* m_texRoughnessMetallic;
 
     public:
-        static void init(Context &context);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
-        UE4SurfaceMaterial(Context &context, const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic);
+        UE4SurfaceMaterial(Context &context, Float3Texture* texBaseColor, Float2Texture* texRoughnessMetallic);
+
+        ObjectType getType() const override { return ObjectType::E_UE4SurfaceMaterial; }
+    };
+
+
+
+    class Node : public Object {
+    protected:
+        std::string m_name;
+    public:
+        Node(Context &context, const std::string &name) :
+            Object(context), m_name(name) {}
+        virtual ~Node() {}
+    };
+
+
+
+    class SurfaceNode : public Node {
+    protected:
+        std::set<ParentNode*> m_parents;
+
+    public:
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        SurfaceNode(Context &context, const std::string &name) : Node(context, name) {}
+        virtual ~SurfaceNode() {}
+
+        virtual void addParent(ParentNode* parent);
+        virtual void removeParent(ParentNode* parent);
+    };
+
+
+
+    class TriangleMeshSurfaceNode : public SurfaceNode {
+        struct OptiXProgramSet {
+            optix::Program programIntersectTriangle; // Intersection Program
+            optix::Program programCalcBBoxForTriangle; // Bounding Box Program
+            optix::Program callableProgramDecodeHitPointForTriangle;
+            optix::Program callableProgramDecodeTexCoordForTriangle;
+            optix::Program callableProgramSampleTriangleMesh;
+            optix::Program callableProgramNullFetchAlpha;
+            optix::Program callableProgramNullFetchNormal;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        struct OptiXGeometry {
+            optix::Buffer optixIndexBuffer;
+            optix::Geometry optixGeometry;
+        };
+
+        std::vector<Vertex> m_vertices;
+        optix::Buffer m_optixVertexBuffer;
+        std::vector<std::vector<uint32_t>> m_sameMaterialGroups;
+        std::vector<OptiXGeometry> m_optixGeometries;
+        std::vector<SurfaceMaterial*> m_materials;
+        std::vector<SHGeometryInstance*> m_shGeometryInstances;
+    public:
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        TriangleMeshSurfaceNode(Context &context, const std::string &name);
+        ~TriangleMeshSurfaceNode();
+
+        ObjectType getType() const override { return ObjectType::E_TriangleMeshSurfaceNode; }
+
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
+
+        void setVertices(std::vector<Vertex> &&vertices);
+        void addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material);
+    };
+
+
+
+    class ParentNode : public Node {
+    protected:
+        std::set<Node*> m_children;
+        const Transform* m_localToWorld;
+
+        // key: child SHTransform
+        // SHTransform containing only the self transform uses nullptr as the key.
+        std::map<const SHTransform*, SHTransform*> m_shTransforms;
+
+        SHGeometryGroup m_shGeomGroup;
+
+    public:
+        ParentNode(Context &context, const std::string &name, const Transform* localToWorld);
+        virtual ~ParentNode();
+
+        enum class UpdateEvent {
+            TransformAdded = 0,
+            TransformRemoved,
+            TransformUpdated,
+            GeometryAdded,
+            GeometryRemoved,
+        };
+
+        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta) = 0;
+        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
+        virtual void setTransform(const Transform* localToWorld);
+
+        void addChild(InternalNode* child);
+        void addChild(SurfaceNode* child);
+        void removeChild(InternalNode* child);
+        void removeChild(SurfaceNode* child);
+    };
+
+
+
+    class InternalNode : public ParentNode {
+        std::set<ParentNode*> m_parents;
+
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
+
+    public:
+        InternalNode(Context &context, const std::string &name, const Transform* localToWorld);
+
+        ObjectType getType() const override { return ObjectType::E_InternalNode; }
+
+        void setTransform(const Transform* localToWorld) override;
+
+        void addParent(ParentNode* parent);
+        void removeParent(ParentNode* parent);
+    };
+
+
+
+    class RootNode : public ParentNode {
+        SHGroup m_shGroup;
+
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
+
+    public:
+        RootNode(Context &context, const Transform* localToWorld);
+
+        ObjectType getType() const override { return ObjectType::E_RootNode; }
+
+        SHGroup &getSHGroup() {
+            return m_shGroup;
+        }
+    };
+
+
+
+    class Scene : public Object {
+        RootNode m_rootNode;
+
+    public:
+        Scene(Context &context, const Transform* localToWorld);
+
+        ObjectType getType() const override { return ObjectType::E_Scene; }
+
+        void setTransform(const Transform* localToWorld) {
+            m_rootNode.setTransform(localToWorld);
+        }
+
+        void addChild(InternalNode* child) {
+            m_rootNode.addChild(child);
+        }
+        void addChild(SurfaceNode* child) {
+            m_rootNode.addChild(child);
+        }
+        void removeChild(InternalNode* child) {
+            m_rootNode.removeChild(child);
+        }
+        void removeChild(SurfaceNode* child) {
+            m_rootNode.removeChild(child);
+        }
+
+        SHGroup &getSHGroup() {
+            return m_rootNode.getSHGroup();
+        }
     };
 }
