@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #if defined(__CUDACC__)
 #   define VLR_Device
