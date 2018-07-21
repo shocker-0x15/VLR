@@ -21,19 +21,21 @@ namespace VLR {
     class Float2Texture;
     class Float3Texture;
     class Float4Texture;
+    class ConstantFloat4Texture;
     class ImageFloat4Texture;
 
     class SurfaceMaterial;
     class MatteSurfaceMaterial;
     class UE4SurfaceMaterial;
 
-    class Node;
     class SurfaceNode;
     struct Vertex;
-    struct MaterialGroup;
     class TriangleMeshSurfaceNode;
     class InternalNode;
     class Scene;
+
+    class Camera;
+    class PerspectiveCamera;
 
 
 
@@ -71,7 +73,8 @@ namespace VLR {
         RGB8x3 = 0,
         RGB_8x4,
         RGBA8x4,
-        //RGBA16Fx4,
+        RGBA16Fx4,
+        RGBA32Fx4,
         Gray8,
         Num
     };

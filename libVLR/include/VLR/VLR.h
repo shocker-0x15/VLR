@@ -8,29 +8,42 @@
 
 extern "C" {
     typedef uint32_t VLRResult;
+
     typedef void* VLRObject;
+
     typedef VLR::Context* VLRContext;
-    typedef VLR::Transform VLRTransform;
-    typedef VLR::StaticTransform VLRStaticTransform;
+
     typedef VLR::DataFormat VLRDataFormat;
     typedef VLR::Image2D* VLRImage2D;
     typedef VLR::LinearImage2D* VLRLinearImage2D;
+
     typedef VLR::FloatTexture* VLRFloatTexture;
     typedef VLR::Float2Texture* VLRFloat2Texture;
     typedef VLR::Float3Texture* VLRFloat3Texture;
     typedef VLR::Float4Texture* VLRFloat4Texture;
+    typedef VLR::ConstantFloat4Texture* VLRConstantFloat4Texture;
     typedef VLR::ImageFloat4Texture* VLRImageFloat4Texture;
+
     typedef VLR::SurfaceMaterial* VLRSurfaceMaterial;
     typedef VLR::MatteSurfaceMaterial* VLRMatteSurfaceMaterial;
     typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
+
     typedef VLR::SurfaceNode* VLRSurfaceNode;
     typedef VLR::Vertex VLRVertex;
     typedef VLR::TriangleMeshSurfaceNode* VLRTriangleMeshSurfaceNode;
     typedef VLR::InternalNode* VLRInternalNode;
     typedef VLR::Scene* VLRScene;
 
+    typedef VLR::Camera* VLRCamera;
+    typedef VLR::PerspectiveCamera* VLRPerspectiveCamera;
+
+
+
     VLR_API VLRResult vlrCreateContext(VLRContext* context);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
+
+    VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t bufferID, uint32_t width, uint32_t height);
+    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData);
@@ -38,6 +51,10 @@ extern "C" {
     VLR_API VLRResult vlrLinearImage2DGetWidth(VLRLinearImage2D image, uint32_t* width);
     VLR_API VLRResult vlrLinearImage2DGetHeight(VLRLinearImage2D image, uint32_t* height);
     VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* stride);
+
+    VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
+                                                     const float value[4]);
+    VLR_API VLRResult vlrConstantFloat4TextureDestroy(VLRContext context, VLRConstantFloat4Texture texture);
 
     VLR_API VLRResult vlrImageFloat4TextureCreate(VLRContext context, VLRImageFloat4Texture* texture,
                                                   VLRImage2D image);
@@ -58,21 +75,27 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, VLRSurfaceMaterial material);
 
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                            const char* name, const VLRStaticTransform* transform);
+                                            const char* name, const VLR::StaticTransform* transform);
     VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode node);
-    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLRStaticTransform* localToWorld);
+    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::StaticTransform* localToWorld);
     VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRObject child);
     VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject child);
 
     VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                     const VLRStaticTransform* transform);
+                                     const VLR::StaticTransform* transform);
     VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene);
-    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLRStaticTransform* localToWorld);
+    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::StaticTransform* localToWorld);
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child);
 
-    // DELETE ME
-    VLR_API VLRResult vlrSceneTest(VLRScene scene);
+    VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera, 
+                                                 const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                 float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
+    VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera);
+    VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLR::Point3D &position);
+    VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLR::Quaternion &orientation);
+    VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius);
+    VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance);
 }
 
 namespace VLRCpp {
@@ -82,6 +105,7 @@ namespace VLRCpp {
     class Float2TextureHolder;
     class Float3TextureHolder;
     class Float4TextureHolder;
+    class ConstantFloat4TextureHolder;
     class ImageFloat4TextureHolder;
     class SurfaceMaterialHolder;
     class MatteSurfaceMaterialHolder;
@@ -91,16 +115,19 @@ namespace VLRCpp {
     class TriangleMeshSurfaceNodeHolder;
     class InternalNodeHolder;
     class SceneHolder;
+    class CameraHolder;
+    class PerspectiveCameraHolder;
 
 
 
-    typedef std::shared_ptr<VLRStaticTransform> StaticTransformRef;
+    typedef std::shared_ptr<VLR::StaticTransform> StaticTransformRef;
     typedef std::shared_ptr<Image2DHolder> Image2DRef;
     typedef std::shared_ptr<LinearImage2DHolder> LinearImage2DRef;
     typedef std::shared_ptr<FloatTextureHolder> FloatTextureRef;
     typedef std::shared_ptr<Float2TextureHolder> Float2TextureRef;
     typedef std::shared_ptr<Float3TextureHolder> Float3TextureRef;
     typedef std::shared_ptr<Float4TextureHolder> Float4TextureRef;
+    typedef std::shared_ptr<ConstantFloat4TextureHolder> ConstantFloat4TextureRef;
     typedef std::shared_ptr<ImageFloat4TextureHolder> ImageFloat4TextureRef;
     typedef std::shared_ptr<SurfaceMaterialHolder> SurfaceMaterialRef;
     typedef std::shared_ptr<MatteSurfaceMaterialHolder> MatteSurfaceMaterialRef;
@@ -110,6 +137,8 @@ namespace VLRCpp {
     typedef std::shared_ptr<TriangleMeshSurfaceNodeHolder> TriangleMeshSurfaceNodeRef;
     typedef std::shared_ptr<InternalNodeHolder> InternalNodeRef;
     typedef std::shared_ptr<SceneHolder> SceneRef;
+    typedef std::shared_ptr<CameraHolder> CameraRef;
+    typedef std::shared_ptr<PerspectiveCameraHolder> PerspectiveCameraRef;
 
 
 
@@ -139,27 +168,27 @@ namespace VLRCpp {
     public:
         LinearImage2DHolder(VLRContext context, uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData) :
             Image2DHolder(context) {
-            vlrLinearImage2DCreate(context, &m_raw, width, height, format, linearData);
+            VLRResult res = vlrLinearImage2DCreate(context, &m_raw, width, height, format, linearData);
         }
         ~LinearImage2DHolder() {
-            vlrLinearImage2DDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrLinearImage2DDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
 
         uint32_t getWidth() {
             uint32_t width;
-            vlrLinearImage2DGetWidth(m_raw, &width);
+            VLRResult res = vlrLinearImage2DGetWidth(m_raw, &width);
             return width;
         }
         uint32_t getHeight() {
             uint32_t height;
-            vlrLinearImage2DGetHeight(m_raw, &height);
+            VLRResult res = vlrLinearImage2DGetHeight(m_raw, &height);
             return height;
         }
         uint32_t getStride() {
             uint32_t stride;
-            vlrLinearImage2DGetStride(m_raw, &stride);
+            VLRResult res = vlrLinearImage2DGetStride(m_raw, &stride);
             return stride;
         }
     };
@@ -194,6 +223,23 @@ namespace VLRCpp {
 
 
 
+    class ConstantFloat4TextureHolder : public Float4TextureHolder {
+        VLRConstantFloat4Texture m_raw;
+
+    public:
+        ConstantFloat4TextureHolder(VLRContext context, const float value[4]) :
+            Float4TextureHolder(context) {
+            VLRResult res = vlrConstantFloat4TextureCreate(context, &m_raw, value);
+        }
+        ~ConstantFloat4TextureHolder() {
+            VLRResult res = vlrConstantFloat4TextureDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return m_raw; }
+    };
+    
+    
+    
     class ImageFloat4TextureHolder : public Float4TextureHolder {
         VLRImageFloat4Texture m_raw;
         Image2DRef m_image;
@@ -201,10 +247,10 @@ namespace VLRCpp {
     public:
         ImageFloat4TextureHolder(VLRContext context, const Image2DRef &image) :
             Float4TextureHolder(context), m_image(image) {
-            vlrImageFloat4TextureCreate(context, &m_raw, (VLRImage2D)m_image->get());
+            VLRResult res = vlrImageFloat4TextureCreate(context, &m_raw, (VLRImage2D)m_image->get());
         }
         ~ImageFloat4TextureHolder() {
-            vlrImageFloat4TextureDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrImageFloat4TextureDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
@@ -226,10 +272,10 @@ namespace VLRCpp {
     public:
         MatteSurfaceMaterialHolder(VLRContext context, const Float4TextureRef &texAlbedoRoughness) :
             SurfaceMaterialHolder(context), m_texAlbedoRoughness(texAlbedoRoughness) {
-            vlrMatteSurfaceMaterialCreate(context, &m_raw, (VLRFloat4Texture)m_texAlbedoRoughness->get());
+            VLRResult res = vlrMatteSurfaceMaterialCreate(context, &m_raw, (VLRFloat4Texture)m_texAlbedoRoughness->get());
         }
         ~MatteSurfaceMaterialHolder() {
-            vlrMatteSurfaceMaterialDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrMatteSurfaceMaterialDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
@@ -245,10 +291,10 @@ namespace VLRCpp {
     public:
         UE4SurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic) :
             SurfaceMaterialHolder(context), m_texBaseColor(texBaseColor), m_texRoughnessMetallic(texRoughnessMetallic) {
-            vlrUE4SurfaceMaterialCreate(context, &m_raw, (VLRFloat3Texture)m_texBaseColor->get(), (VLRFloat2Texture)m_texRoughnessMetallic->get());
+            VLRResult res = vlrUE4SurfaceMaterialCreate(context, &m_raw, (VLRFloat3Texture)m_texBaseColor->get(), (VLRFloat2Texture)m_texRoughnessMetallic->get());
         }
         ~UE4SurfaceMaterialHolder() {
-            vlrUE4SurfaceMaterialDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrUE4SurfaceMaterialDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
@@ -277,20 +323,20 @@ namespace VLRCpp {
     public:
         TriangleMeshSurfaceNodeHolder(VLRContext context, const char* name) :
             SurfaceNodeHolder(context) {
-            vlrTriangleMeshSurfaceNodeCreate(m_rawContext, &m_raw, name);
+            VLRResult res = vlrTriangleMeshSurfaceNodeCreate(m_rawContext, &m_raw, name);
         }
         ~TriangleMeshSurfaceNodeHolder() {
-            vlrTriangleMeshSurfaceNodeDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrTriangleMeshSurfaceNodeDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
 
         void setVertices(VLRVertex* vertices, uint32_t numVertices) {
-            vlrTriangleMeshSurfaceNodeSetVertices(m_raw, vertices, numVertices);
+            VLRResult res = vlrTriangleMeshSurfaceNodeSetVertices(m_raw, vertices, numVertices);
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices, const SurfaceMaterialRef &material) {
             m_materials.insert(material);
-            vlrTriangleMeshSurfaceNodeAddMaterialGroup(m_raw, indices, numIndices, (VLRSurfaceMaterial)material->get());
+            VLRResult res = vlrTriangleMeshSurfaceNodeAddMaterialGroup(m_raw, indices, numIndices, (VLRSurfaceMaterial)material->get());
         }
     };
 
@@ -304,33 +350,33 @@ namespace VLRCpp {
     public:
         InternalNodeHolder(VLRContext context, const char* name, const StaticTransformRef &transform) :
             NodeHolder(context), m_transform(transform) {
-            vlrInternalNodeCreate(m_rawContext, &m_raw, name, m_transform.get());
+            VLRResult res = vlrInternalNodeCreate(m_rawContext, &m_raw, name, m_transform.get());
         }
         ~InternalNodeHolder() {
-            vlrInternalNodeDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrInternalNodeDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            vlrInternalNodeSetTransform(m_raw, transform.get());
+            VLRResult res = vlrInternalNodeSetTransform(m_raw, transform.get());
         }
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            vlrInternalNodeAddChild(m_raw, child->get());
+            VLRResult res = vlrInternalNodeAddChild(m_raw, child->get());
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            vlrInternalNodeRemoveChild(m_raw, child->get());
+            VLRResult res = vlrInternalNodeRemoveChild(m_raw, child->get());
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            vlrInternalNodeAddChild(m_raw, child->get());
+            VLRResult res = vlrInternalNodeAddChild(m_raw, child->get());
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            vlrInternalNodeRemoveChild(m_raw, child->get());
+            VLRResult res = vlrInternalNodeRemoveChild(m_raw, child->get());
         }
     };
 
@@ -344,37 +390,71 @@ namespace VLRCpp {
     public:
         SceneHolder(VLRContext context, const StaticTransformRef &transform) :
             Object(context), m_transform(transform) {
-            vlrSceneCreate(m_rawContext, &m_raw, m_transform.get());
+            VLRResult res = vlrSceneCreate(m_rawContext, &m_raw, m_transform.get());
         }
         ~SceneHolder() {
-            vlrSceneDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrSceneDestroy(m_rawContext, m_raw);
         }
 
         VLRObject get() const override { return m_raw; }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            vlrSceneSetTransform(m_raw, transform.get());
+            VLRResult res = vlrSceneSetTransform(m_raw, transform.get());
         }
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            vlrSceneAddChild(m_raw, child->get());
+            VLRResult res = vlrSceneAddChild(m_raw, child->get());
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            vlrSceneRemoveChild(m_raw, child->get());
+            VLRResult res = vlrSceneRemoveChild(m_raw, child->get());
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            vlrSceneAddChild(m_raw, child->get());
+            VLRResult res = vlrSceneAddChild(m_raw, child->get());
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            vlrSceneRemoveChild(m_raw, child->get());
+            VLRResult res = vlrSceneRemoveChild(m_raw, child->get());
+        }
+    };
+
+
+
+    class CameraHolder : public Object {
+    public:
+        CameraHolder(VLRContext context) : Object(context) {}
+    };
+
+
+
+    class PerspectiveCameraHolder : public CameraHolder {
+        VLRPerspectiveCamera m_raw;
+
+    public:
+        PerspectiveCameraHolder(VLRContext context, const VLR::Point3D &position, const VLR::Quaternion &orientation, 
+                                float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
+        CameraHolder(context) {
+            VLRResult res = vlrPerspectiveCameraCreate(context, &m_raw, position, orientation, aspect, fovY, lensRadius, imgPDist, objPDist);
+        }
+        ~PerspectiveCameraHolder() {
+            VLRResult res = vlrPerspectiveCameraDestroy(m_rawContext, m_raw);
         }
 
-        void test() const {
-            vlrSceneTest(m_raw);
+        VLRObject get() const override { return m_raw; }
+
+        void setPosition(const VLR::Point3D &position) {
+            VLRResult res = vlrPerspectiveCameraSetPosition(m_raw, position);
+        }
+        void setOrientation(const VLR::Quaternion &orientation) {
+            VLRResult res = vlrPerspectiveCameraSetOrientation(m_raw, orientation);
+        }
+        void setLensRadius(float lensRadius) {
+            VLRResult res = vlrPerspectiveCameraSetLensRadius(m_raw, lensRadius);
+        }
+        void setObjectPlaneDistance(float distance) {
+            VLRResult res = vlrPerspectiveCameraSetObjectPlaneDistance(m_raw, distance);
         }
     };
 
@@ -391,10 +471,22 @@ namespace VLRCpp {
             VLRResult res = vlrDestroyContext(m_rawContext);
         }
 
+        void bindOpenGLBuffer(uint32_t glBufferID, uint32_t width, uint32_t height) {
+            VLRResult res = vlrContextBindOpenGLBuffer(m_rawContext, glBufferID, width, height);
+        }
+
+        void render(const SceneRef &scene, const CameraRef &camera) const {
+            VLRResult res = vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get());
+        }
+
         LinearImage2DRef createLinearImage2D(uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData) const {
             return std::make_shared<LinearImage2DHolder>(m_rawContext, width, height, format, linearData);
         }
 
+        ConstantFloat4TextureRef createConstantFloat4Texture(const float value[4]) const {
+            return std::make_shared<ConstantFloat4TextureHolder>(m_rawContext, value);
+        }
+        
         ImageFloat4TextureRef createImageFloat4Texture(const Image2DRef &image) const {
             return std::make_shared<ImageFloat4TextureHolder>(m_rawContext, image);
         }
@@ -417,6 +509,11 @@ namespace VLRCpp {
 
         SceneRef createScene(const StaticTransformRef &transform) const {
             return std::make_shared<SceneHolder>(m_rawContext, transform);
+        }
+
+        PerspectiveCameraRef createPerspectiveCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                     float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) const {
+            return std::make_shared<PerspectiveCameraHolder>(m_rawContext, position, orientation, aspect, fovY, lensRadius, imgPDist, objPDist);
         }
     };
 }

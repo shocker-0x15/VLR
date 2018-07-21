@@ -112,6 +112,33 @@ namespace VLR {
         using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;
 
 
+        
+        struct MaterialDescriptor {
+#define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
+            union {
+                int32_t i1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
+                uint32_t ui1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
+                float f1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
+
+                optix::int2 i2[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 1];
+                optix::float2 f2[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 1];
+
+                optix::float4 f4[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 2];
+            };
+
+            int32_t progSetup;
+
+            int32_t progGetBaseColor;
+            int32_t progBSDFmatches;
+            int32_t progSampleBSDFInternal;
+            int32_t progEvaluateBSDFInternal;
+            int32_t progEvaluateBSDF_PDFInternal;
+
+            int32_t progEvaluateEmittanceInternal;
+            int32_t progEvaluateEDFInternal;
+        };
+
+
 
         struct Vertex {
             Point3D position;
@@ -147,7 +174,7 @@ namespace VLR {
 
 
 
-        struct ThinLensCamera {
+        struct PerspectiveCamera {
             Point3D position;
             Quaternion orientation;
 
@@ -161,9 +188,16 @@ namespace VLR {
             float opHeight;
             float imgPlaneArea;
 
-            RT_FUNCTION ThinLensCamera() {}
-            ThinLensCamera(float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) : 
+            RT_FUNCTION PerspectiveCamera() {}
+            PerspectiveCamera(float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) :
                 aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
+                opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
+                opWidth = opHeight * aspect;
+                imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+            }
+
+            void setObjectPlaneDistance(float distance) {
+                objPlaneDistance = distance;
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
                 imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
@@ -181,6 +215,21 @@ namespace VLR {
             } value;
 
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) { }
+        };
+
+
+
+        struct MatteSurfaceMaterial {
+            int32_t texAlbedoRoughness;
+        };
+
+        struct UE4SurfaceMaterial {
+            int32_t texBaseColor;
+            int32_t texRoughnessMetallic;
+        };
+
+        struct DiffuseEmitterMaterial {
+            int32_t texEmittance;
         };
     }
 }

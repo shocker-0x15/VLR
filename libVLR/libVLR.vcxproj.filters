@@ -35,5 +35,8 @@
     <CudaCompile Include="GPU_kernels\path_tracing.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
+    <CudaCompile Include="GPU_kernels\cameras.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -75,7 +75,7 @@
 
 #if defined(VLR_Host)
 #   if defined(VLR_Platform_Windows_MSVC)
-void VLRDebugPrintf(const char* fmt, ...);
+VLR_API void VLRDebugPrintf(const char* fmt, ...);
 #   else
 #       define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
 #   endif

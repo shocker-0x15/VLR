@@ -27,6 +27,22 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
 
 
 
+VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t bufferID, uint32_t width, uint32_t height) {
+    context->bindOpenGLBuffer(bufferID, width, height);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera) {
+    if (!scene->getType().is(VLR::ObjectType::E_Scene) || !camera->getType().isMemberOf(VLR::ObjectType::E_Camera))
+        return VLR_ERROR_INVALID_TYPE;
+    context->render(*scene, camera);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                          uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData) {
     *image = new VLR::LinearImage2D(*context, linearData, width, height, format);
@@ -62,6 +78,23 @@ VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* st
     if (!image->getType().is(VLR::ObjectType::E_LinearImage2D))
         return VLR_ERROR_INVALID_TYPE;
     *stride = image->getStride();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
+                                                 const float value[4]) {
+    *texture = new VLR::ConstantFloat4Texture(*context, value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrConstantFloat4TextureDestroy(VLRContext context, VLRConstantFloat4Texture texture) {
+    if (!texture->getType().is(VLR::ObjectType::E_ConstantFloat4Texture))
+        return VLR_ERROR_INVALID_TYPE;
+    delete texture;
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -167,7 +200,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
 
 VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                        const char* name, const VLRStaticTransform* transform) {
+                                        const char* name, const VLR::StaticTransform* transform) {
     *node = new VLR::InternalNode(*context, name, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -181,7 +214,7 @@ VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode nod
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLRStaticTransform* localToWorld) {
+VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::StaticTransform* localToWorld) {
     if (!node->getType().is(VLR::ObjectType::E_InternalNode))
         return VLR_ERROR_INVALID_TYPE;
     node->setTransform(localToWorld);
@@ -222,7 +255,7 @@ VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject chi
 
 
 VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                 const VLRStaticTransform* transform) {
+                                 const VLR::StaticTransform* transform) {
     *scene = new VLR::Scene(*context, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -236,7 +269,7 @@ VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLRStaticTransform* localToWorld) {
+VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::StaticTransform* localToWorld) {
     if (!scene->getType().is(VLR::ObjectType::E_Scene))
         return VLR_ERROR_INVALID_TYPE;
     scene->setTransform(localToWorld);
@@ -274,91 +307,53 @@ VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneTest(VLRScene scene) {
-    try {
-        using namespace VLR;
-
-        Context& context = scene->getContext();
-        optix::Context &optixContext = context.getOptiXContext();
-
-        SHGroup &shGroup = scene->getSHGroup();
-
-        optixContext["VLR::pv_topGroup"]->set(shGroup.getOptiXObject());
-
-        optix::Buffer rngBuffer = optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, 1280, 720);
-        rngBuffer->setElementSize(sizeof(uint64_t));
-        {
-            std::mt19937_64 rng(591842031321323413);
-
-            auto dstData = (uint64_t*)rngBuffer->map();
-            for (int y = 0; y < 720; ++y) {
-                for (int x = 0; x < 1280; ++x) {
-                    dstData[y * 1280 + x] = rng();
-                }
-            }
-            rngBuffer->unmap();
-        }
-        optixContext["VLR::pv_rngBuffer"]->set(rngBuffer);
-
-        optix::Buffer outputBuffer = optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, 1280, 720);
-        outputBuffer->setElementSize(sizeof(RGBSpectrum));
-        {
-            auto dstData = (RGBSpectrum*)outputBuffer->map();
-            std::fill_n(dstData, 1280 * 720, RGBSpectrum::Zero());
-            outputBuffer->unmap();
-        }
-        optixContext["VLR::pv_outputBuffer"]->set(outputBuffer);
-
-        optixContext->setPrintEnabled(true);
-        optixContext->setPrintBufferSize(4096);
-
-        Shared::ThinLensCamera thinLensParams(1280.0f / 720.0f, 40 * M_PI / 180, 0.0f, 1.0f, 1.0f);
-        thinLensParams.position = Point3D(0, 0, 15);
-        thinLensParams.orientation = qRotateY<float>(M_PI);// *qRotateX<float>(45 * M_PI / 180);
-        optixContext["VLR::pv_thinLensCamera"]->setUserData(sizeof(Shared::ThinLensCamera), &thinLensParams);
-
-        shGroup.printOptiXHierarchy();
-
-        optixContext->validate();
 
 
 
-        //rootNode->setTransform(createShared<StaticTransform>(translate(0.0f, 5.0f, 0.0f)));
-        //nodeC->setTransform(createShared<StaticTransform>(translate(0.0f, -10.0f, 0.0f)));
+VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera,
+                                             const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                             float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) {
+    *camera = new VLR::PerspectiveCamera(*context, position, orientation, aspect, fovY, lensRadius, imgPDist, objPDist);
 
-        //rootNode->removeChild(nodeB);
+    return VLR_ERROR_NO_ERROR;
+}
 
-        optixContext->launch(0, 1280, 720);
+VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera) {
+    if (!camera->getType().is(VLR::ObjectType::E_PerspectiveCamera))
+        return VLR_ERROR_INVALID_TYPE;
+    delete camera;
 
-        {
-            auto srcData = (const RGBSpectrum*)outputBuffer->map();
-            auto dstData = new uint8_t[1280 * 720 * 3];
+    return VLR_ERROR_NO_ERROR;
+}
 
-            for (int y = 0; y < 720; ++y) {
-                for (int x = 0; x < 1280; ++x) {
-                    const RGBSpectrum &src = srcData[y * 1280 + x];
-                    uint8_t* dst = dstData + (y * 1280 + x) * 3;
+VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLR::Point3D &position) {
+    if (!camera->getType().is(VLR::ObjectType::E_PerspectiveCamera))
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setPosition(position);
 
-                    const auto quantize = [](float x) {
-                        uint32_t qv = (uint32_t)(256 * x);
-                        return (uint8_t)std::min<uint32_t>(255, qv);
-                    };
+    return VLR_ERROR_NO_ERROR;
+}
 
-                    dst[0] = quantize(src.r);
-                    dst[1] = quantize(src.g);
-                    dst[2] = quantize(src.b);
-                }
-            }
+VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLR::Quaternion &orientation) {
+    if (!camera->getType().is(VLR::ObjectType::E_PerspectiveCamera))
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setOrientation(orientation);
 
-            stbi_write_png("output.png", 1280, 720, 3, dstData, 1280 * 3);
+    return VLR_ERROR_NO_ERROR;
+}
 
-            delete[] dstData;
-            outputBuffer->unmap();
-        }
-    }
-    catch (optix::Exception ex) {
-        VLRDebugPrintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
-    }
+VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius) {
+    if (!camera->getType().is(VLR::ObjectType::E_PerspectiveCamera))
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setLensRadius(lensRadius);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance) {
+    if (!camera->getType().is(VLR::ObjectType::E_PerspectiveCamera))
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setObjectPlaneDistance(distance);
 
     return VLR_ERROR_NO_ERROR;
 }
