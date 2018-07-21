@@ -5,7 +5,7 @@
 layout(location = 0) uniform int width;
 layout(location = 1, binding = 0) uniform samplerBuffer srcTexture;
 
-/* layout(origin_upper_left) */in vec4 gl_FragCoord;
+ layout(origin_upper_left) in vec4 gl_FragCoord;
 
 out vec4 color;
 

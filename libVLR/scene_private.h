@@ -23,9 +23,14 @@ namespace VLR {
         optix::Program m_optixProgramAlphaAnyHit; // ------------ Any Hit Program
         optix::Program m_optixProgramPathTracingIteration; // --- Closest Hit Program
 
-        optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramPathTracing; // ------------ Ray Generation Program
+        optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramException; // -------------- Exception Program
+
+        optix::Buffer m_outputBuffer;
+        optix::Buffer m_rngBuffer;
+        uint32_t m_width;
+        uint32_t m_height;
 
     public:
         Context();
@@ -34,6 +39,10 @@ namespace VLR {
         uint32_t getID() const {
             return m_ID;
         }
+
+        void bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height);
+
+        void render(Scene &scene, Camera* camera);
 
         optix::Context &getOptiXContext() {
             return m_optixContext;
@@ -94,6 +103,7 @@ namespace VLR {
         static const ObjectType E_Float3Texture;
         static const ObjectType E_Float4Texture;
         static const ObjectType E_ImageFloat4Texture;
+        static const ObjectType E_ConstantFloat4Texture;
         static const ObjectType E_SurfaceMaterial;
         static const ObjectType E_MatteSurfaceMaterial;
         static const ObjectType E_UE4SurfaceMaterial;
@@ -104,6 +114,8 @@ namespace VLR {
         static const ObjectType E_InternalNode;
         static const ObjectType E_RootNode;
         static const ObjectType E_Scene;
+        static const ObjectType E_Camera;
+        static const ObjectType E_PerspectiveCamera;
 
         constexpr ObjectType(Value v = (Value)0) : value(v) { }
 
@@ -262,6 +274,7 @@ namespace VLR {
 
 
 
+    class Node;
     class ParentNode;
     class RootNode;
 
@@ -270,7 +283,8 @@ namespace VLR {
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };
-    //struct RGBA16Fx4 { half r, g, b, a; };
+    struct RGBA16Fx4 { uint16_t/*half*/ r, g, b, a; };
+    struct RGBA32Fx4 { float r, g, b, a; };
     struct Gray8 { uint8_t v; };
 
     extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num];
@@ -374,6 +388,18 @@ namespace VLR {
 
 
 
+    class ConstantFloat4Texture : public Float4Texture {
+        Image2D* m_image;
+
+    public:
+        ConstantFloat4Texture(Context &context, const float value[4]);
+        ~ConstantFloat4Texture();
+
+        ObjectType getType() const override { return ObjectType::E_ConstantFloat4Texture; }
+    };
+    
+    
+    
     class ImageFloat4Texture : public Float4Texture {
         Image2D* m_image;
 
@@ -405,12 +431,13 @@ namespace VLR {
 
     class MatteSurfaceMaterial : public SurfaceMaterial {
         struct OptiXProgramSet {
+            optix::Program callableProgramSetup;
             optix::Program callableProgramGetBaseColor;
             optix::Program callableProgramBSDFmatches;
             optix::Program callableProgramSampleBSDFInternal;
             optix::Program callableProgramEvaluateBSDFInternal;
             optix::Program callableProgramEvaluateBSDF_PDFInternal;
-            optix::Program callableProgramEvaluateEmittance;
+            optix::Program callableProgramEvaluateEmittanceInternal;
             optix::Program callableProgramEvaluateEDFInternal;
         };
 
@@ -431,12 +458,13 @@ namespace VLR {
 
     class UE4SurfaceMaterial : public SurfaceMaterial {
         struct OptiXProgramSet {
+            optix::Program callableProgramSetup;
             optix::Program callableProgramGetBaseColor;
             optix::Program callableProgramBSDFmatches;
             optix::Program callableProgramSampleBSDFInternal;
             optix::Program callableProgramEvaluateBSDFInternal;
             optix::Program callableProgramEvaluateBSDF_PDFInternal;
-            optix::Program callableProgramEvaluateEmittance;
+            optix::Program callableProgramEvaluateEmittanceInternal;
             optix::Program callableProgramEvaluateEDFInternal;
         };
 
@@ -625,6 +653,56 @@ namespace VLR {
 
         SHGroup &getSHGroup() {
             return m_rootNode.getSHGroup();
+        }
+    };
+
+
+    class Camera : public Object {
+    public:
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Camera(Context &context) : 
+            Object(context) {}
+        virtual ~Camera() {}
+
+        virtual void set() const = 0;
+    };
+
+
+
+    class PerspectiveCamera : public Camera {
+        struct OptiXProgramSet {
+            optix::Program callableProgramSampleLensPosition;
+            optix::Program callableProgramSampleIDF;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        Shared::PerspectiveCamera m_data;
+
+    public:
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        PerspectiveCamera(Context &context, const Point3D &position, const Quaternion &orientation,
+                          float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
+
+        ObjectType getType() const override { return ObjectType::E_PerspectiveCamera; }
+
+        void set() const override;
+
+        void setPosition(const Point3D &position) {
+            m_data.position = position;
+        }
+        void setOrientation(const Quaternion &orientation) {
+            m_data.orientation = orientation;
+        }
+        void setLensRadius(float lensRadius) {
+            m_data.lensRadius = lensRadius;
+        }
+        void setObjectPlaneDistance(float distance) {
+            m_data.setObjectPlaneDistance(distance);
         }
     };
 }

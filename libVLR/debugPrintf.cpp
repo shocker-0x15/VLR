@@ -1,7 +1,7 @@
 #include "common.h"
 
 #if defined(VLR_Platform_Windows_MSVC)
-void VLRDebugPrintf(const char* fmt, ...) {
+VLR_API void VLRDebugPrintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char str[1024];

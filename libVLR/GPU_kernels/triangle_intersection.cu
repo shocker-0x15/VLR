@@ -58,6 +58,7 @@ namespace VLR {
 
 
     
+    // bound
     RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
@@ -112,7 +113,6 @@ namespace VLR {
 
 
 
-    // Bindless
     RT_CALLABLE_PROGRAM void sampleTriangleMesh(const SurfaceLightDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
         uint32_t primIdx = desc.asMeshLight.primDistribution.sample(sample.uElem, &primProb);

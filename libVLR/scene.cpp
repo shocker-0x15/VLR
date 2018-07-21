@@ -1,5 +1,7 @@
 #include "scene_private.h"
 
+#include <random>
+
 namespace VLR {
     static std::string readTxtFile(const std::string& filepath) {
         std::ifstream ifs;
@@ -40,8 +42,8 @@ namespace VLR {
         m_optixProgramAlphaAnyHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::alphaAnyHit");
         m_optixProgramPathTracingIteration = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingIteration");
 
-        m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
         m_optixProgramPathTracing = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracing");
+        m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
         m_optixProgramException = m_optixContext->createProgramFromPTXString(ptx, "VLR::exception");
 
         m_optixContext->setEntryPointCount(1);
@@ -51,15 +53,26 @@ namespace VLR {
 
         SurfaceNode::initialize(*this);
         SurfaceMaterial::initialize(*this);
+        Camera::initialize(*this);
+
+        m_optixContext->setPrintEnabled(true);
+        m_optixContext->setPrintBufferSize(4096);
     }
 
     Context::~Context() {
+        if (m_rngBuffer)
+            m_rngBuffer->destroy();
+
+        if (m_outputBuffer)
+            m_outputBuffer->destroy();
+
+        Camera::finalize(*this);
         SurfaceMaterial::finalize(*this);
         SurfaceNode::finalize(*this);
 
         m_optixProgramException->destroy();
-        m_optixProgramPathTracing->destroy();
         m_optixProgramPathTracingMiss->destroy();
+        m_optixProgramPathTracing->destroy();
 
         m_optixProgramPathTracingIteration->destroy();
         m_optixProgramAlphaAnyHit->destroy();
@@ -71,6 +84,54 @@ namespace VLR {
         m_optixCallableProgramNullFetchAlpha->destroy();
 
         m_optixContext->destroy();
+    }
+
+    void Context::bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height) {
+        if (m_outputBuffer)
+            m_outputBuffer->destroy();
+        if (m_rngBuffer)
+            m_rngBuffer->destroy();
+
+        m_width = width;
+        m_height = height;
+
+        m_outputBuffer = m_optixContext->createBufferFromGLBO(RT_BUFFER_INPUT_OUTPUT, bufferID);
+        m_outputBuffer->setFormat(RT_FORMAT_USER);
+        m_outputBuffer->setElementSize(sizeof(RGBSpectrum));
+        m_outputBuffer->setSize(m_width, m_height);
+        {
+            auto dstData = (RGBSpectrum*)m_outputBuffer->map();
+            std::fill_n(dstData, m_width * m_height, RGBSpectrum::Zero());
+            m_outputBuffer->unmap();
+        }
+        m_optixContext["VLR::pv_outputBuffer"]->set(m_outputBuffer);
+
+        m_rngBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
+        m_rngBuffer->setElementSize(sizeof(uint64_t));
+        {
+            std::mt19937_64 rng(591842031321323413);
+
+            auto dstData = (uint64_t*)m_rngBuffer->map();
+            for (int y = 0; y < m_height; ++y) {
+                for (int x = 0; x < m_width; ++x) {
+                    dstData[y * m_width + x] = rng();
+                }
+            }
+            m_rngBuffer->unmap();
+        }
+        m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
+    }
+
+    void Context::render(Scene &scene, Camera* camera) {
+        SHGroup &shGroup = scene.getSHGroup();
+
+        m_optixContext["VLR::pv_topGroup"]->set(shGroup.getOptiXObject());
+
+        camera->set();
+
+        m_optixContext->validate();
+
+        m_optixContext->launch(0, m_width, m_height);
     }
 
 
@@ -419,17 +480,20 @@ namespace VLR {
     const ObjectType ObjectType::E_Float2Texture           = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0000'0001'0000));
     const ObjectType ObjectType::E_Float3Texture           = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0000'0010'0000));
     const ObjectType ObjectType::E_Float4Texture           = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0000'0100'0000));
-    const ObjectType ObjectType::E_ImageFloat4Texture      = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0000'1100'0000));
-    const ObjectType ObjectType::E_SurfaceMaterial         = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0001'0000'0000));
-    const ObjectType ObjectType::E_MatteSurfaceMaterial    = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0011'0000'0000));
-    const ObjectType ObjectType::E_UE4SurfaceMaterial      = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0101'0000'0000));
-    const ObjectType ObjectType::E_Node                    = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'1000'0000'0000));
-    const ObjectType ObjectType::E_SurfaceNode             = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0001'1000'0000'0000));
-    const ObjectType ObjectType::E_TriangleMeshSurfaceNode = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0011'1000'0000'0000));
-    const ObjectType ObjectType::E_ParentNode              = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0100'1000'0000'0000));
-    const ObjectType ObjectType::E_InternalNode            = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'1100'1000'0000'0000));
-    const ObjectType ObjectType::E_RootNode                = ObjectType(ObjectType::Value(0b0000'0000'0000'0001'0100'1000'0000'0000));
-    const ObjectType ObjectType::E_Scene                   = ObjectType(ObjectType::Value(0b0000'0000'0000'0010'0000'0000'0000'0000));
+    const ObjectType ObjectType::E_ConstantFloat4Texture   = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0000'1100'0000));
+    const ObjectType ObjectType::E_ImageFloat4Texture      = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0001'0100'0000));
+    const ObjectType ObjectType::E_SurfaceMaterial         = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0010'0000'0000));
+    const ObjectType ObjectType::E_MatteSurfaceMaterial    = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'0110'0000'0000));
+    const ObjectType ObjectType::E_UE4SurfaceMaterial      = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0000'1010'0000'0000));
+    const ObjectType ObjectType::E_Node                    = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0001'0000'0000'0000));
+    const ObjectType ObjectType::E_SurfaceNode             = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0011'0000'0000'0000));
+    const ObjectType ObjectType::E_TriangleMeshSurfaceNode = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'0111'0000'0000'0000));
+    const ObjectType ObjectType::E_ParentNode              = ObjectType(ObjectType::Value(0b0000'0000'0000'0000'1001'0000'0000'0000));
+    const ObjectType ObjectType::E_InternalNode            = ObjectType(ObjectType::Value(0b0000'0000'0000'0001'1001'0000'0000'0000));
+    const ObjectType ObjectType::E_RootNode                = ObjectType(ObjectType::Value(0b0000'0000'0000'0010'1001'0000'0000'0000));
+    const ObjectType ObjectType::E_Scene                   = ObjectType(ObjectType::Value(0b0000'0000'0000'0100'0000'0000'0000'0000));
+    const ObjectType ObjectType::E_Camera                  = ObjectType(ObjectType::Value(0b0000'0000'0000'1000'0000'0000'0000'0000));
+    const ObjectType ObjectType::E_PerspectiveCamera       = ObjectType(ObjectType::Value(0b0000'0000'0001'1000'0000'0000'0000'0000));
 
     bool ObjectType::is(const ObjectType &v) const {
         return value == v.value;
@@ -445,7 +509,8 @@ namespace VLR {
         sizeof(RGB8x3),
         sizeof(RGB_8x4),
         sizeof(RGBA8x4),
-        //sizeof(RGBA16Fx4), 
+        sizeof(RGBA16Fx4),
+        sizeof(RGBA32Fx4),
         sizeof(Gray8),
     };
 
@@ -457,6 +522,10 @@ namespace VLR {
             return DataFormat::RGBA8x4;
         case DataFormat::RGBA8x4:
             return DataFormat::RGBA8x4;
+        case DataFormat::RGBA16Fx4:
+            return DataFormat::RGBA16Fx4;
+        case DataFormat::RGBA32Fx4:
+            return DataFormat::RGBA32Fx4;
         case DataFormat::Gray8:
             return DataFormat::Gray8;
         default:
@@ -478,6 +547,12 @@ namespace VLR {
             break;
         case VLR::DataFormat::RGBA8x4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, width, height);
+            break;
+        case VLR::DataFormat::RGBA16Fx4:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, width, height);
+            break;
+        case VLR::DataFormat::RGBA32Fx4:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, width, height);
             break;
         case VLR::DataFormat::Gray8:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, width, height);
@@ -536,6 +611,18 @@ namespace VLR {
         case DataFormat::RGBA8x4: {
             auto srcHead = (const RGBA8x4*)linearData;
             auto dstHead = (RGBA8x4*)m_data.data();
+            std::copy_n(srcHead, width * height, dstHead);
+            break;
+        }
+        case DataFormat::RGBA16Fx4: {
+            auto srcHead = (const RGBA16Fx4*)linearData;
+            auto dstHead = (RGBA16Fx4*)m_data.data();
+            std::copy_n(srcHead, width * height, dstHead);
+            break;
+        }
+        case DataFormat::RGBA32Fx4: {
+            auto srcHead = (const RGBA32Fx4*)linearData;
+            auto dstHead = (RGBA32Fx4*)m_data.data();
             std::copy_n(srcHead, width * height, dstHead);
             break;
         }
@@ -628,6 +715,18 @@ namespace VLR {
 
 
 
+    ConstantFloat4Texture::ConstantFloat4Texture(Context &context, const float value[4]) :
+        Float4Texture(context) {
+        m_image = new LinearImage2D(context, (const uint8_t*)value, 1, 1, DataFormat::RGBA32Fx4);
+        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+    }
+
+    ConstantFloat4Texture::~ConstantFloat4Texture() {
+        delete m_image;
+    }
+    
+    
+    
     ImageFloat4Texture::ImageFloat4Texture(Context &context, Image2D* image) :
         Float4Texture(context), m_image(image) {
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
@@ -670,14 +769,16 @@ namespace VLR {
 
         optix::Context &optixContext = context.getOptiXContext();
 
-        programSet.callableProgramGetBaseColor = optixContext->createProgramFromPTXString(ptx, "VLR::LambertianBRDF_getBaseColor");
+        programSet.callableProgramSetup = optixContext->createProgramFromPTXString(ptx, "VLR::MatteSurfaceMaterial_setup");
 
-        programSet.callableProgramBSDFmatches = optixContext->createProgramFromPTXString(ptx, "VLR::LambertianBRDF_matches");
-        programSet.callableProgramSampleBSDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::LambertianBRDF_sampleBSDFInternal");
-        programSet.callableProgramEvaluateBSDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::LambertianBRDF_evaluateBSDFInternal");
-        programSet.callableProgramEvaluateBSDF_PDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::LambertianBRDF_evaluateBSDF_PDFInternal");
+        programSet.callableProgramGetBaseColor = optixContext->createProgramFromPTXString(ptx, "VLR::MatteBRDF_getBaseColor");
 
-        programSet.callableProgramEvaluateEmittance = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEmittance");
+        programSet.callableProgramBSDFmatches = optixContext->createProgramFromPTXString(ptx, "VLR::MatteBRDF_matches");
+        programSet.callableProgramSampleBSDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::MatteBRDF_sampleBSDFInternal");
+        programSet.callableProgramEvaluateBSDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::MatteBRDF_evaluateBSDFInternal");
+        programSet.callableProgramEvaluateBSDF_PDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::MatteBRDF_evaluateBSDF_PDFInternal");
+
+        programSet.callableProgramEvaluateEmittanceInternal = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEmittanceInternal");
         programSet.callableProgramEvaluateEDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEDFInternal");
 
         OptiXProgramSets[context.getID()] = programSet;
@@ -688,7 +789,7 @@ namespace VLR {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
 
         programSet.callableProgramEvaluateEDFInternal->destroy();
-        programSet.callableProgramEvaluateEmittance->destroy();
+        programSet.callableProgramEvaluateEmittanceInternal->destroy();
 
         programSet.callableProgramEvaluateBSDF_PDFInternal->destroy();
         programSet.callableProgramEvaluateBSDFInternal->destroy();
@@ -697,6 +798,8 @@ namespace VLR {
 
         programSet.callableProgramGetBaseColor->destroy();
 
+        programSet.callableProgramSetup->destroy();
+
         OptiXProgramSets.erase(context.getID());
     }
 
@@ -704,17 +807,24 @@ namespace VLR {
         SurfaceMaterial(context), m_texAlbedoRoughness(texAlbedoRoughness) {
         OptiXProgramSet &progSet = OptiXProgramSets.at(context.getID());
 
-        m_optixMaterial["VLR::pv_progGetBaseColor"]->set(progSet.callableProgramGetBaseColor);
+        Shared::MaterialDescriptor matDesc;
 
-        m_optixMaterial["VLR::pv_progBSDFmatches"]->set(progSet.callableProgramBSDFmatches);
-        m_optixMaterial["VLR::pv_progSampleBSDFInternal"]->set(progSet.callableProgramSampleBSDFInternal);
-        m_optixMaterial["VLR::pv_progEvaluateBSDFInternal"]->set(progSet.callableProgramEvaluateBSDFInternal);
-        m_optixMaterial["VLR::pv_progEvaluateBSDF_PDFInternal"]->set(progSet.callableProgramEvaluateBSDF_PDFInternal);
+        matDesc.progSetup = progSet.callableProgramSetup->getId();
 
-        m_optixMaterial["VLR::pv_progEvaluateEmittance"]->set(progSet.callableProgramEvaluateEmittance);
-        m_optixMaterial["VLR::pv_progEvaluateEDFInternal"]->set(progSet.callableProgramEvaluateEDFInternal);
+        matDesc.progGetBaseColor = progSet.callableProgramGetBaseColor->getId();
 
-        m_optixMaterial["VLR::texAlbedoRoughness"]->set(m_texAlbedoRoughness->getOptiXObject());
+        matDesc.progBSDFmatches = progSet.callableProgramBSDFmatches->getId();
+        matDesc.progSampleBSDFInternal = progSet.callableProgramSampleBSDFInternal->getId();
+        matDesc.progEvaluateBSDFInternal = progSet.callableProgramEvaluateBSDFInternal->getId();
+        matDesc.progEvaluateBSDF_PDFInternal = progSet.callableProgramEvaluateBSDF_PDFInternal->getId();
+
+        matDesc.progEvaluateEmittanceInternal = progSet.callableProgramEvaluateEmittanceInternal->getId();
+        matDesc.progEvaluateEDFInternal = progSet.callableProgramEvaluateEDFInternal->getId();
+
+        Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc;
+        mat.texAlbedoRoughness = m_texAlbedoRoughness->getOptiXObject()->getId();
+
+        m_optixMaterial["VLR::pv_materialDescriptor"]->setUserData(sizeof(Shared::MaterialDescriptor), &matDesc);
     }
 
 
@@ -729,6 +839,8 @@ namespace VLR {
 
         optix::Context &optixContext = context.getOptiXContext();
 
+        programSet.callableProgramSetup = optixContext->createProgramFromPTXString(ptx, "VLR::UE4SurfaceMaterial_setup");
+
         programSet.callableProgramGetBaseColor = optixContext->createProgramFromPTXString(ptx, "VLR::UE4BRDF_getBaseColor");
 
         programSet.callableProgramBSDFmatches = optixContext->createProgramFromPTXString(ptx, "VLR::UE4BRDF_matches");
@@ -736,7 +848,7 @@ namespace VLR {
         programSet.callableProgramEvaluateBSDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::UE4BRDF_evaluateBSDFInternal");
         programSet.callableProgramEvaluateBSDF_PDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::UE4BRDF_evaluateBSDF_PDFInternal");
 
-        programSet.callableProgramEvaluateEmittance = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEmittance");
+        programSet.callableProgramEvaluateEmittanceInternal = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEmittanceInternal");
         programSet.callableProgramEvaluateEDFInternal = optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEDFInternal");
 
         OptiXProgramSets[context.getID()] = programSet;
@@ -747,7 +859,7 @@ namespace VLR {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
 
         programSet.callableProgramEvaluateEDFInternal->destroy();
-        programSet.callableProgramEvaluateEmittance->destroy();
+        programSet.callableProgramEvaluateEmittanceInternal->destroy();
 
         programSet.callableProgramEvaluateBSDF_PDFInternal->destroy();
         programSet.callableProgramEvaluateBSDFInternal->destroy();
@@ -756,6 +868,8 @@ namespace VLR {
 
         programSet.callableProgramGetBaseColor->destroy();
 
+        programSet.callableProgramSetup->destroy();
+
         OptiXProgramSets.erase(context.getID());
     }
 
@@ -763,18 +877,25 @@ namespace VLR {
         SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texRoughnessMetallic(texRoughnessMetallic) {
         OptiXProgramSet &progSet = OptiXProgramSets.at(context.getID());
 
-        m_optixMaterial["VLR::pv_progGetBaseColor"]->set(progSet.callableProgramGetBaseColor);
+        Shared::MaterialDescriptor matDesc;
 
-        m_optixMaterial["VLR::pv_progBSDFmatches"]->set(progSet.callableProgramBSDFmatches);
-        m_optixMaterial["VLR::pv_progSampleBSDFInternal"]->set(progSet.callableProgramSampleBSDFInternal);
-        m_optixMaterial["VLR::pv_progEvaluateBSDFInternal"]->set(progSet.callableProgramEvaluateBSDFInternal);
-        m_optixMaterial["VLR::pv_progEvaluateBSDF_PDFInternal"]->set(progSet.callableProgramEvaluateBSDF_PDFInternal);
+        matDesc.progSetup = progSet.callableProgramSetup->getId();
 
-        m_optixMaterial["VLR::pv_progEvaluateEmittance"]->set(progSet.callableProgramEvaluateEmittance);
-        m_optixMaterial["VLR::pv_progEvaluateEDFInternal"]->set(progSet.callableProgramEvaluateEDFInternal);
+        matDesc.progGetBaseColor = progSet.callableProgramGetBaseColor->getId();
 
-        m_optixMaterial["VLR::texBaseColor"]->set(m_texBaseColor->getOptiXObject());
-        m_optixMaterial["VLR::texRoughnessMetallic"]->set(m_texRoughnessMetallic->getOptiXObject());
+        matDesc.progBSDFmatches = progSet.callableProgramBSDFmatches->getId();
+        matDesc.progSampleBSDFInternal = progSet.callableProgramSampleBSDFInternal->getId();
+        matDesc.progEvaluateBSDFInternal = progSet.callableProgramEvaluateBSDFInternal->getId();
+        matDesc.progEvaluateBSDF_PDFInternal = progSet.callableProgramEvaluateBSDF_PDFInternal->getId();
+
+        matDesc.progEvaluateEmittanceInternal = progSet.callableProgramEvaluateEmittanceInternal->getId();
+        matDesc.progEvaluateEDFInternal = progSet.callableProgramEvaluateEDFInternal->getId();
+
+        Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc;
+        mat.texBaseColor = m_texBaseColor->getOptiXObject()->getId();
+        mat.texRoughnessMetallic = m_texRoughnessMetallic->getOptiXObject()->getId();
+
+        m_optixMaterial["VLR::pv_materialDescriptor"]->setUserData(sizeof(Shared::MaterialDescriptor), &matDesc);
     }
     
     
@@ -1288,5 +1409,61 @@ namespace VLR {
     Scene::Scene(Context &context, const Transform* localToWorld) : 
     Object(context), m_rootNode(context, localToWorld) {
 
+    }
+
+
+
+    // static
+    void Camera::initialize(Context &context) {
+        PerspectiveCamera::initialize(context);
+    }
+
+    // static
+    void Camera::finalize(Context &context) {
+        PerspectiveCamera::finalize(context);
+    }
+    
+    
+    
+    std::map<uint32_t, PerspectiveCamera::OptiXProgramSet> PerspectiveCamera::OptiXProgramSets;
+    
+    // static
+    void PerspectiveCamera::initialize(Context &context) {
+        std::string ptx = readTxtFile("resources/ptxes/cameras.ptx");
+
+        OptiXProgramSet programSet;
+
+        optix::Context &optixContext = context.getOptiXContext();
+
+        programSet.callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, "VLR::PerspectiveCamera_sampleLensPosition");
+        programSet.callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, "VLR::PerspectiveCamera_sampleIDF");
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void PerspectiveCamera::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+
+        programSet.callableProgramSampleIDF->destroy();
+        programSet.callableProgramSampleLensPosition->destroy();
+
+        OptiXProgramSets.erase(context.getID());
+    }
+    
+    PerspectiveCamera::PerspectiveCamera(Context &context, const Point3D &position, const Quaternion &orientation,
+                                         float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
+        Camera(context), m_data(aspect, fovY, lensRadius, imgPDist, objPDist) {
+        m_data.position = position;
+        m_data.orientation = orientation;
+    }
+
+    void PerspectiveCamera::set() const {
+        optix::Context &optixContext = m_context.getOptiXContext();
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        optixContext["VLR::pv_perspectiveCamera"]->setUserData(sizeof(Shared::PerspectiveCamera), &m_data);
+        optixContext["VLR::pv_progSampleLensPosition"]->set(progSet.callableProgramSampleLensPosition);
+        optixContext["VLR::pv_progSampleIDF"]->set(progSet.callableProgramSampleIDF);
     }
 }

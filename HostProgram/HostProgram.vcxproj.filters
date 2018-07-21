@@ -25,6 +25,9 @@
     <Filter Include="imGui">
       <UniqueIdentifier>{c87f610c-174a-4151-b19d-cdfb50062d04}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{b1ba1065-1607-4b70-8c86-9c1535ae2b93}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ext\include\GL\gl3w.h">
@@ -54,5 +57,20 @@
     <ClInclude Include="ext\include\imGui\imconfig.h">
       <Filter>imGui</Filter>
     </ClInclude>
+    <ClInclude Include="GLToolkit.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\shaders\scale.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="resources\shaders\scale.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="resources\shaders\drawOptiXResult.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="resources\shaders\drawOptiXResult.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

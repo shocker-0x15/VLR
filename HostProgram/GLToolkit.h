@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdio>
 #include <cstdint>
@@ -33,7 +33,7 @@
 #endif
 
 #ifdef Platform_Windows_MSVC
-static void debugPrintf(const char* fmt, ...) {
+static void GLTKDebugPrintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char str[1024];
@@ -42,7 +42,7 @@ static void debugPrintf(const char* fmt, ...) {
     OutputDebugString(str);
 }
 #else
-#   define debugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#   define GLTKDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
 #endif
 
 #ifdef _DEBUG
@@ -50,7 +50,7 @@ static void debugPrintf(const char* fmt, ...) {
 #endif
 
 #ifdef GLTK_ENABLE_ASSERT
-#   define GLTKAssert(expr, fmt, ...) if (!(expr)) { debugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); debugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
+#   define GLTKAssert(expr, fmt, ...) if (!(expr)) { GLTKDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); GLTKDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
 #else
 #   define GLTKAssert(expr, fmt, ...)
 #endif
@@ -97,7 +97,7 @@ namespace GLTK {
     }
 
     static void printErrorString() {
-        debugPrintf("%s\n", getErrorString((Error)glGetError()).c_str());
+        GLTKDebugPrintf("%s\n", getErrorString((Error)glGetError()).c_str());
     }
 
     static inline void errorCheck() {
@@ -603,29 +603,29 @@ namespace GLTK {
             case Status::Complete:
                 break;
             case Status::Undefined:
-                debugPrintf("The specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist.\n");
+                GLTKDebugPrintf("The specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist.\n");
                 break;
             case Status::IncompleteAttachment:
-                debugPrintf("Any of the framebuffer attachment points are framebuffer incomplete.\n");
+                GLTKDebugPrintf("Any of the framebuffer attachment points are framebuffer incomplete.\n");
                 break;
             case Status::IncompleteMissingAttachment:
-                debugPrintf("The framebuffer does not have at least one image attached to it.\n");
+                GLTKDebugPrintf("The framebuffer does not have at least one image attached to it.\n");
                 break;
             case Status::IncompleteDrawBuffer:
-                debugPrintf("The value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for any color attachment point(s) named by GL_DRAW_BUFFERi.\n");
+                GLTKDebugPrintf("The value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for any color attachment point(s) named by GL_DRAW_BUFFERi.\n");
                 break;
             case Status::IncompleteReadBuffer:
-                debugPrintf("GL_READ_BUFFER is not GL_NONE and the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for the color attachment point named by GL_READ_BUFFER.\n");
+                GLTKDebugPrintf("GL_READ_BUFFER is not GL_NONE and the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for the color attachment point named by GL_READ_BUFFER.\n");
                 break;
             case Status::Unsupported:
-                debugPrintf("The combination of internal formats of the attached images violates an implementation-dependent set of restrictions.\n");
+                GLTKDebugPrintf("The combination of internal formats of the attached images violates an implementation-dependent set of restrictions.\n");
                 break;
             case Status::IncompleteMultisample:
-                debugPrintf("The value of GL_RENDERBUFFER_SAMPLES is not the same for all attached renderbuffers; if the value of GL_TEXTURE_SAMPLES is the not same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_RENDERBUFFER_SAMPLES does not match the value of GL_TEXTURE_SAMPLES.\n");
-                debugPrintf("The value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all attached textures.\n");;
+                GLTKDebugPrintf("The value of GL_RENDERBUFFER_SAMPLES is not the same for all attached renderbuffers; if the value of GL_TEXTURE_SAMPLES is the not same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_RENDERBUFFER_SAMPLES does not match the value of GL_TEXTURE_SAMPLES.\n");
+                GLTKDebugPrintf("The value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all attached textures.\n");;
                 break;
             case Status::IncompleteLayerTargets:
-                debugPrintf("Any framebuffer attachment is layered, and any populated attachment is not layered, or if all populated color attachments are not from textures of the same target.\n");
+                GLTKDebugPrintf("Any framebuffer attachment is layered, and any populated attachment is not layered, or if all populated color attachments are not from textures of the same target.\n");
                 break;
             default:
                 break;
@@ -737,7 +737,7 @@ namespace GLTK {
             if (logLength > 0) {
                 GLchar* log = (GLchar*)malloc(logLength * sizeof(GLchar));
                 glGetShaderInfoLog(handle, logLength, &logLength, log); errorCheck();
-                debugPrintf("Shader Compile Error:\n%s\n", log);
+                GLTKDebugPrintf("Shader Compile Error:\n%s\n", log);
                 free(log);
             }
 
@@ -759,12 +759,12 @@ namespace GLTK {
             if (logLength > 0) {
                 GLchar* log = (GLchar*)malloc(logLength * sizeof(GLchar));
                 glGetProgramInfoLog(m_handle, logLength, &logLength, log); errorCheck();
-                debugPrintf("%s", log);
+                GLTKDebugPrintf("%s", log);
                 free(log);
             }
             glGetProgramiv(m_handle, GL_VALIDATE_STATUS, &status); errorCheck();
             if (status == 0) {
-                debugPrintf("Program Status : GL_FALSE\n");
+                GLTKDebugPrintf("Program Status : GL_FALSE\n");
             }
         }
     public:
@@ -790,7 +790,7 @@ namespace GLTK {
             if (logLength > 0) {
                 GLchar* log = (GLchar*)malloc(logLength * sizeof(GLchar));
                 glGetProgramInfoLog(m_handle, logLength, &logLength, log); errorCheck();
-                debugPrintf("%s\n", log);
+                GLTKDebugPrintf("%s\n", log);
                 free(log);
             }
 

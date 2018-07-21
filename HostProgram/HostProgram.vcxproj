@@ -43,11 +43,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(CUDA_PATH)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(CUDA_PATH)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -113,6 +113,13 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     <ClInclude Include="ext\include\imGui\stb_rect_pack.h" />
     <ClInclude Include="ext\include\imGui\stb_textedit.h" />
     <ClInclude Include="ext\include\imGui\stb_truetype.h" />
+    <ClInclude Include="GLToolkit.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\shaders\drawOptiXResult.frag" />
+    <None Include="resources\shaders\drawOptiXResult.vert" />
+    <None Include="resources\shaders\scale.frag" />
+    <None Include="resources\shaders\scale.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
