@@ -216,34 +216,49 @@ namespace VLR {
         SurfacePoint surfPt;
         float areaPDF;
         DirectionType posType;
+        uint32_t matIndex;
     };
 
     typedef rtCallableProgramId<void(const SurfaceLightDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
     typedef rtCallableProgramId<RGBSpectrum(const SurfaceLightDescriptor::Body &, const TexCoord2D &)> ProgSigSurfaceLight_evaluate;
 
     class SurfaceLight {
-        SurfaceLightDescriptor m_desc;
-        //SurfaceLightDescriptor::Body m_desc;
-        //ProgSigSurfaceLight_sample m_progSurfaceLight_sample;
-        //ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate;
+        //SurfaceLightDescriptor m_desc;
+        SurfaceLightDescriptor::Body m_desc;
+        ProgSigSurfaceLight_sample m_progSurfaceLight_sample;
+        ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate;
 
     public:
         RT_FUNCTION SurfaceLight() {}
         RT_FUNCTION SurfaceLight(const SurfaceLightDescriptor &desc) : 
-            m_desc(desc)
-            //m_desc(desc.body), 
-            //m_progSurfaceLight_sample((ProgSigSurfaceLight_sample)desc.sampleFunc), 
-            //m_progSurfaceLight_evaluate((ProgSigSurfaceLight_evaluate)desc.evaluateFunc) 
+            //m_desc(desc)
+            m_desc(desc.body), 
+            m_progSurfaceLight_sample((ProgSigSurfaceLight_sample)desc.sampleFunc), 
+            m_progSurfaceLight_evaluate((ProgSigSurfaceLight_evaluate)desc.evaluateFunc) 
         {}
 
-        RT_FUNCTION RGBSpectrum sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) const {
-            ProgSigSurfaceLight_sample m_progSurfaceLight_sample = (ProgSigSurfaceLight_sample)m_desc.sampleFunc;
-            ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate = (ProgSigSurfaceLight_evaluate)m_desc.evaluateFunc;
-            m_progSurfaceLight_sample(m_desc.body, posSample, lpResult);
-            return m_progSurfaceLight_evaluate(m_desc.body, lpResult->surfPt.texCoord);
+        RT_FUNCTION RGBSpectrum sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) /*const*/ {
+            //ProgSigSurfaceLight_sample m_progSurfaceLight_sample = (ProgSigSurfaceLight_sample)m_desc.sampleFunc;
+            //ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate = (ProgSigSurfaceLight_evaluate)m_desc.evaluateFunc;
+            //m_progSurfaceLight_sample(m_desc.body, posSample, lpResult);
+            //return m_progSurfaceLight_evaluate(m_desc.body, lpResult->surfPt.texCoord);
 
             //m_progSurfaceLight_sample(m_desc, posSample, lpResult);
             //return m_progSurfaceLight_evaluate(m_desc, lpResult->surfPt.texCoord);
+
+            SurfacePoint &surfPt = lpResult->surfPt;
+            surfPt.atInfinity = false;
+            surfPt.geometricNormal = Normal3D(0, -1, 0);
+            surfPt.shadingFrame = ReferenceFrame(Vector3D(1, 0, 0), Vector3D(0, 0, 1), Normal3D(0, -1, 0));
+            surfPt.u = posSample.uPos[0];
+            surfPt.v = posSample.uPos[1];
+            surfPt.position = Point3D(-0.5f, 2.999f, -0.5f) + surfPt.u * Vector3D(1, 0, 0) + surfPt.v * Vector3D(0, 0, 1);
+            surfPt.texCoord = TexCoord2D(surfPt.u, surfPt.v);
+            lpResult->areaPDF = 1.0f / 1.0f;
+            lpResult->posType = DirectionType::Emission() | DirectionType::LowFreq();
+            lpResult->matIndex = 0;
+
+            return RGBSpectrum(1, 1, 1);
         }
     };
 
@@ -281,17 +296,17 @@ namespace VLR {
 
 
 
-    class MaterialParameters {
-#define VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS (32)
+    class BSDF {
+#define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         union {
-            int32_t i1[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS];
-            uint32_t ui1[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS];
-            float f1[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS];
+            int32_t i1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
+            uint32_t ui1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
+            float f1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
 
-            optix::int2 i2[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS >> 1];
-            optix::float2 f2[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS >> 1];
+            optix::int2 i2[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 1];
+            optix::float2 f2[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 1];
 
-            optix::float4 f4[VLR_MAX_NUM_MATERIAL_PARAMETER_SLOTS >> 2];
+            optix::float4 f4[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 2];
         };
 
         typedef rtCallableProgramId<void(const uint32_t*, const SurfacePoint &surfPt, uint32_t* params)> progSigSetup;
@@ -302,17 +317,11 @@ namespace VLR {
         typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDFInternal;
         typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDF_PDFInternal;
 
-        typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigEvaluateEmittanceInternal;
-        typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> progSigEvaluateEDFInternal;
-
         progSigGetBaseColor progGetBaseColor;
         progSigBSDFmatches progBSDFmatches;
         progSigSampleBSDFInternal progSampleBSDFInternal;
         progSigEvaluateBSDFInternal progEvaluateBSDFInternal;
         progSigEvaluateBSDF_PDFInternal progEvaluateBSDF_PDFInternal;
-
-        progSigEvaluateEmittanceInternal progEvaluateEmittanceInternal;
-        progSigEvaluateEDFInternal progEvaluateEDFInternal;
 
         RT_FUNCTION bool BSDFmatches(DirectionType dirType) {
             return progBSDFmatches(dirType);
@@ -327,15 +336,8 @@ namespace VLR {
             return progEvaluateBSDF_PDFInternal((const uint32_t*)this, query, dirLocal);
         }
 
-        RT_FUNCTION RGBSpectrum evaluateEmittanceInternal() {
-            return progEvaluateEmittanceInternal((const uint32_t*)this);
-        }
-        RT_FUNCTION RGBSpectrum evaluateEDFInternal(const EDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateEDFInternal((const uint32_t*)this, query, dirLocal);
-        }
-
     public:
-        RT_FUNCTION MaterialParameters(const MaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
+        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
             progSigSetup setup = (progSigSetup)matDesc.progSetup;
             setup((const uint32_t*)&matDesc, surfPt, (uint32_t*)this);
 
@@ -344,9 +346,6 @@ namespace VLR {
             progSampleBSDFInternal = (progSigSampleBSDFInternal)matDesc.progSampleBSDFInternal;
             progEvaluateBSDFInternal = (progSigEvaluateBSDFInternal)matDesc.progEvaluateBSDFInternal;
             progEvaluateBSDF_PDFInternal = (progSigEvaluateBSDF_PDFInternal)matDesc.progEvaluateBSDF_PDFInternal;
-
-            progEvaluateEmittanceInternal = (progSigEvaluateEmittanceInternal)matDesc.progEvaluateEmittanceInternal;
-            progEvaluateEDFInternal = (progSigEvaluateEDFInternal)matDesc.progEvaluateEDFInternal;
         }
 
         RT_FUNCTION RGBSpectrum getBaseColor() {
@@ -376,6 +375,46 @@ namespace VLR {
             }
             float ret = evaluateBSDF_PDFInternal(query, dirLocal);
             return ret;
+        }
+    };
+
+
+
+    class EDF {
+#define VLR_MAX_NUM_EDF_PARAMETER_SLOTS (8)
+        union {
+            int32_t i1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
+            uint32_t ui1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
+            float f1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
+
+            optix::int2 i2[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 1];
+            optix::float2 f2[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 1];
+
+            optix::float4 f4[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 2];
+        };
+
+        typedef rtCallableProgramId<void(const uint32_t*, const SurfacePoint &surfPt, uint32_t* params)> progSigSetup;
+
+        typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigEvaluateEmittanceInternal;
+        typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> progSigEvaluateEDFInternal;
+
+        progSigEvaluateEmittanceInternal progEvaluateEmittanceInternal;
+        progSigEvaluateEDFInternal progEvaluateEDFInternal;
+
+        RT_FUNCTION RGBSpectrum evaluateEmittanceInternal() {
+            return progEvaluateEmittanceInternal((const uint32_t*)this);
+        }
+        RT_FUNCTION RGBSpectrum evaluateEDFInternal(const EDFQuery &query, const Vector3D &dirLocal) {
+            return progEvaluateEDFInternal((const uint32_t*)this, query, dirLocal);
+        }
+
+    public:
+        RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
+            progSigSetup setup = (progSigSetup)matDesc.progSetup;
+            setup((const uint32_t*)&matDesc, surfPt, (uint32_t*)this);
+
+            progEvaluateEmittanceInternal = (progSigEvaluateEmittanceInternal)matDesc.progEvaluateEmittanceInternal;
+            progEvaluateEDFInternal = (progSigEvaluateEDFInternal)matDesc.progEvaluateEDFInternal;
         }
 
         RT_FUNCTION RGBSpectrum evaluateEmittance() {

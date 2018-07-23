@@ -3,14 +3,6 @@
 #include <VLR.h>
 #include "scene_private.h"
 
-// DELETE ME
-#define STB_IMAGE_IMPLEMENTATION
-#include "../HostProgram/ext/include/stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBI_MSC_SECURE_CRT
-#include "../HostProgram/ext/include/stb_image_write.h"
-#include <random>
-
 
 
 VLR_API VLRResult vlrCreateContext(VLRContext* context) {
@@ -33,10 +25,10 @@ VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t buffer
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff) {
     if (!scene->getType().is(VLR::ObjectType::E_Scene) || !camera->getType().isMemberOf(VLR::ObjectType::E_Camera))
         return VLR_ERROR_INVALID_TYPE;
-    context->render(*scene, camera);
+    context->render(*scene, camera, shrinkCoeff);
 
     return VLR_ERROR_NO_ERROR;
 }

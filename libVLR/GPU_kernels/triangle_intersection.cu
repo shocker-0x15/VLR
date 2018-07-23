@@ -1,9 +1,9 @@
-#include "kernel_common.cuh"
+ï»¿#include "kernel_common.cuh"
 #include "random_distributions.cuh"
 
 namespace VLR {
     // per GeometryInstance
-    // closestHitProgram‚È‚Ç‚©‚çŒÄ‚Î‚ê‚édecodeHitPoint“™‚Å“Ç‚İo‚·‚½‚ß‚É‚ÍGeometryInstanceƒŒƒxƒ‹‚ÉƒoƒCƒ“ƒh‚·‚é•K—v‚ª‚ ‚éB
+    // closestHitProgramãªã©ã‹ã‚‰å‘¼ã°ã‚Œã‚‹decodeHitPointç­‰ã§èª­ã¿å‡ºã™ãŸã‚ã«ã¯GeometryInstanceãƒ¬ãƒ™ãƒ«ã«ãƒã‚¤ãƒ³ãƒ‰ã™ã‚‹å¿…è¦ãŒã‚ã‚‹ã€‚
     rtBuffer<Vertex> pv_vertexBuffer;
     rtBuffer<Triangle> pv_triangleBuffer;
 
@@ -115,12 +115,12 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM void sampleTriangleMesh(const SurfaceLightDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
-        uint32_t primIdx = desc.asMeshLight.primDistribution.sample(sample.uElem, &primProb);
+        uint32_t primIdx = desc.primDistribution.sample(sample.uElem, &primProb);
 
-        const Triangle &triangle = desc.asMeshLight.triangleBuffer[primIdx];
-        const Vertex &v0 = desc.asMeshLight.vertexBuffer[triangle.index0];
-        const Vertex &v1 = desc.asMeshLight.vertexBuffer[triangle.index1];
-        const Vertex &v2 = desc.asMeshLight.vertexBuffer[triangle.index2];
+        const Triangle &triangle = desc.triangleBuffer[primIdx];
+        const Vertex &v0 = desc.vertexBuffer[triangle.index0];
+        const Vertex &v1 = desc.vertexBuffer[triangle.index1];
+        const Vertex &v2 = desc.vertexBuffer[triangle.index2];
 
         Normal3D geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
         float area = geometricNormal.length() / 2;
@@ -131,15 +131,15 @@ namespace VLR {
         b2 = 1.0f - b0 - b1;
 
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
-        Normal3D shadingNormal = normalize(b0 * v0.normal + b1 * v1.normal + b2 * v2.normal);
-        Vector3D shadingTangent = normalize(b0 * v0.tangent + b1 * v1.tangent + b2 * v2.tangent);
+        Normal3D shadingNormal = b0 * v0.normal + b1 * v1.normal + b2 * v2.normal;
+        Vector3D shadingTangent = b0 * v0.tangent + b1 * v1.tangent + b2 * v2.tangent;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
         ReferenceFrame shadingFrame;
-        shadingFrame.z = shadingNormal;
-        shadingFrame.x = shadingTangent;
-        // JP: –@ü‚ÆÚü‚ª’¼Œğ‚·‚é‚±‚Æ‚ğ•ÛØ‚·‚éB
-        //     ’¼Œğ«‚ÌÁ¸‚ÍdSÀ•W•âŠÔ‚É‚æ‚Á‚Ä‚¨‚±‚éH
+        shadingFrame.z = normalize(desc.transform * shadingNormal);
+        shadingFrame.x = normalize(desc.transform * shadingTangent);
+        // JP: æ³•ç·šã¨æ¥ç·šãŒç›´äº¤ã™ã‚‹ã“ã¨ã‚’ä¿è¨¼ã™ã‚‹ã€‚
+        //     ç›´äº¤æ€§ã®æ¶ˆå¤±ã¯é‡å¿ƒåº§æ¨™è£œé–“ã«ã‚ˆã£ã¦ãŠã“ã‚‹ï¼Ÿ
         // EN: guarantee the orthogonality between the normal and tangent.
         //     Orthogonality break might be caused by barycentric interpolation?
         float dotNT = dot(shadingFrame.z, shadingFrame.x);
@@ -147,11 +147,11 @@ namespace VLR {
             shadingFrame.x = normalize(shadingFrame.x - dotNT * shadingFrame.z);
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 
-        result->surfPt.position = position;
+        result->surfPt.position = desc.transform * position;
         result->surfPt.shadingFrame = shadingFrame;
         result->surfPt.atInfinity = false;
 
-        result->surfPt.geometricNormal = normalize(desc.asMeshLight.orientation.toMatrix3x3() * geometricNormal);
+        result->surfPt.geometricNormal = normalize(desc.transform * geometricNormal);
         result->surfPt.u = b0;
         result->surfPt.v = b1;
         result->surfPt.texCoord = texCoord;

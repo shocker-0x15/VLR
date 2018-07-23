@@ -1,4 +1,4 @@
-#include "scene_private.h"
+#include "scene.h"
 
 #include <random>
 
@@ -46,6 +46,13 @@ namespace VLR {
         m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
         m_optixProgramException = m_optixContext->createProgramFromPTXString(ptx, "VLR::exception");
 
+        m_maxNumSurfaceMaterialDescriptors = 8192;
+        m_optixSurfaceMaterialDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumSurfaceMaterialDescriptors);
+        m_optixSurfaceMaterialDescriptorBuffer->setElementSize(sizeof(Shared::SurfaceMaterialDescriptor));
+        m_surfMatDescSlotManager.initialize(m_maxNumSurfaceMaterialDescriptors);
+
+        m_optixContext["VLR::pv_materialDescriptorBuffer"]->set(m_optixSurfaceMaterialDescriptorBuffer);
+
         m_optixContext->setEntryPointCount(1);
         m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
         m_optixContext->setMissProgram(0, m_optixProgramPathTracingMiss);
@@ -69,6 +76,9 @@ namespace VLR {
         Camera::finalize(*this);
         SurfaceMaterial::finalize(*this);
         SurfaceNode::finalize(*this);
+
+        m_surfMatDescSlotManager.finalize();
+        m_optixSurfaceMaterialDescriptorBuffer->destroy();
 
         m_optixProgramException->destroy();
         m_optixProgramPathTracingMiss->destroy();
@@ -122,16 +132,34 @@ namespace VLR {
         m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
     }
 
-    void Context::render(Scene &scene, Camera* camera) {
+    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff) {
         SHGroup &shGroup = scene.getSHGroup();
 
         m_optixContext["VLR::pv_topGroup"]->set(shGroup.getOptiXObject());
+        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
+        m_optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 
         camera->set();
 
         m_optixContext->validate();
 
-        m_optixContext->launch(0, m_width, m_height);
+        m_optixContext->launch(0, imageSize.x, imageSize.y);
+    }
+
+    uint32_t Context::setSurfaceMaterialDescriptor(const Shared::SurfaceMaterialDescriptor &matDesc) {
+        uint32_t index = m_surfMatDescSlotManager.getFirstAvailableSlot();
+        {
+            auto matDescs = (Shared::SurfaceMaterialDescriptor*)m_optixSurfaceMaterialDescriptorBuffer->map();
+            matDescs[index] = matDesc;
+            m_optixSurfaceMaterialDescriptorBuffer->unmap();
+        }
+        m_surfMatDescSlotManager.setInUse(index);
+
+        return index;
+    }
+
+    void Context::unsetSurfaceMaterialDescriptor(uint32_t index) {
+        m_surfMatDescSlotManager.setNotInUse(index);
     }
 
 
@@ -141,10 +169,18 @@ namespace VLR {
 
     void SHGroup::addChild(SHTransform* transform) {
         TransformStatus status;
-        status.hasGeometryDescendant = transform->hasGeometryDescendant();
+        SHGeometryGroup* descendant;
+        status.hasGeometryDescendant = transform->hasGeometryDescendant(&descendant);
         m_transforms[transform] = status;
         if (status.hasGeometryDescendant) {
-            m_optixGroup->addChild(transform->getOptiXObject());
+            optix::Transform &optixTransform = transform->getOptiXObject();
+            optixTransform->setChild(descendant->getOptiXObject());
+
+            RTobject trChild;
+            rtTransformGetChild(optixTransform->get(), &trChild);
+            VLRAssert(trChild, "Transform must have a child.");
+
+            m_optixGroup->addChild(optixTransform);
             m_optixAcceleration->markDirty();
             ++m_numValidTransforms;
         }
@@ -189,6 +225,10 @@ namespace VLR {
         else {
             if (transform->hasGeometryDescendant(&descendant)) {
                 optixTransform->setChild(descendant->getOptiXObject());
+
+                RTobject trChild;
+                rtTransformGetChild(optixTransform->get(), &trChild);
+                VLRAssert(trChild, "Transform must have a child.");
 
                 m_optixGroup->addChild(optixTransform);
                 m_optixAcceleration->markDirty();
@@ -756,6 +796,10 @@ namespace VLR {
         m_optixMaterial->setAnyHitProgram(Shared::RayType::Scattered, context.getOptiXProgramStochasticAlphaAnyHit());
         m_optixMaterial->setAnyHitProgram(Shared::RayType::Shadow, context.getOptiXProgramAlphaAnyHit());
     }
+    
+    SurfaceMaterial::~SurfaceMaterial() {
+        m_optixMaterial->destroy();
+    }
 
 
 
@@ -807,7 +851,7 @@ namespace VLR {
         SurfaceMaterial(context), m_texAlbedoRoughness(texAlbedoRoughness) {
         OptiXProgramSet &progSet = OptiXProgramSets.at(context.getID());
 
-        Shared::MaterialDescriptor matDesc;
+        Shared::SurfaceMaterialDescriptor matDesc;
 
         matDesc.progSetup = progSet.callableProgramSetup->getId();
 
@@ -824,7 +868,13 @@ namespace VLR {
         Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc;
         mat.texAlbedoRoughness = m_texAlbedoRoughness->getOptiXObject()->getId();
 
-        m_optixMaterial["VLR::pv_materialDescriptor"]->setUserData(sizeof(Shared::MaterialDescriptor), &matDesc);
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // ‰½ŒÌ‚©validate()‚ÅƒGƒ‰[‚É‚È‚éB
+        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
+    }
+
+    MatteSurfaceMaterial::~MatteSurfaceMaterial() {
+        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
 
@@ -877,7 +927,7 @@ namespace VLR {
         SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texRoughnessMetallic(texRoughnessMetallic) {
         OptiXProgramSet &progSet = OptiXProgramSets.at(context.getID());
 
-        Shared::MaterialDescriptor matDesc;
+        Shared::SurfaceMaterialDescriptor matDesc;
 
         matDesc.progSetup = progSet.callableProgramSetup->getId();
 
@@ -895,7 +945,12 @@ namespace VLR {
         mat.texBaseColor = m_texBaseColor->getOptiXObject()->getId();
         mat.texRoughnessMetallic = m_texRoughnessMetallic->getOptiXObject()->getId();
 
-        m_optixMaterial["VLR::pv_materialDescriptor"]->setUserData(sizeof(Shared::MaterialDescriptor), &matDesc);
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
+    }
+
+    UE4SurfaceMaterial::~UE4SurfaceMaterial() {
+        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
     
     
@@ -1016,7 +1071,7 @@ namespace VLR {
 
         m_sameMaterialGroups.emplace_back(indices);
         std::vector<uint32_t> &sameMaterialGroup = m_sameMaterialGroups.back();
-        uint32_t numTriangles = sameMaterialGroup.size() / 3;
+        uint32_t numTriangles = (uint32_t)sameMaterialGroup.size() / 3;
 
         OptiXGeometry geom;
         {
