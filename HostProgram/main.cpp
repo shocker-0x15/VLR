@@ -92,10 +92,6 @@ KeyState g_keyDownward;
 KeyState g_keyTiltLeft;
 KeyState g_keyTiltRight;
 KeyState g_buttonRotate;
-KeyState g_keyIncreaseLensRadius;
-KeyState g_keyDecreaseLensRadius;
-KeyState g_keyIncreaseObjPlaneDistance;
-KeyState g_keyDecreaseObjPlaneDistance;
 double g_mouseX;
 double g_mouseY;
 
@@ -120,155 +116,165 @@ static void glfw_error_callback(int32_t error, const char* description) {
     debugPrintf("Error %d: %s\n", error, description);
 }
 
-//static void recursiveConstruct(const aiScene* objSrc, const aiNode* nodeSrc,
-//                               const std::vector<SurfaceMaterialRef> &materials, const std::vector<NormalTextureRef> &normalMaps, const std::vector<FloatTextureRef> &alphaMaps,
-//                               VLR::NodeRef* nodeOut) {
-//    using namespace VLR;
-//
-//    if (nodeSrc->mNumMeshes == 0 && nodeSrc->mNumChildren == 0) {
-//        nodeOut = nullptr;
-//        return;
-//    }
-//
-//    const aiMatrix4x4 &tf = nodeSrc->mTransformation;
-//    float tfElems[] = {
-//        tf.a1, tf.a2, tf.a3, tf.a4,
-//        tf.b1, tf.b2, tf.b3, tf.b4,
-//        tf.c1, tf.c2, tf.c3, tf.c4,
-//        tf.d1, tf.d2, tf.d3, tf.d4,
-//    };
-//
-//    *nodeOut = createShared<InternalNode>(createShared<StaticTransform>(Matrix4x4(tfElems)));
-//
-//    std::vector<Triangle> meshIndices;
-//    for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
-//        const aiMesh* mesh = objSrc->mMeshes[nodeSrc->mMeshes[m]];
-//        if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
-//            debugPrintf("ignored non triangle mesh.\n");
-//            continue;
-//        }
-//
-//        auto surfMesh = createShared<TriangleMeshSurfaceNode>();
-//        const SurfaceMaterialRef &surfMat = materials[mesh->mMaterialIndex];
-//        const NormalTextureRef &normalMap = normalMaps[mesh->mMaterialIndex];
-//        const FloatTextureRef &alphaMap = alphaMaps[mesh->mMaterialIndex];
-//
-//        std::vector<Vertex> vertices;
-//        for (int v = 0; v < mesh->mNumVertices; ++v) {
-//            const aiVector3D &p = mesh->mVertices[v];
-//            const aiVector3D &n = mesh->mNormals[v];
-//            float tangent[3];
-//            if (mesh->mTangents == nullptr)
-//                makeTangent(n.x, n.y, n.z, tangent);
-//            const aiVector3D &t = mesh->mTangents ? mesh->mTangents[v] : aiVector3D(tangent[0], tangent[1], tangent[2]);
-//            const aiVector3D &uv = mesh->mNumUVComponents[0] > 0 ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
-//
-//            Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, uv.y) };
-//            float dotNT = dot(outVtx.normal, outVtx.tangent);
-//            if (std::fabs(dotNT) >= 0.01f)
-//                outVtx.tangent = normalize(outVtx.tangent - dotNT * outVtx.normal);
-//            //SLRAssert(absDot(outVtx.normal, outVtx.tangent) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
-//            vertices.push_back(outVtx);
-//        }
-//        surfMesh->addVertices(vertices.data(), vertices.size());
-//
-//        meshIndices.clear();
-//        for (int f = 0; f < mesh->mNumFaces; ++f) {
-//            const aiFace &face = mesh->mFaces[f];
-//            meshIndices.emplace_back(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
-//        }
-//        surfMesh->addMaterialGroup(surfMat, normalMap, alphaMap, std::move(meshIndices));
-//
-//        surfMesh->setName(mesh->mName.C_Str());
-//
-//        surfMesh->useOnlyForBoundary(!meshAttr.render);
-//        surfMesh->setAxisForRadialTangent(meshAttr.axisForRadialTangent);
-//
-//        nodeOut->addChildNode(surfMesh);
-//    }
-//
-//    if (nodeSrc->mNumChildren) {
-//        for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
-//            InternalNodeRef subNode;
-//            recursiveConstruct(objSrc, nodeSrc->mChildren[c], materials, normalMaps, alphaMaps, meshCallback, subNode);
-//            if (subNode != nullptr)
-//                nodeOut->addChildNode(subNode);
-//        }
-//    }
-//}
-//
-//static SurfaceAttributeTuple createMaterialDefaultFunction(const aiMaterial* aiMat, const std::string &pathPrefix) {
-//    using namespace SLR;
-//    aiReturn ret;
-//    (void)ret;
-//    aiString strValue;
-//    float color[3];
-//
-//    aiMat->Get(AI_MATKEY_NAME, strValue);
-//
-//    const Texture2DMappingRef &mapping = Texture2DMapping::sharedInstanceRef();
-//
-//    SpectrumTextureRef diffuseTex;
-//    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-//        Image2DRef image = createImage2D((pathPrefix + strValue.C_Str()).c_str(), ImageStoreMode::AsIs, SpectrumType::Reflectance, false);
-//        diffuseTex = createShared<ImageSpectrumTexture>(mapping, image);
-//    }
-//    else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-//        AssetSpectrumRef sp = Spectrum::create(SpectrumType::Reflectance, ColorSpace::sRGB_NonLinear, color[0], color[1], color[2]);
-//        diffuseTex = createShared<ConstantSpectrumTexture>(sp);
-//    }
-//    else {
-//        AssetSpectrumRef sp = Spectrum::create(SpectrumType::Reflectance, ColorSpace::sRGB_NonLinear, 1.0f, 0.0f, 1.0f);
-//        diffuseTex = createShared<ConstantSpectrumTexture>(sp);
-//    }
-//
-//    SurfaceMaterialRef mat = SurfaceMaterial::createMatte(diffuseTex, nullptr);
-//
-//    NormalTextureRef normalTex;
-//    if (aiMat->Get(AI_MATKEY_TEXTURE_DISPLACEMENT(0), strValue) == aiReturn_SUCCESS) {
-//        Image2DRef image = createImage2D((pathPrefix + strValue.C_Str()).c_str(), ImageStoreMode::NormalTexture, SpectrumType::Reflectance, false);
-//        normalTex = createShared<ImageNormalTexture>(mapping, image);
-//    }
-//
-//    FloatTextureRef alphaTex;
-//    if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-//        Image2DRef image = createImage2D((pathPrefix + strValue.C_Str()).c_str(), ImageStoreMode::AlphaTexture, SpectrumType::Reflectance, false);
-//        alphaTex = createShared<ImageFloatTexture>(mapping, image);
-//    }
-//
-//    return SurfaceAttributeTuple(mat, normalTex, alphaTex);
-//}
-//
-//static void construct(const std::string &filePath, VLR::NodeRef* nodeOut) {
-//    using namespace VLR;
-//
-//    Assimp::Importer importer;
-//    const aiScene* scene = importer.ReadFile(filePath, 0);
-//    if (!scene) {
-//        debugPrintf("Failed to load %s.\n", filePath.c_str());
-//        return;
-//    }
-//    debugPrintf("Reading: %s done.\n", filePath.c_str());
-//
-//    std::string pathPrefix = filePath.substr(0, filePath.find_last_of("/") + 1);
-//
-//    // create materials
-//    std::vector<SurfaceMaterialRef> materials;
-//    std::vector<NormalTextureRef> normalMaps;
-//    std::vector<FloatTextureRef> alphaMaps;
-//    for (int m = 0; m < scene->mNumMaterials; ++m) {
-//        const aiMaterial* aiMat = scene->mMaterials[m];
-//
-//        SurfaceAttributeTuple surfAttr = materialFunc(aiMat, pathPrefix);
-//        materials.push_back(surfAttr.material);
-//        normalMaps.push_back(surfAttr.normalMap);
-//        alphaMaps.push_back(surfAttr.alphaMap);
-//    }
-//
-//    recursiveConstruct(scene, scene->mRootNode, materials, normalMaps, alphaMaps, nodeOut);
-//
-//    debugPrintf("Constructing: %s done.\n", filePath.c_str());
-//}
+static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::string &filepath) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    Image2DRef ret;
+
+    int32_t width, height, n;
+    uint8_t* imageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
+    ret = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, imageData);
+    stbi_image_free(imageData);
+
+    return ret;
+}
+
+static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, const aiNode* nodeSrc,
+                               const std::vector<VLRCpp::SurfaceMaterialRef> &materials, /*const std::vector<NormalTextureRef> &normalMaps, const std::vector<FloatTextureRef> &alphaMaps,*/
+                               bool flipV,
+                               VLRCpp::InternalNodeRef* nodeOut) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    if (nodeSrc->mNumMeshes == 0 && nodeSrc->mNumChildren == 0) {
+        nodeOut = nullptr;
+        return;
+    }
+
+    const aiMatrix4x4 &tf = nodeSrc->mTransformation;
+    float tfElems[] = {
+        tf.a1, tf.a2, tf.a3, tf.a4,
+        tf.b1, tf.b2, tf.b3, tf.b4,
+        tf.c1, tf.c2, tf.c3, tf.c4,
+        tf.d1, tf.d2, tf.d3, tf.d4,
+    };
+
+    *nodeOut = context.createInternalNode(nodeSrc->mName.C_Str(), createShared<StaticTransform>(Matrix4x4(tfElems)));
+
+    std::vector<uint32_t> meshIndices;
+    for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
+        const aiMesh* mesh = objSrc->mMeshes[nodeSrc->mMeshes[m]];
+        if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
+            debugPrintf("ignored non triangle mesh.\n");
+            continue;
+        }
+
+        auto surfMesh = context.createTriangleMeshSurfaceNode(mesh->mName.C_Str());
+        const SurfaceMaterialRef &surfMat = materials[mesh->mMaterialIndex];
+        //const NormalTextureRef &normalMap = normalMaps[mesh->mMaterialIndex];
+        //const FloatTextureRef &alphaMap = alphaMaps[mesh->mMaterialIndex];
+
+        std::vector<Vertex> vertices;
+        for (int v = 0; v < mesh->mNumVertices; ++v) {
+            const aiVector3D &p = mesh->mVertices[v];
+            const aiVector3D &n = mesh->mNormals[v];
+            Vector3D tangent, bitangent;
+            if (mesh->mTangents == nullptr)
+                Normal3D(n.x, n.y, n.z).makeCoordinateSystem(&tangent, &bitangent);
+            const aiVector3D &t = mesh->mTangents ? mesh->mTangents[v] : aiVector3D(tangent[0], tangent[1], tangent[2]);
+            const aiVector3D &uv = mesh->mNumUVComponents[0] > 0 ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
+
+            Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, flipV ? (1 - uv.y) : uv.y) };
+            float dotNT = dot(outVtx.normal, outVtx.tangent);
+            if (std::fabs(dotNT) >= 0.01f)
+                outVtx.tangent = normalize(outVtx.tangent - dotNT * outVtx.normal);
+            //SLRAssert(absDot(outVtx.normal, outVtx.tangent) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
+            vertices.push_back(outVtx);
+        }
+        surfMesh->setVertices(vertices.data(), vertices.size());
+
+        meshIndices.clear();
+        for (int f = 0; f < mesh->mNumFaces; ++f) {
+            const aiFace &face = mesh->mFaces[f];
+            meshIndices.push_back(face.mIndices[0]);
+            meshIndices.push_back(face.mIndices[1]);
+            meshIndices.push_back(face.mIndices[2]);
+        }
+        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat);
+
+        (*nodeOut)->addChild(surfMesh);
+    }
+
+    if (nodeSrc->mNumChildren) {
+        for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
+            InternalNodeRef subNode;
+            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], materials, /*normalMaps, alphaMaps, */flipV, &subNode);
+            if (subNode != nullptr)
+                (*nodeOut)->addChild(subNode);
+        }
+    }
+}
+
+struct SurfaceAttributeTuple {
+    VLRCpp::SurfaceMaterialRef material;
+
+    SurfaceAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material) : 
+        material(_material) {}
+};
+
+static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    aiReturn ret;
+    (void)ret;
+    aiString strValue;
+    float color[3];
+
+    aiMat->Get(AI_MATKEY_NAME, strValue);
+
+    Float4TextureRef texAlbedoRoughness;
+    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str());
+        texAlbedoRoughness = context.createImageFloat4Texture(image);
+    }
+    else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
+        float value[4] = { color[0], color[1], color[2], 0.0f };
+        texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    }
+    else {
+        float value[4] = { 1.0f, 0.0f, 1.0f, 0.0f };
+        texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    }
+
+    SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+    return SurfaceAttributeTuple(mat);
+}
+
+static void construct(VLRCpp::Context &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filePath, 0);
+    if (!scene) {
+        debugPrintf("Failed to load %s.\n", filePath.c_str());
+        return;
+    }
+    debugPrintf("Reading: %s done.\n", filePath.c_str());
+
+    std::string pathPrefix = filePath.substr(0, filePath.find_last_of("/") + 1);
+
+    // create materials
+    std::vector<SurfaceMaterialRef> materials;
+    //std::vector<NormalTextureRef> normalMaps;
+    //std::vector<FloatTextureRef> alphaMaps;
+    for (int m = 0; m < scene->mNumMaterials; ++m) {
+        const aiMaterial* aiMat = scene->mMaterials[m];
+
+        SurfaceAttributeTuple surfAttr = createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        materials.push_back(surfAttr.material);
+        //normalMaps.push_back(surfAttr.normalMap);
+        //alphaMaps.push_back(surfAttr.alphaMap);
+    }
+
+    recursiveConstruct(context, scene, scene->mRootNode, materials, /*normalMaps, alphaMaps, */flipV, nodeOut);
+
+    debugPrintf("Constructing: %s done.\n", filePath.c_str());
+}
+
 
 
 static int32_t mainFunc(int32_t argc, const char* argv[]) {
@@ -279,77 +285,74 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     SceneRef scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
 
-    InternalNodeRef nodeA = context.createInternalNode("A", createShared<StaticTransform>(translate(-5.0f, 0.0f, 0.0f)));
-    InternalNodeRef nodeB = context.createInternalNode("B", createShared<StaticTransform>(translate(5.0f, 0.0f, 0.0f)));
+    InternalNodeRef modelNode;
+    construct(context, "resources/Kirby_Pikachu_Hat/pikachu_hat_corrected.obj", true, &modelNode);
+    scene->addChild(modelNode);
 
-    scene->addChild(nodeA);
-    scene->addChild(nodeB);
-
-    InternalNodeRef nodeC = context.createInternalNode("C", createShared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
-
-    nodeA->addChild(nodeC);
-    nodeB->addChild(nodeC);
-
-    InternalNodeRef nodeD = context.createInternalNode("D", createShared<StaticTransform>(translate(0.0f, 0.0f, -5.0f)));
-    InternalNodeRef nodeE = context.createInternalNode("E", createShared<StaticTransform>(translate(0.0f, -2.0f, 5.0f)));
-
-    nodeC->addChild(nodeD);
-    nodeC->addChild(nodeE);
-
-    TriangleMeshSurfaceNodeRef meshA = context.createTriangleMeshSurfaceNode("MeshA");
+    TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
         std::vector<Vertex> vertices;
-        vertices.push_back(Vertex{ Point3D(-1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
-        meshA->setVertices(vertices.data(), vertices.size());
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 0.0f) });
+        cornellBox->setVertices(vertices.data(), vertices.size());
 
-        Image2DRef image;
         {
-            int32_t width, height, n;
-            uint8_t* imageData = stbi_load("resources/L.bmp", &width, &height, &n, 4);
-            image = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, imageData);
-            stbi_image_free(imageData);
-        }
-        Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+            float value[4] = { 0.75f, 0.75f, 0.75f, 0.0f };
+            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-        std::vector<uint32_t> matGroup = { 0, 1, 2, 0, 2, 3 };
-        meshA->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3,
+                4, 5, 6, 4, 6, 7,
+                8, 9, 10, 8, 10, 11,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+        }
+
+        {
+            float value[4] = { 0.75f, 0.25f, 0.25f, 0.0f };
+            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+            std::vector<uint32_t> matGroup = {
+                12, 13, 14, 12, 14, 15,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+        }
+
+        {
+            float value[4] = { 0.25f, 0.25f, 0.75f, 0.0f };
+            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+            std::vector<uint32_t> matGroup = {
+                16, 17, 18, 16, 18, 19,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+        }
     }
 
-    nodeD->addChild(meshA);
+    scene->addChild(cornellBox);
 
-    TriangleMeshSurfaceNodeRef meshB = context.createTriangleMeshSurfaceNode("MeshB");
-    {
-        std::vector<Vertex> vertices;
-        vertices.push_back(Vertex{ Point3D(2 + -1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(2 + 1.0f, -1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(2 + 1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(2 + -1.0f,  1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
-        meshB->setVertices(vertices.data(), vertices.size());
-
-        Image2DRef image;
-        {
-            int32_t width, height, n;
-            uint8_t* imageData = stbi_load("resources/pika-droid_2.png", &width, &height, &n, 4);
-            image = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, imageData);
-            stbi_image_free(imageData);
-        }
-        Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-        //float value[4] = { 0.25f, 0.25f, 1.0f, 0.0f };
-        //Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
-
-        std::vector<uint32_t> matGroup = { 0, 1, 2, 0, 2, 3 };
-        meshB->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
-    }
-
-    nodeD->addChild(meshB);
-    nodeE->addChild(meshB);
-
-    g_cameraPos = Point3D(0, 0, 15);
+    g_cameraPos = Point3D(0, 0, 5);
     g_cameraOrientation = qRotateY<float>(M_PI);
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
@@ -502,26 +505,6 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             g_keyTiltRight.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
             break;
         }
-        case GLFW_KEY_T: {
-            debugPrintf("T: %d\n", action);
-            g_keyIncreaseLensRadius.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
-            break;
-        }
-        case GLFW_KEY_G: {
-            debugPrintf("G: %d\n", action);
-            g_keyDecreaseLensRadius.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
-            break;
-        }
-        case GLFW_KEY_Y: {
-            debugPrintf("Y: %d\n", action);
-            g_keyIncreaseObjPlaneDistance.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
-            break;
-        }
-        case GLFW_KEY_H: {
-            debugPrintf("H: %d\n", action);
-            g_keyDecreaseObjPlaneDistance.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
-            break;
-        }
         default:
             break;
         }
@@ -529,6 +512,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        bool cameraIsMoving = false;
 
         // process key events
         {
@@ -588,34 +573,6 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     tiltZ = 0;
             }
 
-            int32_t changeLensSize = 0;
-            if (g_keyIncreaseLensRadius.getState() == true) {
-                if (g_keyDecreaseLensRadius.getState() == true)
-                    changeLensSize = 0;
-                else
-                    changeLensSize = 1;
-            }
-            else {
-                if (g_keyDecreaseLensRadius.getState() == true)
-                    changeLensSize = -1;
-                else
-                    changeLensSize = 0;
-            }
-
-            int32_t changeObjPlaneDistance = 0;
-            if (g_keyIncreaseObjPlaneDistance.getState() == true) {
-                if (g_keyDecreaseObjPlaneDistance.getState() == true)
-                    changeObjPlaneDistance = 0;
-                else
-                    changeObjPlaneDistance = 1;
-            }
-            else {
-                if (g_keyDecreaseObjPlaneDistance.getState() == true)
-                    changeObjPlaneDistance = -1;
-                else
-                    changeObjPlaneDistance = 0;
-            }
-
             static double deltaX = 0, deltaY = 0;
             static double lastX, lastY;
             if (g_buttonRotate.getState() == true) {
@@ -644,28 +601,34 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 deltaY = 0;
             }
 
-            g_lensRadius += changeLensSize * 1e-4f;
-            g_lensRadius = clamp<float>(g_lensRadius, 0.0f, 0.15f);
-
-            g_objPlaneDistance += changeObjPlaneDistance * 0.01f;
-            g_objPlaneDistance = clamp<float>(g_objPlaneDistance, 0.0f, 100.0f);
-
             camera->setPosition(g_cameraPos);
             camera->setOrientation(tempOrientation);
             camera->setLensRadius(g_lensRadius);
             camera->setObjectPlaneDistance(g_objPlaneDistance);
+
+            cameraIsMoving = trackZ != 0 || trackX != 0 || trackY != 0 || tiltZ != 0 || deltaX != 0 || deltaY != 0;
         }
 
         {
-            context.render(scene, camera);
+            uint32_t shrinkCoeff = cameraIsMoving ? 4 : 1;
+
+            context.render(scene, camera, shrinkCoeff);
 
             ImGui_ImplGlfwGL3_NewFrame(WindowSizeX, WindowSizeY, UIScaling);
 
             {
-                ImGui::Begin("TEST");
+                ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-                ImGui::Text("Lens Radius: %g", g_lensRadius);
-                ImGui::Text("Object Plane Distance: %g", g_objPlaneDistance);
+                ImGui::InputFloat3("Position", (float*)&g_cameraPos);
+
+                ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
+                ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
+
+                ImGui::End();
+            }
+
+            {
+                ImGui::Begin("Scene");
 
                 ImGui::End();
             }
@@ -681,6 +644,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 drawOptiXResultShader.useProgram();
 
                 glUniform1i(0, (int32_t)WindowSizeX); GLTK::errorCheck();
+
+                glUniform1f(1, (float)shrinkCoeff); GLTK::errorCheck();
 
                 glActiveTexture(GL_TEXTURE0); GLTK::errorCheck();
                 outputTexture.bind();

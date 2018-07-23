@@ -15,7 +15,7 @@ namespace VLR {
         MatteSurfaceMaterial &mat = *(MatteSurfaceMaterial*)matDesc;
 
         optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texAlbedoRoughness, surfPt.texCoord.u, surfPt.texCoord.v);
-        p.albedo = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.albedo = sRGB_degamma(RGBSpectrum(texValue.x, texValue.y, texValue.z));
         p.roughness = texValue.w;
     }
 

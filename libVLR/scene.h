@@ -1,8 +1,10 @@
 #pragma once
 
-#include <scene.h>
+#include <VLR.h>
 #include "basic_types_internal.h"
 #include "shared.h"
+
+#include "slot_manager.h"
 
 namespace VLR {
     class Context {
@@ -27,6 +29,10 @@ namespace VLR {
         optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramException; // -------------- Exception Program
 
+        optix::Buffer m_optixSurfaceMaterialDescriptorBuffer;
+        uint32_t m_maxNumSurfaceMaterialDescriptors;
+        SlotManager m_surfMatDescSlotManager;
+
         optix::Buffer m_outputBuffer;
         optix::Buffer m_rngBuffer;
         uint32_t m_width;
@@ -42,7 +48,7 @@ namespace VLR {
 
         void bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height);
 
-        void render(Scene &scene, Camera* camera);
+        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff);
 
         optix::Context &getOptiXContext() {
             return m_optixContext;
@@ -79,6 +85,9 @@ namespace VLR {
         optix::Program &getOptiXProgramException() {
             return m_optixProgramException;
         }
+
+        uint32_t setSurfaceMaterialDescriptor(const Shared::SurfaceMaterialDescriptor &matDesc);
+        void unsetSurfaceMaterialDescriptor(uint32_t index);
     };
 
 
@@ -414,13 +423,14 @@ namespace VLR {
     class SurfaceMaterial : public Object {
     protected:
         optix::Material m_optixMaterial;
+        uint32_t m_matIndex;
 
     public:
         static void initialize(Context &context);
         static void finalize(Context &context);
 
         SurfaceMaterial(Context &context);
-        virtual ~SurfaceMaterial() {}
+        virtual ~SurfaceMaterial();
 
         optix::Material &getOptiXObject() {
             return m_optixMaterial;
@@ -450,6 +460,7 @@ namespace VLR {
         static void finalize(Context &context);
 
         MatteSurfaceMaterial(Context &context, Float4Texture* texAlbedoRoughness);
+        ~MatteSurfaceMaterial();
 
         ObjectType getType() const override { return ObjectType::E_MatteSurfaceMaterial; }
     };
@@ -478,6 +489,7 @@ namespace VLR {
         static void finalize(Context &context);
 
         UE4SurfaceMaterial(Context &context, Float3Texture* texBaseColor, Float2Texture* texRoughnessMetallic);
+        ~UE4SurfaceMaterial();
 
         ObjectType getType() const override { return ObjectType::E_UE4SurfaceMaterial; }
     };

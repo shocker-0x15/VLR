@@ -1341,19 +1341,22 @@ namespace VLR {
     };
 
     template <typename RealType>
-    RT_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
-        VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
-        if (value <= (RealType)0.0031308)
-            return (RealType)12.92 * value;
-        return (RealType)1.055 * std::pow(value, (RealType)(1.0 / 2.4)) - (RealType)0.055;
+    RT_FUNCTION RealType sRGB_gamma_s(RealType v) {
+        return v < (RealType)0.0031308 ?
+            ((RealType)12.92 * v) :
+            ((RealType)1.055 * std::pow(v, 1 / (RealType)2.4) - (RealType)0.055);
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr RealType sRGB_degamma(RealType value) {
-        VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
-        if (value <= (RealType)0.04045)
-            return value / (RealType)12.92;
-        return std::pow((value + (RealType)0.055) / (RealType)1.055, (RealType)2.4);
+    RT_FUNCTION RealType sRGB_degamma_s(RealType v) {
+        return v < (RealType)0.040450 ?
+            (v / (RealType)12.92) :
+            std::pow((v + (RealType)0.055) / (RealType)1.055, (RealType)2.4);
+    }
+
+    template <typename RealType>
+    RT_FUNCTION constexpr float sRGB_to_Luminance(RealType r, RealType g, RealType b) {
+        return (RealType)0.2126729 * r + (RealType)0.7151522 * g + (RealType)0.0721750 * b;
     }
 
     // TODO: implement a method to generate arbitrary XYZ<->RGB matrices.
@@ -1364,11 +1367,6 @@ namespace VLR {
     //    RealType XG = xG / yG, YG = 1, ZG = (1 - xG - yG) / yG;
     //    RealType XB = xB / yB, YB = 1, ZB = (1 - xB - yB) / yB;
     //}
-
-    template <typename RealType>
-    RT_FUNCTION constexpr float sRGB_to_Luminance(const RealType r, const RealType g, const RealType b) {
-        return (RealType)0.2126729 * r + (RealType)0.7151522 * g + (RealType)0.0721750 * b;
-    }
 
     template <typename RealType>
     RT_FUNCTION constexpr void sRGB_to_XYZ(const RealType rgb[3], RealType xyz[3]) {
@@ -1532,6 +1530,21 @@ namespace VLR {
     template <typename RealType>
     RT_FUNCTION RGBTemplate<RealType> inverseGammaCorrection(const RGBTemplate<RealType> &s, RealType gamma = 2.2) {
         return RGBTemplate<RealType>(std::pow(s.r, gamma), std::pow(s.g, gamma), std::pow(s.b, gamma));
+    }
+
+    template <typename RealType>
+    RT_FUNCTION RGBTemplate<RealType> sRGB_gamma(const RGBTemplate<RealType> &v) {
+        return RGBTemplate<RealType>(sRGB_gamma_s(v.r), sRGB_gamma_s(v.g), sRGB_gamma_s(v.b));
+    }
+
+    template <typename RealType>
+    RT_FUNCTION RGBTemplate<RealType> sRGB_degamma(const RGBTemplate<RealType> &v) {
+        return RGBTemplate<RealType>(sRGB_degamma_s(v.r), sRGB_degamma_s(v.g), sRGB_degamma_s(v.b));
+    }
+
+    template <typename RealType>
+    RT_FUNCTION constexpr float sRGB_to_Luminance(const RGBTemplate<RealType> &v) {
+        return (RealType)0.2126729 * v.r + (RealType)0.7151522 * v.g + (RealType)0.0721750 * v.b;
     }
 
 

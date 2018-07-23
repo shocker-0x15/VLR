@@ -116,6 +116,7 @@
   <ItemGroup>
     <ClCompile Include="debugPrintf.cpp" />
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="slot_manager.cpp" />
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -124,10 +125,10 @@
     <ClInclude Include="GPU_kernels\random_distributions.cuh" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
-    <ClInclude Include="include\VLR\scene.h" />
     <ClInclude Include="include\VLR\VLR.h" />
     <ClInclude Include="scene_private.h" />
     <ClInclude Include="shared.h" />
+    <ClInclude Include="slot_manager.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">

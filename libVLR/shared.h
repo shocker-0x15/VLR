@@ -12,7 +12,7 @@ namespace VLR {
             uint32_t m_numValues;
 
         public:
-            ~DiscreteDistribution1DTemplate() {}
+            RT_FUNCTION ~DiscreteDistribution1DTemplate() {}
 
             RT_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\" must be in range [0, 1).");
@@ -56,7 +56,7 @@ namespace VLR {
             uint32_t m_numValues;
 
         public:
-            ~RegularConstantContinuousDistribution1DTemplate() {}
+            RT_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
 
             RT_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
                 VLRAssert(u < 1, "\"u\" must be in range [0, 1).");
@@ -90,7 +90,7 @@ namespace VLR {
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
-            ~RegularConstantContinuousDistribution2DTemplate() {}
+            RT_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
 
             void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 VLRAssert(u0 >= 0 && u0 < 1, "\"u0\" must be in range [0, 1).: %g", u0);
@@ -112,8 +112,32 @@ namespace VLR {
         using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;
 
 
+
+        class StaticTransform {
+            Matrix4x4 m_matrix;
+            Matrix4x4 m_invMatrix;
+
+        public:
+            RT_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
+            RT_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
+            RT_FUNCTION Point3D operator*(const Point3D &p) const { return m_matrix * p; }
+            RT_FUNCTION Normal3D operator*(const Normal3D &n) const {
+                // The length of the normal is changed if the transform has scaling, so it requires normalization.
+                return Normal3D(m_invMatrix.m00 * n.x + m_invMatrix.m10 * n.y + m_invMatrix.m20 * n.z,
+                                m_invMatrix.m01 * n.x + m_invMatrix.m11 * n.y + m_invMatrix.m21 * n.z,
+                                m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
+            }
+            RT_FUNCTION StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
+
+            RT_FUNCTION StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
+            RT_FUNCTION StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
+            RT_FUNCTION bool operator==(const StaticTransform &t) const { return m_matrix == t.m_matrix; }
+            RT_FUNCTION bool operator!=(const StaticTransform &t) const { return m_matrix != t.m_matrix; }
+        };
+
+
         
-        struct MaterialDescriptor {
+        struct SurfaceMaterialDescriptor {
 #define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
             union {
                 int32_t i1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
@@ -153,17 +177,11 @@ namespace VLR {
         };
         
         struct SurfaceLightDescriptor {
-            union Body {
-                struct MeshLight {
-                    rtBufferId<Vertex> vertexBuffer;
-                    rtBufferId<Triangle> triangleBuffer;
-                    DiscreteDistribution1D primDistribution;
-                    Point3D position;
-                    Quaternion orientation;
-                } asMeshLight;
-                struct InfiniteSphericalLight {
-                    RegularConstantContinuousDistribution2D distribution;
-                } asInfiniteSphericalLight;
+            struct Body {
+                rtBufferId<Vertex> vertexBuffer;
+                rtBufferId<Triangle> triangleBuffer;
+                DiscreteDistribution1D primDistribution;
+                StaticTransform transform;
 
                 RT_FUNCTION Body() {}
                 RT_FUNCTION ~Body() {}

@@ -4,9 +4,9 @@
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="debugPrintf.cpp" />
     <ClCompile Include="VLR.cpp" />
+    <ClCompile Include="slot_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\VLR\scene.h" />
     <ClInclude Include="include\VLR\common.h" />
     <ClInclude Include="include\VLR\VLR.h" />
     <ClInclude Include="include\VLR\basic_types.h" />
@@ -19,6 +19,7 @@
     </ClInclude>
     <ClInclude Include="scene_private.h" />
     <ClInclude Include="shared.h" />
+    <ClInclude Include="slot_manager.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
