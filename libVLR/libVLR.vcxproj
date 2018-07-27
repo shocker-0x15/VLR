@@ -126,7 +126,7 @@
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
     <ClInclude Include="include\VLR\VLR.h" />
-    <ClInclude Include="scene_private.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
   </ItemGroup>

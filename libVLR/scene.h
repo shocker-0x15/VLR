@@ -37,6 +37,7 @@ namespace VLR {
         optix::Buffer m_rngBuffer;
         uint32_t m_width;
         uint32_t m_height;
+        uint32_t m_numAccumFrames;
 
     public:
         Context();
@@ -48,7 +49,7 @@ namespace VLR {
 
         void bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height);
 
-        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff);
+        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame);
 
         optix::Context &getOptiXContext() {
             return m_optixContext;
@@ -221,6 +222,9 @@ namespace VLR {
         }
 
         const std::string &getName() const { return m_name; }
+        void setName(const std::string &name) {
+            m_name = name;
+        }
 
         void setTransform(const StaticTransform &transform);
         void update();
@@ -503,6 +507,13 @@ namespace VLR {
         Node(Context &context, const std::string &name) :
             Object(context), m_name(name) {}
         virtual ~Node() {}
+
+        virtual void setName(const std::string &name) {
+            m_name = name;
+        }
+        const std::string &getName() const {
+            return m_name;
+        }
     };
 
 
@@ -581,6 +592,8 @@ namespace VLR {
         ParentNode(Context &context, const std::string &name, const Transform* localToWorld);
         virtual ~ParentNode();
 
+        void setName(const std::string &name) override;
+
         enum class UpdateEvent {
             TransformAdded = 0,
             TransformRemoved,
@@ -592,6 +605,9 @@ namespace VLR {
         virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta) = 0;
         virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
         virtual void setTransform(const Transform* localToWorld);
+        const Transform* getTransform() const {
+            return m_localToWorld;
+        }
 
         void addChild(InternalNode* child);
         void addChild(SurfaceNode* child);

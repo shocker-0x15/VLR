@@ -10,7 +10,19 @@ layout(location = 2, binding = 0) uniform samplerBuffer srcTexture;
 
 out vec4 color;
 
+vec3 sRGB_gamma(vec3 v) {
+    vec3 ret;
+    ret.r = v.r < 0.0031308 ? (12.92 * v.r) : (1.055 * pow(v.r, 1 / 2.4) - 0.055);
+    ret.g = v.g < 0.0031308 ? (12.92 * v.g) : (1.055 * pow(v.g, 1 / 2.4) - 0.055);
+    ret.b = v.b < 0.0031308 ? (12.92 * v.b) : (1.055 * pow(v.b, 1 / 2.4) - 0.055);
+    return ret;
+}
+
 void main(void) {
     vec2 srcPixel = gl_FragCoord.xy / shrinkCoeff;
-    color = texelFetch(srcTexture, int(srcPixel.y) * srcFullWidth + int(srcPixel.x));
+    vec4 opResult = texelFetch(srcTexture, int(srcPixel.y) * srcFullWidth + int(srcPixel.x));
+    opResult.rgb *= 600;
+    opResult.rgb = 1 - exp(-opResult.rgb);
+    opResult.rgb = sRGB_gamma(opResult.rgb);
+    color = opResult;
 }

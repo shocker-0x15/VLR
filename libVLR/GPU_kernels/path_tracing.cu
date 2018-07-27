@@ -5,6 +5,7 @@ namespace VLR {
     // Context-scope Variables
     rtDeclareVariable(rtObject, pv_topGroup, , );
     rtDeclareVariable(optix::uint2, pv_imageSize, , );
+    rtDeclareVariable(uint32_t, pv_numAccumFrames, , );
     rtBuffer<PCG32RNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
@@ -288,11 +289,12 @@ namespace VLR {
 
         RGBSpectrum &contribution = pv_outputBuffer[sm_launchIndex];
         //contribution += payload.contribution;
-        contribution = 300 * payload.contribution;
-        contribution.r = 1 - std::exp(-contribution.r);
-        contribution.g = 1 - std::exp(-contribution.g);
-        contribution.b = 1 - std::exp(-contribution.b);
-        contribution = sRGB_gamma(contribution);
+        if (pv_numAccumFrames == 1) {
+            contribution = payload.contribution;
+        }
+        else {
+            contribution = (contribution * (pv_numAccumFrames - 1) + payload.contribution) / pv_numAccumFrames;
+        }
     }
 
     // Exception Program

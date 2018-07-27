@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <VLR.h>
-#include "scene_private.h"
+#include "scene.h"
 
 
 
@@ -25,10 +25,10 @@ VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t buffer
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame) {
     if (!scene->getType().is(VLR::ObjectType::E_Scene) || !camera->getType().isMemberOf(VLR::ObjectType::E_Camera))
         return VLR_ERROR_INVALID_TYPE;
-    context->render(*scene, camera, shrinkCoeff);
+    context->render(*scene, camera, shrinkCoeff, firstFrame);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -159,6 +159,22 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTrian
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetName(VLRTriangleMeshSurfaceNode node, const char* name) {
+    if (!node->getType().is(VLR::ObjectType::E_TriangleMeshSurfaceNode))
+        return VLR_ERROR_INVALID_TYPE;
+    node->setName(name);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrTriangleMeshSurfaceNodeGetName(VLRTriangleMeshSurfaceNode node, const char** name) {
+    if (!node->getType().is(VLR::ObjectType::E_TriangleMeshSurfaceNode))
+        return VLR_ERROR_INVALID_TYPE;
+    *name = node->getName().c_str();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices) {
     if (!surfaceNode->getType().is(VLR::ObjectType::E_TriangleMeshSurfaceNode))
         return VLR_ERROR_INVALID_TYPE;
@@ -192,7 +208,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
 
 VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                        const char* name, const VLR::StaticTransform* transform) {
+                                        const char* name, const VLR::Transform* transform) {
     *node = new VLR::InternalNode(*context, name, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -206,10 +222,34 @@ VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode nod
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::StaticTransform* localToWorld) {
+VLR_API VLRResult vlrInternalNodeSetName(VLRInternalNode node, const char* name) {
+    if (!node->getType().is(VLR::ObjectType::E_InternalNode))
+        return VLR_ERROR_INVALID_TYPE;
+    node->setName(name);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrInternalNodeGetName(VLRInternalNode node, const char** name) {
+    if (!node->getType().is(VLR::ObjectType::E_InternalNode))
+        return VLR_ERROR_INVALID_TYPE;
+    *name = node->getName().c_str();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::Transform* localToWorld) {
     if (!node->getType().is(VLR::ObjectType::E_InternalNode))
         return VLR_ERROR_INVALID_TYPE;
     node->setTransform(localToWorld);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, const VLR::Transform** localToWorld) {
+    if (!node->getType().is(VLR::ObjectType::E_InternalNode))
+        return VLR_ERROR_INVALID_TYPE;
+    *localToWorld = node->getTransform();
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -247,7 +287,7 @@ VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject chi
 
 
 VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                 const VLR::StaticTransform* transform) {
+                                 const VLR::Transform* transform) {
     *scene = new VLR::Scene(*context, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -261,7 +301,7 @@ VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::StaticTransform* localToWorld) {
+VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::Transform* localToWorld) {
     if (!scene->getType().is(VLR::ObjectType::E_Scene))
         return VLR_ERROR_INVALID_TYPE;
     scene->setTransform(localToWorld);

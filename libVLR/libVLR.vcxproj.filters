@@ -17,9 +17,9 @@
     <ClInclude Include="GPU_kernels\random_distributions.cuh">
       <Filter>GPU Kernels</Filter>
     </ClInclude>
-    <ClInclude Include="scene_private.h" />
     <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
+    <ClInclude Include="scene.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

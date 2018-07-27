@@ -132,7 +132,9 @@ extern "C" {
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
 
     VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t bufferID, uint32_t width, uint32_t height);
-    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff);
+    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame);
+
+
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData);
@@ -140,6 +142,8 @@ extern "C" {
     VLR_API VLRResult vlrLinearImage2DGetWidth(VLRLinearImage2D image, uint32_t* width);
     VLR_API VLRResult vlrLinearImage2DGetHeight(VLRLinearImage2D image, uint32_t* height);
     VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* stride);
+
+
 
     VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
                                                      const float value[4]);
@@ -149,6 +153,8 @@ extern "C" {
                                                   VLRImage2D image);
     VLR_API VLRResult vlrImageFloat4TextureDestroy(VLRContext context, VLRImageFloat4Texture texture);
 
+
+
     VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material,
                                                     VLRFloat4Texture texAlbedoRoughness);
     VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSurfaceMaterial material);
@@ -157,25 +163,38 @@ extern "C" {
                                                   VLRFloat3Texture texBaseColor, VLRFloat2Texture texRoughnessMetallic);
     VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4SurfaceMaterial material);
 
+
+
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode,
                                                        const char* name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTriangleMeshSurfaceNode surfaceNode);
+    VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetName(VLRTriangleMeshSurfaceNode node, const char* name);
+    VLR_API VLRResult vlrTriangleMeshSurfaceNodeGetName(VLRTriangleMeshSurfaceNode node, const char** name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, VLRSurfaceMaterial material);
 
+
+
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                            const char* name, const VLR::StaticTransform* transform);
+                                            const char* name, const VLR::Transform* transform);
     VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode node);
-    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::StaticTransform* localToWorld);
+    VLR_API VLRResult vlrInternalNodeSetName(VLRInternalNode node, const char* name);
+    VLR_API VLRResult vlrInternalNodeGetName(VLRInternalNode node, const char** name);
+    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::Transform* localToWorld);
+    VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, const VLR::Transform** localToWorld);
     VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRObject child);
     VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject child);
 
+
+
     VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                     const VLR::StaticTransform* transform);
+                                     const VLR::Transform* transform);
     VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene);
-    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::StaticTransform* localToWorld);
+    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::Transform* localToWorld);
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child);
+
+
 
     VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera, 
                                                  const VLR::Point3D &position, const VLR::Quaternion &orientation,
@@ -391,9 +410,18 @@ namespace VLRCpp {
     
     
     
+    enum class NodeType {
+        TriangleMeshSurfaceNode = 0,
+        InternalNode,
+    };
+
     class NodeHolder : public Object {
     public:
         NodeHolder(VLRContext context) : Object(context) {}
+
+        virtual NodeType getNodeType() const = 0;
+        virtual void setName(const std::string &name) const = 0;
+        virtual const char* getName() const = 0;
     };
 
 
@@ -419,6 +447,16 @@ namespace VLRCpp {
         }
 
         VLRObject get() const override { return m_raw; }
+
+        NodeType getNodeType() const override { return NodeType::TriangleMeshSurfaceNode; }
+        void setName(const std::string &name) const override {
+            VLRResult res = vlrTriangleMeshSurfaceNodeSetName(m_raw, name.c_str());
+        }
+        const char* getName() const override {
+            const char* name;
+            VLRResult res = vlrTriangleMeshSurfaceNodeGetName(m_raw, &name);
+            return name;
+        }
 
         void setVertices(VLRVertex* vertices, uint32_t numVertices) {
             VLRResult res = vlrTriangleMeshSurfaceNodeSetVertices(m_raw, vertices, numVertices);
@@ -447,10 +485,24 @@ namespace VLRCpp {
 
         VLRObject get() const override { return m_raw; }
 
+        NodeType getNodeType() const override { return NodeType::InternalNode; }
+        void setName(const std::string &name) const override {
+            VLRResult res = vlrInternalNodeSetName(m_raw, name.c_str());
+        }
+        const char* getName() const override {
+            const char* name;
+            VLRResult res = vlrInternalNodeGetName(m_raw, &name);
+            return name;
+        }
+
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
             VLRResult res = vlrInternalNodeSetTransform(m_raw, transform.get());
         }
+        StaticTransformRef getTransform() const {
+            return m_transform;
+        }
+
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
             VLRResult res = vlrInternalNodeAddChild(m_raw, child->get());
@@ -466,6 +518,14 @@ namespace VLRCpp {
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
             VLRResult res = vlrInternalNodeRemoveChild(m_raw, child->get());
+        }
+        uint32_t getNumChildren() const {
+            return (uint32_t)m_children.size();
+        }
+        NodeRef getChildAt(uint32_t index) const {
+            auto it = m_children.cbegin();
+            std::advance(it, index);
+            return *it;
         }
     };
 
@@ -491,6 +551,10 @@ namespace VLRCpp {
             m_transform = transform;
             VLRResult res = vlrSceneSetTransform(m_raw, transform.get());
         }
+        StaticTransformRef getTransform() const {
+            return m_transform;
+        }
+
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
             VLRResult res = vlrSceneAddChild(m_raw, child->get());
@@ -506,6 +570,14 @@ namespace VLRCpp {
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
             VLRResult res = vlrSceneRemoveChild(m_raw, child->get());
+        }
+        uint32_t getNumChildren() const {
+            return (uint32_t)m_children.size();
+        }
+        NodeRef getChildAt(uint32_t index) const {
+            auto it = m_children.cbegin();
+            std::advance(it, index);
+            return *it;
         }
     };
 
@@ -564,8 +636,8 @@ namespace VLRCpp {
             VLRResult res = vlrContextBindOpenGLBuffer(m_rawContext, glBufferID, width, height);
         }
 
-        void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff) const {
-            VLRResult res = vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), shrinkCoeff);
+        void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame) const {
+            VLRResult res = vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), shrinkCoeff, firstFrame);
         }
 
         LinearImage2DRef createLinearImage2D(uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData) const {
