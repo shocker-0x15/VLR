@@ -62,7 +62,7 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
-        m_optixContext->setPrintEnabled(true);
+        //m_optixContext->setPrintEnabled(true);
         m_optixContext->setPrintBufferSize(4096);
     }
 
@@ -132,12 +132,19 @@ namespace VLR {
         m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
     }
 
-    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff) {
+    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame) {
         SHGroup &shGroup = scene.getSHGroup();
 
         m_optixContext["VLR::pv_topGroup"]->set(shGroup.getOptiXObject());
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         m_optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+
+        if (firstFrame)
+            m_numAccumFrames = 0;
+        ++m_numAccumFrames;
+
+        //m_optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
+        m_optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
 
         camera->set();
 
@@ -1136,6 +1143,12 @@ namespace VLR {
         for (auto it = m_shTransforms.crbegin(); it != m_shTransforms.crend(); ++it)
             delete it->second;
         m_shTransforms.clear();
+    }
+
+    void ParentNode::setName(const std::string &name) {
+        Node::setName(name);
+        for (auto it = m_shTransforms.begin(); it != m_shTransforms.end(); ++it)
+            it->second->setName(name);
     }
     
     void ParentNode::addChild(InternalNode* child) {
