@@ -1422,7 +1422,7 @@ namespace VLR {
     template <typename RealType>
     struct VLR_API RGBTemplate {
         RealType r, g, b;
-        static constexpr uint32_t NumComponents() { return 3; }
+        RT_FUNCTION static constexpr uint32_t NumComponents() { return 3; }
 
 #if defined(VLR_Device)
         RT_FUNCTION RGBTemplate() { }
@@ -1485,8 +1485,11 @@ namespace VLR {
         }
 
         // setting "primary" to 1.0 might introduce bias.
-        RT_FUNCTION RealType importance() const {
-            return sRGB_to_Luminance(r, g, b);
+        RT_FUNCTION RealType importance(uint32_t selectedLambda) const {
+            RealType sum = r + g + b;
+            const RealType primary = 0.9f;
+            const RealType marginal = (1 - primary) / 2;
+            return sum * marginal + (*this)[selectedLambda] * (primary - marginal);
         }
 
         RT_FUNCTION static constexpr RGBTemplate Zero() { return RGBTemplate(0); }
