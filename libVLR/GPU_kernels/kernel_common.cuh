@@ -6,6 +6,14 @@
 namespace VLR {
     using namespace Shared;
 
+
+
+    // Context-scope Variables
+    rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
+    rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
+
+
+
     RT_FUNCTION Point3D transform(RTtransformkind kind, const Point3D &p) {
         return asPoint3D(rtTransformPoint(kind, asOptiXType(p)));
     }
@@ -167,9 +175,10 @@ namespace VLR {
         Vector3D dirLocal;
         Normal3D geometricNormalLocal;
         DirectionType dirTypeFilter;
+        uint32_t wlHint;
 
-        RT_FUNCTION BSDFQuery(const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter) : 
-            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter) {}
+        RT_FUNCTION BSDFQuery(const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, uint32_t wl) : 
+            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter), wlHint(wl) {}
     };
 
     struct BSDFSample {
@@ -280,6 +289,11 @@ namespace VLR {
 
 
     struct Payload {
+        struct {
+            unsigned int wlHint : 30;
+            bool wavelengthSelected : 1;
+            bool terminate : 1;
+        };
         float initY;
         RGBSpectrum alpha;
         RGBSpectrum contribution;
@@ -287,7 +301,6 @@ namespace VLR {
         Vector3D direction;
         float prevDirPDF;
         DirectionType prevSampledType;
-        bool terminate;
     };
 
     struct ShadowRayPayload {
@@ -309,15 +322,15 @@ namespace VLR {
             optix::float4 f4[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 2];
         };
 
-        typedef rtCallableProgramId<void(const uint32_t*, const SurfacePoint &surfPt, uint32_t* params)> progSigSetup;
+        typedef rtCallableProgramId<void(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> progSigSetup;
 
-        typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigGetBaseColor;
+        //typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigGetBaseColor;
         typedef rtCallableProgramId<bool(DirectionType)> progSigBSDFmatches;
         typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> progSigSampleBSDFInternal;
         typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDFInternal;
         typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDF_PDFInternal;
 
-        progSigGetBaseColor progGetBaseColor;
+        //progSigGetBaseColor progGetBaseColor;
         progSigBSDFmatches progBSDFmatches;
         progSigSampleBSDFInternal progSampleBSDFInternal;
         progSigEvaluateBSDFInternal progEvaluateBSDFInternal;
@@ -337,20 +350,24 @@ namespace VLR {
         }
 
     public:
-        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
-            progSigSetup setup = (progSigSetup)matDesc.progSetup;
-            setup((const uint32_t*)&matDesc, surfPt, (uint32_t*)this);
+        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, bool wavelengthSelected) {
+            SurfaceMaterialHead &head = *(SurfaceMaterialHead*)&matDesc.i1[0];
 
-            progGetBaseColor = (progSigGetBaseColor)matDesc.progGetBaseColor;
-            progBSDFmatches = (progSigBSDFmatches)matDesc.progBSDFmatches;
-            progSampleBSDFInternal = (progSigSampleBSDFInternal)matDesc.progSampleBSDFInternal;
-            progEvaluateBSDFInternal = (progSigEvaluateBSDFInternal)matDesc.progEvaluateBSDFInternal;
-            progEvaluateBSDF_PDFInternal = (progSigEvaluateBSDF_PDFInternal)matDesc.progEvaluateBSDF_PDFInternal;
+            progSigSetup setupBSDF = (progSigSetup)head.progSetupBSDF;
+            setupBSDF((const uint32_t*)&matDesc.i1[sizeof(SurfaceMaterialHead) / 4], surfPt, wavelengthSelected, (uint32_t*)this);
+
+            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[head.bsdfProcedureSetIndex];
+
+            //progGetBaseColor = (progSigGetBaseColor)procSet.progGetBaseColor;
+            progBSDFmatches = (progSigBSDFmatches)procSet.progBSDFmatches;
+            progSampleBSDFInternal = (progSigSampleBSDFInternal)procSet.progSampleBSDFInternal;
+            progEvaluateBSDFInternal = (progSigEvaluateBSDFInternal)procSet.progEvaluateBSDFInternal;
+            progEvaluateBSDF_PDFInternal = (progSigEvaluateBSDF_PDFInternal)procSet.progEvaluateBSDF_PDFInternal;
         }
 
-        RT_FUNCTION RGBSpectrum getBaseColor() {
-            return progGetBaseColor((const uint32_t*)this);
-        }
+        //RT_FUNCTION RGBSpectrum getBaseColor() {
+        //    return progGetBaseColor((const uint32_t*)this);
+        //}
 
         RT_FUNCTION RGBSpectrum sampleBSDF(const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
             if (!BSDFmatches(query.dirTypeFilter)) {
@@ -410,11 +427,15 @@ namespace VLR {
 
     public:
         RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
-            progSigSetup setup = (progSigSetup)matDesc.progSetup;
-            setup((const uint32_t*)&matDesc, surfPt, (uint32_t*)this);
+            SurfaceMaterialHead &head = *(SurfaceMaterialHead*)&matDesc.i1[0];
 
-            progEvaluateEmittanceInternal = (progSigEvaluateEmittanceInternal)matDesc.progEvaluateEmittanceInternal;
-            progEvaluateEDFInternal = (progSigEvaluateEDFInternal)matDesc.progEvaluateEDFInternal;
+            progSigSetup setupEDF = (progSigSetup)head.progSetupEDF;
+            setupEDF((const uint32_t*)&matDesc.i1[sizeof(SurfaceMaterialHead) / 4], surfPt, (uint32_t*)this);
+
+            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[head.edfProcedureSetIndex];
+
+            progEvaluateEmittanceInternal = (progSigEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
+            progEvaluateEDFInternal = (progSigEvaluateEDFInternal)procSet.progEvaluateEDFInternal;
         }
 
         RT_FUNCTION RGBSpectrum evaluateEmittance() {

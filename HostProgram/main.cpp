@@ -97,6 +97,7 @@ double g_mouseY;
 
 VLR::Point3D g_cameraPos;
 VLR::Quaternion g_cameraOrientation;
+float g_sensitivity;
 float g_lensRadius;
 float g_objPlaneDistance;
 
@@ -213,6 +214,8 @@ struct SurfaceAttributeTuple {
         material(_material) {}
 };
 
+typedef SurfaceAttributeTuple(*CreateMaterialFunction)(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &);
+
 static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -243,7 +246,8 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     return SurfaceAttributeTuple(mat);
 }
 
-static void construct(VLRCpp::Context &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut) {
+static void construct(VLRCpp::Context &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut, 
+                      CreateMaterialFunction matFunc = createMaterialDefaultFunction) {
     using namespace VLRCpp;
     using namespace VLR;
 
@@ -264,7 +268,7 @@ static void construct(VLRCpp::Context &context, const std::string &filePath, boo
     for (int m = 0; m < scene->mNumMaterials; ++m) {
         const aiMaterial* aiMat = scene->mMaterials[m];
 
-        SurfaceAttributeTuple surfAttr = createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        SurfaceAttributeTuple surfAttr = matFunc(context, aiMat, pathPrefix);
         materials.push_back(surfAttr.material);
         //normalMaps.push_back(surfAttr.normalMap);
         //alphaMaps.push_back(surfAttr.alphaMap);
@@ -285,9 +289,81 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     SceneRef scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
 
-    InternalNodeRef modelNode;
-    construct(context, "resources/Kirby_Pikachu_Hat/pikachu_hat_corrected.obj", true, &modelNode);
-    scene->addChild(modelNode);
+    //InternalNodeRef modelNode;
+    //construct(context, "resources/Kirby_Pikachu_Hat/pikachu_hat_corrected.obj", true, &modelNode);
+    //scene->addChild(modelNode);
+
+    InternalNodeRef sphereNode;
+    construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        //float coeff[] = { 0.999f, 0.999f, 0.999f };
+        //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+
+        ////// Aluminum
+        ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
+        ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
+        ////// Copper
+        ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
+        ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
+        ////// Gold
+        ////float eta[] = { 0.12481f, 0.468228f, 1.44476f };
+        ////float k[] = { 3.32107f, 2.23761f, 1.69196f };
+        ////// Iron
+        ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
+        ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
+        ////// Lead
+        ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
+        ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
+        ////// Mercury
+        ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
+        ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
+        ////// Platinum
+        ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
+        ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
+        //// Silver
+        //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+        //float k[] = { 3.82431f, 3.1451f, 2.27711f };
+        ////// Titanium
+        ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
+        ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
+        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+        //SurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
+
+        //// Air
+        //float etaExt[] = { 1.00036f, 1.00021f, 1.00071f };
+        ////// Water
+        ////float etaInt[] = { 1.33161f, 1.33331f, 1.33799f };
+        ////// Glass BK7
+        ////float etaInt[] = { 1.51455f, 1.51816f, 1.52642f };
+        //// Diamond
+        //float etaInt[] = { 2.41174f, 2.42343f, 2.44936f };
+        //Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
+        //Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
+        //SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt);
+
+        float coeff[] = { 0.1f, 0.1f, 0.1f };
+        // Silver
+        float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+        float k[] = { 3.82431f, 3.1451f, 2.27711f };
+        Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+        Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+        SurfaceMaterialRef matA = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
+
+        float albedoRoughness[] = { 0.5f, 0.5f, 0.5f, 0.0f };
+        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(albedoRoughness);
+        SurfaceMaterialRef matB = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+        SurfaceMaterialRef mats[] = { matA, matB };
+        SurfaceMaterialRef mat = context.createMultiSurfaceMaterial(mats, lengthof(mats));
+
+        return SurfaceAttributeTuple(mat);
+    });
+    scene->addChild(sphereNode);
+    sphereNode->setTransform(createShared<StaticTransform>(translate<float>(0, 0.5, 0) * scale(0.5f)));
 
     TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
@@ -332,6 +408,10 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
             SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
+            //float value[3] = { 0.06f, 0.02f, 0.02f };
+            //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
+            //SurfaceMaterialRef matMatte = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
             };
@@ -354,10 +434,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     g_cameraPos = Point3D(0, 0, 5);
     g_cameraOrientation = qRotateY<float>(M_PI);
+    g_sensitivity = 1.0f;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
     PerspectiveCameraRef camera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
-                                                                  1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+                                                                  g_sensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
 
 
@@ -609,6 +690,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             camera->setPosition(g_cameraPos);
             camera->setOrientation(tempOrientation);
+            camera->setSensitivity(g_sensitivity);
             camera->setLensRadius(g_lensRadius);
             camera->setObjectPlaneDistance(g_objPlaneDistance);
 
@@ -624,23 +706,20 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         }
 
         {
-            static bool g_operatedCameraOnPrevFrame = false;
-            uint32_t shrinkCoeff = operatingCamera ? 4 : 1;
-
-            bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera);
-            context.render(scene, camera, shrinkCoeff, firstFrame);
-
-            g_operatedCameraOnPrevFrame = operatingCamera;
-
             ImGui_ImplGlfwGL3_NewFrame(WindowSizeX, WindowSizeY, UIScaling);
 
+            bool cameraSettingsChanged = false;
+            static bool g_forceLowResolution = false;
             {
                 ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-                ImGui::InputFloat3("Position", (float*)&g_cameraPos);
+                cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&g_cameraPos);
 
-                ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
-                ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
+                cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
+                cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
+                cameraSettingsChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
+
+                g_sensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
 
                 ImGui::End();
             }
@@ -805,6 +884,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 ImGui::End();
             }
+
+            static bool g_operatedCameraOnPrevFrame = false;
+            uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
+
+            bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || cameraSettingsChanged;
+            context.render(scene, camera, shrinkCoeff, firstFrame);
+
+            g_operatedCameraOnPrevFrame = operatingCamera;
 
             frameBuffer.bind(GLTK::FrameBuffer::Target::ReadDraw);
 

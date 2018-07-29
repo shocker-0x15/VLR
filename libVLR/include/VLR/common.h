@@ -87,8 +87,12 @@ VLR_API void VLRDebugPrintf(const char* fmt, ...);
 #   define VLRDebugPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__);
 #endif
 
-#ifdef ENABLE_ASSERT
-#   define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
+#if defined(ENABLE_ASSERT)
+#   if defined(VLR_Host)
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
+#   else
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); } 0
+#   endif
 #else
 #   define VLRAssert(expr, fmt, ...)
 #endif

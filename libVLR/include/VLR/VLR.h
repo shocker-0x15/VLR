@@ -14,19 +14,27 @@ namespace VLR {
     class Transform;
     class StaticTransform;
 
+    class Object;
+
     class Image2D;
     class LinearImage2D;
 
     class FloatTexture;
     class Float2Texture;
     class Float3Texture;
+    class ConstantFloat3Texture;
+    class ImageFloat3Texture;
     class Float4Texture;
     class ConstantFloat4Texture;
     class ImageFloat4Texture;
 
     class SurfaceMaterial;
     class MatteSurfaceMaterial;
+    class SpecularReflectionSurfaceMaterial;
+    class SpecularScatteringSurfaceMaterial;
     class UE4SurfaceMaterial;
+    class DiffuseEmitterSurfaceMaterial;
+    class MultiSurfaceMaterial;
 
     class SurfaceNode;
     struct Vertex;
@@ -98,7 +106,7 @@ namespace VLR {
 extern "C" {
     typedef uint32_t VLRResult;
 
-    typedef void* VLRObject;
+    typedef VLR::Object* VLRObject;
 
     typedef VLR::Context* VLRContext;
 
@@ -109,13 +117,19 @@ extern "C" {
     typedef VLR::FloatTexture* VLRFloatTexture;
     typedef VLR::Float2Texture* VLRFloat2Texture;
     typedef VLR::Float3Texture* VLRFloat3Texture;
+    typedef VLR::ConstantFloat3Texture* VLRConstantFloat3Texture;
+    typedef VLR::ImageFloat3Texture* VLRImageFloat3Texture;
     typedef VLR::Float4Texture* VLRFloat4Texture;
     typedef VLR::ConstantFloat4Texture* VLRConstantFloat4Texture;
     typedef VLR::ImageFloat4Texture* VLRImageFloat4Texture;
 
     typedef VLR::SurfaceMaterial* VLRSurfaceMaterial;
     typedef VLR::MatteSurfaceMaterial* VLRMatteSurfaceMaterial;
+    typedef VLR::SpecularReflectionSurfaceMaterial* VLRSpecularReflectionSurfaceMaterial;
+    typedef VLR::SpecularScatteringSurfaceMaterial* VLRSpecularScatteringSurfaceMaterial;
     typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
+    typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
+    typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
 
     typedef VLR::SurfaceNode* VLRSurfaceNode;
     typedef VLR::Vertex VLRVertex;
@@ -145,6 +159,14 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrConstantFloat3TextureCreate(VLRContext context, VLRConstantFloat3Texture* texture,
+                                                     const float value[3]);
+    VLR_API VLRResult vlrConstantFloat3TextureDestroy(VLRContext context, VLRConstantFloat3Texture texture);
+
+    VLR_API VLRResult vlrImageFloat3TextureCreate(VLRContext context, VLRImageFloat3Texture* texture,
+                                                  VLRImage2D image);
+    VLR_API VLRResult vlrImageFloat3TextureDestroy(VLRContext context, VLRImageFloat3Texture texture);
+
     VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
                                                      const float value[4]);
     VLR_API VLRResult vlrConstantFloat4TextureDestroy(VLRContext context, VLRConstantFloat4Texture texture);
@@ -159,9 +181,25 @@ extern "C" {
                                                     VLRFloat4Texture texAlbedoRoughness);
     VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSurfaceMaterial material);
 
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material,
+                                                                 VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context, VLRSpecularReflectionSurfaceMaterial material);
+
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
+                                                                 VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material);
+
     VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
                                                   VLRFloat3Texture texBaseColor, VLRFloat2Texture texRoughnessMetallic);
     VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4SurfaceMaterial material);
+
+    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
+                                                             VLRFloat3Texture texEmittance);
+    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialDestroy(VLRContext context, VLRDiffuseEmitterSurfaceMaterial material);
+
+    VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material,
+                                                    const VLRSurfaceMaterial* materials, uint32_t numMaterials);
+    VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSurfaceMaterial material);
 
 
 
@@ -198,10 +236,11 @@ extern "C" {
 
     VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera, 
                                                  const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                                 float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
+                                                 float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
     VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera);
     VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLR::Point3D &position);
     VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLR::Quaternion &orientation);
+    VLR_API VLRResult vlrPerspectiveCameraSetSensitivity(VLRPerspectiveCamera camera, float sensitivity);
     VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius);
     VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance);
 }
@@ -209,42 +248,63 @@ extern "C" {
 namespace VLRCpp {
     class Image2DHolder;
     class LinearImage2DHolder;
+
     class FloatTextureHolder;
     class Float2TextureHolder;
     class Float3TextureHolder;
+    class ConstantFloat3TextureHolder;
+    class ImageFloat3TextureHolder;
     class Float4TextureHolder;
     class ConstantFloat4TextureHolder;
     class ImageFloat4TextureHolder;
+
     class SurfaceMaterialHolder;
     class MatteSurfaceMaterialHolder;
+    class SpecularReflectionSurfaceMaterialHolder;
+    class SpecularScatteringSurfaceMaterialHolder;
     class UE4SurfaceMaterialHolder;
+    class DiffuseEmitterSurfaceMaterialHolder;
+    class MultiSurfaceMaterialHolder;
+
     class NodeHolder;
     class SurfaceNodeHolder;
     class TriangleMeshSurfaceNodeHolder;
     class InternalNodeHolder;
     class SceneHolder;
+
     class CameraHolder;
     class PerspectiveCameraHolder;
 
 
 
     typedef std::shared_ptr<VLR::StaticTransform> StaticTransformRef;
+
     typedef std::shared_ptr<Image2DHolder> Image2DRef;
     typedef std::shared_ptr<LinearImage2DHolder> LinearImage2DRef;
+
     typedef std::shared_ptr<FloatTextureHolder> FloatTextureRef;
     typedef std::shared_ptr<Float2TextureHolder> Float2TextureRef;
     typedef std::shared_ptr<Float3TextureHolder> Float3TextureRef;
+    typedef std::shared_ptr<ConstantFloat3TextureHolder> ConstantFloat3TextureRef;
+    typedef std::shared_ptr<ImageFloat3TextureHolder> ImageFloat3TextureRef;
     typedef std::shared_ptr<Float4TextureHolder> Float4TextureRef;
     typedef std::shared_ptr<ConstantFloat4TextureHolder> ConstantFloat4TextureRef;
     typedef std::shared_ptr<ImageFloat4TextureHolder> ImageFloat4TextureRef;
+
     typedef std::shared_ptr<SurfaceMaterialHolder> SurfaceMaterialRef;
     typedef std::shared_ptr<MatteSurfaceMaterialHolder> MatteSurfaceMaterialRef;
+    typedef std::shared_ptr<SpecularReflectionSurfaceMaterialHolder> SpecularReflectionSurfaceMaterialRef;
+    typedef std::shared_ptr<SpecularScatteringSurfaceMaterialHolder> SpecularScatteringSurfaceMaterialRef;
     typedef std::shared_ptr<UE4SurfaceMaterialHolder> UE4SurfaceMaterialRef;
+    typedef std::shared_ptr<DiffuseEmitterSurfaceMaterialHolder> DiffuseEmitterSurfaceMaterialRef;
+    typedef std::shared_ptr<MultiSurfaceMaterialHolder> MultiSurfaceMaterialRef;
+
     typedef std::shared_ptr<NodeHolder> NodeRef;
     typedef std::shared_ptr<SurfaceNodeHolder> SurfaceNodeRef;
     typedef std::shared_ptr<TriangleMeshSurfaceNodeHolder> TriangleMeshSurfaceNodeRef;
     typedef std::shared_ptr<InternalNodeHolder> InternalNodeRef;
     typedef std::shared_ptr<SceneHolder> SceneRef;
+
     typedef std::shared_ptr<CameraHolder> CameraRef;
     typedef std::shared_ptr<PerspectiveCameraHolder> PerspectiveCameraRef;
 
@@ -282,7 +342,7 @@ namespace VLRCpp {
             VLRResult res = vlrLinearImage2DDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
 
         uint32_t getWidth() {
             uint32_t width;
@@ -321,6 +381,41 @@ namespace VLRCpp {
     public:
         Float3TextureHolder(VLRContext context) : Object(context) {}
     };
+
+
+
+    class ConstantFloat3TextureHolder : public Float3TextureHolder {
+        VLRConstantFloat3Texture m_raw;
+
+    public:
+        ConstantFloat3TextureHolder(VLRContext context, const float value[3]) :
+            Float3TextureHolder(context) {
+            VLRResult res = vlrConstantFloat3TextureCreate(context, &m_raw, value);
+        }
+        ~ConstantFloat3TextureHolder() {
+            VLRResult res = vlrConstantFloat3TextureDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class ImageFloat3TextureHolder : public Float3TextureHolder {
+        VLRImageFloat3Texture m_raw;
+        Image2DRef m_image;
+
+    public:
+        ImageFloat3TextureHolder(VLRContext context, const Image2DRef &image) :
+            Float3TextureHolder(context), m_image(image) {
+            VLRResult res = vlrImageFloat3TextureCreate(context, &m_raw, (VLRImage2D)m_image->get());
+        }
+        ~ImageFloat3TextureHolder() {
+            VLRResult res = vlrImageFloat3TextureDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
     
     
     
@@ -343,7 +438,7 @@ namespace VLRCpp {
             VLRResult res = vlrConstantFloat4TextureDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
     };
     
     
@@ -361,7 +456,7 @@ namespace VLRCpp {
             VLRResult res = vlrImageFloat4TextureDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -386,7 +481,47 @@ namespace VLRCpp {
             VLRResult res = vlrMatteSurfaceMaterialDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class SpecularReflectionSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        VLRSpecularReflectionSurfaceMaterial m_raw;
+        Float3TextureRef m_texCoeffR;
+        Float3TextureRef m_texEta;
+        Float3TextureRef m_tex_k;
+
+    public:
+        SpecularReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k) :
+            SurfaceMaterialHolder(context), m_texCoeffR(texCoeffR), m_texEta(texEta), m_tex_k(tex_k) {
+            VLRResult res = vlrSpecularReflectionSurfaceMaterialCreate(context, &m_raw, (VLRFloat3Texture)m_texCoeffR->get(), (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get());
+        }
+        ~SpecularReflectionSurfaceMaterialHolder() {
+            VLRResult res = vlrSpecularReflectionSurfaceMaterialDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class SpecularScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        VLRSpecularScatteringSurfaceMaterial m_raw;
+        Float3TextureRef m_texCoeff;
+        Float3TextureRef m_texEtaExt;
+        Float3TextureRef m_texEtaInt;
+
+    public:
+        SpecularScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt) :
+            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt) {
+            VLRResult res = vlrSpecularScatteringSurfaceMaterialCreate(context, &m_raw, (VLRFloat3Texture)m_texCoeff->get(), (VLRFloat3Texture)m_texEtaExt->get(), (VLRFloat3Texture)m_texEtaInt->get());
+        }
+        ~SpecularScatteringSurfaceMaterialHolder() {
+            VLRResult res = vlrSpecularScatteringSurfaceMaterialDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -405,7 +540,49 @@ namespace VLRCpp {
             VLRResult res = vlrUE4SurfaceMaterialDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class DiffuseEmitterSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        VLRDiffuseEmitterSurfaceMaterial m_raw;
+        Float3TextureRef m_texEmittance;
+
+    public:
+        DiffuseEmitterSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEmittance) :
+            SurfaceMaterialHolder(context), m_texEmittance(texEmittance) {
+            VLRResult res = vlrDiffuseEmitterSurfaceMaterialCreate(context, &m_raw, (VLRFloat3Texture)m_texEmittance->get());
+        }
+        ~DiffuseEmitterSurfaceMaterialHolder() {
+            VLRResult res = vlrDiffuseEmitterSurfaceMaterialDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class MultiSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        VLRMultiSurfaceMaterial m_raw;
+        std::vector<SurfaceMaterialRef> m_materials;
+
+    public:
+        MultiSurfaceMaterialHolder(VLRContext context, const SurfaceMaterialRef* materials, uint32_t numMaterials) :
+            SurfaceMaterialHolder(context) {
+            for (int i = 0; i < numMaterials; ++i)
+                m_materials.push_back(materials[i]);
+
+            VLRSurfaceMaterial rawMats[4];
+            for (int i = 0; i < numMaterials; ++i)
+                rawMats[i] = (VLRSurfaceMaterial)materials[i]->get();
+            VLRResult res = vlrMultiSurfaceMaterialCreate(context, &m_raw, rawMats, numMaterials);
+        }
+        ~MultiSurfaceMaterialHolder() {
+            VLRResult res = vlrMultiSurfaceMaterialDestroy(m_rawContext, m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
     };
     
     
@@ -446,7 +623,7 @@ namespace VLRCpp {
             VLRResult res = vlrTriangleMeshSurfaceNodeDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
 
         NodeType getNodeType() const override { return NodeType::TriangleMeshSurfaceNode; }
         void setName(const std::string &name) const override {
@@ -483,7 +660,7 @@ namespace VLRCpp {
             VLRResult res = vlrInternalNodeDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
 
         NodeType getNodeType() const override { return NodeType::InternalNode; }
         void setName(const std::string &name) const override {
@@ -545,7 +722,7 @@ namespace VLRCpp {
             VLRResult res = vlrSceneDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
@@ -595,21 +772,25 @@ namespace VLRCpp {
 
     public:
         PerspectiveCameraHolder(VLRContext context, const VLR::Point3D &position, const VLR::Quaternion &orientation, 
-                                float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
+                                float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
         CameraHolder(context) {
-            VLRResult res = vlrPerspectiveCameraCreate(context, &m_raw, position, orientation, aspect, fovY, lensRadius, imgPDist, objPDist);
+            VLRResult res = vlrPerspectiveCameraCreate(context, &m_raw, position, orientation, 
+                                                       sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
         }
         ~PerspectiveCameraHolder() {
             VLRResult res = vlrPerspectiveCameraDestroy(m_rawContext, m_raw);
         }
 
-        VLRObject get() const override { return m_raw; }
+        VLRObject get() const override { return (VLRObject)m_raw; }
 
         void setPosition(const VLR::Point3D &position) {
             VLRResult res = vlrPerspectiveCameraSetPosition(m_raw, position);
         }
         void setOrientation(const VLR::Quaternion &orientation) {
             VLRResult res = vlrPerspectiveCameraSetOrientation(m_raw, orientation);
+        }
+        void setSensitivity(float sensitivity) {
+            VLRResult res = vlrPerspectiveCameraSetSensitivity(m_raw, sensitivity);
         }
         void setLensRadius(float lensRadius) {
             VLRResult res = vlrPerspectiveCameraSetLensRadius(m_raw, lensRadius);
@@ -644,6 +825,14 @@ namespace VLRCpp {
             return std::make_shared<LinearImage2DHolder>(m_rawContext, width, height, format, linearData);
         }
 
+        ConstantFloat3TextureRef createConstantFloat3Texture(const float value[3]) const {
+            return std::make_shared<ConstantFloat3TextureHolder>(m_rawContext, value);
+        }
+
+        ImageFloat3TextureRef createImageFloat3Texture(const Image2DRef &image) const {
+            return std::make_shared<ImageFloat3TextureHolder>(m_rawContext, image);
+        }
+
         ConstantFloat4TextureRef createConstantFloat4Texture(const float value[4]) const {
             return std::make_shared<ConstantFloat4TextureHolder>(m_rawContext, value);
         }
@@ -656,8 +845,24 @@ namespace VLRCpp {
             return std::make_shared<MatteSurfaceMaterialHolder>(m_rawContext, texAlbedoRoughness);
         }
 
+        SpecularReflectionSurfaceMaterialRef createSpecularReflectionSurfaceMaterial(const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k) const {
+            return std::make_shared<SpecularReflectionSurfaceMaterialHolder>(m_rawContext, texCoeffR, texEta, tex_k);
+        }
+
+        SpecularScatteringSurfaceMaterialRef createSpecularScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt) const {
+            return std::make_shared<SpecularScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt);
+        }
+
         UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic) const {
             return std::make_shared<UE4SurfaceMaterialHolder>(m_rawContext, texBaseColor, texRoughnessMetallic);
+        }
+
+        DiffuseEmitterSurfaceMaterialRef createDiffuseEmitterSurfaceMaterial(const Float3TextureRef &texEmittance) const {
+            return std::make_shared<DiffuseEmitterSurfaceMaterialHolder>(m_rawContext, texEmittance);
+        }
+
+        MultiSurfaceMaterialRef createMultiSurfaceMaterial(const SurfaceMaterialRef* materials, uint32_t numMaterials) const {
+            return std::make_shared<MultiSurfaceMaterialHolder>(m_rawContext, materials, numMaterials);
         }
 
         TriangleMeshSurfaceNodeRef createTriangleMeshSurfaceNode(const char* name) const {
@@ -673,8 +878,8 @@ namespace VLRCpp {
         }
 
         PerspectiveCameraRef createPerspectiveCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                                     float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) const {
-            return std::make_shared<PerspectiveCameraHolder>(m_rawContext, position, orientation, aspect, fovY, lensRadius, imgPDist, objPDist);
+                                                     float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) const {
+            return std::make_shared<PerspectiveCameraHolder>(m_rawContext, position, orientation, sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
         }
     };
 }

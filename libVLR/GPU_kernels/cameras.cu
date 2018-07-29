@@ -38,7 +38,7 @@ namespace VLR {
         result->areaPDF = lensRadius > 0.0f ? 1.0f / (M_PIf * lensRadius * lensRadius) : 1.0f;
         result->posType = lensRadius > 0.0f ? DirectionType::LowFreq() : DirectionType::Delta0D();
 
-        return RGBSpectrum::One();
+        return RGBSpectrum(pv_perspectiveCamera.sensitivity);
     }
 
     RT_CALLABLE_PROGRAM RGBSpectrum PerspectiveCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {

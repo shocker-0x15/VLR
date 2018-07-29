@@ -136,7 +136,23 @@ namespace VLR {
         };
 
 
-        
+
+        struct BSDFProcedureSet {
+            int32_t progGetBaseColor;
+            int32_t progBSDFmatches;
+            int32_t progSampleBSDFInternal;
+            int32_t progEvaluateBSDFInternal;
+            int32_t progEvaluateBSDF_PDFInternal;
+            int32_t progWeightInternal;
+        };
+
+        struct EDFProcedureSet {
+            int32_t progEvaluateEmittanceInternal;
+            int32_t progEvaluateEDFInternal;
+        };
+
+
+
         struct SurfaceMaterialDescriptor {
 #define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
             union {
@@ -149,17 +165,6 @@ namespace VLR {
 
                 optix::float4 f4[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 2];
             };
-
-            int32_t progSetup;
-
-            int32_t progGetBaseColor;
-            int32_t progBSDFmatches;
-            int32_t progSampleBSDFInternal;
-            int32_t progEvaluateBSDFInternal;
-            int32_t progEvaluateBSDF_PDFInternal;
-
-            int32_t progEvaluateEmittanceInternal;
-            int32_t progEvaluateEDFInternal;
         };
 
 
@@ -196,6 +201,7 @@ namespace VLR {
             Point3D position;
             Quaternion orientation;
 
+            float sensitivity;
             float aspect;
             float fovY;
             float lensRadius;
@@ -207,8 +213,8 @@ namespace VLR {
             float imgPlaneArea;
 
             RT_FUNCTION PerspectiveCamera() {}
-            PerspectiveCamera(float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) :
-                aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
+            PerspectiveCamera(float _sensitivity, float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) :
+                sensitivity(_sensitivity), aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
                 imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
@@ -237,8 +243,27 @@ namespace VLR {
 
 
 
+        struct SurfaceMaterialHead {
+            int32_t progSetupBSDF;
+            uint32_t bsdfProcedureSetIndex;
+            int32_t progSetupEDF;
+            uint32_t edfProcedureSetIndex;
+        };
+
         struct MatteSurfaceMaterial {
             int32_t texAlbedoRoughness;
+        };
+
+        struct SpecularReflectionSurfaceMaterial {
+            int32_t texCoeffR;
+            int32_t texEta;
+            int32_t tex_k;
+        };
+
+        struct SpecularScatteringSurfaceMaterial {
+            int32_t texCoeff;
+            int32_t texEtaExt;
+            int32_t texEtaInt;
         };
 
         struct UE4SurfaceMaterial {
@@ -246,8 +271,18 @@ namespace VLR {
             int32_t texRoughnessMetallic;
         };
 
-        struct DiffuseEmitterMaterial {
+        struct DiffuseEmitterSurfaceMaterial {
             int32_t texEmittance;
+        };
+
+        struct MultiSurfaceMaterial {
+            struct { // offsets in DWs
+                unsigned int mat0 : 6;
+                unsigned int mat1 : 6;
+                unsigned int mat2 : 6;
+                unsigned int mat3 : 6;
+                unsigned int numMaterials : 8;
+            };
         };
     }
 }
