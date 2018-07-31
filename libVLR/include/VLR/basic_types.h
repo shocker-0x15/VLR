@@ -1439,11 +1439,6 @@ namespace VLR {
         RT_FUNCTION RGBTemplate operator-(const RGBTemplate &c) const { return RGBTemplate(r - c.r, g - c.g, b - c.b); }
         RT_FUNCTION RGBTemplate operator*(const RGBTemplate &c) const { return RGBTemplate(r * c.r, g * c.g, b * c.b); }
         RT_FUNCTION RGBTemplate operator/(const RGBTemplate &c) const { return RGBTemplate(r / c.r, g / c.g, b / c.b); }
-        RT_FUNCTION RGBTemplate safeDivide(const RGBTemplate &c) const {
-            return RGBTemplate(c.r > 0 ? r / c.r : 0,
-                               c.g > 0 ? g / c.g : 0,
-                               c.b > 0 ? b / c.b : 0);
-        }
         RT_FUNCTION RGBTemplate operator*(RealType s) const { return RGBTemplate(r * s, g * s, b * s); }
         RT_FUNCTION RGBTemplate operator/(RealType s) const { RealType rc = 1 / s; return RGBTemplate(r * rc, g * rc, b * rc); }
         RT_FUNCTION friend inline RGBTemplate operator*(RealType s, const RGBTemplate &c) { return RGBTemplate(s * c.r, s * c.g, s * c.b); }
@@ -1452,6 +1447,12 @@ namespace VLR {
         RT_FUNCTION RGBTemplate &operator-=(const RGBTemplate &c) { r -= c.r; g -= c.g; b -= c.b; return *this; }
         RT_FUNCTION RGBTemplate &operator*=(const RGBTemplate &c) { r *= c.r; g *= c.g; b *= c.b; return *this; }
         RT_FUNCTION RGBTemplate &operator/=(const RGBTemplate &c) { r /= c.r; g /= c.g; b /= c.b; return *this; }
+        RT_FUNCTION RGBTemplate &safeDivide(const RGBTemplate &c) {
+            r = c.r > 0 ? r / c.r : 0;
+            g = c.g > 0 ? g / c.g : 0;
+            b = c.b > 0 ? b / c.b : 0;
+            return *this;
+        }
         RT_FUNCTION RGBTemplate &operator*=(RealType s) { r *= s; g *= s; b *= s; return *this; }
         RT_FUNCTION RGBTemplate &operator/=(RealType s) { RealType rc = 1 / s; r *= rc; g *= rc; b *= rc; return *this; }
 

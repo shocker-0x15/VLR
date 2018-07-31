@@ -120,6 +120,7 @@ namespace VLR {
                 bsdfProcSet.progWeightInternal = m_optixCallableProgramNullBSDF_weightInternal->getId();
             }
             m_nullBSDFProcedureSetIndex = setBSDFProcedureSet(bsdfProcSet);
+            VLRAssert(m_nullBSDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
 
 
 
@@ -133,6 +134,7 @@ namespace VLR {
                 edfProcSet.progEvaluateEDFInternal = m_optixCallableProgramNullEDF_evaluateEDFInternal->getId();
             }
             m_nullEDFProcedureSetIndex = setEDFProcedureSet(edfProcSet);
+            VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
         }
 
         m_maxNumSurfaceMaterialDescriptors = 8192;
@@ -791,9 +793,9 @@ namespace VLR {
     FloatTexture::FloatTexture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
         m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
         m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
         m_optixTextureSampler->setMaxAnisotropy(1.0f);
@@ -803,14 +805,18 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
+    void FloatTexture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
 
 
     Float2Texture::Float2Texture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
         m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
         m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
         m_optixTextureSampler->setMaxAnisotropy(1.0f);
@@ -820,14 +826,18 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
+    void Float2Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
 
 
     Float3Texture::Float3Texture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
         m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
         m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
         m_optixTextureSampler->setMaxAnisotropy(1.0f);
@@ -835,6 +845,10 @@ namespace VLR {
 
     Float3Texture::~Float3Texture() {
         m_optixTextureSampler->destroy();
+    }
+
+    void Float3Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
 
@@ -862,9 +876,9 @@ namespace VLR {
     Float4Texture::Float4Texture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
-        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
         m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
         m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
         m_optixTextureSampler->setMaxAnisotropy(1.0f);
@@ -872,6 +886,10 @@ namespace VLR {
 
     Float4Texture::~Float4Texture() {
         m_optixTextureSampler->destroy();
+    }
+
+    void Float4Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
 
@@ -1361,10 +1379,10 @@ namespace VLR {
         }
         VLRAssert(baseIndex <= VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS, "exceeds the size of SurfaceMaterialDescriptor.");
 
-        mat.mat0 = matOffsets[0];
-        mat.mat1 = matOffsets[1];
-        mat.mat2 = matOffsets[2];
-        mat.mat3 = matOffsets[3];
+        mat.matOffset0 = matOffsets[0];
+        mat.matOffset1 = matOffsets[1];
+        mat.matOffset2 = matOffsets[2];
+        mat.matOffset3 = matOffsets[3];
         mat.numMaterials = m_numMaterials;
 
         return baseIndex;

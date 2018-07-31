@@ -192,44 +192,44 @@ namespace VLR {
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
         BSDFQuery fsQuery(dirOutLocal, geomNormalLocal, DirectionType::All(), sm_payload.wlHint);
 
-        //// Next Event Estimation (explicit light sampling)
-        ///*if (bsdf->hasNonDelta())*/ {
-        //    float lightSample = rng.getFloat0cTo1o();
-        //    SurfaceLight light;
-        //    float lightProb;
-        //    selectSurfaceLight(lightSample, &light, &lightProb, &lightSample);
+        // Next Event Estimation (explicit light sampling)
+        /*if (bsdf->hasNonDelta())*/ {
+            float lightSample = rng.getFloat0cTo1o();
+            SurfaceLight light;
+            float lightProb;
+            selectSurfaceLight(lightSample, &light, &lightProb, &lightSample);
 
-        //    SurfaceLightPosSample lpSample(lightSample, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
-        //    SurfaceLightPosQueryResult lpResult;
-        //    RGBSpectrum M = light.sample(lpSample, &lpResult);
+            SurfaceLightPosSample lpSample(lightSample, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
+            SurfaceLightPosQueryResult lpResult;
+            RGBSpectrum M = light.sample(lpSample, &lpResult);
 
-        //    SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.matIndex];
-        //    //EDF ledf(lightMatDesc, lpResult.surfPt);
+            SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.matIndex];
+            //EDF ledf(lightMatDesc, lpResult.surfPt);
 
-        //    Vector3D shadowRayDir;
-        //    float squaredDistance;
-        //    float fractionalVisibility;
-        //    if (testVisibility(surfPt, lpResult.surfPt, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
-        //        Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
-        //        Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
+            Vector3D shadowRayDir;
+            float squaredDistance;
+            float fractionalVisibility;
+            if (testVisibility(surfPt, lpResult.surfPt, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
+                Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
+                Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
-        //        //RGBSpectrum Le = M * ledf.evaluateEDF(EDFQuery(), shadowRayDir_l);
-        //        RGBSpectrum Le = M * (shadowRayDir_l.z > 0 ? 1 / M_PIf : 0);
-        //        float lightPDF = lightProb * lpResult.areaPDF;
+                //RGBSpectrum Le = M * ledf.evaluateEDF(EDFQuery(), shadowRayDir_l);
+                RGBSpectrum Le = M * (shadowRayDir_l.z > 0 ? 1 / M_PIf : 0);
+                float lightPDF = lightProb * lpResult.areaPDF;
 
-        //        RGBSpectrum fs = bsdf.evaluateBSDF(fsQuery, shadowRayDir_sn);
-        //        float cosLight = lpResult.surfPt.calcCosTerm(-shadowRayDir);
-        //        float bsdfPDF = bsdf.evaluateBSDF_PDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
+                RGBSpectrum fs = bsdf.evaluateBSDF(fsQuery, shadowRayDir_sn);
+                float cosLight = lpResult.surfPt.calcCosTerm(-shadowRayDir);
+                float bsdfPDF = bsdf.evaluateBSDF_PDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
 
-        //        float MISWeight = 1.0f;
-        //        //if (!lpResult.posType.isDelta() && !std::isinf(lpResult.areaPDF))
-        //        //    MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
+                float MISWeight = 1.0f;
+                //if (!lpResult.posType.isDelta() && !std::isinf(lpResult.areaPDF))
+                //    MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
-        //        float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
-        //        float scalarCoeff = G * MISWeight / lightPDF;
-        //        sm_payload.contribution += sm_payload.alpha * Le * fs * scalarCoeff;
-        //    }
-        //}
+                float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
+                float scalarCoeff = G * MISWeight / lightPDF;
+                sm_payload.contribution += sm_payload.alpha * Le * fs * scalarCoeff;
+            }
+        }
 
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
