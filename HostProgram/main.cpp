@@ -344,7 +344,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         //Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
         //SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt);
 
-        float coeff[] = { 0.1f, 0.1f, 0.1f };
+        float coeff[] = { 0.5f, 0.5f, 0.5f };
         // Silver
         float eta[] = { 0.157099f, 0.144013f, 0.134847f };
         float k[] = { 3.82431f, 3.1451f, 2.27711f };
@@ -353,7 +353,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
         SurfaceMaterialRef matA = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
 
-        float albedoRoughness[] = { 0.5f, 0.5f, 0.5f, 0.0f };
+        float albedoRoughness[] = { 0.75f, 0.25f, 0.0f, 0.0f };
         Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(albedoRoughness);
         SurfaceMaterialRef matB = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
@@ -368,9 +368,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
         std::vector<Vertex> vertices;
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 5.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 5.0f) });
+        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
@@ -391,12 +391,23 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         cornellBox->setVertices(vertices.data(), vertices.size());
 
         {
+            Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png");
+            Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
+            texAlbedoRoughness->setTextureFilterMode(VLR::TextureFilter::Nearest, VLR::TextureFilter::Nearest, VLR::TextureFilter::None);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
+        }
+
+        {
             float value[4] = { 0.75f, 0.75f, 0.75f, 0.0f };
             Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
             SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
             std::vector<uint32_t> matGroup = {
-                0, 1, 2, 0, 2, 3,
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
             };

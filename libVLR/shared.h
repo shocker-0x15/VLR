@@ -277,10 +277,10 @@ namespace VLR {
 
         struct MultiSurfaceMaterial {
             struct { // offsets in DWs
-                unsigned int mat0 : 6;
-                unsigned int mat1 : 6;
-                unsigned int mat2 : 6;
-                unsigned int mat3 : 6;
+                unsigned int matOffset0 : 6;
+                unsigned int matOffset1 : 6;
+                unsigned int matOffset2 : 6;
+                unsigned int matOffset3 : 6;
                 unsigned int numMaterials : 8;
             };
         };

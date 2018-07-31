@@ -378,6 +378,8 @@ namespace VLR {
         const optix::TextureSampler &getOptiXObject() const {
             return m_optixTextureSampler;
         }
+
+        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
     };
 
 
@@ -396,6 +398,8 @@ namespace VLR {
         const optix::TextureSampler &getOptiXObject() const {
             return m_optixTextureSampler;
         }
+
+        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
     };
 
 
@@ -414,6 +418,8 @@ namespace VLR {
         const optix::TextureSampler &getOptiXObject() const {
             return m_optixTextureSampler;
         }
+
+        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
     };
 
 
@@ -457,6 +463,8 @@ namespace VLR {
         const optix::TextureSampler &getOptiXObject() const {
             return m_optixTextureSampler;
         }
+
+        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
     };
 
 

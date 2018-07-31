@@ -89,6 +89,14 @@ namespace VLR {
 
 
 
+    enum class TextureFilter {
+        Nearest = 0,
+        Linear,
+        None
+    };
+
+
+
     struct Vertex {
         Point3D position;
         Normal3D normal;
@@ -114,6 +122,7 @@ extern "C" {
     typedef VLR::Image2D* VLRImage2D;
     typedef VLR::LinearImage2D* VLRLinearImage2D;
 
+    typedef VLR::TextureFilter VLRTextureFilter;
     typedef VLR::FloatTexture* VLRFloatTexture;
     typedef VLR::Float2Texture* VLRFloat2Texture;
     typedef VLR::Float3Texture* VLRFloat3Texture;
@@ -159,6 +168,9 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrFloat3TextureSetFilterMode(VLRContext context, VLRFloat3Texture texture,
+                                                    VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+
     VLR_API VLRResult vlrConstantFloat3TextureCreate(VLRContext context, VLRConstantFloat3Texture* texture,
                                                      const float value[3]);
     VLR_API VLRResult vlrConstantFloat3TextureDestroy(VLRContext context, VLRConstantFloat3Texture texture);
@@ -166,6 +178,9 @@ extern "C" {
     VLR_API VLRResult vlrImageFloat3TextureCreate(VLRContext context, VLRImageFloat3Texture* texture,
                                                   VLRImage2D image);
     VLR_API VLRResult vlrImageFloat3TextureDestroy(VLRContext context, VLRImageFloat3Texture texture);
+
+    VLR_API VLRResult vlrFloat4TextureSetFilterMode(VLRContext context, VLRFloat4Texture texture,
+                                                    VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
 
     VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
                                                      const float value[4]);
@@ -364,6 +379,9 @@ namespace VLRCpp {
 
 
     class FloatTextureHolder : public Object {
+    protected:
+        VLRFloatTexture m_raw;
+
     public:
         FloatTextureHolder(VLRContext context) : Object(context) {}
     };
@@ -371,6 +389,9 @@ namespace VLRCpp {
     
     
     class Float2TextureHolder : public Object {
+    protected:
+        VLRFloat2Texture m_raw;
+
     public:
         Float2TextureHolder(VLRContext context) : Object(context) {}
     };
@@ -378,22 +399,27 @@ namespace VLRCpp {
     
     
     class Float3TextureHolder : public Object {
+    protected:
+        VLRFloat3Texture m_raw;
+
     public:
         Float3TextureHolder(VLRContext context) : Object(context) {}
+
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+            VLRResult res = vlrFloat3TextureSetFilterMode(m_rawContext, m_raw, minification, magnification, mipmapping);
+        }
     };
 
 
 
     class ConstantFloat3TextureHolder : public Float3TextureHolder {
-        VLRConstantFloat3Texture m_raw;
-
     public:
         ConstantFloat3TextureHolder(VLRContext context, const float value[3]) :
             Float3TextureHolder(context) {
-            VLRResult res = vlrConstantFloat3TextureCreate(context, &m_raw, value);
+            VLRResult res = vlrConstantFloat3TextureCreate(context, (VLRConstantFloat3Texture*)&m_raw, value);
         }
         ~ConstantFloat3TextureHolder() {
-            VLRResult res = vlrConstantFloat3TextureDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrConstantFloat3TextureDestroy(m_rawContext, (VLRConstantFloat3Texture)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }
@@ -402,16 +428,15 @@ namespace VLRCpp {
 
 
     class ImageFloat3TextureHolder : public Float3TextureHolder {
-        VLRImageFloat3Texture m_raw;
         Image2DRef m_image;
 
     public:
         ImageFloat3TextureHolder(VLRContext context, const Image2DRef &image) :
             Float3TextureHolder(context), m_image(image) {
-            VLRResult res = vlrImageFloat3TextureCreate(context, &m_raw, (VLRImage2D)m_image->get());
+            VLRResult res = vlrImageFloat3TextureCreate(context, (VLRImageFloat3Texture*)&m_raw, (VLRImage2D)m_image->get());
         }
         ~ImageFloat3TextureHolder() {
-            VLRResult res = vlrImageFloat3TextureDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrImageFloat3TextureDestroy(m_rawContext, (VLRImageFloat3Texture)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }
@@ -420,22 +445,27 @@ namespace VLRCpp {
     
     
     class Float4TextureHolder : public Object {
+    protected:
+        VLRFloat4Texture m_raw;
+
     public:
         Float4TextureHolder(VLRContext context) : Object(context) {}
+
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+            VLRResult res = vlrFloat4TextureSetFilterMode(m_rawContext, m_raw, minification, magnification, mipmapping);
+        }
     };
 
 
 
     class ConstantFloat4TextureHolder : public Float4TextureHolder {
-        VLRConstantFloat4Texture m_raw;
-
     public:
         ConstantFloat4TextureHolder(VLRContext context, const float value[4]) :
             Float4TextureHolder(context) {
-            VLRResult res = vlrConstantFloat4TextureCreate(context, &m_raw, value);
+            VLRResult res = vlrConstantFloat4TextureCreate(context, (VLRConstantFloat4Texture*)&m_raw, value);
         }
         ~ConstantFloat4TextureHolder() {
-            VLRResult res = vlrConstantFloat4TextureDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrConstantFloat4TextureDestroy(m_rawContext, (VLRConstantFloat4Texture)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }
@@ -444,16 +474,15 @@ namespace VLRCpp {
     
     
     class ImageFloat4TextureHolder : public Float4TextureHolder {
-        VLRImageFloat4Texture m_raw;
         Image2DRef m_image;
 
     public:
         ImageFloat4TextureHolder(VLRContext context, const Image2DRef &image) :
             Float4TextureHolder(context), m_image(image) {
-            VLRResult res = vlrImageFloat4TextureCreate(context, &m_raw, (VLRImage2D)m_image->get());
+            VLRResult res = vlrImageFloat4TextureCreate(context, (VLRImageFloat4Texture*)&m_raw, (VLRImage2D)m_image->get());
         }
         ~ImageFloat4TextureHolder() {
-            VLRResult res = vlrImageFloat4TextureDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrImageFloat4TextureDestroy(m_rawContext, (VLRImageFloat4Texture)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }

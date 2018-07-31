@@ -76,6 +76,17 @@ VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* st
 
 
 
+VLR_API VLRResult vlrFloat3TextureSetFilterMode(VLRContext context, VLRFloat3Texture texture,
+                                                VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+    if (!texture->isMemberOf<VLR::Float3Texture>())
+        return VLR_ERROR_INVALID_TYPE;
+    texture->setTextureFilterMode(minification, magnification, mipmapping);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrConstantFloat3TextureCreate(VLRContext context, VLRConstantFloat3Texture* texture,
                                                  const float value[3]) {
     *texture = new VLR::ConstantFloat3Texture(*context, value);
@@ -104,6 +115,17 @@ VLR_API VLRResult vlrImageFloat3TextureDestroy(VLRContext context, VLRImageFloat
     if (!texture->is<VLR::ImageFloat3Texture>())
         return VLR_ERROR_INVALID_TYPE;
     delete texture;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrFloat4TextureSetFilterMode(VLRContext context, VLRFloat4Texture texture,
+                                                VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+    if (!texture->isMemberOf<VLR::Float4Texture>())
+        return VLR_ERROR_INVALID_TYPE;
+    texture->setTextureFilterMode(minification, magnification, mipmapping);
 
     return VLR_ERROR_NO_ERROR;
 }

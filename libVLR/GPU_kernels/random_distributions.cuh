@@ -28,6 +28,32 @@ namespace VLR {
 
 
     template <typename RealType>
+    RT_FUNCTION uint32_t sampleDiscrete(const RealType* importances, uint32_t numImportances, RealType u,
+                            RealType* prob, RealType* sumImportances, RealType* remapped) {
+        RealType sum = 0;
+        for (int i = 0; i < numImportances; ++i)
+            sum += importances[i];
+        *sumImportances = sum;
+
+        RealType base = 0;
+        RealType su = u * sum;
+        RealType cum = 0;
+        for (int i = 0; i < numImportances; ++i) {
+            base = cum;
+            cum += importances[i];
+            if (su < cum) {
+                *prob = importances[i] / sum;
+                *remapped = (su - base) / importances[i];
+                return i;
+            }
+        }
+        *prob = importances[0] / sum;
+        return 0;
+    }
+
+
+
+    template <typename RealType>
     RT_FUNCTION void concentricSampleDisk(RealType u0, RealType u1, RealType* dx, RealType* dy) {
         RealType r, theta;
         RealType sx = 2 * u0 - 1;
