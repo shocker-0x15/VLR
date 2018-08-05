@@ -106,7 +106,7 @@ namespace VLR {
     typedef rtCallableProgramX<RGBSpectrum(const SurfacePoint &, const IDFSample &, IDFQueryResult*)> progSigSampleIDF;
 
     typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> progSigDecodeTexCoord;
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*)> progSigDecodeHitPoint;
+    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> progSigDecodeHitPoint;
     typedef rtCallableProgramX<float(const TexCoord2D &)> progSigFetchAlpha;
     typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> progSigFetchNormal;
 
@@ -122,6 +122,7 @@ namespace VLR {
     rtDeclareVariable(progSigDecodeHitPoint, pv_progDecodeHitPoint, , );
     rtDeclareVariable(progSigFetchAlpha, pv_progFetchAlpha, , );
     rtDeclareVariable(progSigFetchNormal, pv_progFetchNormal, , );
+    rtDeclareVariable(float, pv_importance, , );
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     RT_PROGRAM void stochasticAlphaAnyHit() {
@@ -152,8 +153,9 @@ namespace VLR {
         KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
 
         SurfacePoint surfPt;
+        float areaPDF;
         HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt);
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &areaPDF);
 
         applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
 
@@ -170,13 +172,10 @@ namespace VLR {
 
             float MISWeight = 1.0f;
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
-                //float bsdfPDF = sm_payload.prevDirPDF;
-                //float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                //float lightPDF = 1.0f;// = si.getLightProb() * surfPt.evaluateAreaPDF() * dist2 / surfPt.calcCosTerm(asVector3D(ray.direction));
-                //MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
-
-                // DELETE ME
-                MISWeight = 0.0f;
+                float bsdfPDF = sm_payload.prevDirPDF;
+                float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
+                float lightPDF = pv_importance / pv_lightImpDist.integral() * areaPDF;
+                MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
             sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
@@ -227,8 +226,8 @@ namespace VLR {
                 float bsdfPDF = bsdf.evaluateBSDF_PDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
 
                 float MISWeight = 1.0f;
-                //if (!lpResult.posType.isDelta() && !std::isinf(lpResult.areaPDF))
-                //    MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
+                if (!lpResult.posType.isDelta() && !std::isinf(lpResult.areaPDF))
+                    MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
                 float scalarCoeff = G * MISWeight / lightPDF;

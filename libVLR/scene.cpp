@@ -54,6 +54,7 @@ namespace VLR {
 
     defineClassID(Object, Camera);
     defineClassID(Camera, PerspectiveCamera);
+    defineClassID(Camera, EquirectangularCamera);
 
 #undef defineClassID
     
@@ -1741,6 +1742,7 @@ namespace VLR {
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         OptiXGeometry geom;
+        CompensatedSum<float> sumImportances(0.0f);
         {
             geom.indices = std::move(indices);
             uint32_t numTriangles = (uint32_t)geom.indices.size() / 3;
@@ -1766,6 +1768,7 @@ namespace VLR {
 
                     const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
                     areas[i] = std::max<float>(0.0f, 0.5f * cross(v[1].position - v[0].position, v[2].position - v[0].position).length());
+                    sumImportances += areas[i];
                 }
                 geom.optixIndexBuffer->unmap();
             }
@@ -1793,10 +1796,12 @@ namespace VLR {
             optixGeomInst->setMaterial(0, material->getOptiXObject());
             optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);
             optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
+            optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
             optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
             optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
+            optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
         }
         m_shGeometryInstances.push_back(geomInst);
 
@@ -2425,10 +2430,12 @@ namespace VLR {
     // static
     void Camera::initialize(Context &context) {
         PerspectiveCamera::initialize(context);
+        EquirectangularCamera::initialize(context);
     }
 
     // static
     void Camera::finalize(Context &context) {
+        EquirectangularCamera::finalize(context);
         PerspectiveCamera::finalize(context);
     }
     
@@ -2472,6 +2479,50 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         optixContext["VLR::pv_perspectiveCamera"]->setUserData(sizeof(Shared::PerspectiveCamera), &m_data);
+        optixContext["VLR::pv_progSampleLensPosition"]->set(progSet.callableProgramSampleLensPosition);
+        optixContext["VLR::pv_progSampleIDF"]->set(progSet.callableProgramSampleIDF);
+    }
+
+
+
+    std::map<uint32_t, EquirectangularCamera::OptiXProgramSet> EquirectangularCamera::OptiXProgramSets;
+
+    // static
+    void EquirectangularCamera::initialize(Context &context) {
+        std::string ptx = readTxtFile("resources/ptxes/cameras.ptx");
+
+        OptiXProgramSet programSet;
+
+        optix::Context optixContext = context.getOptiXContext();
+
+        programSet.callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, "VLR::EquirectangularCamera_sampleLensPosition");
+        programSet.callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, "VLR::EquirectangularCamera_sampleIDF");
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void EquirectangularCamera::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+
+        programSet.callableProgramSampleIDF->destroy();
+        programSet.callableProgramSampleLensPosition->destroy();
+
+        OptiXProgramSets.erase(context.getID());
+    }
+
+    EquirectangularCamera::EquirectangularCamera(Context &context, const Point3D &position, const Quaternion &orientation,
+                                                 float sensitivity, float phiAngle, float thetaAngle) :
+        Camera(context), m_data(sensitivity, phiAngle, thetaAngle) {
+        m_data.position = position;
+        m_data.orientation = orientation;
+    }
+
+    void EquirectangularCamera::set() const {
+        optix::Context optixContext = m_context.getOptiXContext();
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        optixContext["VLR::pv_equirectangularCamera"]->setUserData(sizeof(Shared::EquirectangularCamera), &m_data);
         optixContext["VLR::pv_progSampleLensPosition"]->set(progSet.callableProgramSampleLensPosition);
         optixContext["VLR::pv_progSampleIDF"]->set(progSet.callableProgramSampleIDF);
     }

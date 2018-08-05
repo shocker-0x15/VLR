@@ -44,6 +44,7 @@ namespace VLR {
 
     class Camera;
     class PerspectiveCamera;
+    class EquirectangularCamera;
 
 
 
@@ -148,6 +149,7 @@ extern "C" {
 
     typedef VLR::Camera* VLRCamera;
     typedef VLR::PerspectiveCamera* VLRPerspectiveCamera;
+    typedef VLR::EquirectangularCamera* VLREquirectangularCamera;
 
 
 
@@ -258,6 +260,17 @@ extern "C" {
     VLR_API VLRResult vlrPerspectiveCameraSetSensitivity(VLRPerspectiveCamera camera, float sensitivity);
     VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius);
     VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance);
+
+
+
+    VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera,
+                                                     const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                     float sensitivity, float phiAngle, float thetaAngle);
+    VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirectangularCamera camera);
+    VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLR::Point3D &position);
+    VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLR::Quaternion &orientation);
+    VLR_API VLRResult vlrEquirectangularCameraSetSensitivity(VLREquirectangularCamera camera, float sensitivity);
+    VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera camera, float phiAngle, float thetaAngle);
 }
 
 namespace VLRCpp {
@@ -289,6 +302,7 @@ namespace VLRCpp {
 
     class CameraHolder;
     class PerspectiveCameraHolder;
+    class EquirectangularCameraHolder;
 
 
 
@@ -322,6 +336,7 @@ namespace VLRCpp {
 
     typedef std::shared_ptr<CameraHolder> CameraRef;
     typedef std::shared_ptr<PerspectiveCameraHolder> PerspectiveCameraRef;
+    typedef std::shared_ptr<EquirectangularCameraHolder> EquirectangularCameraRef;
 
 
 
@@ -788,6 +803,9 @@ namespace VLRCpp {
 
 
     class CameraHolder : public Object {
+    protected:
+        VLRCamera m_raw;
+
     public:
         CameraHolder(VLRContext context) : Object(context) {}
     };
@@ -795,35 +813,63 @@ namespace VLRCpp {
 
 
     class PerspectiveCameraHolder : public CameraHolder {
-        VLRPerspectiveCamera m_raw;
-
     public:
         PerspectiveCameraHolder(VLRContext context, const VLR::Point3D &position, const VLR::Quaternion &orientation, 
                                 float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
         CameraHolder(context) {
-            VLRResult res = vlrPerspectiveCameraCreate(context, &m_raw, position, orientation, 
+            VLRResult res = vlrPerspectiveCameraCreate(context, (VLRPerspectiveCamera*)&m_raw, position, orientation, 
                                                        sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
         }
         ~PerspectiveCameraHolder() {
-            VLRResult res = vlrPerspectiveCameraDestroy(m_rawContext, m_raw);
+            VLRResult res = vlrPerspectiveCameraDestroy(m_rawContext, (VLRPerspectiveCamera)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }
 
         void setPosition(const VLR::Point3D &position) {
-            VLRResult res = vlrPerspectiveCameraSetPosition(m_raw, position);
+            VLRResult res = vlrPerspectiveCameraSetPosition((VLRPerspectiveCamera)m_raw, position);
         }
         void setOrientation(const VLR::Quaternion &orientation) {
-            VLRResult res = vlrPerspectiveCameraSetOrientation(m_raw, orientation);
+            VLRResult res = vlrPerspectiveCameraSetOrientation((VLRPerspectiveCamera)m_raw, orientation);
         }
         void setSensitivity(float sensitivity) {
-            VLRResult res = vlrPerspectiveCameraSetSensitivity(m_raw, sensitivity);
+            VLRResult res = vlrPerspectiveCameraSetSensitivity((VLRPerspectiveCamera)m_raw, sensitivity);
         }
         void setLensRadius(float lensRadius) {
-            VLRResult res = vlrPerspectiveCameraSetLensRadius(m_raw, lensRadius);
+            VLRResult res = vlrPerspectiveCameraSetLensRadius((VLRPerspectiveCamera)m_raw, lensRadius);
         }
         void setObjectPlaneDistance(float distance) {
-            VLRResult res = vlrPerspectiveCameraSetObjectPlaneDistance(m_raw, distance);
+            VLRResult res = vlrPerspectiveCameraSetObjectPlaneDistance((VLRPerspectiveCamera)m_raw, distance);
+        }
+    };
+
+
+
+    class EquirectangularCameraHolder : public CameraHolder {
+    public:
+        EquirectangularCameraHolder(VLRContext context, const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                float sensitivity, float phiAngle, float thetaAngle) :
+            CameraHolder(context) {
+            VLRResult res = vlrEquirectangularCameraCreate(context, (VLREquirectangularCamera*)&m_raw, position, orientation,
+                                                           sensitivity, phiAngle, thetaAngle);
+        }
+        ~EquirectangularCameraHolder() {
+            VLRResult res = vlrEquirectangularCameraDestroy(m_rawContext, (VLREquirectangularCamera)m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+
+        void setPosition(const VLR::Point3D &position) {
+            VLRResult res = vlrEquirectangularCameraSetPosition((VLREquirectangularCamera)m_raw, position);
+        }
+        void setOrientation(const VLR::Quaternion &orientation) {
+            VLRResult res = vlrEquirectangularCameraSetOrientation((VLREquirectangularCamera)m_raw, orientation);
+        }
+        void setSensitivity(float sensitivity) {
+            VLRResult res = vlrEquirectangularCameraSetSensitivity((VLREquirectangularCamera)m_raw, sensitivity);
+        }
+        void setAngles(float phiAngle, float thetaAngle) {
+            VLRResult res = vlrEquirectangularCameraSetAngles((VLREquirectangularCamera)m_raw, phiAngle, thetaAngle);
         }
     };
 
@@ -907,6 +953,11 @@ namespace VLRCpp {
         PerspectiveCameraRef createPerspectiveCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
                                                      float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) const {
             return std::make_shared<PerspectiveCameraHolder>(m_rawContext, position, orientation, sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
+        }
+
+        EquirectangularCameraRef createEquirectangularCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                             float sensitivity, float phiAngle, float thetaAngle) const {
+            return std::make_shared<EquirectangularCameraHolder>(m_rawContext, position, orientation, sensitivity, phiAngle, thetaAngle);
         }
     };
 }

@@ -5,7 +5,7 @@
 namespace VLR {
     namespace Shared {
         template <typename RealType>
-        struct/*class*/ DiscreteDistribution1DTemplate {
+        class DiscreteDistribution1DTemplate {
             rtBufferId<RealType, 1> m_PMF;
             rtBufferId<RealType, 1> m_CDF;
             RealType m_integral;
@@ -246,6 +246,23 @@ namespace VLR {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
                 imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+            }
+        };
+
+
+
+        struct EquirectangularCamera {
+            Point3D position;
+            Quaternion orientation;
+
+            float sensitivity;
+
+            float phiAngle;
+            float thetaAngle;
+
+            RT_FUNCTION EquirectangularCamera() {}
+            EquirectangularCamera(float _sensitivity, float _phiAngle, float _thetaAngle) :
+                sensitivity(_sensitivity), phiAngle(_phiAngle), thetaAngle(_thetaAngle) {
             }
         };
 

@@ -60,4 +60,54 @@ namespace VLR {
 
     // END: PerspectiveCamera
     // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // EquirectangularCamera
+
+    // per Context
+    rtDeclareVariable(EquirectangularCamera, pv_equirectangularCamera, , );
+
+    RT_CALLABLE_PROGRAM RGBSpectrum EquirectangularCamera_sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
+        Matrix3x3 rotMat = pv_equirectangularCamera.orientation.toMatrix3x3();
+
+        Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
+        VLRAssert(geometricNormal.length() < 1.01f, "Transform applied to camera can not include scaling.");
+
+        ReferenceFrame shadingFrame;
+        shadingFrame.z = (Vector3D)geometricNormal;
+        shadingFrame.x = normalize(rotMat * Vector3D(1, 0, 0));
+        shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+
+        SurfacePoint &surfPt = result->surfPt;
+        surfPt.position = rotMat * Point3D::Zero() + pv_equirectangularCamera.position;
+        surfPt.shadingFrame = shadingFrame;
+        surfPt.atInfinity = false;
+
+        surfPt.geometricNormal = geometricNormal;
+        surfPt.u = 0;
+        surfPt.v = 0;
+        surfPt.texCoord = TexCoord2D::Zero();
+        //surfPt.tc0Direction = Vector3D::Zero();
+
+        result->areaPDF = 1.0f;
+        result->posType = DirectionType::Delta0D();
+
+        return RGBSpectrum(pv_equirectangularCamera.sensitivity);
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {
+        float phi = pv_equirectangularCamera.phiAngle * (sample.uDir[0] - 0.5f);
+        float theta = 0.5f * M_PIf + pv_equirectangularCamera.thetaAngle * (sample.uDir[1] - 0.5f);
+        result->dirLocal = Vector3D::fromPolarYUp(phi, theta);
+        float sinTheta = std::sqrt(1.0f - result->dirLocal.y * result->dirLocal.y);
+        result->dirPDF = 1.0f / (pv_equirectangularCamera.phiAngle * pv_equirectangularCamera.thetaAngle * sinTheta);
+        result->sampledType = DirectionType::Acquisition() | DirectionType::LowFreq();
+
+        return RGBSpectrum::One();
+    }
+
+    // END: EquirectangularCamera
+    // ----------------------------------------------------------------
 }

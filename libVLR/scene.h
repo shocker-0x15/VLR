@@ -1008,4 +1008,43 @@ namespace VLR {
             m_data.setObjectPlaneDistance(distance);
         }
     };
+
+
+
+    class EquirectangularCamera : public Camera {
+        struct OptiXProgramSet {
+            optix::Program callableProgramSampleLensPosition;
+            optix::Program callableProgramSampleIDF;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        Shared::EquirectangularCamera m_data;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        EquirectangularCamera(Context &context, const Point3D &position, const Quaternion &orientation,
+                              float sensitivity, float phiAngle, float thetaAngle);
+
+        void set() const override;
+
+        void setPosition(const Point3D &position) {
+            m_data.position = position;
+        }
+        void setOrientation(const Quaternion &orientation) {
+            m_data.orientation = orientation;
+        }
+        void setSensitivity(float sensitivity) {
+            m_data.sensitivity = sensitivity;
+        }
+        void setAngles(float phiAngle, float thetaAngle) {
+            m_data.phiAngle = phiAngle;
+            m_data.thetaAngle = thetaAngle;
+        }
+    };
 }

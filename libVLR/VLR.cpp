@@ -516,3 +516,53 @@ VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamer
 
     return VLR_ERROR_NO_ERROR;
 }
+
+
+
+VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera,
+                                             const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                 float sensitivity, float phiAngle, float thetaAngle) {
+    *camera = new VLR::EquirectangularCamera(*context, position, orientation, sensitivity, phiAngle, thetaAngle);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirectangularCamera camera) {
+    if (!camera->is<VLR::EquirectangularCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete camera;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLR::Point3D &position) {
+    if (!camera->is<VLR::EquirectangularCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setPosition(position);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLR::Quaternion &orientation) {
+    if (!camera->is<VLR::EquirectangularCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setOrientation(orientation);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEquirectangularCameraSetSensitivity(VLREquirectangularCamera camera, float sensitivity) {
+    if (!camera->is<VLR::EquirectangularCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setSensitivity(sensitivity);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera camera, float phiAngle, float thetaAngle) {
+    if (!camera->is<VLR::EquirectangularCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setAngles(phiAngle, thetaAngle);
+
+    return VLR_ERROR_NO_ERROR;
+}

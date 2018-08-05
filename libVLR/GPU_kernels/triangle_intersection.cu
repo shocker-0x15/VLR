@@ -6,6 +6,7 @@ namespace VLR {
     // closestHitProgramなどから呼ばれるdecodeHitPoint等で読み出すためにはGeometryInstanceレベルにバインドする必要がある。
     rtBuffer<Vertex> pv_vertexBuffer;
     rtBuffer<Triangle> pv_triangleBuffer;
+    rtDeclareVariable(float, pv_sumImportances, , );
 
     rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );
     rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
@@ -60,13 +61,15 @@ namespace VLR {
 
     
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* areaPDF) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
         const Vertex &v2 = pv_vertexBuffer[triangle.index2];
 
-        Normal3D geometricNormal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
+        Normal3D geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
+        float area = geometricNormal.length() / 2;
+        geometricNormal /= 2 * area;
 
         float b0 = param.b0, b1 = param.b1, b2 = 1.0f - param.b0 - param.b1;
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
@@ -98,6 +101,9 @@ namespace VLR {
         surfPt->v = b1;
         surfPt->texCoord = texCoord;
         //surfPt->tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, uDirection));
+
+        float probLightPrim = area / pv_sumImportances;
+        *areaPDF = probLightPrim / area;
     }
 
     RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoordForTriangle(const HitPointParameter &param) {
