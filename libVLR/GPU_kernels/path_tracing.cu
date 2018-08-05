@@ -6,17 +6,17 @@ namespace VLR {
     rtDeclareVariable(rtObject, pv_topGroup, , );
     rtDeclareVariable(optix::uint2, pv_imageSize, , );
     rtDeclareVariable(uint32_t, pv_numAccumFrames, , );
-    rtBuffer<PCG32RNG, 2> pv_rngBuffer;
+    rtBuffer<KernelRNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
+
+    rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
+    rtBuffer<SurfaceLightDescriptor> pv_surfaceLightDescriptorBuffer;
 
 
 
     // ----------------------------------------------------------------
     // Light
-
-    //rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
-    //rtBuffer<SurfaceLightDescriptor> pv_surfaceLightDescriptors;
     
     RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, 
                                     Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
@@ -37,8 +37,8 @@ namespace VLR {
     }
 
     RT_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        //uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
-        //*light = SurfaceLight(pv_surfaceLightDescriptors[lightIdx]);
+        uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
+        *light = SurfaceLight(pv_surfaceLightDescriptorBuffer[lightIdx]);
     }
 
     // END: Light
@@ -130,7 +130,7 @@ namespace VLR {
 
         float alpha = pv_progFetchAlpha(texCoord);
 
-        PCG32RNG &rng = pv_rngBuffer[sm_launchIndex];
+        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
         if (rng.getFloat0cTo1o() >= alpha)
             rtIgnoreIntersection();
     }
@@ -149,31 +149,35 @@ namespace VLR {
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void pathTracingIteration() {
-        PCG32RNG &rng = pv_rngBuffer[sm_launchIndex];
+        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
 
         SurfacePoint surfPt;
         HitPointParameter hitPointParam = a_hitPointParam;
         pv_progDecodeHitPoint(hitPointParam, &surfPt);
 
+        applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
+
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
         BSDF bsdf(matDesc, surfPt, sm_payload.wavelengthSelected);
         EDF edf(matDesc, surfPt);
 
-        applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
-
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
 
         // implicit light sampling
-        /*if (surfPt.isEmitting())*/ {
-            float bsdfPDF = sm_payload.prevDirPDF;
-
-            RGBSpectrum Le = edf.evaluateEmittance() * edf.evaluateEDF(EDFQuery(), dirOutLocal);
-            float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-            float lightPDF = 1.0f;// = si.getLightProb() * surfPt.evaluateAreaPDF() * dist2 / surfPt.calcCosTerm(asVector3D(ray.direction));
+        RGBSpectrum spEmittance = edf.evaluateEmittance();
+        if (spEmittance.hasNonZero()) {
+            RGBSpectrum Le = spEmittance * edf.evaluateEDF(EDFQuery(), dirOutLocal);
 
             float MISWeight = 1.0f;
-            //if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary)
-            //    MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
+            if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
+                //float bsdfPDF = sm_payload.prevDirPDF;
+                //float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
+                //float lightPDF = 1.0f;// = si.getLightProb() * surfPt.evaluateAreaPDF() * dist2 / surfPt.calcCosTerm(asVector3D(ray.direction));
+                //MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
+
+                // DELETE ME
+                MISWeight = 0.0f;
+            }
 
             sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
         }
@@ -183,38 +187,39 @@ namespace VLR {
         }
 
         // Russian roulette
-        float continueProb = std::min(sm_payload.alpha.importance(sm_payload.wlHint) / sm_payload.initY, 1.0f);
+        float continueProb = std::min(sm_payload.alpha.importance(sm_payload.wlHint) / sm_payload.initImportance, 1.0f);
         if (rng.getFloat0cTo1o() >= continueProb) {
             sm_payload.terminate = true;
             return;
         }
+        sm_payload.alpha /= continueProb;
 
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
         BSDFQuery fsQuery(dirOutLocal, geomNormalLocal, DirectionType::All(), sm_payload.wlHint);
 
         // Next Event Estimation (explicit light sampling)
-        /*if (bsdf->hasNonDelta())*/ {
-            float lightSample = rng.getFloat0cTo1o();
+        if (bsdf.hasNonDelta()) {
             SurfaceLight light;
             float lightProb;
-            selectSurfaceLight(lightSample, &light, &lightProb, &lightSample);
+            float uPrim;
+            selectSurfaceLight(rng.getFloat0cTo1o(), &light, &lightProb, &uPrim);
 
-            SurfaceLightPosSample lpSample(lightSample, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
+            SurfaceLightPosSample lpSample(uPrim, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
             SurfaceLightPosQueryResult lpResult;
-            RGBSpectrum M = light.sample(lpSample, &lpResult);
+            light.sample(lpSample, &lpResult);
 
-            SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.matIndex];
-            //EDF ledf(lightMatDesc, lpResult.surfPt);
+            const SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.materialIndex];
+            EDF ledf(lightMatDesc, lpResult.surfPt);
+            RGBSpectrum M = ledf.evaluateEmittance();
 
             Vector3D shadowRayDir;
             float squaredDistance;
             float fractionalVisibility;
-            if (testVisibility(surfPt, lpResult.surfPt, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
+            if (M.hasNonZero() && testVisibility(surfPt, lpResult.surfPt, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
-                //RGBSpectrum Le = M * ledf.evaluateEDF(EDFQuery(), shadowRayDir_l);
-                RGBSpectrum Le = M * (shadowRayDir_l.z > 0 ? 1 / M_PIf : 0);
+                RGBSpectrum Le = M * ledf.evaluateEDF(EDFQuery(), shadowRayDir_l);
                 float lightPDF = lightProb * lpResult.areaPDF;
 
                 RGBSpectrum fs = bsdf.evaluateBSDF(fsQuery, shadowRayDir_sn);
@@ -243,7 +248,7 @@ namespace VLR {
             sm_payload.wavelengthSelected = true;
         }
 
-        sm_payload.alpha *= fs * absDot(fsResult.dirLocal, geomNormalLocal) / fsResult.dirPDF;
+        sm_payload.alpha *= fs * (absDot(fsResult.dirLocal, geomNormalLocal) / fsResult.dirPDF);
 
         Vector3D dirIn = surfPt.fromLocal(fsResult.dirLocal);
         sm_payload.origin = surfPt.position;
@@ -259,7 +264,7 @@ namespace VLR {
 
     // Common Ray Generation Program for All Camera Types
     RT_PROGRAM void pathTracing() {
-        PCG32RNG &rng = pv_rngBuffer[sm_launchIndex];
+        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
 
         optix::float2 p = make_float2(sm_launchIndex.x + rng.getFloat0cTo1o(), sm_launchIndex.y + rng.getFloat0cTo1o());
 
@@ -274,11 +279,12 @@ namespace VLR {
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
         RGBSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF));
 
-        optix::Ray ray = optix::make_Ray(asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), RayType::Primary, 0.0f, INFINITY);
+        optix::Ray ray = optix::make_Ray(asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), RayType::Primary, 0.0f, FLT_MAX);
+
         Payload payload;
         payload.wavelengthSelected = false;
-        payload.wlHint = std::min<uint32_t>(2, 3 * rng.getFloat0cTo1o());
-        payload.initY = alpha.importance(payload.wlHint);
+        payload.wlHint = std::min<uint32_t>(RGBSpectrum::NumComponents() - 1, RGBSpectrum::NumComponents() * rng.getFloat0cTo1o());
+        payload.initImportance = alpha.importance(payload.wlHint);
         payload.alpha = alpha;
         payload.contribution = RGBSpectrum::Zero();
 
@@ -289,18 +295,15 @@ namespace VLR {
             if (payload.terminate || rayDepth >= 5)
                 break;
 
-            ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, INFINITY);
+            ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, FLT_MAX);
             ++rayDepth;
         }
 
         RGBSpectrum &contribution = pv_outputBuffer[sm_launchIndex];
-        //contribution += payload.contribution;
-        if (pv_numAccumFrames == 1) {
+        if (pv_numAccumFrames == 1)
             contribution = payload.contribution;
-        }
-        else {
+        else
             contribution = (contribution * (pv_numAccumFrames - 1) + payload.contribution) / pv_numAccumFrames;
-        }
     }
 
     // Exception Program

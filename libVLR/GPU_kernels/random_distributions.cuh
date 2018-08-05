@@ -27,6 +27,31 @@ namespace VLR {
 
 
 
+    class XORShiftRNG {
+        uint32_t m_state[4];
+
+    public:
+        RT_FUNCTION uint32_t operator()() {
+            uint32_t* a = m_state;
+            uint32_t t(a[0] ^ (a[0] << 11));
+            a[0] = a[1];
+            a[1] = a[2];
+            a[2] = a[3];
+            return a[3] = (a[3] ^ (a[3] >> 19)) ^ (t ^ (t >> 8));
+        }
+
+        RT_FUNCTION float getFloat0cTo1o() {
+            uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
+            return *(float*)&fractionBits - 1.0f;
+        }
+    };
+
+
+
+    using KernelRNG = PCG32RNG;
+
+
+
     template <typename RealType>
     RT_FUNCTION uint32_t sampleDiscrete(const RealType* importances, uint32_t numImportances, RealType u,
                             RealType* prob, RealType* sumImportances, RealType* remapped) {

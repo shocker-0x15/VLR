@@ -25,10 +25,10 @@ VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t buffer
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>())
         return VLR_ERROR_INVALID_TYPE;
-    context->render(*scene, camera, shrinkCoeff, firstFrame);
+    context->render(*scene, camera, shrinkCoeff, firstFrame, numAccumFrames);
 
     return VLR_ERROR_NO_ERROR;
 }

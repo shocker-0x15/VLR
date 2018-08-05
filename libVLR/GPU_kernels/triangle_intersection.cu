@@ -33,7 +33,8 @@ namespace VLR {
         a_hitPointParam.b1 = b1;
         a_hitPointParam.primIndex = primIdx;
 
-        rtReportIntersection(triangle.matIndex);
+        const uint32_t materialIndex = 0;
+        rtReportIntersection(materialIndex);
     }
 
     // Bounding Box Program
@@ -117,6 +118,8 @@ namespace VLR {
         float primProb;
         uint32_t primIdx = desc.primDistribution.sample(sample.uElem, &primProb);
 
+        result->materialIndex = desc.materialIndex;
+
         const Triangle &triangle = desc.triangleBuffer[primIdx];
         const Vertex &v0 = desc.vertexBuffer[triangle.index0];
         const Vertex &v1 = desc.vertexBuffer[triangle.index1];
@@ -157,6 +160,19 @@ namespace VLR {
         result->surfPt.texCoord = texCoord;
 
         result->areaPDF = primProb / area;
-        result->posType = DirectionType::LowFreq();
+        result->posType = DirectionType::Emission() | DirectionType::LowFreq();
+
+
+
+        //result->surfPt.atInfinity = false;
+        //result->surfPt.geometricNormal = Normal3D(0, -1, 0);
+        //result->surfPt.shadingFrame = ReferenceFrame(Vector3D(1, 0, 0), Vector3D(0, 0, 1), Normal3D(0, -1, 0));
+        //result->surfPt.u = sample.uPos[0];
+        //result->surfPt.v = sample.uPos[1];
+        //result->surfPt.position = Point3D(-0.5f, 2.899f, -0.5f) + result->surfPt.u * Vector3D(1, 0, 0) + result->surfPt.v * Vector3D(0, 0, 1);
+        //result->surfPt.texCoord = TexCoord2D(result->surfPt.u, result->surfPt.v);
+        //result->areaPDF = 1.0f / 1.0f;
+        //result->posType = DirectionType::Emission() | DirectionType::LowFreq();
+        //result->materialIndex = 5;
     }
 }

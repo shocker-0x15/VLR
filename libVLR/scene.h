@@ -71,7 +71,7 @@ namespace VLR {
 
         void bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height);
 
-        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame);
+        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         const optix::Context &getOptiXContext() const {
             return m_optixContext;
@@ -185,7 +185,6 @@ namespace VLR {
         };
         std::map<const SHTransform*, TransformStatus> m_transforms;
         uint32_t m_numValidTransforms;
-        std::set<const SHGeometryGroup*> m_geometryGroups;
 
     public:
         SHGroup(Context &context) : m_numValidTransforms(0) {
@@ -200,12 +199,10 @@ namespace VLR {
         }
 
         void addChild(SHTransform* transform);
-        void addChild(SHGeometryGroup* geomGroup);
         void removeChild(SHTransform* transform);
-        void removeChild(SHGeometryGroup* geomGroup);
         void updateChild(SHTransform* transform);
         uint32_t getNumValidChildren() const {
-            return (uint32_t)(m_geometryGroups.size() + m_numValidTransforms);
+            return m_numValidTransforms;
         }
 
         const optix::Group &getOptiXObject() const {
@@ -247,6 +244,8 @@ namespace VLR {
 
         void setTransform(const StaticTransform &transform);
         void update();
+        bool isStatic() const;
+        StaticTransform getStaticTransform() const;
 
         void setChild(SHGeometryGroup* geomGroup);
         bool hasGeometryDescendant(SHGeometryGroup** descendant = nullptr) const;
@@ -273,8 +272,13 @@ namespace VLR {
             m_optixGeometryGroup->destroy();
         }
 
-        void addGeometryInstance(SHGeometryInstance* instance);
-        void removeGeometryInstance(SHGeometryInstance* instance);
+        void addGeometryInstance(const SHGeometryInstance* instance);
+        void removeGeometryInstance(const SHGeometryInstance* instance);
+        const SHGeometryInstance* getGeometryInstanceAt(uint32_t index) const {
+            auto it = m_instances.cbegin();
+            std::advance(it, index);
+            return *it;
+        }
         uint32_t getNumInstances() const {
             return (uint32_t)m_instances.size();
         }
@@ -286,14 +290,19 @@ namespace VLR {
 
     class SHGeometryInstance {
         optix::GeometryInstance m_optixGeometryInstance;
+        Shared::SurfaceLightDescriptor m_surfaceLightDescriptor;
 
     public:
-        SHGeometryInstance(Context &context) {
+        SHGeometryInstance(Context &context, const Shared::SurfaceLightDescriptor &lightDesc) : m_surfaceLightDescriptor(lightDesc) {
             optix::Context optixContext = context.getOptiXContext();
             m_optixGeometryInstance = optixContext->createGeometryInstance();
         }
         ~SHGeometryInstance() {
             m_optixGeometryInstance->destroy();
+        }
+
+        void getSurfaceLightDescriptor(Shared::SurfaceLightDescriptor* lightDesc) const {
+            *lightDesc = m_surfaceLightDescriptor;
         }
 
         const optix::GeometryInstance &getOptiXObject() const {
@@ -312,6 +321,71 @@ namespace VLR {
 
 
 
+    // ----------------------------------------------------------------
+    // Miscellaneous
+
+    template <typename RealType>
+    class DiscreteDistribution1DTemplate {
+        optix::Buffer m_PMF;
+        optix::Buffer m_CDF;
+        RealType m_integral;
+        uint32_t m_numValues;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numValues);
+        void finalize(Context &context);
+
+        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance);
+    };
+
+    using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    class RegularConstantContinuousDistribution1DTemplate {
+        optix::Buffer m_PDF;
+        optix::Buffer m_CDF;
+        RealType m_integral;
+        uint32_t m_numValues;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numValues);
+        void finalize(Context &context);
+
+        RealType getIntegral() const { return m_integral; }
+
+        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance);
+    };
+
+    using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    class RegularConstantContinuousDistribution2DTemplate {
+        optix::Buffer m_1DDists;
+        uint32_t m_num1DDists;
+        RealType m_integral;
+        RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numD1, size_t numD2);
+        void finalize(Context &context);
+
+        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance);
+    };
+
+    using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;
+
+    // END: Miscellaneous
+    // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // Material
+    
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };
@@ -532,6 +606,9 @@ namespace VLR {
         optix::Material &getOptiXObject() {
             return m_optixMaterial;
         }
+        uint32_t getMaterialIndex() const {
+            return m_matIndex;
+        }
 
         virtual uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const = 0;
         virtual bool isEmitting() const { return false; }
@@ -640,6 +717,7 @@ namespace VLR {
         ~DiffuseEmitterSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool isEmitting() const override { return true; }
     };
 
 
@@ -661,7 +739,11 @@ namespace VLR {
         ~MultiSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool isEmitting() const override;
     };
+
+    // END: Material
+    // ----------------------------------------------------------------
 
 
 
@@ -713,20 +795,19 @@ namespace VLR {
             optix::Program callableProgramDecodeHitPointForTriangle;
             optix::Program callableProgramDecodeTexCoordForTriangle;
             optix::Program callableProgramSampleTriangleMesh;
-            optix::Program callableProgramNullFetchAlpha;
-            optix::Program callableProgramNullFetchNormal;
         };
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         struct OptiXGeometry {
+            std::vector<uint32_t> indices;
             optix::Buffer optixIndexBuffer;
             optix::Geometry optixGeometry;
+            DiscreteDistribution1D primDist;
         };
 
         std::vector<Vertex> m_vertices;
         optix::Buffer m_optixVertexBuffer;
-        std::vector<std::vector<uint32_t>> m_sameMaterialGroups;
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<SurfaceMaterial*> m_materials;
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
@@ -749,6 +830,13 @@ namespace VLR {
 
 
 
+    struct TransformAndGeometryInstance {
+        const SHTransform* transform;
+        const SHGeometryInstance* geomInstance;
+    };
+
+
+    
     class ParentNode : public Node {
     protected:
         std::set<Node*> m_children;
@@ -777,7 +865,7 @@ namespace VLR {
             GeometryRemoved,
         };
 
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta) = 0;
+        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) = 0;
         virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
         virtual void setTransform(const Transform* localToWorld);
         const Transform* getTransform() const {
@@ -795,7 +883,7 @@ namespace VLR {
     class InternalNode : public ParentNode {
         std::set<ParentNode*> m_parents;
 
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
     public:
@@ -814,8 +902,12 @@ namespace VLR {
 
     class RootNode : public ParentNode {
         SHGroup m_shGroup;
+        std::map<const SHGeometryInstance*, Shared::SurfaceLightDescriptor> m_surfaceLights;
+        optix::Buffer m_optixSurfaceLightDescriptorBuffer;
+        DiscreteDistribution1D m_surfaceLightImpDist;
+        bool m_surfaceLightsAreSetup;
 
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) override;
+        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
     public:
@@ -823,10 +915,9 @@ namespace VLR {
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         RootNode(Context &context, const Transform* localToWorld);
+        ~RootNode();
 
-        SHGroup &getSHGroup() {
-            return m_shGroup;
-        }
+        void set();
     };
 
 
@@ -857,9 +948,7 @@ namespace VLR {
             m_rootNode.removeChild(child);
         }
 
-        SHGroup &getSHGroup() {
-            return m_rootNode.getSHGroup();
-        }
+        void set();
     };
 
 

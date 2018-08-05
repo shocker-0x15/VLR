@@ -249,6 +249,26 @@ namespace VLR {
         return count;
     }
 
+    template <typename RealType>
+    struct CompensatedSum {
+        RealType result;
+        RealType comp;
+        RT_FUNCTION CompensatedSum(const RealType &value) : result(value), comp(0.0) { };
+        RT_FUNCTION CompensatedSum &operator=(const RealType &value) {
+            result = value;
+            comp = 0;
+            return *this;
+        }
+        RT_FUNCTION CompensatedSum &operator+=(const RealType &value) {
+            RealType cInput = value - comp;
+            RealType sumTemp = result + cInput;
+            comp = (sumTemp - result) - cInput;
+            result = sumTemp;
+            return *this;
+        }
+        RT_FUNCTION operator RealType() const { return result; };
+    };
+
 #if defined(VLR_Host)
     inline uint32_t nthSetBit(uint32_t value, uint32_t n) {
         uint32_t idx = 0;

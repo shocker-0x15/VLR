@@ -4,7 +4,8 @@
 
 layout(location = 0) uniform int srcFullWidth;
 layout(location = 1) uniform float shrinkCoeff;
-layout(location = 2, binding = 0) uniform samplerBuffer srcTexture;
+layout(location = 2) uniform float brightness;
+layout(location = 3, binding = 0) uniform samplerBuffer srcTexture;
 
  layout(origin_upper_left) in vec4 gl_FragCoord;
 
@@ -21,7 +22,7 @@ vec3 sRGB_gamma(vec3 v) {
 void main(void) {
     vec2 srcPixel = gl_FragCoord.xy / shrinkCoeff;
     vec4 opResult = texelFetch(srcTexture, int(srcPixel.y) * srcFullWidth + int(srcPixel.x));
-    opResult.rgb *= 600;
+    opResult.rgb *= brightness;
     opResult.rgb = 1 - exp(-opResult.rgb);
     opResult.rgb = sRGB_gamma(opResult.rgb);
     color = opResult;
