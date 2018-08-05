@@ -97,10 +97,16 @@ double g_mouseY;
 
 VLR::Point3D g_cameraPos;
 VLR::Quaternion g_cameraOrientation;
-float g_sensitivity;
+float g_brightnessCoeff;
+// PerspectiveCamera
+float g_PersSensitivity;
 float g_lensRadius;
 float g_objPlaneDistance;
-float g_brightnessCoeff;
+// EquirectangularCamera
+float g_EquiSensitivity;
+float g_phiAngle;
+float g_thetaAngle;
+int32_t g_cameraType;
 
 static std::string readTxtFile(const std::string& filepath) {
     std::ifstream ifs;
@@ -505,12 +511,22 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     g_cameraPos = Point3D(0, 0, 5);
     g_cameraOrientation = qRotateY<float>(M_PI);
-    g_sensitivity = 1.0f;
+    g_brightnessCoeff = 1.0f;
+
+    g_PersSensitivity = 1.0f;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
-    g_brightnessCoeff = 1.0f;
-    PerspectiveCameraRef camera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
-                                                                  g_sensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+    PerspectiveCameraRef perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
+                                                                             g_PersSensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+
+    g_EquiSensitivity = 1.0f;
+    g_phiAngle = M_PI;
+    g_thetaAngle = g_phiAngle * 720.0f / 1280.0f;
+    EquirectangularCameraRef equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
+                                                                                         g_EquiSensitivity, g_phiAngle, g_thetaAngle);
+
+    g_cameraType = 0;
+    CameraRef camera = perspectiveCamera;
 
 
 
@@ -760,11 +776,19 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 deltaY = 0;
             }
 
-            camera->setPosition(g_cameraPos);
-            camera->setOrientation(tempOrientation);
-            camera->setSensitivity(g_sensitivity);
-            camera->setLensRadius(g_lensRadius);
-            camera->setObjectPlaneDistance(g_objPlaneDistance);
+            if (g_cameraType == 0) {
+                perspectiveCamera->setPosition(g_cameraPos);
+                perspectiveCamera->setOrientation(tempOrientation);
+                perspectiveCamera->setSensitivity(g_PersSensitivity);
+                perspectiveCamera->setLensRadius(g_lensRadius);
+                perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
+            }
+            else if (g_cameraType == 1) {
+                equirectangularCamera->setPosition(g_cameraPos);
+                equirectangularCamera->setOrientation(tempOrientation);
+                equirectangularCamera->setSensitivity(g_EquiSensitivity);
+                equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
+            }
 
             operatingCamera = (g_keyForward.getState() || g_keyBackward.getState() ||
                                g_keyLeftward.getState() || g_keyRightward.getState() ||
@@ -787,13 +811,26 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
                 cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&g_cameraPos);
-
-                cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
-                cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
-                cameraSettingsChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
                 ImGui::SliderFloat("Brightness", &g_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
+                cameraSettingsChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
 
-                g_sensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
+                const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
+                cameraSettingsChanged |= ImGui::Combo("Camera Type", &g_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
+
+                if (g_cameraType == 0) {
+                    cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
+                    cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
+
+                    g_PersSensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
+
+                    camera = perspectiveCamera;
+                }
+                else if (g_cameraType == 1) {
+                    cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &g_phiAngle, M_PI / 18, 2 * M_PI);
+                    cameraSettingsChanged |= ImGui::SliderFloat("Theta Angle", &g_thetaAngle, M_PI / 18, 1 * M_PI);
+
+                    camera = equirectangularCamera;
+                }
 
                 ImGui::Text("%u [spp]", g_numAccumFrames);
 
