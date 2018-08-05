@@ -5,21 +5,28 @@
 namespace VLR {
     namespace Shared {
         template <typename RealType>
-        class DiscreteDistribution1DTemplate {
+        struct/*class*/ DiscreteDistribution1DTemplate {
             rtBufferId<RealType, 1> m_PMF;
             rtBufferId<RealType, 1> m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
         public:
+            DiscreteDistribution1DTemplate(const rtBufferId<RealType, 1> &PMF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) : 
+            m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
+            }
+
+            RT_FUNCTION DiscreteDistribution1DTemplate() {}
             RT_FUNCTION ~DiscreteDistribution1DTemplate() {}
 
             RT_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\" must be in range [0, 1).");
                 int idx = m_numValues;
-                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1)
-                    if (idx - d > 0 && m_CDF[idx - d] >= u)
-                        idx -= d;
+                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
+                    int newIdx = idx - d;
+                    if (newIdx > 0 && m_CDF[newIdx] > u)
+                        idx = newIdx;
+                }
                 --idx;
                 *prob = m_PMF[idx];
                 return idx;
@@ -27,9 +34,11 @@ namespace VLR {
             RT_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\" must be in range [0, 1).");
                 int idx = m_numValues;
-                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1)
-                    if (idx - d > 0 && m_CDF[idx - d] >= u)
-                        idx -= d;
+                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
+                    int newIdx = idx - d;
+                    if (newIdx > 0 && m_CDF[newIdx] > u)
+                        idx = newIdx;
+                }
                 --idx;
                 *prob = m_PMF[idx];
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
@@ -56,6 +65,11 @@ namespace VLR {
             uint32_t m_numValues;
 
         public:
+            RegularConstantContinuousDistribution1DTemplate(const rtBufferId<RealType, 1> &PDF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) :
+                m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
+            }
+
+            RT_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
             RT_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
 
             RT_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
@@ -90,6 +104,12 @@ namespace VLR {
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
+            RegularConstantContinuousDistribution2DTemplate(const rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> &_1DDists, uint32_t num1DDists, 
+                                                            RealType integral, const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
+                m_1DDists(_1DDists), m_num1DDists(num1DDists), m_integral(integral), m_top1DDist(top1DDist) {
+            }
+
+            RT_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
             RT_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
 
             void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
@@ -118,6 +138,8 @@ namespace VLR {
             Matrix4x4 m_invMatrix;
 
         public:
+            RT_FUNCTION StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
+
             RT_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
             RT_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
             RT_FUNCTION Point3D operator*(const Point3D &p) const { return m_matrix * p; }
@@ -127,7 +149,6 @@ namespace VLR {
                                 m_invMatrix.m01 * n.x + m_invMatrix.m11 * n.y + m_invMatrix.m21 * n.z,
                                 m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
             }
-            RT_FUNCTION StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
 
             RT_FUNCTION StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
             RT_FUNCTION StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
@@ -178,21 +199,21 @@ namespace VLR {
 
         struct Triangle {
             uint32_t index0, index1, index2;
-            uint32_t matIndex;
         };
         
         struct SurfaceLightDescriptor {
             struct Body {
                 rtBufferId<Vertex> vertexBuffer;
                 rtBufferId<Triangle> triangleBuffer;
+                uint32_t materialIndex;
                 DiscreteDistribution1D primDistribution;
                 StaticTransform transform;
 
                 RT_FUNCTION Body() {}
                 RT_FUNCTION ~Body() {}
             } body;
+            float importance;
             int32_t sampleFunc;
-            int32_t evaluateFunc;
         };
 
 

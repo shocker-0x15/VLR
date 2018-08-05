@@ -225,49 +225,24 @@ namespace VLR {
         SurfacePoint surfPt;
         float areaPDF;
         DirectionType posType;
-        uint32_t matIndex;
+        uint32_t materialIndex;
     };
 
     typedef rtCallableProgramId<void(const SurfaceLightDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
-    typedef rtCallableProgramId<RGBSpectrum(const SurfaceLightDescriptor::Body &, const TexCoord2D &)> ProgSigSurfaceLight_evaluate;
 
-    class SurfaceLight {
-        //SurfaceLightDescriptor m_desc;
+    struct/*class */ SurfaceLight {
         SurfaceLightDescriptor::Body m_desc;
         ProgSigSurfaceLight_sample m_progSurfaceLight_sample;
-        ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate;
 
     public:
         RT_FUNCTION SurfaceLight() {}
         RT_FUNCTION SurfaceLight(const SurfaceLightDescriptor &desc) : 
-            //m_desc(desc)
             m_desc(desc.body), 
-            m_progSurfaceLight_sample((ProgSigSurfaceLight_sample)desc.sampleFunc), 
-            m_progSurfaceLight_evaluate((ProgSigSurfaceLight_evaluate)desc.evaluateFunc) 
-        {}
+            m_progSurfaceLight_sample((ProgSigSurfaceLight_sample)desc.sampleFunc) {
+        }
 
-        RT_FUNCTION RGBSpectrum sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) /*const*/ {
-            //ProgSigSurfaceLight_sample m_progSurfaceLight_sample = (ProgSigSurfaceLight_sample)m_desc.sampleFunc;
-            //ProgSigSurfaceLight_evaluate m_progSurfaceLight_evaluate = (ProgSigSurfaceLight_evaluate)m_desc.evaluateFunc;
-            //m_progSurfaceLight_sample(m_desc.body, posSample, lpResult);
-            //return m_progSurfaceLight_evaluate(m_desc.body, lpResult->surfPt.texCoord);
-
-            //m_progSurfaceLight_sample(m_desc, posSample, lpResult);
-            //return m_progSurfaceLight_evaluate(m_desc, lpResult->surfPt.texCoord);
-
-            SurfacePoint &surfPt = lpResult->surfPt;
-            surfPt.atInfinity = false;
-            surfPt.geometricNormal = Normal3D(0, -1, 0);
-            surfPt.shadingFrame = ReferenceFrame(Vector3D(1, 0, 0), Vector3D(0, 0, 1), Normal3D(0, -1, 0));
-            surfPt.u = posSample.uPos[0];
-            surfPt.v = posSample.uPos[1];
-            surfPt.position = Point3D(-0.5f, 2.999f, -0.5f) + surfPt.u * Vector3D(1, 0, 0) + surfPt.v * Vector3D(0, 0, 1);
-            surfPt.texCoord = TexCoord2D(surfPt.u, surfPt.v);
-            lpResult->areaPDF = 1.0f / 1.0f;
-            lpResult->posType = DirectionType::Emission() | DirectionType::LowFreq();
-            lpResult->matIndex = 0;
-
-            return RGBSpectrum(1, 1, 1);
+        RT_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) /*const*/ {
+            m_progSurfaceLight_sample(m_desc, posSample, lpResult);
         }
     };
 
@@ -294,7 +269,7 @@ namespace VLR {
             bool wavelengthSelected : 1;
             bool terminate : 1;
         };
-        float initY;
+        float initImportance;
         RGBSpectrum alpha;
         RGBSpectrum contribution;
         Point3D origin;
@@ -343,7 +318,7 @@ namespace VLR {
         progSigEvaluateBSDFInternal progEvaluateBSDFInternal;
         progSigEvaluateBSDF_PDFInternal progEvaluateBSDF_PDFInternal;
 
-        RT_FUNCTION bool BSDFmatches(DirectionType dirType) {
+        RT_FUNCTION bool matches(DirectionType dirType) {
             return progBSDFmatches((const uint32_t*)this, dirType);
         }
         RT_FUNCTION RGBSpectrum sampleBSDFInternal(const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
@@ -376,8 +351,12 @@ namespace VLR {
         //    return progGetBaseColor((const uint32_t*)this);
         //}
 
+        RT_FUNCTION bool hasNonDelta() {
+            return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
+        }
+
         RT_FUNCTION RGBSpectrum sampleBSDF(const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
-            if (!BSDFmatches(query.dirTypeFilter)) {
+            if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
                 result->sampledType = DirectionType();
                 return RGBSpectrum::Zero();
@@ -394,7 +373,7 @@ namespace VLR {
         }
 
         RT_FUNCTION float evaluateBSDF_PDF(const BSDFQuery &query, const Vector3D &dirLocal) {
-            if (!BSDFmatches(query.dirTypeFilter)) {
+            if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
             float ret = evaluateBSDF_PDFInternal(query, dirLocal);

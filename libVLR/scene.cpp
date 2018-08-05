@@ -134,7 +134,7 @@ namespace VLR {
                 edfProcSet.progEvaluateEDFInternal = m_optixCallableProgramNullEDF_evaluateEDFInternal->getId();
             }
             m_nullEDFProcedureSetIndex = setEDFProcedureSet(edfProcSet);
-            VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
+            VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null EDF procedure set is expected to be 0.");
         }
 
         m_maxNumSurfaceMaterialDescriptors = 8192;
@@ -155,8 +155,15 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
-        m_optixContext->setPrintEnabled(true);
-        m_optixContext->setPrintBufferSize(4096);
+        //m_optixContext->setPrintEnabled(true);
+        //m_optixContext->setPrintBufferSize(4096);
+        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
+        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
+        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
+
+        RTsize stackSize = m_optixContext->getStackSize();
+        VLRDebugPrintf("Default Stack Size: %u\n", stackSize);
+        m_optixContext->setStackSize(1280);
     }
 
     Context::~Context() {
@@ -242,26 +249,74 @@ namespace VLR {
             }
             m_rngBuffer->unmap();
         }
+        //m_rngBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
+        //m_rngBuffer->setElementSize(sizeof(uint32_t) * 4);
+        //{
+        //    std::mt19937 rng(591031321);
+
+        //    auto dstData = (uint32_t*)m_rngBuffer->map();
+        //    for (int y = 0; y < m_height; ++y) {
+        //        for (int x = 0; x < m_width; ++x) {
+        //            uint32_t index = 4 * (y * m_width + x);
+        //            dstData[index + 0] = rng();
+        //            dstData[index + 1] = rng();
+        //            dstData[index + 2] = rng();
+        //            dstData[index + 3] = rng();
+        //        }
+        //    }
+        //    m_rngBuffer->unmap();
+        //}
         m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
     }
 
-    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame) {
-        SHGroup &shGroup = scene.getSHGroup();
-
+    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         optix::Context optixContext = getOptiXContext();
 
-        optixContext["VLR::pv_topGroup"]->set(shGroup.getOptiXObject());
+        scene.set();
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 
         if (firstFrame)
             m_numAccumFrames = 0;
         ++m_numAccumFrames;
+        *numAccumFrames = m_numAccumFrames;
 
         //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
         optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
 
         camera->set();
+
+        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+
+        //uint32_t deviceIdx = 0;
+
+        //int32_t numMaxTexs = optixContext->getMaxTextureCount();
+        //int32_t numCPUThreads = optixContext->getCPUNumThreads();
+        //RTsize usedHostMem = optixContext->getUsedHostMemory();
+        //RTsize availMem = optixContext->getAvailableDeviceMemory(deviceIdx);
+
+        //char name[256];
+        //char pciBusId[16];
+        //int computeCaps[2];
+        //RTsize total_mem;
+        //int clock_rate;
+        //int threads_per_block;
+        //int sm_count;
+        //int execution_timeout_enabled;
+        //int texture_count;
+        //int tcc_driver;
+        //int cuda_device_ordinal;
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(pciBusId), pciBusId);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCaps), &computeCaps);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(total_mem), &total_mem);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clock_rate), &clock_rate);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(threads_per_block), &threads_per_block);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(sm_count), &sm_count);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(execution_timeout_enabled), &execution_timeout_enabled);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(texture_count), &texture_count);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tcc_driver), &tcc_driver);
+        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cuda_device_ordinal), &cuda_device_ordinal);
 
         optixContext->validate();
 
@@ -340,12 +395,6 @@ namespace VLR {
         }
     }
 
-    void SHGroup::addChild(SHGeometryGroup* geomGroup) {
-        m_geometryGroups.insert(geomGroup);
-        m_optixGroup->addChild(geomGroup->getOptiXObject());
-        m_optixAcceleration->markDirty();
-    }
-
     void SHGroup::removeChild(SHTransform* transform) {
         VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
         const TransformStatus status = m_transforms.at(transform);
@@ -355,12 +404,6 @@ namespace VLR {
             m_optixAcceleration->markDirty();
             --m_numValidTransforms;
         }
-    }
-
-    void SHGroup::removeChild(SHGeometryGroup* geomGroup) {
-        m_optixGroup->removeChild(geomGroup->getOptiXObject());
-        m_geometryGroups.erase(geomGroup);
-        m_optixAcceleration->markDirty();
     }
 
     void SHGroup::updateChild(SHTransform* transform) {
@@ -605,6 +648,22 @@ namespace VLR {
         resolveTransform();
     }
 
+    bool SHTransform::isStatic() const {
+        // TODO: implement
+        return true;
+    }
+
+    StaticTransform SHTransform::getStaticTransform() const {
+        if (isStatic()) {
+            float mat[16], invMat[16];
+            m_optixTransform->getMatrix(true, mat, invMat);
+            return StaticTransform(Matrix4x4(mat));
+        }
+        else {
+            return StaticTransform();
+        }
+    }
+
     void SHTransform::setChild(SHGeometryGroup* geomGroup) {
         VLRAssert(!m_childIsTransform, "Transform which doesn't have a child transform can have a geometry group as a child.");
         m_childGeometryGroup = geomGroup;
@@ -631,13 +690,13 @@ namespace VLR {
 
 
 
-    void SHGeometryGroup::addGeometryInstance(SHGeometryInstance* instance) {
+    void SHGeometryGroup::addGeometryInstance(const SHGeometryInstance* instance) {
         m_instances.insert(instance);
         m_optixGeometryGroup->addChild(instance->getOptiXObject());
         m_optixAcceleration->markDirty();
     }
 
-    void SHGeometryGroup::removeGeometryInstance(SHGeometryInstance* instance) {
+    void SHGeometryGroup::removeGeometryInstance(const SHGeometryInstance* instance) {
         m_instances.erase(instance);
         m_optixGeometryGroup->removeChild(instance->getOptiXObject());
         m_optixAcceleration->markDirty();
@@ -645,8 +704,173 @@ namespace VLR {
 
     // END: Shallow Hierarchy
     // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // Miscellaneous
+
+    template <typename RealType>
+    static optix::Buffer createBuffer(optix::Context &context, RTbuffertype type, RTsize width);
+
+    template <>
+    static optix::Buffer createBuffer<float>(optix::Context &context, RTbuffertype type, RTsize width) {
+        return context->createBuffer(type, RT_FORMAT_FLOAT, width);
+    }
+
+
+
+    template <typename RealType>
+    void DiscreteDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
+        optix::Context optixContext = context.getOptiXContext();
+
+        m_numValues = (uint32_t)numValues;
+        m_PMF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues);
+        m_CDF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues + 1);
+
+        RealType* PMF = (RealType*)m_PMF->map();
+        RealType* CDF = (RealType*)m_CDF->map();
+        std::memcpy(PMF, values, sizeof(RealType) * m_numValues);
+
+        CompensatedSum<RealType> sum(0);
+        CDF[0] = 0;
+        for (int i = 0; i < m_numValues; ++i) {
+            sum += PMF[i];
+            CDF[i + 1] = sum;
+        }
+        m_integral = sum;
+        for (int i = 0; i < m_numValues; ++i) {
+            PMF[i] /= m_integral;
+            CDF[i + 1] /= m_integral;
+        }
+
+        m_CDF->unmap();
+        m_PMF->unmap();
+    }
+
+    template <typename RealType>
+    void DiscreteDistribution1DTemplate<RealType>::finalize(Context &context) {
+        if (m_CDF && m_PMF) {
+            m_CDF->destroy();
+            m_PMF->destroy();
+        }
+    }
+
+    template <typename RealType>
+    void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) {
+        if (m_PMF && m_CDF)
+            new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(m_PMF->getId(), m_CDF->getId(), m_integral, m_numValues);
+    }
+
+    template class DiscreteDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
+        optix::Context optixContext = context.getOptiXContext();
+
+        m_numValues = (uint32_t)numValues;
+        m_PDF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues);
+        m_CDF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues + 1);
+
+        RealType* PDF = (RealType*)m_PDF->map();
+        RealType* CDF = (RealType*)m_CDF->map();
+        std::memcpy(PDF, values, sizeof(RealType) * m_numValues);
+
+        CompensatedSum<RealType> sum{ 0 };
+        CDF[0] = 0;
+        for (int i = 0; i < m_numValues; ++i) {
+            sum += PDF[i] / m_numValues;
+            CDF[i + 1] = sum;
+        }
+        m_integral = sum;
+        for (int i = 0; i < m_numValues; ++i) {
+            PDF[i] /= sum;
+            CDF[i + 1] /= sum;
+        }
+
+        m_CDF->unmap();
+        m_PDF->unmap();
+    }
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::finalize(Context &context) {
+        m_CDF->destroy();
+        m_PDF->destroy();
+    }
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) {
+        new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(m_PDF->getId(), m_CDF->getId(), m_integral, m_numValues);
+    }
+
+    template class RegularConstantContinuousDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numD1, size_t numD2) {
+        optix::Context optixContext = context.getOptiXContext();
+
+        m_num1DDists = numD2;
+
+        // JP: まず各行に関するDistribution1Dを作成する。
+        // EN: First, create Distribution1D's for every rows.
+        m_1DDists = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_num1DDists);
+        m_1DDists->setElementSize(sizeof(RegularConstantContinuousDistribution1DTemplate<RealType>));
+
+        RegularConstantContinuousDistribution1DTemplate<RealType>* dists = (RegularConstantContinuousDistribution1DTemplate<RealType>*)m_1DDists->map();
+
+        CompensatedSum<RealType> sum(0);
+        for (int i = 0; i < m_num1DDists; ++i) {
+            dists[i].initialize(context, values + i * numD1, numD1);
+            sum += dists[i].getIntegral();
+        }
+        m_integral = sum;
+
+        // JP: 各行の積分値を用いてDistribution1Dを作成する。
+        // EN: create a Distribution1D using integral values of each row.
+        RealType* integrals = new RealType[m_num1DDists];
+        for (int i = 0; i < m_num1DDists; ++i)
+            integrals[i] = dists[i].getIntegral();
+        m_top1DDist.initialize(context, integrals, m_num1DDists);
+        delete[] integrals;
+        
+        VLRAssert(std::isfinite(m_integral), "invalid integral value.");
+
+        m_1DDists->unmap();
+    }
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::finalize(Context &context) {
+        m_top1DDist.finalize(context);
+
+        RegularConstantContinuousDistribution1DTemplate<RealType>* dists = (RegularConstantContinuousDistribution1DTemplate<RealType>*)m_1DDists->map();
+        for (int i = m_num1DDists - 1; i >= 0; --i) {
+            dists[i].finalize(context);
+        }
+        m_1DDists->unmap();
+
+        m_1DDists->destroy();
+    }
+
+    template <typename RealType>
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) {
+        Shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
+        m_top1DDist.getInternalType(&top1DDist);
+        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_1DDists->getId(), m_num1DDists, m_integral, top1DDist);
+    }
+
+    template class RegularConstantContinuousDistribution2DTemplate<float>;
+
+    // END: Miscellaneous
+    // ----------------------------------------------------------------
     
     
+    
+    // ----------------------------------------------------------------
+    // Material
     
     const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num] = {
         sizeof(RGB8x3),
@@ -1035,9 +1259,15 @@ namespace VLR {
         m_optixMaterial->setAnyHitProgram(Shared::RayType::Primary, context.getOptiXProgramStochasticAlphaAnyHit());
         m_optixMaterial->setAnyHitProgram(Shared::RayType::Scattered, context.getOptiXProgramStochasticAlphaAnyHit());
         m_optixMaterial->setAnyHitProgram(Shared::RayType::Shadow, context.getOptiXProgramAlphaAnyHit());
+
+        m_matIndex = 0xFFFFFFFF;
     }
     
     SurfaceMaterial::~SurfaceMaterial() {
+        if (m_matIndex != 0xFFFFFFFF)
+            m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
+        m_matIndex = 0xFFFFFFFF;
+
         m_optixMaterial->destroy();
     }
 
@@ -1082,7 +1312,6 @@ namespace VLR {
     }
 
     MatteSurfaceMaterial::~MatteSurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t MatteSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1136,7 +1365,6 @@ namespace VLR {
     }
 
     SpecularReflectionSurfaceMaterial::~SpecularReflectionSurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t SpecularReflectionSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1192,7 +1420,6 @@ namespace VLR {
     }
 
     SpecularScatteringSurfaceMaterial::~SpecularScatteringSurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t SpecularScatteringSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1247,7 +1474,6 @@ namespace VLR {
     }
 
     UE4SurfaceMaterial::~UE4SurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t UE4SurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1302,7 +1528,6 @@ namespace VLR {
     }
 
     DiffuseEmitterSurfaceMaterial::~DiffuseEmitterSurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t DiffuseEmitterSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1360,7 +1585,6 @@ namespace VLR {
     }
 
     MultiSurfaceMaterial::~MultiSurfaceMaterial() {
-        m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
     }
 
     uint32_t MultiSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
@@ -1387,6 +1611,17 @@ namespace VLR {
 
         return baseIndex;
     }
+
+    bool MultiSurfaceMaterial::isEmitting() const {
+        for (int i = 0; i < m_numMaterials; ++i) {
+            if (m_materials[i]->isEmitting())
+                return true;
+        }
+        return false;
+    }
+
+    // END: Material
+    // ----------------------------------------------------------------
     
     
     
@@ -1458,8 +1693,9 @@ namespace VLR {
 
         for (auto it = m_optixGeometries.begin(); it != m_optixGeometries.end(); ++it) {
             OptiXGeometry &geom = *it;
-            geom.optixGeometry->destroy();
+            geom.primDist.finalize(m_context);
             geom.optixIndexBuffer->destroy();
+            geom.optixGeometry->destroy();
         }
         m_optixVertexBuffer->destroy();
     }
@@ -1504,12 +1740,11 @@ namespace VLR {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        m_sameMaterialGroups.emplace_back(indices);
-        std::vector<uint32_t> &sameMaterialGroup = m_sameMaterialGroups.back();
-        uint32_t numTriangles = (uint32_t)sameMaterialGroup.size() / 3;
-
         OptiXGeometry geom;
         {
+            geom.indices = std::move(indices);
+            uint32_t numTriangles = (uint32_t)geom.indices.size() / 3;
+
             geom.optixGeometry = optixContext->createGeometry();
             geom.optixGeometry->setPrimitiveCount(numTriangles);
             geom.optixGeometry->setIntersectionProgram(progSet.programIntersectTriangle);
@@ -1517,18 +1752,40 @@ namespace VLR {
 
             geom.optixIndexBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, numTriangles);
             geom.optixIndexBuffer->setElementSize(sizeof(Shared::Triangle));
+
+            std::vector<float> areas;
+            areas.resize(numTriangles);
             {
                 auto dstTriangles = (Shared::Triangle*)geom.optixIndexBuffer->map();
-                for (auto it = sameMaterialGroup.cbegin(); it != sameMaterialGroup.cend(); it += 3)
-                    (*dstTriangles++) = Shared::Triangle{ *(it + 0), *(it + 1) , *(it + 2), 0 };
+                for (auto i = 0; i < numTriangles; ++i) {
+                    uint32_t i0 = geom.indices[3 * i + 0];
+                    uint32_t i1 = geom.indices[3 * i + 1];
+                    uint32_t i2 = geom.indices[3 * i + 2];
+
+                    dstTriangles[i] = Shared::Triangle{ i0, i1, i2 };
+
+                    const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
+                    areas[i] = std::max<float>(0.0f, 0.5f * cross(v[1].position - v[0].position, v[2].position - v[0].position).length());
+                }
                 geom.optixIndexBuffer->unmap();
             }
+
+            if (material->isEmitting())
+                geom.primDist.initialize(m_context, areas.data(), areas.size());
         }
         m_optixGeometries.push_back(geom);
 
         m_materials.push_back(material);
 
-        SHGeometryInstance* geomInst = new SHGeometryInstance(m_context);
+        Shared::SurfaceLightDescriptor lightDesc;
+        lightDesc.body.vertexBuffer = m_optixVertexBuffer->getId();
+        lightDesc.body.triangleBuffer = geom.optixIndexBuffer->getId();
+        geom.primDist.getInternalType(&lightDesc.body.primDistribution);
+        lightDesc.body.materialIndex = material->getMaterialIndex();
+        lightDesc.sampleFunc = progSet.callableProgramSampleTriangleMesh->getId();
+        lightDesc.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO:
+
+        SHGeometryInstance* geomInst = new SHGeometryInstance(m_context, lightDesc);
         {
             optix::GeometryInstance optixGeomInst = geomInst->getOptiXObject();
             optixGeomInst->setGeometry(geom.optixGeometry);
@@ -1617,7 +1874,7 @@ namespace VLR {
 
 
 
-    void InternalNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) {
+    void InternalNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) {
         switch (eventType) {
         case UpdateEvent::TransformAdded: {
             // JP: 自分自身のTransformと子InternalNodeが持つSHTransformを繋げたSHTransformを生成。
@@ -1635,15 +1892,27 @@ namespace VLR {
                 }
             }
 
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
             // JP: 親に自分が保持するSHTransformが増えたことを通知(増分を通知)。
             for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                 auto parent = *it;
-                parent->childUpdateEvent(eventType, delta);
+                parent->childUpdateEvent(eventType, delta, geomInstDelta);
             }
 
             break;
         }
         case UpdateEvent::TransformRemoved: {
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
             // JP: 子InternalNodeが持つSHTransformが繋がっているSHTransformを削除。
             std::set<SHTransform*> delta;
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
@@ -1655,7 +1924,7 @@ namespace VLR {
             // JP: 親に自分が保持するSHTransformが減ったことを通知(減分を通知)。
             for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                 auto parent = *it;
-                parent->childUpdateEvent(eventType, delta);
+                parent->childUpdateEvent(eventType, delta, geomInstDelta);
             }
 
             for (auto it = delta.cbegin(); it != delta.cend(); ++it)
@@ -1672,10 +1941,16 @@ namespace VLR {
                 delta.insert(shtr);
             }
 
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
             // JP: 親に自分が保持するSHTransformが更新されたことを通知(更新分を通知)。
             for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                 auto parent = *it;
-                parent->childUpdateEvent(eventType, delta);
+                parent->childUpdateEvent(eventType, delta, geomInstDelta);
             }
 
             break;
@@ -1688,10 +1963,16 @@ namespace VLR {
                 delta.insert(shtr);
             }
 
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
             // JP: 親に自分が保持するSHTransformが更新されたことを通知(更新分を通知)。
             for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                 auto parent = *it;
-                parent->childUpdateEvent(eventType, delta);
+                parent->childUpdateEvent(eventType, delta, geomInstDelta);
             }
 
             break;
@@ -1705,19 +1986,24 @@ namespace VLR {
     void InternalNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) {
         switch (eventType) {
         case UpdateEvent::GeometryAdded: {
-            // JP: 
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
+            // JP: このInternalNodeが管理するGeometryGroupにGeometryInstanceを追加する。
+            SHTransform* selfTransform = m_shTransforms.at(nullptr);
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
                 m_shGeomGroup.addGeometryInstance(*it);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ selfTransform, *it });
+            }
 
+            // JP: このInternalNodeのTransformにGeometryGroupをセットする。
+            //     このInternalNodeのTransformを末尾に持つTransformに変更があったことを親に知らせる。
             if (m_shGeomGroup.getNumInstances() > 0) {
-                SHTransform* selfTransform = m_shTransforms.at(nullptr);
                 selfTransform->setChild(&m_shGeomGroup);
                 
                 std::set<SHTransform*> delta;
                 delta.insert(selfTransform);
                 for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                     ParentNode* parent = *it;
-                    parent->childUpdateEvent(eventType, delta);
+                    parent->childUpdateEvent(eventType, delta, geomInstDelta);
                 }
             }
 
@@ -1725,18 +2011,21 @@ namespace VLR {
         }
         case UpdateEvent::GeometryRemoved: {
             // JP: 
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
+            SHTransform* selfTransform = m_shTransforms.at(nullptr);
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
                 m_shGeomGroup.removeGeometryInstance(*it);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ selfTransform, *it });
+            }
 
             if (m_shGeomGroup.getNumInstances() == 0) {
-                SHTransform* selfTransform = m_shTransforms.at(nullptr);
                 selfTransform->setChild(nullptr);
 
                 std::set<SHTransform*> delta;
                 delta.insert(selfTransform);
                 for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
                     ParentNode* parent = *it;
-                    parent->childUpdateEvent(eventType, delta);
+                    parent->childUpdateEvent(eventType, delta, geomInstDelta);
                 }
             }
 
@@ -1757,11 +2046,20 @@ namespace VLR {
 
         // JP: 親に変形情報が更新されたことを通知する。
         std::set<SHTransform*> delta;
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
+        std::vector<TransformAndGeometryInstance> geomInstDelta;
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             delta.insert(it->second);
+
+            SHGeometryGroup* shGeomGroup = nullptr;
+            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
+                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
+                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
+                }
+            }
+        }
         for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
             ParentNode* parent = *it;
-            parent->childUpdateEvent(UpdateEvent::TransformUpdated, delta);
+            parent->childUpdateEvent(UpdateEvent::TransformUpdated, delta, geomInstDelta);
         }
     }
 
@@ -1771,9 +2069,18 @@ namespace VLR {
 
         // JP: 追加した親に対して変形情報の追加を行わせる。
         std::set<SHTransform*> delta;
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
+        std::vector<TransformAndGeometryInstance> geomInstDelta;
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             delta.insert(it->second);
-        parent->childUpdateEvent(UpdateEvent::TransformAdded, delta);
+
+            SHGeometryGroup* shGeomGroup = nullptr;
+            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
+                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
+                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
+                }
+            }
+        }
+        parent->childUpdateEvent(UpdateEvent::TransformAdded, delta, geomInstDelta);
     }
 
     void InternalNode::removeParent(ParentNode* parent) {
@@ -1782,14 +2089,23 @@ namespace VLR {
 
         // JP: 削除した親に対して変形情報の削除を行わせる。
         std::set<SHTransform*> delta;
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
+        std::vector<TransformAndGeometryInstance> geomInstDelta;
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             delta.insert(it->second);
-        parent->childUpdateEvent(UpdateEvent::TransformRemoved, delta);
+
+            SHGeometryGroup* shGeomGroup = nullptr;
+            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
+                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
+                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
+                }
+            }
+        }
+        parent->childUpdateEvent(UpdateEvent::TransformRemoved, delta, geomInstDelta);
     }
 
 
 
-    void RootNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta) {
+    void RootNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) {
         switch (eventType) {
         case UpdateEvent::TransformAdded: {
             // JP: 自分自身のTransformと子InternalNodeが持つSHTransformを繋げたSHTransformを生成。
@@ -1807,6 +2123,34 @@ namespace VLR {
                 }
             }
 
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
+                if (m_surfaceLights.count(it->geomInstance)) {
+                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    VLRAssert_ShouldNotBeCalled();
+                }
+                else {
+                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[it->geomInstance];
+                    it->geomInstance->getSurfaceLightDescriptor(&lightDesc);
+                    if (it->transform->isStatic()) {
+                        StaticTransform tr = it->transform->getStaticTransform();
+                        float mat[16], invMat[16];
+                        tr.getArrays(mat, invMat);
+                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                    }
+                    else {
+                        VLRAssert_NotImplemented();
+                    }
+                }
+            }
+            m_surfaceLightsAreSetup = false;
+
             // JP: SHGroupにもSHTransformを追加する。
             for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
                 SHTransform* shtr = *it;
@@ -1816,6 +2160,17 @@ namespace VLR {
             break;
         }
         case UpdateEvent::TransformRemoved: {
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                if (m_surfaceLights.count(it->geomInstance)) {
+                    m_surfaceLights.erase(it->geomInstance);
+                }
+                else {
+                    VLRAssert_ShouldNotBeCalled();
+                }
+            }
+            m_surfaceLightsAreSetup = false;
+
             // JP: 子InternalNodeが持つSHTransformがつながっているSHTransformを削除。
             std::set<SHTransform*> delta;
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
@@ -1842,15 +2197,88 @@ namespace VLR {
                 shtr->update();
             }
 
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
+                if (m_surfaceLights.count(it->geomInstance)) {
+                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights.at(it->geomInstance);
+                    if (it->transform->isStatic()) {
+                        StaticTransform tr = it->transform->getStaticTransform();
+                        float mat[16], invMat[16];
+                        tr.getArrays(mat, invMat);
+                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                    }
+                    else {
+                        VLRAssert_NotImplemented();
+                    }
+                }
+                else {
+                    VLRAssert_ShouldNotBeCalled();
+                }
+            }
+            m_surfaceLightsAreSetup = false;
+
             break;
         }
-        case UpdateEvent::GeometryAdded:
+        case UpdateEvent::GeometryAdded: {
+            // JP: SHGroupに対してSHTransformの末尾のジオメトリ状態に変化があったことを通知する。
+            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(*it);
+                m_shGroup.updateChild(shtr);
+            }
+
+            std::vector<TransformAndGeometryInstance> geomInstDelta;
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                SHTransform* shtr = m_shTransforms.at(it->transform);
+                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
+            }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
+                if (m_surfaceLights.count(it->geomInstance)) {
+                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    VLRAssert_ShouldNotBeCalled();
+                }
+                else {
+                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[it->geomInstance];
+                    it->geomInstance->getSurfaceLightDescriptor(&lightDesc);
+                    if (it->transform->isStatic()) {
+                        StaticTransform tr = it->transform->getStaticTransform();
+                        float mat[16], invMat[16];
+                        tr.getArrays(mat, invMat);
+                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                    }
+                    else {
+                        VLRAssert_NotImplemented();
+                    }
+                }
+            }
+            m_surfaceLightsAreSetup = false;
+
+            break;
+        }
         case UpdateEvent::GeometryRemoved: {
             // JP: SHGroupに対してSHTransformの末尾のジオメトリ状態に変化があったことを通知する。
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
                 SHTransform* shtr = m_shTransforms.at(*it);
                 m_shGroup.updateChild(shtr);
             }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
+                if (m_surfaceLights.count(it->geomInstance)) {
+                    m_surfaceLights.erase(it->geomInstance);
+                }
+                else {
+                    VLRAssert_ShouldNotBeCalled();
+                }
+            }
+            m_surfaceLightsAreSetup = false;
 
             break;
         }
@@ -1864,27 +2292,60 @@ namespace VLR {
         switch (eventType) {
         case UpdateEvent::GeometryAdded: {
             // JP: 
+            SHTransform* selfTransform = m_shTransforms.at(nullptr);
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
                 m_shGeomGroup.addGeometryInstance(*it);
 
             if (m_shGeomGroup.getNumInstances() > 0) {
-                SHTransform* selfTransform = m_shTransforms.at(nullptr);
                 selfTransform->setChild(&m_shGeomGroup);
                 m_shGroup.updateChild(selfTransform);
             }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+                if (m_surfaceLights.count(*it)) {
+                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    VLRAssert_ShouldNotBeCalled();
+                }
+                else {
+                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[*it];
+                    (*it)->getSurfaceLightDescriptor(&lightDesc);
+                    if (selfTransform->isStatic()) {
+                        StaticTransform tr = selfTransform->getStaticTransform();
+                        float mat[16], invMat[16];
+                        tr.getArrays(mat, invMat);
+                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                    }
+                    else {
+                        VLRAssert_NotImplemented();
+                    }
+                }
+            }
+            m_surfaceLightsAreSetup = false;
 
             break;
         }
         case UpdateEvent::GeometryRemoved: {
             // JP: 
+            SHTransform* selfTransform = m_shTransforms.at(nullptr);
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
                 m_shGeomGroup.removeGeometryInstance(*it);
 
             if (m_shGeomGroup.getNumInstances() == 0) {
-                SHTransform* selfTransform = m_shTransforms.at(nullptr);
                 selfTransform->setChild(nullptr);
                 m_shGroup.updateChild(selfTransform);
             }
+
+            // JP: SurfaceLightDescriptorのマップを構築する。
+            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+                if (m_surfaceLights.count(*it)) {
+                    m_surfaceLights.erase(*it);
+                }
+                else {
+                    VLRAssert_ShouldNotBeCalled();
+                }
+            }
+            m_surfaceLightsAreSetup = false;
 
             break;
         }
@@ -1895,9 +2356,57 @@ namespace VLR {
     }
 
     RootNode::RootNode(Context &context, const Transform* localToWorld) :
-        ParentNode(context, "Root", localToWorld), m_shGroup(context) {
+        ParentNode(context, "Root", localToWorld), m_shGroup(context), m_surfaceLightsAreSetup(false) {
         SHTransform* shtr = m_shTransforms[0];
         m_shGroup.addChild(shtr);
+    }
+
+    RootNode::~RootNode() {
+        if (m_surfaceLightsAreSetup) {
+            m_surfaceLightImpDist.finalize(m_context);
+
+            m_optixSurfaceLightDescriptorBuffer->destroy();
+
+            m_surfaceLightsAreSetup = false;
+        }
+    }
+
+    void RootNode::set() {
+        optix::Context optixContext = m_context.getOptiXContext();
+
+        optixContext["VLR::pv_topGroup"]->set(m_shGroup.getOptiXObject());
+
+        if (!m_surfaceLightsAreSetup) {
+            if (m_optixSurfaceLightDescriptorBuffer)
+                m_optixSurfaceLightDescriptorBuffer->destroy();
+            m_optixSurfaceLightDescriptorBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_surfaceLights.size());
+            m_optixSurfaceLightDescriptorBuffer->setElementSize(sizeof(Shared::SurfaceLightDescriptor));
+
+            std::vector<float> importances;
+            importances.resize(m_surfaceLights.size());
+
+            {
+                Shared::SurfaceLightDescriptor* descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map();
+                for (auto it = m_surfaceLights.cbegin(); it != m_surfaceLights.cend(); ++it) {
+                    uint32_t index = std::distance(m_surfaceLights.cbegin(), it);
+                    const Shared::SurfaceLightDescriptor &lightDesc = it->second;
+                    descs[index] = lightDesc;
+                    importances[index] = lightDesc.importance;
+                }
+                m_optixSurfaceLightDescriptorBuffer->unmap();
+            }
+
+            m_surfaceLightImpDist.finalize(m_context);
+            m_surfaceLightImpDist.initialize(m_context, importances.data(), importances.size());
+
+            m_surfaceLightsAreSetup = true;
+        }
+
+        Shared::DiscreteDistribution1D lightImpDist;
+        m_surfaceLightImpDist.getInternalType(&lightImpDist);
+        optixContext["VLR::pv_lightImpDist"]->setUserData(sizeof(lightImpDist), &lightImpDist);
+
+        optixContext["VLR::pv_surfaceLightDescriptorBuffer"]->set(m_optixSurfaceLightDescriptorBuffer);
     }
 
 
@@ -1905,6 +2414,10 @@ namespace VLR {
     Scene::Scene(Context &context, const Transform* localToWorld) : 
     Object(context), m_rootNode(context, localToWorld) {
 
+    }
+
+    void Scene::set() {
+        m_rootNode.set();
     }
 
 

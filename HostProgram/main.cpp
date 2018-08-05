@@ -100,6 +100,7 @@ VLR::Quaternion g_cameraOrientation;
 float g_sensitivity;
 float g_lensRadius;
 float g_objPlaneDistance;
+float g_brightnessCoeff;
 
 static std::string readTxtFile(const std::string& filepath) {
     std::ifstream ifs;
@@ -226,6 +227,7 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     float color[3];
 
     aiMat->Get(AI_MATKEY_NAME, strValue);
+    VLRDebugPrintf("Material: %s\n", strValue.C_Str());
 
     Float4TextureRef texAlbedoRoughness;
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
@@ -289,17 +291,53 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     SceneRef scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
 
-    //InternalNodeRef modelNode;
-    //construct(context, "resources/Kirby_Pikachu_Hat/pikachu_hat_corrected.obj", true, &modelNode);
-    //scene->addChild(modelNode);
+    InternalNodeRef modelNode;
+    construct(context, "resources/Kirby_Pikachu_Hat/pikachu_hat_corrected.obj", true, &modelNode/*, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        if (strcmp(strValue.C_Str(), "yellow") == 0 || 
+            strcmp(strValue.C_Str(), "cheek") == 0 || 
+            strcmp(strValue.C_Str(), "ear") == 0 || 
+            strcmp(strValue.C_Str(), "eye") == 0) {
+            Float3TextureRef texEmittance;
+            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str());
+                texEmittance = context.createImageFloat3Texture(image);
+            }
+            else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
+                float value[3] = { color[0], color[1], color[2] };
+                texEmittance = context.createConstantFloat3Texture(value);
+            }
+            else {
+                float value[3] = { 1.0f, 0.0f, 1.0f };
+                texEmittance = context.createConstantFloat3Texture(value);
+            }
+
+            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+
+            return SurfaceAttributeTuple(matLight);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+    }*/);
+    scene->addChild(modelNode);
 
     InternalNodeRef sphereNode;
     construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
-        //float coeff[] = { 0.999f, 0.999f, 0.999f };
-        //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        float coeff[] = { 0.999f, 0.999f, 0.999f };
+        Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
 
         ////// Aluminum
         ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
@@ -332,62 +370,74 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
         //SurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
 
-        //// Air
-        //float etaExt[] = { 1.00036f, 1.00021f, 1.00071f };
-        ////// Water
-        ////float etaInt[] = { 1.33161f, 1.33331f, 1.33799f };
-        ////// Glass BK7
-        ////float etaInt[] = { 1.51455f, 1.51816f, 1.52642f };
-        //// Diamond
-        //float etaInt[] = { 2.41174f, 2.42343f, 2.44936f };
-        //Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
-        //Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
-        //SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt);
+        // Air
+        float etaExt[] = { 1.00036f, 1.00021f, 1.00071f };
+        //// Water
+        //float etaInt[] = { 1.33161f, 1.33331f, 1.33799f };
+        //// Glass BK7
+        //float etaInt[] = { 1.51455f, 1.51816f, 1.52642f };
+        // Diamond
+        float etaInt[] = { 2.41174f, 2.42343f, 2.44936f };
+        Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
+        Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
+        SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt);
 
-        float coeff[] = { 0.5f, 0.5f, 0.5f };
-        // Silver
-        float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-        float k[] = { 3.82431f, 3.1451f, 2.27711f };
-        Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-        Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-        SurfaceMaterialRef matA = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
+        //float coeff[] = { 0.5f, 0.5f, 0.5f };
+        //// Silver
+        //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+        //float k[] = { 3.82431f, 3.1451f, 2.27711f };
+        //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+        //SurfaceMaterialRef matA = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
 
-        float albedoRoughness[] = { 0.75f, 0.25f, 0.0f, 0.0f };
-        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(albedoRoughness);
-        SurfaceMaterialRef matB = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+        //float albedoRoughness[] = { 0.75f, 0.25f, 0.0f, 0.0f };
+        //Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(albedoRoughness);
+        //SurfaceMaterialRef matB = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-        SurfaceMaterialRef mats[] = { matA, matB };
-        SurfaceMaterialRef mat = context.createMultiSurfaceMaterial(mats, lengthof(mats));
+        //SurfaceMaterialRef mats[] = { matA, matB };
+        //SurfaceMaterialRef mat = context.createMultiSurfaceMaterial(mats, lengthof(mats));
 
         return SurfaceAttributeTuple(mat);
     });
-    scene->addChild(sphereNode);
-    sphereNode->setTransform(createShared<StaticTransform>(translate<float>(0, 0.5, 0) * scale(0.5f)));
+    //scene->addChild(sphereNode);
+    sphereNode->setTransform(createShared<StaticTransform>(translate<float>(0, 1.0, 0) * scale(0.5f)));
 
     TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
         std::vector<Vertex> vertices;
+
+        // Floor
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 5.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 5.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Back wall
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Ceiling
         vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Left wall
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 0.0f) });
+        // Right wall
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 0.0f) });
+        // Light
+        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+
         cornellBox->setVertices(vertices.data(), vertices.size());
 
         {
@@ -439,8 +489,18 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             };
             cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte);
         }
-    }
 
+        {
+            float value[3] = { 100.0f, 100.0f, 100.0f };
+            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
+            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+
+            std::vector<uint32_t> matGroup = {
+                20, 21, 22, 20, 22, 23,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight);
+        }
+    }
     scene->addChild(cornellBox);
 
     g_cameraPos = Point3D(0, 0, 5);
@@ -448,6 +508,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     g_sensitivity = 1.0f;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
+    g_brightnessCoeff = 1.0f;
     PerspectiveCameraRef camera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
                                                                   g_sensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
@@ -721,6 +782,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             bool cameraSettingsChanged = false;
             static bool g_forceLowResolution = false;
+            static uint32_t g_numAccumFrames = 1;
             {
                 ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -729,8 +791,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
                 cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
                 cameraSettingsChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
+                ImGui::SliderFloat("Brightness", &g_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
 
                 g_sensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
+
+                ImGui::Text("%u [spp]", g_numAccumFrames);
 
                 ImGui::End();
             }
@@ -900,7 +965,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
 
             bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || cameraSettingsChanged;
-            context.render(scene, camera, shrinkCoeff, firstFrame);
+            context.render(scene, camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
 
             g_operatedCameraOnPrevFrame = operatingCamera;
 
@@ -917,6 +982,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 glUniform1i(0, (int32_t)WindowSizeX); GLTK::errorCheck();
 
                 glUniform1f(1, (float)shrinkCoeff); GLTK::errorCheck();
+
+                glUniform1f(2, g_brightnessCoeff); GLTK::errorCheck();
 
                 glActiveTexture(GL_TEXTURE0); GLTK::errorCheck();
                 outputTexture.bind();
