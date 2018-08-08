@@ -684,7 +684,7 @@ namespace VLR {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         const Float3Texture* m_texBaseColor;
-        const Float2Texture* m_texRoughnessMetallic;
+        const Float3Texture* m_texOcclusionRoughnessMetallic;
 
     public:
         static const ClassIdentifier ClassID;
@@ -693,7 +693,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float2Texture* texRoughnessMetallic);
+        UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float3Texture* texOcclusionRoughnessMetallic);
         ~UE4SurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -810,6 +810,7 @@ namespace VLR {
         optix::Buffer m_optixVertexBuffer;
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<SurfaceMaterial*> m_materials;
+        std::vector<Float4Texture*> m_texNormalAlphas;
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
     public:
         static const ClassIdentifier ClassID;
@@ -825,7 +826,7 @@ namespace VLR {
         void removeParent(ParentNode* parent) override;
 
         void setVertices(std::vector<Vertex> &&vertices);
-        void addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material);
+        void addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material, Float4Texture* texNormalAlpha);
     };
 
 

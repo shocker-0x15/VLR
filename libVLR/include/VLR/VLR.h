@@ -207,7 +207,7 @@ extern "C" {
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material);
 
     VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                                  VLRFloat3Texture texBaseColor, VLRFloat2Texture texRoughnessMetallic);
+                                                  VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic);
     VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4SurfaceMaterial material);
 
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
@@ -226,7 +226,8 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetName(VLRTriangleMeshSurfaceNode node, const char* name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeGetName(VLRTriangleMeshSurfaceNode node, const char** name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices);
-    VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, VLRSurfaceMaterial material);
+    VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
+                                                                 VLRSurfaceMaterial material, VLRFloat4Texture texNormalAlpha);
 
 
 
@@ -573,12 +574,12 @@ namespace VLRCpp {
 
     class UE4SurfaceMaterialHolder : public SurfaceMaterialHolder {
         Float3TextureRef m_texBaseColor;
-        Float2TextureRef m_texRoughnessMetallic;
+        Float3TextureRef m_texOcclusionRoughnessMetallic;
 
     public:
-        UE4SurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic) :
-            SurfaceMaterialHolder(context), m_texBaseColor(texBaseColor), m_texRoughnessMetallic(texRoughnessMetallic) {
-            VLRResult res = vlrUE4SurfaceMaterialCreate(context, (VLRUE4SurfaceMaterial*)&m_raw, (VLRFloat3Texture)m_texBaseColor->get(), (VLRFloat2Texture)m_texRoughnessMetallic->get());
+        UE4SurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic) :
+            SurfaceMaterialHolder(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic) {
+            VLRResult res = vlrUE4SurfaceMaterialCreate(context, (VLRUE4SurfaceMaterial*)&m_raw, (VLRFloat3Texture)m_texBaseColor->get(), (VLRFloat3Texture)m_texOcclusionRoughnessMetallic->get());
         }
         ~UE4SurfaceMaterialHolder() {
             VLRResult res = vlrUE4SurfaceMaterialDestroy(m_rawContext, (VLRUE4SurfaceMaterial)m_raw);
@@ -654,7 +655,8 @@ namespace VLRCpp {
 
     class TriangleMeshSurfaceNodeHolder : public SurfaceNodeHolder {
         VLRTriangleMeshSurfaceNode m_raw;
-        std::set<SurfaceMaterialRef> m_materials;
+        std::vector<SurfaceMaterialRef> m_materials;
+        std::vector<Float4TextureRef> m_texNormalAlphas;
 
     public:
         TriangleMeshSurfaceNodeHolder(VLRContext context, const char* name) :
@@ -680,9 +682,18 @@ namespace VLRCpp {
         void setVertices(VLRVertex* vertices, uint32_t numVertices) {
             VLRResult res = vlrTriangleMeshSurfaceNodeSetVertices(m_raw, vertices, numVertices);
         }
-        void addMaterialGroup(uint32_t* indices, uint32_t numIndices, const SurfaceMaterialRef &material) {
-            m_materials.insert(material);
-            VLRResult res = vlrTriangleMeshSurfaceNodeAddMaterialGroup(m_raw, indices, numIndices, (VLRSurfaceMaterial)material->get());
+        void addMaterialGroup(uint32_t* indices, uint32_t numIndices, 
+                              const SurfaceMaterialRef &material, const Float4TextureRef &texNormalAlpha) {
+            m_materials.push_back(material);
+            m_texNormalAlphas.push_back(texNormalAlpha);
+            if (texNormalAlpha) {
+                VLRResult res = vlrTriangleMeshSurfaceNodeAddMaterialGroup(m_raw, indices, numIndices,
+                                                                           (VLRSurfaceMaterial)material->get(), (VLRFloat4Texture)texNormalAlpha->get());
+            }
+            else {
+                VLRResult res = vlrTriangleMeshSurfaceNodeAddMaterialGroup(m_raw, indices, numIndices,
+                                                                           (VLRSurfaceMaterial)material->get(), nullptr);
+            }
         }
     };
 
@@ -926,8 +937,8 @@ namespace VLRCpp {
             return std::make_shared<SpecularScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt);
         }
 
-        UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float2TextureRef &texRoughnessMetallic) const {
-            return std::make_shared<UE4SurfaceMaterialHolder>(m_rawContext, texBaseColor, texRoughnessMetallic);
+        UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic) const {
+            return std::make_shared<UE4SurfaceMaterialHolder>(m_rawContext, texBaseColor, texOcclusionRoughnessMetallic);
         }
 
         DiffuseEmitterSurfaceMaterialRef createDiffuseEmitterSurfaceMaterial(const Float3TextureRef &texEmittance) const {

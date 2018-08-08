@@ -306,7 +306,7 @@ namespace VLR {
 
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
-            int32_t texRoughnessMetallic;
+            int32_t texOcclusionRoughnessMetallic;
         };
 
         struct DiffuseEmitterSurfaceMaterial {

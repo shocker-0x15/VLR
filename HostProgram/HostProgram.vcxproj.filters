@@ -58,6 +58,7 @@
       <Filter>imGui</Filter>
     </ClInclude>
     <ClInclude Include="GLToolkit.h" />
+    <ClInclude Include="StopWatch.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shaders\scale.frag">
