@@ -1465,8 +1465,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float2Texture* texRoughnessMetallic) :
-        SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texRoughnessMetallic(texRoughnessMetallic) {
+    UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float3Texture* texOcclusionRoughnessMetallic) :
+        SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -1483,7 +1483,7 @@ namespace VLR {
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
         Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc->i1[baseIndex];
         mat.texBaseColor = m_texBaseColor->getOptiXObject()->getId();
-        mat.texRoughnessMetallic = m_texRoughnessMetallic->getOptiXObject()->getId();
+        mat.texOcclusionRoughnessMetallic = m_texOcclusionRoughnessMetallic->getOptiXObject()->getId();
 
         return baseIndex + sizeof(Shared::UE4SurfaceMaterial) / 4;
     }
@@ -1737,7 +1737,7 @@ namespace VLR {
         // TODO: 頂点情報更新時の処理。(IndexBufferとの整合性など)
     }
 
-    void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material) {
+    void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material, Float4Texture* texNormalAlpha) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -1779,6 +1779,7 @@ namespace VLR {
         m_optixGeometries.push_back(geom);
 
         m_materials.push_back(material);
+        m_texNormalAlphas.push_back(texNormalAlpha);
 
         Shared::SurfaceLightDescriptor lightDesc;
         lightDesc.body.vertexBuffer = m_optixVertexBuffer->getId();
@@ -1799,8 +1800,15 @@ namespace VLR {
             optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
-            optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
-            optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
+            if (texNormalAlpha) {
+                optixGeomInst["VLR::pv_texNormalAlpha"]->set(texNormalAlpha->getOptiXObject());
+                optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramFetchAlpha());
+                optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramFetchNormal());
+            }
+            else {
+                optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
+                optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
+            }
             optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
         }
         m_shGeometryInstances.push_back(geomInst);

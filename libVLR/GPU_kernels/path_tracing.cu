@@ -174,13 +174,13 @@ namespace VLR {
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
                 float bsdfPDF = sm_payload.prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                float lightPDF = pv_importance / pv_lightImpDist.integral() * areaPDF;
+                float lightPDF = pv_importance / pv_lightImpDist.integral() * areaPDF * dist2 / std::abs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
             sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
         }
-        if (surfPt.atInfinity) {
+        if (surfPt.atInfinity || sm_payload.maxLengthTerminate) {
             sm_payload.terminate = true;
             return;
         }
@@ -230,7 +230,7 @@ namespace VLR {
                     MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
-                float scalarCoeff = G * MISWeight / lightPDF;
+                float scalarCoeff = G * MISWeight / lightPDF; // 直接contributionの計算式に入れるとCUDAのバグなのかおかしな結果になる。
                 sm_payload.contribution += sm_payload.alpha * Le * fs * scalarCoeff;
             }
         }
@@ -282,20 +282,32 @@ namespace VLR {
 
         Payload payload;
         payload.wavelengthSelected = false;
+        payload.terminate = false;
+        payload.maxLengthTerminate = false;
         payload.wlHint = std::min<uint32_t>(RGBSpectrum::NumComponents() - 1, RGBSpectrum::NumComponents() * rng.getFloat0cTo1o());
         payload.initImportance = alpha.importance(payload.wlHint);
         payload.alpha = alpha;
         payload.contribution = RGBSpectrum::Zero();
 
-        uint32_t rayDepth = 0;
+        const uint32_t MaxPathLength = 5;
+        uint32_t pathLength = 0;
         while (true) {
+            ++pathLength;
+            if (pathLength >= MaxPathLength)
+                payload.maxLengthTerminate = true;
             rtTrace(pv_topGroup, ray, payload);
 
-            if (payload.terminate || rayDepth >= 5)
+            // maxLengthTerminateはいらない気がするが
+            // 何故かmaxLengthTerminate == trueかつterminate == falseになってしまうケースが
+            // あるらしくそれの対策。
+            if (payload.terminate || payload.maxLengthTerminate)
                 break;
 
             ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, FLT_MAX);
-            ++rayDepth;
+        }
+        if (!payload.contribution.allFinite()) {
+            rtPrintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
+            return;
         }
 
         RGBSpectrum &contribution = pv_outputBuffer[sm_launchIndex];

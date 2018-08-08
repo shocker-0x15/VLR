@@ -265,9 +265,10 @@ namespace VLR {
 
     struct Payload {
         struct {
-            unsigned int wlHint : 30;
+            unsigned int wlHint : 29;
             bool wavelengthSelected : 1;
             bool terminate : 1;
+            bool maxLengthTerminate : 1;
         };
         float initImportance;
         RGBSpectrum alpha;

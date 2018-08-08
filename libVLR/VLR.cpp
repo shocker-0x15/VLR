@@ -218,8 +218,8 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context
 
 
 VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                              VLRFloat3Texture texBaseColor, VLRFloat2Texture texRoughnessMetallic) {
-    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texRoughnessMetallic);
+                                              VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic) {
+    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texOcclusionRoughnessMetallic);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -312,7 +312,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, VLRSurfaceMaterial material) {
+VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
+                                                             VLRSurfaceMaterial material, VLRFloat4Texture texNormalAlpha) {
     if (!surfaceNode->is<VLR::TriangleMeshSurfaceNode>())
         return VLR_ERROR_INVALID_TYPE;
 
@@ -323,7 +324,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
     if (!material->isMemberOf<VLR::SurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
 
-    surfaceNode->addMaterialGroup(std::move(vecIndices), material);
+    surfaceNode->addMaterialGroup(std::move(vecIndices), material, texNormalAlpha);
 
     return VLR_ERROR_NO_ERROR;
 }

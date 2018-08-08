@@ -168,6 +168,11 @@ namespace VLR {
     }
 
     template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType lerp(RealType a, RealType b, RealType t) {
+        return a * (1 - t) + b * t;
+    }
+
+    template <typename RealType>
     RT_FUNCTION HOST_INLINE constexpr RealType saturate(RealType x) {
         return clamp<RealType>(x, 0, 1);
     }

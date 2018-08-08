@@ -1,4 +1,4 @@
-#include "kernel_common.cuh"
+Ôªø#include "kernel_common.cuh"
 #include "random_distributions.cuh"
 
 namespace VLR {
@@ -328,12 +328,71 @@ namespace VLR {
 
 
 
+    class GGXMicrofacetDistribution {
+        float m_alpha_gx;
+        float m_alpha_gy;
+
+    public:
+        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy) :
+            m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {}
+
+        RT_FUNCTION float evaluate(const Normal3D &m) {
+            if (m.z <= 0)
+                return 0.0f;
+            float temp = m.x * m.x / (m_alpha_gx * m_alpha_gx) + m.y * m.y / (m_alpha_gy * m_alpha_gy) + m.z * m.z;
+            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * temp * temp);
+        }
+
+        RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
+            float chi = (dot(v, m) / v.z) > 0 ? 1 : 0;
+            float tanTheta_v_alpha_go_2 = (v.x * v.x * m_alpha_gx * m_alpha_gx + v.y * v.y * m_alpha_gy * m_alpha_gy) / (v.z * v.z);
+            return chi * 2 / (1 + std::sqrt(1 + tanTheta_v_alpha_go_2));
+        }
+
+        RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
+            // stretch view
+            Vector3D sv = normalize(Vector3D(m_alpha_gx * v.x, m_alpha_gy * v.y, v.z));
+
+            // orthonormal basis
+            //        Vector3D T1 = (sv.z < 0.9999f) ? normalize(cross(sv, Vector3D::Ez)) : Vector3D::Ex;
+            //        Vector3D T2 = cross(T1, sv);
+            float distIn2D = std::sqrt(sv.x * sv.x + sv.y * sv.y);
+            float recDistIn2D = 1.0f / distIn2D;
+            Vector3D T1 = (sv.z < 0.9999f) ? Vector3D(sv.y * recDistIn2D, -sv.x * recDistIn2D, 0) : Vector3D::Ex();
+            Vector3D T2 = Vector3D(T1.y * sv.z, -T1.x * sv.z, distIn2D);
+
+            // sample point with polar coordinates (r, phi)
+            float a = 1.0f / (1.0f + sv.z);
+            float r = std::sqrt(u0);
+            float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
+            float P1 = r * std::cos(phi);
+            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0 : sv.z);
+
+            // compute normal
+            *m = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
+
+            // unstretch
+            *m = normalize(Normal3D(m_alpha_gx * m->x, m_alpha_gy * m->y, m->z));
+
+            float D = evaluate(*m);
+            *normalPDF = evaluateSmithG1(v, *m) * absDot(v, *m) * D / std::abs(v.z);
+
+            return D;
+        }
+
+        RT_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
+            return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::abs(v.z);
+        }
+    };
+
+
+
     // ----------------------------------------------------------------
     // UE4 BRDF
 
     struct UE4BRDF {
         RGBSpectrum baseColor;
-        float roughenss;
+        float roughness;
         float metallic;
     };
 
@@ -341,39 +400,225 @@ namespace VLR {
         UE4BRDF &p = *(UE4BRDF*)params;
         const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        VLRAssert_NotImplemented();
+        optix::float4 texValue;
+        texValue = optix::rtTex2D<optix::float4>(mat.texBaseColor, surfPt.texCoord.u, surfPt.texCoord.v);
+        p.baseColor = sRGB_degamma(RGBSpectrum(texValue.x, texValue.y, texValue.z));
+        texValue = optix::rtTex2D<optix::float4>(mat.texOcclusionRoughnessMetallic, surfPt.texCoord.u, surfPt.texCoord.v);
+        p.roughness = texValue.y;
+        p.metallic = texValue.z;
 
         return sizeof(UE4BRDF) / 4;
     }
 
     RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_getBaseColor(const uint32_t* params) {
-        VLRAssert_NotImplemented();
-        return RGBSpectrum::Zero();
+        UE4BRDF &p = *(UE4BRDF*)params;
+
+        return p.baseColor;
     }
     
     RT_CALLABLE_PROGRAM bool UE4BRDF_matches(const uint32_t* params, DirectionType flags) {
-        VLRAssert_NotImplemented();
-        return true;
+        DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
+        return m_type.matches(flags);
     }
 
     RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_sampleBSDFInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
-        VLRAssert_NotImplemented();
-        return RGBSpectrum::Zero();
+        UE4BRDF &p = *(UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        float alpha = p.roughness * p.roughness;
+        GGXMicrofacetDistribution ggx(alpha, alpha);
+
+        bool entering = query.dirLocal.z >= 0.0f;
+        Vector3D dirL;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
+        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+
+        RGBSpectrum specularF0Color = lerp(0.08f * specular * RGBSpectrum::One(), p.baseColor, p.metallic);
+        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float iSpecularF0 = specularF0Color.importance(query.wlHint);
+
+        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
+
+        float weights[] = { diffuseWeight, specularWeight };
+        float probSelection;
+        float sumWeights = 0.0f;
+        uint32_t component = sampleDiscrete(weights, 2, uComponent, &probSelection, &sumWeights, &uComponent);
+
+        float diffuseDirPDF, specularDirPDF;
+        RGBSpectrum fs;
+        Normal3D m;
+        float dotLH;
+        float D;
+        if (component == 0) {
+            result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
+
+            // JP: „Ç≥„Çµ„Ç§„É≥ÂàÜÂ∏É„Åã„Çâ„Çµ„É≥„Éó„É´„Åô„Çã„ÄÇ
+            // EN: sample based on cosine distribution.
+            dirL = cosineSampleHemisphere(uDir[0], uDir[1]);
+            diffuseDirPDF = dirL.z / M_PIf;
+
+            // JP: Âêå„ÅòÊñπÂêë„Çµ„É≥„Éó„É´„ÇíÂà•„ÅÆË¶ÅÁ¥†„Åã„Çâ„Çµ„É≥„Éó„É´„Åô„ÇãÁ¢∫ÁéáÂØÜÂ∫¶„ÇíÊ±Ç„ÇÅ„Çã„ÄÇ
+            // EN: calculate PDFs to generate the sampled direction from the other distributions.
+            m = halfVector(dirL, dirV);
+            dotLH = dot(dirL, m);
+            float commonPDFTerm = 1.0f / (4 * dotLH);
+            specularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirV, m);
+
+            D = ggx.evaluate(m);
+        }
+        else if (component == 1) {
+            result->sampledType = DirectionType::Reflection() | DirectionType::HighFreq();
+
+            // ----------------------------------------------------------------
+            // JP: „Éô„Éº„Çπ„Çπ„Éö„Ç≠„É•„É©„ÉºÂ±§„ÅÆ„Éû„Ç§„ÇØ„É≠„Éï„Ç°„Çª„ÉÉ„ÉàÂàÜÂ∏É„Åã„Çâ„Çµ„É≥„Éó„É´„Åô„Çã„ÄÇ
+            // EN: sample based on the base specular microfacet distribution.
+            float mPDF;
+            D = ggx.sample(dirV, uDir[0], uDir[1], &m, &mPDF);
+            float dotVH = dot(dirV, m);
+            dotLH = dotVH;
+            dirL = 2 * dotVH * m - dirV;
+            if (dirL.z * dirV.z <= 0) {
+                result->dirPDF = 0.0f;
+                return RGBSpectrum::Zero();
+            }
+            float commonPDFTerm = 1.0f / (4 * dotLH);
+            specularDirPDF = commonPDFTerm * mPDF;
+            // ----------------------------------------------------------------
+
+            // JP: Âêå„ÅòÊñπÂêë„Çµ„É≥„Éó„É´„ÇíÂà•„ÅÆË¶ÅÁ¥†„Åã„Çâ„Çµ„É≥„Éó„É´„Åô„ÇãÁ¢∫ÁéáÂØÜÂ∫¶„ÇíÊ±Ç„ÇÅ„Çã„ÄÇ
+            // EN: calculate PDFs to generate the sampled direction from the other distributions.
+            diffuseDirPDF = dirL.z / M_PIf;
+        }
+
+        float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
+
+        float G = ggx.evaluateSmithG1(dirL, m) * ggx.evaluateSmithG1(dirV, m);
+        RGBSpectrum F = lerp(specularF0Color, RGBSpectrum::One(), oneMinusDotLH5);
+
+        float microfacetDenom = 4 * dirL.z * dirV.z;
+        RGBSpectrum specularValue = F * ((D * G) / microfacetDenom);
+
+        float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
+        float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
+        float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
+        float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
+        RGBSpectrum diffuseValue = p.baseColor * ((diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf) * (1 - p.metallic));
+
+        RGBSpectrum ret = diffuseValue + specularValue;
+
+        result->dirLocal = entering ? dirL : -dirL;
+
+        // PDF based on the single-sample model MIS.
+        result->dirPDF = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;
+
+        return ret;
     }
 
     RT_CALLABLE_PROGRAM RGBSpectrum UE4BRDF_evaluateBSDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
-        VLRAssert_NotImplemented();
-        return RGBSpectrum::Zero();
+        UE4BRDF &p = *(UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        float alpha = p.roughness * p.roughness;
+        GGXMicrofacetDistribution ggx(alpha, alpha);
+
+        if (dirLocal.z * query.dirLocal.z <= 0) {
+            return RGBSpectrum::Zero();
+        }
+
+        bool entering = query.dirLocal.z >= 0.0f;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        Normal3D m = halfVector(dirL, dirV);
+        float dotLH = dot(dirL, m);
+
+        float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
+
+        RGBSpectrum specularF0Color = lerp(0.08f * specular * RGBSpectrum::One(), p.baseColor, p.metallic);
+
+        float D = ggx.evaluate(m);
+        float G = ggx.evaluateSmithG1(dirL, m) * ggx.evaluateSmithG1(dirV, m);
+        RGBSpectrum F = lerp(specularF0Color, RGBSpectrum::One(), oneMinusDotLH5);
+
+        float microfacetDenom = 4 * dirL.z * dirV.z;
+        RGBSpectrum specularValue = F * ((D * G) / microfacetDenom);
+
+        float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
+        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
+        float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
+        float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
+
+        RGBSpectrum diffuseValue = p.baseColor * ((diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf) * (1 - p.metallic));
+
+        RGBSpectrum ret = diffuseValue + specularValue;
+
+        return ret;
     }
 
     RT_CALLABLE_PROGRAM float UE4BRDF_evaluateBSDF_PDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
-        VLRAssert_NotImplemented();
-        return 0.0f;
+        UE4BRDF &p = *(UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        float alpha = p.roughness * p.roughness;
+        GGXMicrofacetDistribution ggx(alpha, alpha);
+
+        bool entering = query.dirLocal.z >= 0.0f;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        Normal3D m = halfVector(dirL, dirV);
+        float dotLH = dot(dirL, m);
+        float commonPDFTerm = 1.0f / (4 * dotLH);
+
+        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
+        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+
+        RGBSpectrum specularF0Color = lerp(0.08f * specular * RGBSpectrum::One(), p.baseColor, p.metallic);
+        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float iSpecularF0 = specularF0Color.importance(query.wlHint);
+
+        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
+
+        float sumWeights = diffuseWeight + specularWeight;
+
+        float diffuseDirPDF = dirL.z / M_PIf;
+        float specularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirV, m);
+
+        float ret = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;
+
+        return ret;
     }
 
     RT_CALLABLE_PROGRAM float UE4BRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
-        VLRAssert_NotImplemented();
-        return 0.0f;
+        UE4BRDF &p = *(UE4BRDF*)params;
+
+        const float specular = 0.5f;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
+        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+
+        RGBSpectrum specularF0Color = lerp(0.08f * specular * RGBSpectrum::One(), p.baseColor, p.metallic);
+        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float iSpecularF0 = specularF0Color.importance(query.wlHint);
+
+        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
+
+        return diffuseWeight + specularWeight;
     }
 
     // END: UE4 BRDF
@@ -532,7 +777,7 @@ namespace VLR {
             weights[i] = weightInternal(bsdf + 1, query);
         }
 
-        // JP: äeBSDFÇÃÉEÉFÉCÉgÇ…äÓÇ√Ç¢Çƒï˚å¸ÇÃÉTÉìÉvÉãÇçsÇ§BSDFÇëIëÇ∑ÇÈÅB
+        // JP: ÂêÑBSDF„ÅÆ„Ç¶„Çß„Ç§„Éà„Å´Âü∫„Å•„ÅÑ„Å¶ÊñπÂêë„ÅÆ„Çµ„É≥„Éó„É´„ÇíË°å„ÅÜBSDF„ÇíÈÅ∏Êäû„Åô„Çã„ÄÇ
         // EN: Based on the weight of each BSDF, select a BSDF from which direction sampling.
         float tempProb;
         float sumWeights;
@@ -547,7 +792,7 @@ namespace VLR {
         const BSDFProcedureSet selProcSet = pv_bsdfProcedureSetBuffer[selProcIdx];
         progSigSampleBSDFInternal sampleInternal = (progSigSampleBSDFInternal)selProcSet.progSampleBSDFInternal;
 
-        // JP: ëIëÇµÇΩBSDFÇ©ÇÁï˚å¸ÇÉTÉìÉvÉäÉìÉOÇ∑ÇÈÅB
+        // JP: ÈÅ∏Êäû„Åó„ÅüBSDF„Åã„ÇâÊñπÂêë„Çí„Çµ„É≥„Éó„É™„É≥„Ç∞„Åô„Çã„ÄÇ
         // EN: sample a direction from the selected BSDF.
         RGBSpectrum value = sampleInternal(selectedBSDF + 1, query, uComponent, uDir, result);
         result->dirPDF *= weights[idx];
@@ -556,7 +801,7 @@ namespace VLR {
             return RGBSpectrum::Zero();
         }
 
-        // JP: ÉTÉìÉvÉãÇµÇΩï˚å¸Ç…ä÷Ç∑ÇÈBSDFÇÃílÇÃçáåvÇ∆ÅAsingle-sample model MISÇ…äÓÇ√Ç¢ÇΩämó¶ñßìxÇåvéZÇ∑ÇÈÅB
+        // JP: „Çµ„É≥„Éó„É´„Åó„ÅüÊñπÂêë„Å´Èñ¢„Åô„ÇãBSDF„ÅÆÂÄ§„ÅÆÂêàË®à„Å®„ÄÅsingle-sample model MIS„Å´Âü∫„Å•„ÅÑ„ÅüÁ¢∫ÁéáÂØÜÂ∫¶„ÇíË®àÁÆó„Åô„Çã„ÄÇ
         // EN: calculate the total of BSDF values and a PDF based on the single-sample model MIS for the sampled direction.
         if (!result->sampledType.isDelta()) {
             for (int i = 0; i < p.numBSDFs; ++i) {
