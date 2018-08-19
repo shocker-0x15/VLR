@@ -7,7 +7,7 @@ layout(location = 1) uniform float shrinkCoeff;
 layout(location = 2) uniform float brightness;
 layout(location = 3, binding = 0) uniform samplerBuffer srcTexture;
 
- layout(origin_upper_left) in vec4 gl_FragCoord;
+layout(origin_upper_left) in vec4 gl_FragCoord;
 
 out vec4 color;
 

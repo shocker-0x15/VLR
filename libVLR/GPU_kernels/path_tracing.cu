@@ -1,5 +1,4 @@
 ﻿#include "kernel_common.cuh"
-#include "random_distributions.cuh"
 
 namespace VLR {
     // Context-scope Variables
@@ -131,8 +130,7 @@ namespace VLR {
 
         float alpha = pv_progFetchAlpha(texCoord);
 
-        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
-        if (rng.getFloat0cTo1o() >= alpha)
+        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
             rtIgnoreIntersection();
     }
 
@@ -150,7 +148,7 @@ namespace VLR {
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void pathTracingIteration() {
-        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
+        KernelRNG &rng = sm_payload.rng;
 
         SurfacePoint surfPt;
         float areaPDF;
@@ -180,17 +178,13 @@ namespace VLR {
 
             sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
         }
-        if (surfPt.atInfinity || sm_payload.maxLengthTerminate) {
-            sm_payload.terminate = true;
+        if (surfPt.atInfinity || sm_payload.maxLengthTerminate)
             return;
-        }
 
         // Russian roulette
         float continueProb = std::min(sm_payload.alpha.importance(sm_payload.wlHint) / sm_payload.initImportance, 1.0f);
-        if (rng.getFloat0cTo1o() >= continueProb) {
-            sm_payload.terminate = true;
+        if (rng.getFloat0cTo1o() >= continueProb)
             return;
-        }
         sm_payload.alpha /= continueProb;
 
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
@@ -238,10 +232,8 @@ namespace VLR {
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
         RGBSpectrum fs = bsdf.sampleBSDF(fsQuery, sample, &fsResult);
-        if (fs == RGBSpectrum::Zero() || fsResult.dirPDF == 0.0f) {
-            sm_payload.terminate = true;
+        if (fs == RGBSpectrum::Zero() || fsResult.dirPDF == 0.0f)
             return;
-        }
         if (fsResult.sampledType.isDispersive() && !sm_payload.wavelengthSelected) {
             fsResult.dirPDF /= RGBSpectrum::NumComponents();
             sm_payload.wavelengthSelected = true;
@@ -258,12 +250,11 @@ namespace VLR {
     }
 
     RT_PROGRAM void pathTracingMiss() {
-        sm_payload.terminate = true;
     }
 
     // Common Ray Generation Program for All Camera Types
     RT_PROGRAM void pathTracing() {
-        KernelRNG &rng = pv_rngBuffer[sm_launchIndex];
+        KernelRNG rng = pv_rngBuffer[sm_launchIndex];
 
         optix::float2 p = make_float2(sm_launchIndex.x + rng.getFloat0cTo1o(), sm_launchIndex.y + rng.getFloat0cTo1o());
 
@@ -282,9 +273,9 @@ namespace VLR {
 
         Payload payload;
         payload.wavelengthSelected = false;
-        payload.terminate = false;
         payload.maxLengthTerminate = false;
         payload.wlHint = std::min<uint32_t>(RGBSpectrum::NumComponents() - 1, RGBSpectrum::NumComponents() * rng.getFloat0cTo1o());
+        payload.rng = rng;
         payload.initImportance = alpha.importance(payload.wlHint);
         payload.alpha = alpha;
         payload.contribution = RGBSpectrum::Zero();
@@ -292,19 +283,18 @@ namespace VLR {
         const uint32_t MaxPathLength = 5;
         uint32_t pathLength = 0;
         while (true) {
+            payload.terminate = true;
             ++pathLength;
             if (pathLength >= MaxPathLength)
                 payload.maxLengthTerminate = true;
             rtTrace(pv_topGroup, ray, payload);
 
-            // maxLengthTerminateはいらない気がするが
-            // 何故かmaxLengthTerminate == trueかつterminate == falseになってしまうケースが
-            // あるらしくそれの対策。
-            if (payload.terminate || payload.maxLengthTerminate)
+            if (payload.terminate)
                 break;
 
             ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, FLT_MAX);
         }
+        pv_rngBuffer[sm_launchIndex] = payload.rng;
         if (!payload.contribution.allFinite()) {
             rtPrintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
             return;

@@ -101,11 +101,11 @@ VLR::Point3D g_cameraPos;
 VLR::Quaternion g_cameraOrientation;
 float g_brightnessCoeff;
 // PerspectiveCamera
-float g_PersSensitivity;
+float g_persSensitivity;
 float g_lensRadius;
 float g_objPlaneDistance;
 // EquirectangularCamera
-float g_EquiSensitivity;
+float g_equiSensitivity;
 float g_phiAngle;
 float g_thetaAngle;
 int32_t g_cameraType;
@@ -337,40 +337,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     //}*/);
     //scene->addChild(modelNode);
 
-    //construct(context, "../../assets/lowpoly_bunny/stanford_bunny_309_faces.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-    //    using namespace VLRCpp;
-    //    using namespace VLR;
-
-    //    aiReturn ret;
-    //    (void)ret;
-    //    aiString strValue;
-    //    float color[3];
-
-    //    aiMat->Get(AI_MATKEY_NAME, strValue);
-
-    //    Float3TextureRef texBaseColor;
-    //    Float3TextureRef texOcclusionRoughnessMetallic;
-    //    Float4TextureRef texNormalAlpha;
-    //    Image2DRef image;
-    //    /*if (strcmp(strValue.C_Str(), "Material.001") == 0) {
-    //        image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_BaseColor.png");
-    //        texBaseColor = context.createImageFloat3Texture(image);
-    //        image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_OcclusionRoughnessMetallic.png");
-    //        texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
-    //        image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_Normal.png");
-    //        texNormalAlpha = context.createImageFloat4Texture(image);
-    //    }
-    //    else*/ {
-    //        return createMaterialDefaultFunction(context, aiMat, pathPrefix);
-    //    }
-
-    //    SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
-    //    return SurfaceAttributeTuple(mat, texNormalAlpha);
-    //});
-    //scene->addChild(modelNode);
-    //modelNode->setTransform(createShared<StaticTransform>(scale(0.015f)));
-
-    construct(context, "../../assets/SPTest/test.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "../../assets/lowpoly_bunny/stanford_bunny_309_faces.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -385,28 +352,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         Float3TextureRef texOcclusionRoughnessMetallic;
         Float4TextureRef texNormalAlpha;
         Image2DRef image;
-        if (strcmp(strValue.C_Str(), "_Head1") == 0) {
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png");
+        if (strcmp(strValue.C_Str(), "Material.001") == 0) {
+            image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_BaseColor.png");
             texBaseColor = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png");
+            image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_OcclusionRoughnessMetallic.png");
             texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png");
-            texNormalAlpha = context.createImageFloat4Texture(image);
-        }
-        else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png");
-            texBaseColor = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png");
-            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png");
-            texNormalAlpha = context.createImageFloat4Texture(image);
-        }
-        else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png");
-            texBaseColor = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png");
-            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
-            image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png");
+            image = loadImage2D(context, pathPrefix + "stanford_bunny_309_faces_Material.001_Normal.png");
             texNormalAlpha = context.createImageFloat4Texture(image);
         }
         else {
@@ -415,9 +366,106 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
         return SurfaceAttributeTuple(mat, texNormalAlpha);
+
+        //float coeff[] = { 0.999f, 0.999f, 0.999f };
+        //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+
+        ////// Aluminum
+        ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
+        ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
+        ////// Copper
+        ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
+        ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
+        ////// Gold
+        ////float eta[] = { 0.12481f, 0.468228f, 1.44476f };
+        ////float k[] = { 3.32107f, 2.23761f, 1.69196f };
+        ////// Iron
+        ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
+        ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
+        ////// Lead
+        ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
+        ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
+        ////// Mercury
+        ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
+        ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
+        ////// Platinum
+        ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
+        ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
+        //// Silver
+        //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+        //float k[] = { 3.82431f, 3.1451f, 2.27711f };
+        ////// Titanium
+        ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
+        ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
+        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+        //SurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
+
+        ////// Air
+        ////float etaExt[] = { 1.00036f, 1.00021f, 1.00071f };
+        //////// Water
+        //////float etaInt[] = { 1.33161f, 1.33331f, 1.33799f };
+        //////// Glass BK7
+        //////float etaInt[] = { 1.51455f, 1.51816f, 1.52642f };
+        ////// Diamond
+        ////float etaInt[] = { 2.41174f, 2.42343f, 2.44936f };
+        ////Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
+        ////Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
+        ////SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt);
+
+        //return SurfaceAttributeTuple(mat, nullptr);
     });
     scene->addChild(modelNode);
-    modelNode->setTransform(createShared<StaticTransform>(scale(0.125f)));
+    modelNode->setTransform(createShared<StaticTransform>(scale(0.015f)));
+
+    //construct(context, "../../assets/SPTest/test.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    //    using namespace VLRCpp;
+    //    using namespace VLR;
+
+    //    aiReturn ret;
+    //    (void)ret;
+    //    aiString strValue;
+    //    float color[3];
+
+    //    aiMat->Get(AI_MATKEY_NAME, strValue);
+
+    //    Float3TextureRef texBaseColor;
+    //    Float3TextureRef texOcclusionRoughnessMetallic;
+    //    Float4TextureRef texNormalAlpha;
+    //    Image2DRef image;
+    //    if (strcmp(strValue.C_Str(), "_Head1") == 0) {
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png");
+    //        texBaseColor = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png");
+    //        texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png");
+    //        texNormalAlpha = context.createImageFloat4Texture(image);
+    //    }
+    //    else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png");
+    //        texBaseColor = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png");
+    //        texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png");
+    //        texNormalAlpha = context.createImageFloat4Texture(image);
+    //    }
+    //    else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png");
+    //        texBaseColor = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png");
+    //        texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+    //        image = loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png");
+    //        texNormalAlpha = context.createImageFloat4Texture(image);
+    //    }
+    //    else {
+    //        return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+    //    }
+
+    //    SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+    //    return SurfaceAttributeTuple(mat, texNormalAlpha);
+    //});
+    //scene->addChild(modelNode);
+    //modelNode->setTransform(createShared<StaticTransform>(scale(0.125f)));
 
     //construct(context, "../../assets/rounded_box/rounded_box_0.fbx", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     //    using namespace VLRCpp;
@@ -640,21 +688,23 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     }
     scene->addChild(cornellBox);
 
-    g_cameraPos = Point3D(0, 0, 5);
-    g_cameraOrientation = qRotateY<float>(M_PI);
+    //g_cameraPos = Point3D(0, 0, 5);
+    //g_cameraOrientation = qRotateY<float>(M_PI);
+    g_cameraPos = Point3D(-1.12567, 0.886554, 2.3687);
+    g_cameraOrientation = Quaternion(-2.8629e-09, 0.977102, -0.0654955, 0.202441);
     g_brightnessCoeff = 1.0f;
 
-    g_PersSensitivity = 1.0f;
+    g_persSensitivity = 1.0f;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
     PerspectiveCameraRef perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
-                                                                             g_PersSensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+                                                                             g_persSensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
-    g_EquiSensitivity = 1.0f;
+    g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
     g_thetaAngle = g_phiAngle * 720.0f / 1280.0f;
     EquirectangularCameraRef equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
-                                                                                         g_EquiSensitivity, g_phiAngle, g_thetaAngle);
+                                                                                         g_equiSensitivity, g_phiAngle, g_thetaAngle);
 
     g_cameraType = 0;
     CameraRef camera = perspectiveCamera;
@@ -679,12 +729,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     // JP: ウインドウの初期化。
     //     HiDPIディスプレイに対応する。
-    const uint32_t WindowSizeX = 1280; // not in pixels
-    const uint32_t WindowSizeY = 720;
+    uint32_t renderTargetSizeX = 1280; // not in pixels
+    uint32_t renderTargetSizeY = 720;
     float contentScaleX, contentScaleY;
     glfwGetMonitorContentScale(primaryMonitor, &contentScaleX, &contentScaleY);
     const float UIScaling = contentScaleX;
-    GLFWwindow* window = glfwCreateWindow((int32_t)(WindowSizeX * UIScaling), (int32_t)(WindowSizeY * UIScaling), "VLR", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow((int32_t)(renderTargetSizeX * UIScaling), (int32_t)(renderTargetSizeY * UIScaling), "VLR", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -693,7 +743,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     glfwSwapInterval(1); // Enable vsync
 
-                         // JP: gl3wInit()は何らかのOpenGLコンテキストが作られた後に呼ぶ必要がある。
+    // JP: gl3wInit()は何らかのOpenGLコンテキストが作られた後に呼ぶ必要がある。
     int32_t gl3wRet = gl3wInit();
     if (!gl3wIsSupported(OpenGLMajorVersion, OpenGLMinorVersion)) {
         glfwTerminate();
@@ -720,9 +770,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     vertexArrayForFullScreen.initialize();
 
     GLTK::Buffer outputBufferGL;
-    outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), WindowSizeX * WindowSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+    outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), renderTargetSizeX * renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
 
-    context.bindOpenGLBuffer(outputBufferGL.getRawHandle(), WindowSizeX, WindowSizeY);
+    context.bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, outputBufferGL.getRawHandle());
 
     GLTK::BufferTexture outputTexture;
     outputTexture.initialize(outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
@@ -734,7 +784,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     // JP: HiDPIディスプレイで過剰なレンダリング負荷になってしまうため低解像度フレームバッファーを作成する。
     GLTK::FrameBuffer frameBuffer;
-    frameBuffer.initialize(WindowSizeX, WindowSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
+    frameBuffer.initialize(renderTargetSizeX, renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
 
     // JP: アップスケール用のシェーダー。
     GLTK::GraphicsShader scaleShader;
@@ -824,6 +874,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         bool cameraIsActuallyMoving = false;
 
         // process key events
+        Quaternion tempOrientation;
         {
             int32_t trackZ = 0;
             if (g_keyForward.getState() == true) {
@@ -902,26 +953,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 axis = Vector3D(1, 0, 0);
 
             g_cameraOrientation = g_cameraOrientation * qRotateZ(0.025f * tiltZ);
-            Quaternion tempOrientation = g_cameraOrientation * qRotate(0.15f * 1e-2f * deltaAngle, axis);
+            tempOrientation = g_cameraOrientation * qRotate(0.15f * 1e-2f * deltaAngle, axis);
             g_cameraPos += tempOrientation.toMatrix3x3() * 0.05f * Vector3D(trackX, trackY, trackZ);
             if (g_buttonRotate.getState() == false && g_buttonRotate.getTime() == g_frameIndex) {
                 g_cameraOrientation = tempOrientation;
                 deltaX = 0;
                 deltaY = 0;
-            }
-
-            if (g_cameraType == 0) {
-                perspectiveCamera->setPosition(g_cameraPos);
-                perspectiveCamera->setOrientation(tempOrientation);
-                perspectiveCamera->setSensitivity(g_PersSensitivity);
-                perspectiveCamera->setLensRadius(g_lensRadius);
-                perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
-            }
-            else if (g_cameraType == 1) {
-                equirectangularCamera->setPosition(g_cameraPos);
-                equirectangularCamera->setOrientation(tempOrientation);
-                equirectangularCamera->setSensitivity(g_EquiSensitivity);
-                equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
             }
 
             operatingCamera = (g_keyForward.getState() || g_keyBackward.getState() ||
@@ -936,7 +973,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         }
 
         {
-            ImGui_ImplGlfwGL3_NewFrame(WindowSizeX, WindowSizeY, UIScaling);
+            ImGui_ImplGlfwGL3_NewFrame(renderTargetSizeX, renderTargetSizeY, UIScaling);
 
             bool cameraSettingsChanged = false;
             static bool g_forceLowResolution = false;
@@ -955,13 +992,15 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
                     cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
 
-                    g_PersSensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
+                    g_persSensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
 
                     camera = perspectiveCamera;
                 }
                 else if (g_cameraType == 1) {
                     cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &g_phiAngle, M_PI / 18, 2 * M_PI);
                     cameraSettingsChanged |= ImGui::SliderFloat("Theta Angle", &g_thetaAngle, M_PI / 18, 1 * M_PI);
+
+                    g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
 
                     camera = equirectangularCamera;
                 }
@@ -1132,6 +1171,20 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 ImGui::End();
             }
 
+            if (g_cameraType == 0) {
+                perspectiveCamera->setPosition(g_cameraPos);
+                perspectiveCamera->setOrientation(tempOrientation);
+                perspectiveCamera->setSensitivity(g_persSensitivity);
+                perspectiveCamera->setLensRadius(g_lensRadius);
+                perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
+            }
+            else if (g_cameraType == 1) {
+                equirectangularCamera->setPosition(g_cameraPos);
+                equirectangularCamera->setOrientation(tempOrientation);
+                equirectangularCamera->setSensitivity(g_equiSensitivity);
+                equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
+            }
+
             static bool g_operatedCameraOnPrevFrame = false;
             uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
 
@@ -1144,7 +1197,38 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             if (!firstFrame)
                 accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
+            //// DELETE ME
+            //if (g_numAccumFrames == 32) {
+            //    debugPrintf("Camera:\n");
+            //    debugPrintf("Position: %g, %g, %g\n", g_cameraPos.x, g_cameraPos.y, g_cameraPos.z);
+            //    debugPrintf("Orientation: %g, %g, %g, %g\n", g_cameraOrientation.x, g_cameraOrientation.y, g_cameraOrientation.z, g_cameraOrientation.w);
+
+            //    auto output = (const RGBSpectrum*)context.mapOutputBuffer();
+            //    auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
+            //    for (int y = 0; y < renderTargetSizeY; ++y) {
+            //        for (int x = 0; x < renderTargetSizeX; ++x) {
+            //            RGBSpectrum srcPix = output[y * renderTargetSizeX + x];
+            //            uint32_t &pix = data[y * renderTargetSizeX + x];
+
+            //            srcPix *= g_brightnessCoeff;
+            //            srcPix = RGBSpectrum::One() - exp(-srcPix);
+            //            srcPix = sRGB_gamma(srcPix);
+
+            //            pix = ((std::min<uint8_t>(srcPix.r * 256, 255) << 0) |
+            //                   (std::min<uint8_t>(srcPix.g * 256, 255) << 8) |
+            //                   (std::min<uint8_t>(srcPix.b * 256, 255) << 16) |
+            //                   (0xFF << 24));
+            //        }
+            //    }
+            //    stbi_write_png("output.png", renderTargetSizeX, renderTargetSizeY, 4, data, sizeof(data[0]) * renderTargetSizeX);
+            //    delete[] data;
+            //    context.unmapOutputBuffer();
+            //}
+
             g_operatedCameraOnPrevFrame = operatingCamera;
+
+            // ----------------------------------------------------------------
+            // JP: OptiXの出力とImGuiの描画。
 
             frameBuffer.bind(GLTK::FrameBuffer::Target::ReadDraw);
 
@@ -1156,7 +1240,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             {
                 drawOptiXResultShader.useProgram();
 
-                glUniform1i(0, (int32_t)WindowSizeX); GLTK::errorCheck();
+                glUniform1i(0, (int32_t)renderTargetSizeX); GLTK::errorCheck();
 
                 glUniform1f(1, (float)shrinkCoeff); GLTK::errorCheck();
 
@@ -1176,7 +1260,13 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
 
             frameBuffer.unbind();
+
+            // END: draw OptiX's output and ImGui.
+            // ----------------------------------------------------------------
         }
+
+        // ----------------------------------------------------------------
+        // JP: スケーリング
 
         int32_t display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -1196,6 +1286,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         vertexArrayForFullScreen.unbind();
 
         srcFBTex.unbind();
+
+        // END: scaling
+        // ----------------------------------------------------------------
 
         glfwSwapBuffers(window);
 

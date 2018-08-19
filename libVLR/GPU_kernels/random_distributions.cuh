@@ -7,7 +7,7 @@ namespace VLR {
         uint64_t state;
 
     public:
-        RT_FUNCTION PCG32RNG(uint64_t seed) : state(seed) {}
+        RT_FUNCTION PCG32RNG() {}
 
         RT_FUNCTION uint32_t operator()() {
             uint64_t oldstate = state;
@@ -31,6 +31,7 @@ namespace VLR {
         uint32_t m_state[4];
 
     public:
+        RT_FUNCTION XORShiftRNG() {}
         RT_FUNCTION uint32_t operator()() {
             uint32_t* a = m_state;
             uint32_t t(a[0] ^ (a[0] << 11));
@@ -126,28 +127,28 @@ namespace VLR {
 
     template <typename RealType, int N>
     RT_FUNCTION inline Vector3DTemplate<RealType> cosNSampleHemisphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PI * u1;
+        RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(std::pow(u0, 1.0 / (1 + N)));
         return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleHemisphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PI * u1;
+        RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - u0);
         return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleSphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PI * u1;
+        RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - 2 * u0);
         return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleCone(RealType u0, RealType u1, RealType cosThetaMax) {
-        RealType phi = 2 * M_PI * u1;
+        RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - (1 - cosThetaMax) * u0);
         return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
     }

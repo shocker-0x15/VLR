@@ -19,8 +19,20 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
 
 
 
-VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t bufferID, uint32_t width, uint32_t height) {
-    context->bindOpenGLBuffer(bufferID, width, height);
+VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID) {
+    context->bindOutputBuffer(width, height, bufferID);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, void** ptr) {
+    *ptr = context->mapOutputBuffer();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context) {
+    context->unmapOutputBuffer();
 
     return VLR_ERROR_NO_ERROR;
 }

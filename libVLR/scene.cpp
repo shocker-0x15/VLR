@@ -217,7 +217,7 @@ namespace VLR {
         m_optixContext->destroy();
     }
 
-    void Context::bindOpenGLBuffer(uint32_t bufferID, uint32_t width, uint32_t height) {
+    void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {
         if (m_outputBuffer)
             m_outputBuffer->destroy();
         if (m_rngBuffer)
@@ -226,10 +226,15 @@ namespace VLR {
         m_width = width;
         m_height = height;
 
-        m_outputBuffer = m_optixContext->createBufferFromGLBO(RT_BUFFER_INPUT_OUTPUT, bufferID);
-        m_outputBuffer->setFormat(RT_FORMAT_USER);
+        if (glBufferID > 0) {
+            m_outputBuffer = m_optixContext->createBufferFromGLBO(RT_BUFFER_INPUT_OUTPUT, glBufferID);
+            m_outputBuffer->setFormat(RT_FORMAT_USER);
+            m_outputBuffer->setSize(m_width, m_height);
+        }
+        else {
+            m_outputBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
+        }
         m_outputBuffer->setElementSize(sizeof(RGBSpectrum));
-        m_outputBuffer->setSize(m_width, m_height);
         {
             auto dstData = (RGBSpectrum*)m_outputBuffer->map();
             std::fill_n(dstData, m_width * m_height, RGBSpectrum::Zero());
@@ -268,6 +273,17 @@ namespace VLR {
         //    m_rngBuffer->unmap();
         //}
         m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
+    }
+
+    void* Context::mapOutputBuffer() {
+        if (!m_outputBuffer)
+            return nullptr;
+
+        return m_outputBuffer->map();
+    }
+
+    void Context::unmapOutputBuffer() {
+        m_outputBuffer->unmap();
     }
 
     void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
