@@ -521,7 +521,7 @@ namespace VLR {
         }
 
         RT_FUNCTION Point3DTemplate<RealType> corner(uint32_t c) const {
-            VLRAssert(c >= 0 && c < 8, "\"c\" is out of range [0, 8]");
+            VLRAssert(c < 8, "\"c\" is out of range [0, 8]");
             const size_t offset = sizeof(Point3DTemplate<RealType>);
             return Point3DTemplate<RealType>(*(&minP.x + offset * (c & 0x01)),
                                              *(&minP.y + offset * (c & 0x02)),
