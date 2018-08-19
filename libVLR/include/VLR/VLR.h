@@ -156,7 +156,9 @@ extern "C" {
     VLR_API VLRResult vlrCreateContext(VLRContext* context);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
 
-    VLR_API VLRResult vlrContextBindOpenGLBuffer(VLRContext context, uint32_t bufferID, uint32_t width, uint32_t height);
+    VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);
+    VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, void** ptr);
+    VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context);
     VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
 
@@ -897,8 +899,18 @@ namespace VLRCpp {
             VLRResult res = vlrDestroyContext(m_rawContext);
         }
 
-        void bindOpenGLBuffer(uint32_t glBufferID, uint32_t width, uint32_t height) {
-            VLRResult res = vlrContextBindOpenGLBuffer(m_rawContext, glBufferID, width, height);
+        void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {
+            VLRResult res = vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID);
+        }
+
+        void* mapOutputBuffer() const {
+            void* ptr = nullptr;
+            VLRResult res = vlrContextMapOutputBuffer(m_rawContext, &ptr);
+            return ptr;
+        }
+
+        void unmapOutputBuffer() const {
+            VLRResult res = vlrContextUnmapOutputBuffer(m_rawContext);
         }
 
         void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {

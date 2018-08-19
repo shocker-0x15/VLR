@@ -2,6 +2,7 @@
 
 #include "../basic_types_internal.h"
 #include "../shared.h"
+#include "random_distributions.cuh"
 
 namespace VLR {
     using namespace Shared;
@@ -60,7 +61,10 @@ namespace VLR {
         float u, v; // Parameters used to identify the point on a surface, not texture coordinates.
         TexCoord2D texCoord;
         //Vector3D tc0Direction;
-        bool atInfinity;
+        struct {
+            bool isPoint : 1;
+            bool atInfinity : 1;
+        };
 
         RT_FUNCTION float calcSquaredDistance(const Point3D &shadingPoint) const {
             return atInfinity ? 1.0f : sqDistance(position, shadingPoint);
@@ -80,7 +84,7 @@ namespace VLR {
         RT_FUNCTION Vector3D toLocal(const Vector3D &vecWorld) const { return shadingFrame.toLocal(vecWorld); }
         RT_FUNCTION Vector3D fromLocal(const Vector3D &vecLocal) const { return shadingFrame.fromLocal(vecLocal); }
         RT_FUNCTION float calcCosTerm(const Vector3D &vecWorld) const {
-            return absDot(vecWorld, geometricNormal);
+            return isPoint ? 1 : absDot(vecWorld, geometricNormal);
         }
     };
 
@@ -270,6 +274,7 @@ namespace VLR {
             bool terminate : 1;
             bool maxLengthTerminate : 1;
         };
+        KernelRNG rng;
         float initImportance;
         RGBSpectrum alpha;
         RGBSpectrum contribution;

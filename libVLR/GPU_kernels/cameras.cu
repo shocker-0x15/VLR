@@ -1,5 +1,4 @@
-#include "kernel_common.cuh"
-#include "random_distributions.cuh"
+﻿#include "kernel_common.cuh"
 
 namespace VLR {
     // ----------------------------------------------------------------
@@ -27,6 +26,7 @@ namespace VLR {
         SurfacePoint &surfPt = result->surfPt;
         surfPt.position = rotMat * orgLocal + pv_perspectiveCamera.position;
         surfPt.shadingFrame = shadingFrame;
+        surfPt.isPoint = false;
         surfPt.atInfinity = false;
 
         surfPt.geometricNormal = geometricNormal;
@@ -83,6 +83,7 @@ namespace VLR {
         SurfacePoint &surfPt = result->surfPt;
         surfPt.position = rotMat * Point3D::Zero() + pv_equirectangularCamera.position;
         surfPt.shadingFrame = shadingFrame;
+        surfPt.isPoint = true;
         surfPt.atInfinity = false;
 
         surfPt.geometricNormal = geometricNormal;

@@ -1,5 +1,4 @@
 ﻿#include "kernel_common.cuh"
-#include "random_distributions.cuh"
 
 namespace VLR {
     // per GeometryInstance
@@ -156,20 +155,24 @@ namespace VLR {
             shadingFrame.x = normalize(shadingFrame.x - dotNT * shadingFrame.z);
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 
-        result->surfPt.position = desc.transform * position;
-        result->surfPt.shadingFrame = shadingFrame;
-        result->surfPt.atInfinity = false;
+        SurfacePoint &surfPt = result->surfPt;
 
-        result->surfPt.geometricNormal = normalize(desc.transform * geometricNormal);
-        result->surfPt.u = b0;
-        result->surfPt.v = b1;
-        result->surfPt.texCoord = texCoord;
+        surfPt.position = desc.transform * position;
+        surfPt.shadingFrame = shadingFrame;
+        surfPt.isPoint = false;
+        surfPt.atInfinity = false;
+
+        surfPt.geometricNormal = normalize(desc.transform * geometricNormal);
+        surfPt.u = b0;
+        surfPt.v = b1;
+        surfPt.texCoord = texCoord;
 
         result->areaPDF = primProb / area;
         result->posType = DirectionType::Emission() | DirectionType::LowFreq();
 
 
 
+        //result->surfPt.isPoint = false;
         //result->surfPt.atInfinity = false;
         //result->surfPt.geometricNormal = Normal3D(0, -1, 0);
         //result->surfPt.shadingFrame = ReferenceFrame(Vector3D(1, 0, 0), Vector3D(0, 0, 1), Normal3D(0, -1, 0));

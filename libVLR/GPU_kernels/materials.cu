@@ -1,5 +1,4 @@
 ﻿#include "kernel_common.cuh"
-#include "random_distributions.cuh"
 
 namespace VLR {
     RT_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
