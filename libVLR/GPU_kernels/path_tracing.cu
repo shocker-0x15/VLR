@@ -291,6 +291,7 @@ namespace VLR {
 
             if (payload.terminate)
                 break;
+            VLRAssert(pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
 
             ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, FLT_MAX);
         }

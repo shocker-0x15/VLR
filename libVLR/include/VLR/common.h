@@ -26,10 +26,10 @@
 #   endif
 #endif
 
-#ifdef VLR_Platform_Windows_MSVC
+#if defined(VLR_Platform_Windows_MSVC)
 #   define NOMINMAX
 #   define _USE_MATH_DEFINES
-#   ifdef VLR_API_EXPORTS
+#   if defined(VLR_API_EXPORTS)
 #       define VLR_API __declspec(dllexport)
 #   else
 #       define VLR_API __declspec(dllimport)
@@ -73,7 +73,7 @@
 
 #endif
 
-#ifdef DEBUG
+#if defined(DEBUG)
 #   define ENABLE_ASSERT
 #endif
 
@@ -89,9 +89,9 @@ VLR_API void VLRDebugPrintf(const char* fmt, ...);
 
 #if defined(ENABLE_ASSERT)
 #   if defined(VLR_Host)
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); }
 #   else
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); } 0
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); }
 #   endif
 #else
 #   define VLRAssert(expr, fmt, ...)

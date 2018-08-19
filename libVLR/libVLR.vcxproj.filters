@@ -5,6 +5,8 @@
     <ClCompile Include="debugPrintf.cpp" />
     <ClCompile Include="VLR.cpp" />
     <ClCompile Include="slot_manager.cpp" />
+    <ClCompile Include="materials.cpp" />
+    <ClCompile Include="context.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\VLR\common.h" />
@@ -20,6 +22,8 @@
     <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
     <ClInclude Include="scene.h" />
+    <ClInclude Include="materials.h" />
+    <ClInclude Include="context.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
