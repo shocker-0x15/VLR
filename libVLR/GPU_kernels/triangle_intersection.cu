@@ -44,17 +44,14 @@ namespace VLR {
         const Point3D &p1 = pv_vertexBuffer[triangle.index1].position;
         const Point3D &p2 = pv_vertexBuffer[triangle.index2].position;
 
-        BoundingBox3D bbox;
-        bbox.unify(p0);
-        bbox.unify(p1);
-        bbox.unify(p2);
+        //optix::Aabb* bbox = (optix::Aabb*)result;
+        //*bbox = optix::Aabb(asOptiXType(p0), asOptiXType(p1), asOptiXType(p2));
 
-        result[0] = bbox.minP.x;
-        result[1] = bbox.minP.y;
-        result[2] = bbox.minP.z;
-        result[3] = bbox.maxP.x;
-        result[4] = bbox.maxP.y;
-        result[5] = bbox.maxP.z;
+        BoundingBox3D* bbox = (BoundingBox3D*)result;
+        *bbox = BoundingBox3D(Point3D(INFINITY), Point3D(-INFINITY));
+        bbox->unify(p0);
+        bbox->unify(p1);
+        bbox->unify(p2);
     }
 
 

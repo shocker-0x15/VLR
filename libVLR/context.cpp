@@ -70,8 +70,6 @@ namespace VLR {
 
         m_optixContext = optix::Context::create();
 
-        m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
-
         {
             std::string ptx = readTxtFile("resources/ptxes/path_tracing.ptx");
 
@@ -152,8 +150,11 @@ namespace VLR {
 
         m_optixContext->setEntryPointCount(1);
         m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
-        m_optixContext->setMissProgram(0, m_optixProgramPathTracingMiss);
         m_optixContext->setExceptionProgram(0, m_optixProgramException);
+
+        m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
+        m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
+        m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
 
         SurfaceNode::initialize(*this);
         SurfaceMaterial::initialize(*this);
