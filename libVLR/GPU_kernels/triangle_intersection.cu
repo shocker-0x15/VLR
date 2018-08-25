@@ -57,7 +57,7 @@ namespace VLR {
 
     
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* areaPDF) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
@@ -98,10 +98,12 @@ namespace VLR {
         surfPt->texCoord = texCoord;
         //surfPt->tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, uDirection));
 
+        // calculate a hypothetical area PDF value in the case where the program sample this point as light.
         float probLightPrim = area / pv_sumImportances;
-        *areaPDF = probLightPrim / area;
+        *hypAreaPDF = probLightPrim / area;
     }
 
+    // bound
     RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoordForTriangle(const HitPointParameter &param) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
