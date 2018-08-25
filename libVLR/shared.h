@@ -238,14 +238,13 @@ namespace VLR {
                 sensitivity(_sensitivity), aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
-                imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+                imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
             }
 
-            void setObjectPlaneDistance(float distance) {
-                objPlaneDistance = distance;
+            void setImagePlaneArea() {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
-                imgPlaneArea = opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+                imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
             }
         };
 

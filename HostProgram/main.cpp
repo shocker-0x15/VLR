@@ -102,6 +102,7 @@ VLR::Quaternion g_cameraOrientation;
 float g_brightnessCoeff;
 // PerspectiveCamera
 float g_persSensitivity;
+float g_fovYInDeg;
 float g_lensRadius;
 float g_objPlaneDistance;
 // EquirectangularCamera
@@ -693,10 +694,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     g_brightnessCoeff = 1.0f;
 
     g_persSensitivity = 1.0f;
+    g_fovYInDeg = 40;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
     PerspectiveCameraRef perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation, 
-                                                                             g_persSensitivity, 1280.0f / 720.0f, 40 * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+                                                                             g_persSensitivity, 1280.0f / 720.0f, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
     g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
@@ -737,6 +739,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         glfwTerminate();
         return -1;
     }
+
+    int32_t curFBWidth;
+    int32_t curFBHeight;
+    glfwGetFramebufferSize(window, &curFBWidth, &curFBHeight);
+
     glfwMakeContextCurrent(window);
 
     glfwSwapInterval(1); // Enable vsync
@@ -871,6 +878,35 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         bool operatingCamera = false;
         bool cameraIsActuallyMoving = false;
 
+        bool resized = false;
+        int32_t newFBWidth;
+        int32_t newFBHeight;
+        glfwGetFramebufferSize(window, &newFBWidth, &newFBHeight);
+        if (newFBWidth != curFBWidth || newFBHeight != curFBHeight) {
+            curFBWidth = newFBWidth;
+            curFBHeight = newFBHeight;
+
+            renderTargetSizeX = curFBWidth / UIScaling;
+            renderTargetSizeY = curFBHeight / UIScaling;
+
+            frameBuffer.finalize();
+            outputTexture.finalize();
+            outputBufferGL.finalize();
+
+            outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), renderTargetSizeX * renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+
+            context.bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, outputBufferGL.getRawHandle());
+
+            outputTexture.initialize(outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
+
+            frameBuffer.initialize(renderTargetSizeX, renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
+
+            perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                                g_persSensitivity, (float)renderTargetSizeX / renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+
+            resized = true;
+        }
+
         // process key events
         Quaternion tempOrientation;
         {
@@ -973,7 +1009,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         {
             ImGui_ImplGlfwGL3_NewFrame(renderTargetSizeX, renderTargetSizeY, UIScaling);
 
-            bool cameraSettingsChanged = false;
+            bool cameraSettingsChanged = resized;
             static bool g_forceLowResolution = false;
             static uint32_t g_numAccumFrames = 1;
             {
@@ -987,6 +1023,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 cameraSettingsChanged |= ImGui::Combo("Camera Type", &g_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
 
                 if (g_cameraType == 0) {
+                    cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &g_fovYInDeg, 1, 179, "%.3f", 1.0f);
                     cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
                     cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
 
@@ -1172,15 +1209,20 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             if (g_cameraType == 0) {
                 perspectiveCamera->setPosition(g_cameraPos);
                 perspectiveCamera->setOrientation(tempOrientation);
-                perspectiveCamera->setSensitivity(g_persSensitivity);
-                perspectiveCamera->setLensRadius(g_lensRadius);
-                perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
+                if (cameraSettingsChanged) {
+                    perspectiveCamera->setSensitivity(g_persSensitivity);
+                    perspectiveCamera->setFovY(g_fovYInDeg * M_PI / 180);
+                    perspectiveCamera->setLensRadius(g_lensRadius);
+                    perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
+                }
             }
             else if (g_cameraType == 1) {
                 equirectangularCamera->setPosition(g_cameraPos);
                 equirectangularCamera->setOrientation(tempOrientation);
-                equirectangularCamera->setSensitivity(g_equiSensitivity);
-                equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
+                if (cameraSettingsChanged) {
+                    equirectangularCamera->setSensitivity(g_equiSensitivity);
+                    equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
+                }
             }
 
             static bool g_operatedCameraOnPrevFrame = false;

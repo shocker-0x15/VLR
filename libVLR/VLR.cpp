@@ -514,6 +514,14 @@ VLR_API VLRResult vlrPerspectiveCameraSetSensitivity(VLRPerspectiveCamera camera
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrPerspectiveCameraSetFovY(VLRPerspectiveCamera camera, float fovY) {
+    if (!camera->is<VLR::PerspectiveCamera>())
+        return VLR_ERROR_INVALID_TYPE;
+    camera->setFovY(fovY);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius) {
     if (!camera->is<VLR::PerspectiveCamera>())
         return VLR_ERROR_INVALID_TYPE;

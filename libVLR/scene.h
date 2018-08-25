@@ -410,11 +410,16 @@ namespace VLR {
         void setSensitivity(float sensitivity) {
             m_data.sensitivity = sensitivity;
         }
+        void setFovY(float fovY) {
+            m_data.fovY = fovY;
+            m_data.setImagePlaneArea();
+        }
         void setLensRadius(float lensRadius) {
             m_data.lensRadius = lensRadius;
         }
         void setObjectPlaneDistance(float distance) {
-            m_data.setObjectPlaneDistance(distance);
+            m_data.objPlaneDistance = distance;
+            m_data.setImagePlaneArea();
         }
     };
 

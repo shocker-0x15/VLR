@@ -160,15 +160,20 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
-        //m_optixContext->setPrintEnabled(true);
-        //m_optixContext->setPrintBufferSize(4096);
+        RTsize stackSize = m_optixContext->getStackSize();
+        VLRDebugPrintf("Default Stack Size: %u\n", stackSize);
+
+#if defined(VLR_LOGGING_MODE)
+        m_optixContext->setPrintEnabled(true);
+        m_optixContext->setPrintBufferSize(4096);
         //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
         //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
         //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
-
-        RTsize stackSize = m_optixContext->getStackSize();
-        VLRDebugPrintf("Default Stack Size: %u\n", stackSize);
         m_optixContext->setStackSize(1280);
+#else
+        m_optixContext->setExceptionEnabled(RT_EXCEPTION_STACK_OVERFLOW, false);
+        m_optixContext->setStackSize(512);
+#endif
     }
 
     Context::~Context() {

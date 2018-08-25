@@ -14,6 +14,8 @@
 //#define VLR_INFINITY
 //#define VLR_NAN
 
+//#define VLR_LOGGING_MODE
+
 // Platform defines
 #if defined(VLR_Host)
 #   if defined(_WIN32) || defined(_WIN64)

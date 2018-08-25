@@ -151,9 +151,9 @@ namespace VLR {
         KernelRNG &rng = sm_payload.rng;
 
         SurfacePoint surfPt;
-        float areaPDF;
+        float hypAreaPDF;
         HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &areaPDF);
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
         applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
 
@@ -172,7 +172,7 @@ namespace VLR {
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
                 float bsdfPDF = sm_payload.prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                float lightPDF = pv_importance / pv_lightImpDist.integral() * areaPDF * dist2 / std::abs(dirOutLocal.z);
+                float lightPDF = pv_importance / pv_lightImpDist.integral() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
