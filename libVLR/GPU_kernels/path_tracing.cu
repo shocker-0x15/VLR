@@ -2,149 +2,20 @@
 
 namespace VLR {
     // Context-scope Variables
-    rtDeclareVariable(rtObject, pv_topGroup, , );
     rtDeclareVariable(optix::uint2, pv_imageSize, , );
     rtDeclareVariable(uint32_t, pv_numAccumFrames, , );
+    rtDeclareVariable(progSigSampleLensPosition, pv_progSampleLensPosition, , );
+    rtDeclareVariable(progSigSampleIDF, pv_progSampleIDF, , );
     rtBuffer<KernelRNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
-
-    rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
-    rtBuffer<SurfaceLightDescriptor> pv_surfaceLightDescriptorBuffer;
-
-
-
-    // ----------------------------------------------------------------
-    // Light
-    
-    RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, 
-                                    Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
-        VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
-
-        *shadowRayDir = lightSurfacePoint.calcDirectionFrom(shadingSurfacePoint.position, squaredDistance);
-        optix::Ray shadowRay = optix::make_Ray(asOptiXType(shadingSurfacePoint.position), asOptiXType(*shadowRayDir), RayType::Shadow, 1e-4f, FLT_MAX);
-        if (!lightSurfacePoint.atInfinity)
-            shadowRay.tmax = std::sqrt(*squaredDistance) * 0.9999f;
-
-        ShadowRayPayload shadowPayload;
-        shadowPayload.fractionalVisibility = 1.0f;
-        rtTrace(pv_topGroup, shadowRay, shadowPayload);
-
-        *fractionalVisibility = shadowPayload.fractionalVisibility;
-
-        return *fractionalVisibility > 0;
-    }
-
-    RT_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
-        *light = SurfaceLight(pv_surfaceLightDescriptorBuffer[lightIdx]);
-    }
-
-    // END: Light
-    // ----------------------------------------------------------------
-
-
-
-    // ----------------------------------------------------------------
-    // NormalAlphaModifier
-
-    // bound
-    RT_CALLABLE_PROGRAM float Null_NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
-        return 1.0f;
-    }
-
-    // bound
-    RT_CALLABLE_PROGRAM Normal3D Null_NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
-        return Normal3D(0, 0, 1);
-    }
-
-    // per GeometryInstance
-    rtTextureSampler<uchar4, 2, cudaReadModeNormalizedFloat> pv_texNormalAlpha;
-
-    // bound
-    RT_CALLABLE_PROGRAM float NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
-        float alpha = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v).w;
-        return alpha;
-    }
-
-    // bound
-    RT_CALLABLE_PROGRAM Normal3D NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
-        float4 texValue = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v);
-        Normal3D normalLocal = 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
-        return normalLocal;
-    }
-
-    // JP: 法線マップに従ってシェーディングフレームを変更する。
-    // EN: perturb the shading frame according to the normal map.
-    RT_FUNCTION void applyBumpMapping(const Normal3D &normalLocal, SurfacePoint* surfPt) {
-        const ReferenceFrame &originalFrame = surfPt->shadingFrame;
-
-        Vector3D nLocal = normalLocal;
-        Vector3D tLocal = Vector3D::Ex() - dot(nLocal, Vector3D::Ex()) * nLocal;
-        Vector3D bLocal = Vector3D::Ey() - dot(nLocal, Vector3D::Ey()) * nLocal;
-        Vector3D t = normalize(originalFrame.fromLocal(tLocal));
-        Vector3D b = normalize(originalFrame.fromLocal(bLocal));
-        Vector3D n = normalize(originalFrame.fromLocal(nLocal));
-        ReferenceFrame bumpFrame(t, b, n);
-
-        surfPt->shadingFrame = bumpFrame;
-    }
-
-    // END: NormalAlphaModifier
-    // ----------------------------------------------------------------
-
-
-
-    rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
-    rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );
-    rtDeclareVariable(Payload, sm_payload, rtPayload, );
-    rtDeclareVariable(ShadowRayPayload, sm_shadowRayPayload, rtPayload, );
-    rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
-
-    typedef rtCallableProgramX<RGBSpectrum(const LensPosSample &, LensPosQueryResult*)> progSigSampleLensPosition;
-    typedef rtCallableProgramX<RGBSpectrum(const SurfacePoint &, const IDFSample &, IDFQueryResult*)> progSigSampleIDF;
-
-    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> progSigDecodeTexCoord;
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> progSigDecodeHitPoint;
-    typedef rtCallableProgramX<float(const TexCoord2D &)> progSigFetchAlpha;
-    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> progSigFetchNormal;
-
-    // per Camera
-    rtDeclareVariable(progSigSampleLensPosition, pv_progSampleLensPosition, , );
-    rtDeclareVariable(progSigSampleIDF, pv_progSampleIDF, , );
 
     // per Material
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
 
     // per GeometryInstance
-    rtDeclareVariable(progSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(progSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(progSigFetchAlpha, pv_progFetchAlpha, , );
-    rtDeclareVariable(progSigFetchNormal, pv_progFetchNormal, , );
     rtDeclareVariable(float, pv_importance, , );
-
-    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void stochasticAlphaAnyHit() {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
-
-        float alpha = pv_progFetchAlpha(texCoord);
-
-        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
-            rtIgnoreIntersection();
-    }
-
-    // Common Any Hit Program for All Primitive Types and Materials for shadow rays
-    RT_PROGRAM void alphaAnyHit() {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
-
-        float alpha = pv_progFetchAlpha(texCoord);
-
-        sm_shadowRayPayload.fractionalVisibility *= (1 - alpha);
-        if (sm_shadowRayPayload.fractionalVisibility == 0.0f)
-            rtTerminateRay();
-    }
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void pathTracingIteration() {

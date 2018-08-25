@@ -7,9 +7,6 @@ namespace VLR {
     rtBuffer<Triangle> pv_triangleBuffer;
     rtDeclareVariable(float, pv_sumImportances, , );
 
-    rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );
-    rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
-
     // Intersection Program
     RT_PROGRAM void intersectTriangle(int32_t primIdx) {
         const Triangle &triangle = pv_triangleBuffer[primIdx];
