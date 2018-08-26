@@ -65,7 +65,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) {
+    void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
         if (m_PMF && m_CDF)
             new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(m_PMF->getId(), m_CDF->getId(), m_integral, m_numValues);
     }
@@ -109,7 +109,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) {
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
         new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(m_PDF->getId(), m_CDF->getId(), m_integral, m_numValues);
     }
 
@@ -121,53 +121,51 @@ namespace VLR {
     void RegularConstantContinuousDistribution2DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numD1, size_t numD2) {
         optix::Context optixContext = context.getOptiXContext();
 
-        m_num1DDists = numD2;
+        m_1DDists = new RegularConstantContinuousDistribution1DTemplate<RealType>[numD2];
+        m_raw1DDists = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, numD2);
+        m_raw1DDists->setElementSize(sizeof(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>));
+
+        auto rawDists = (Shared::RegularConstantContinuousDistribution1DTemplate<RealType>*)m_raw1DDists->map();
 
         // JP: まず各行に関するDistribution1Dを作成する。
         // EN: First, create Distribution1D's for every rows.
-        m_1DDists = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_num1DDists);
-        m_1DDists->setElementSize(sizeof(RegularConstantContinuousDistribution1DTemplate<RealType>));
-
-        RegularConstantContinuousDistribution1DTemplate<RealType>* dists = (RegularConstantContinuousDistribution1DTemplate<RealType>*)m_1DDists->map();
-
         CompensatedSum<RealType> sum(0);
-        for (int i = 0; i < m_num1DDists; ++i) {
-            dists[i].initialize(context, values + i * numD1, numD1);
-            sum += dists[i].getIntegral();
+        RealType* integrals = new RealType[numD2];
+        for (int i = 0; i < numD2; ++i) {
+            RegularConstantContinuousDistribution1D &dist = m_1DDists[i];
+            dist.initialize(context, values + i * numD1, numD1);
+            dist.getInternalType(&rawDists[i]);
+            integrals[i] = dist.getIntegral();
+            sum += integrals[i];
         }
-        m_integral = sum;
 
         // JP: 各行の積分値を用いてDistribution1Dを作成する。
         // EN: create a Distribution1D using integral values of each row.
-        RealType* integrals = new RealType[m_num1DDists];
-        for (int i = 0; i < m_num1DDists; ++i)
-            integrals[i] = dists[i].getIntegral();
-        m_top1DDist.initialize(context, integrals, m_num1DDists);
+        m_top1DDist.initialize(context, integrals, numD2);
         delete[] integrals;
 
-        VLRAssert(std::isfinite(m_integral), "invalid integral value.");
+        VLRAssert(std::isfinite(m_top1DDist.getIntegral()), "invalid integral value.");
 
-        m_1DDists->unmap();
+        m_raw1DDists->unmap();
     }
 
     template <typename RealType>
     void RegularConstantContinuousDistribution2DTemplate<RealType>::finalize(Context &context) {
         m_top1DDist.finalize(context);
 
-        RegularConstantContinuousDistribution1DTemplate<RealType>* dists = (RegularConstantContinuousDistribution1DTemplate<RealType>*)m_1DDists->map();
-        for (int i = m_num1DDists - 1; i >= 0; --i) {
-            dists[i].finalize(context);
+        for (int i = m_top1DDist.getNumValues() - 1; i >= 0; --i) {
+            m_1DDists[i].finalize(context);
         }
-        m_1DDists->unmap();
 
-        m_1DDists->destroy();
+        m_raw1DDists->destroy();
+        delete[] m_1DDists;
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) {
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
         Shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
         m_top1DDist.getInternalType(&top1DDist);
-        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_1DDists->getId(), m_num1DDists, m_integral, top1DDist);
+        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_raw1DDists->getId(), top1DDist);
     }
 
     template class RegularConstantContinuousDistribution2DTemplate<float>;
@@ -186,6 +184,7 @@ namespace VLR {
         sizeof(RGBA8x4),
         sizeof(RGBA16Fx4),
         sizeof(RGBA32Fx4),
+        sizeof(Gray32F),
         sizeof(Gray8),
     };
 
@@ -201,6 +200,8 @@ namespace VLR {
             return DataFormat::RGBA16Fx4;
         case DataFormat::RGBA32Fx4:
             return DataFormat::RGBA32Fx4;
+        case DataFormat::Gray32F:
+            return DataFormat::Gray32F;
         case DataFormat::Gray8:
             return DataFormat::Gray8;
         default:
@@ -211,41 +212,55 @@ namespace VLR {
     }
 
     Image2D::Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat) :
-        Object(context), m_width(width), m_height(height), m_dataFormat(dataFormat) {
-        optix::Context optixContext = context.getOptiXContext();
+        Object(context), m_width(width), m_height(height), m_dataFormat(dataFormat), m_initOptiXObject(false) {
+    }
+
+    Image2D::~Image2D() {
+        if (m_optixDataBuffer)
+            m_optixDataBuffer->destroy();
+    }
+
+    optix::Buffer Image2D::getOptiXObject() const {
+        if (m_initOptiXObject)
+            return m_optixDataBuffer;
+
+        optix::Context optixContext = m_context.getOptiXContext();
         switch (m_dataFormat) {
         case VLR::DataFormat::RGB8x3:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
             break;
         case VLR::DataFormat::RGB_8x4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
             break;
         case VLR::DataFormat::RGBA8x4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
             break;
         case VLR::DataFormat::RGBA16Fx4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
             break;
         case VLR::DataFormat::RGBA32Fx4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
+            break;
+        case VLR::DataFormat::Gray32F:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
             break;
         case VLR::DataFormat::Gray8:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, width, height);
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
             break;
         default:
             VLRAssert_ShouldNotBeCalled();
             break;
         }
-    }
 
-    Image2D::~Image2D() {
-        m_optixDataBuffer->destroy();
+        m_initOptiXObject = true;
+
+        return m_optixDataBuffer;
     }
 
 
 
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat) :
-        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat)) {
+        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat)), m_copyDone(false) {
         m_data.resize(getStride() * getWidth() * getHeight());
 
         switch (dataFormat) {
@@ -301,6 +316,12 @@ namespace VLR {
             std::copy_n(srcHead, width * height, dstHead);
             break;
         }
+        case DataFormat::Gray32F: {
+            auto srcHead = (const Gray32F*)linearData;
+            auto dstHead = (Gray32F*)m_data.data();
+            std::copy_n(srcHead, width * height, dstHead);
+            break;
+        }
         case DataFormat::Gray8: {
             auto srcHead = (const Gray8*)linearData;
             auto dstHead = (Gray8*)m_data.data();
@@ -311,13 +332,163 @@ namespace VLR {
             VLRAssert(false, "Data format is invalid.");
             break;
         }
+    }
 
-        optix::Buffer buffer = getOptiXObject();
-        auto dstData = (uint8_t*)buffer->map();
-        {
-            std::copy(m_data.cbegin(), m_data.cend(), dstData);
+    Image2D* LinearImage2D::createShrinkedImage2D(uint32_t width, uint32_t height) const {
+        uint32_t orgWidth = getWidth();
+        uint32_t orgHeight = getHeight();
+        uint32_t stride = getStride();
+        VLRAssert(width < orgWidth && height < orgHeight, "Image size must be smaller than the original.");
+        std::vector<uint8_t> data;
+        data.resize(stride * width * height);
+
+        float deltaOrgX = orgWidth / width;
+        float deltaOrgY = orgHeight / height;
+        for (int y = 0; y < height; ++y) {
+            float top = deltaOrgY * y;
+            float bottom = deltaOrgY * (y + 1);
+            uint32_t topPix = (uint32_t)top;
+            uint32_t bottomPix = (uint32_t)ceilf(bottom) - 1;
+
+            for (int x = 0; x < width; ++x) {
+                float left = deltaOrgX * x;
+                float right = deltaOrgX * (x + 1);
+                uint32_t leftPix = (uint32_t)left;
+                uint32_t rightPix = (uint32_t)ceilf(right) - 1;
+
+                float area = (bottom - top) * (right - left);
+
+                // UL, UR, LL, LR
+                float weightsCorners[] = {
+                    (leftPix + 1 - left) * (topPix + 1 - top),
+                    (right - rightPix) * (topPix + 1 - top),
+                    (leftPix + 1 - left) * (bottom - bottomPix),
+                    (right - rightPix) * (bottom - bottomPix)
+                };
+                // Top, Left, Right, Bottom
+                float weightsEdges[] = {
+                    topPix + 1 - top,
+                    leftPix + 1 - left,
+                    right - rightPix,
+                    bottom - bottomPix
+                };
+
+                switch (getDataFormat()) {
+                case DataFormat::RGBA16Fx4: {
+                    CompensatedSum<float> sumR(0), sumG(0), sumB(0), sumA(0);
+                    RGBA16Fx4 pix;
+
+                    uint32_t corners[] = { leftPix, topPix, rightPix, topPix, leftPix, bottomPix, rightPix, bottomPix };
+                    for (int i = 0; i < 4; ++i) {
+                        pix = get<RGBA16Fx4>(corners[2 * i + 0], corners[2 * i + 1]);
+                        sumR += weightsCorners[i] * float(pix.r);
+                        sumG += weightsCorners[i] * float(pix.g);
+                        sumB += weightsCorners[i] * float(pix.b);
+                        sumA += weightsCorners[i] * float(pix.a);
+                    }
+
+                    for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
+                        pix = get<RGBA16Fx4>(x, topPix);
+                        sumR += weightsEdges[0] * float(pix.r);
+                        sumG += weightsEdges[0] * float(pix.g);
+                        sumB += weightsEdges[0] * float(pix.b);
+                        sumA += weightsEdges[0] * float(pix.a);
+
+                        pix = get<RGBA16Fx4>(x, bottomPix);
+                        sumR += weightsEdges[3] * float(pix.r);
+                        sumG += weightsEdges[3] * float(pix.g);
+                        sumB += weightsEdges[3] * float(pix.b);
+                        sumA += weightsEdges[3] * float(pix.a);
+                    }
+                    for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
+                        pix = get<RGBA16Fx4>(leftPix, y);
+                        sumR += weightsEdges[1] * float(pix.r);
+                        sumG += weightsEdges[1] * float(pix.g);
+                        sumB += weightsEdges[1] * float(pix.b);
+                        sumA += weightsEdges[1] * float(pix.a);
+
+                        pix = get<RGBA16Fx4>(rightPix, y);
+                        sumR += weightsEdges[2] * float(pix.r);
+                        sumG += weightsEdges[2] * float(pix.g);
+                        sumB += weightsEdges[2] * float(pix.b);
+                        sumA += weightsEdges[2] * float(pix.a);
+                    }
+
+                    for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
+                        for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
+                            pix = get<RGBA16Fx4>(x, y);
+                            sumR += float(pix.r);
+                            sumG += float(pix.g);
+                            sumB += float(pix.b);
+                            sumA += float(pix.a);
+                        }
+                    }
+
+                    *(RGBA16Fx4*)&data[(y * width + x) * stride] = RGBA16Fx4{ half(sumR / area), half(sumG / area), half(sumB / area), half(sumA / area) };
+                    break;
+                }
+                default:
+                    VLRAssert_ShouldNotBeCalled();
+                    break;
+                }
+            }
         }
-        buffer->unmap();
+
+        return new LinearImage2D(m_context, data.data(), width, height, getDataFormat());
+    }
+
+    Image2D* LinearImage2D::createLuminanceImage2D() const {
+        uint32_t width = getWidth();
+        uint32_t height = getHeight();
+        uint32_t stride;
+        DataFormat newDataFormat;
+        switch (getDataFormat()) {
+        case DataFormat::RGBA16Fx4: {
+            stride = sizeof(float);
+            newDataFormat = DataFormat::Gray32F;
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+        std::vector<uint8_t> data;
+        data.resize(stride * width * height);
+
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                switch (getDataFormat()) {
+                case DataFormat::RGBA16Fx4: {
+                    RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
+                    float Y = RGBSpectrum(pix.r, pix.g, pix.b).luminance(RGBColorSpace::sRGB);
+                    *(float*)&data[(y * width + x) * stride] = Y;
+                    break;
+                }
+                default:
+                    VLRAssert_ShouldNotBeCalled();
+                    break;
+                }
+            }
+        }
+
+        return new LinearImage2D(m_context, data.data(), width, height, newDataFormat);
+    }
+
+    void* LinearImage2D::createLinearImageData() const {
+        uint8_t* ret = new uint8_t[m_data.size()];
+        std::copy(m_data.cbegin(), m_data.cend(), ret);
+        return ret;
+    }
+
+    optix::Buffer LinearImage2D::getOptiXObject() const {
+        optix::Buffer buffer = Image2D::getOptiXObject();
+        if (!m_copyDone) {
+            auto dstData = (uint8_t*)buffer->map();
+            std::copy(m_data.cbegin(), m_data.cend(), dstData);
+            buffer->unmap();
+            m_copyDone = true;
+        }
+        return buffer;
     }
 
 
@@ -401,6 +572,26 @@ namespace VLR {
     ImageFloat3Texture::ImageFloat3Texture(Context &context, const Image2D* image) :
         Float3Texture(context), m_image(image) {
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+    }
+
+    void ImageFloat3Texture::createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const {
+        uint32_t mapWidth = m_image->getWidth() / 4;
+        uint32_t mapHeight = m_image->getHeight() / 4;
+        Image2D* shrinkedImage = m_image->createShrinkedImage2D(mapWidth, mapHeight);
+        Image2D* shrinkedYImage = shrinkedImage->createLuminanceImage2D();
+        delete shrinkedImage;
+        float* linearData = (float*)shrinkedYImage->createLinearImageData();
+        for (int y = 0; y < mapHeight; ++y) {
+            float theta = M_PI * (y + 0.5f) / mapHeight;
+            for (int x = 0; x < mapWidth; ++x) {
+                linearData[y * mapWidth + x] *= std::sin(theta);
+            }
+        }
+        delete shrinkedYImage;
+
+        importanceMap->initialize(m_context, linearData, mapWidth, mapHeight);
+
+        delete[] linearData;
     }
 
 
@@ -546,10 +737,12 @@ namespace VLR {
         UE4SurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
         MultiSurfaceMaterial::initialize(context);
+        EnvironmentEmitterSurfaceMaterial::initialize(context);
     }
 
     // static
     void SurfaceMaterial::finalize(Context &context) {
+        EnvironmentEmitterSurfaceMaterial::finalize(context);
         MultiSurfaceMaterial::finalize(context);
         DiffuseEmitterSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
@@ -926,6 +1119,62 @@ namespace VLR {
                 return true;
         }
         return false;
+    }
+
+
+
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::OptiXProgramSets;
+
+    // static
+    void EnvironmentEmitterSurfaceMaterial::initialize(Context &context) {
+        const char* identifiers[] = {
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            "VLR::EnvironmentEmitterSurfaceMaterial_setupEDF",
+            "VLR::EnvironmentEDF_evaluateEmittanceInternal",
+            "VLR::EnvironmentEDF_evaluateEDFInternal"
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void EnvironmentEmitterSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance) :
+        SurfaceMaterial(context), m_texEmittance(texEmittance) {
+        Shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptor(&matDesc, 0);
+
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
+        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
+
+        m_texEmittance->createImportanceMap(&m_importanceMap);
+    }
+
+    EnvironmentEmitterSurfaceMaterial::~EnvironmentEmitterSurfaceMaterial() {
+        m_importanceMap.finalize(m_context);
+    }
+
+    uint32_t EnvironmentEmitterSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
+        Shared::EnvironmentEmitterSurfaceMaterial &mat = *(Shared::EnvironmentEmitterSurfaceMaterial*)&matDesc->i1[baseIndex];
+        mat.texEmittance = m_texEmittance->getOptiXObject()->getId();
+
+        return baseIndex + sizeof(Shared::EnvironmentEmitterSurfaceMaterial) / 4;
     }
 
     // END: Material

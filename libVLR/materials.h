@@ -1,6 +1,9 @@
 ﻿#pragma once
 
 #include "context.h"
+#include "ext/include/half.hpp"
+
+using half_float::half;
 
 namespace VLR {
     // ----------------------------------------------------------------
@@ -17,7 +20,7 @@ namespace VLR {
         void initialize(Context &context, const RealType* values, size_t numValues);
         void finalize(Context &context);
 
-        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance);
+        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
     };
 
     using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
@@ -36,8 +39,9 @@ namespace VLR {
         void finalize(Context &context);
 
         RealType getIntegral() const { return m_integral; }
+        uint32_t getNumValues() const { return m_numValues; }
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance);
+        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
@@ -46,16 +50,15 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution2DTemplate {
-        optix::Buffer m_1DDists;
-        uint32_t m_num1DDists;
-        RealType m_integral;
+        optix::Buffer m_raw1DDists;
+        RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
     public:
         void initialize(Context &context, const RealType* values, size_t numD1, size_t numD2);
         void finalize(Context &context);
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance);
+        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;
@@ -71,8 +74,9 @@ namespace VLR {
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };
-    struct RGBA16Fx4 { uint16_t/*half*/ r, g, b, a; };
+    struct RGBA16Fx4 { half r, g, b, a; };
     struct RGBA32Fx4 { float r, g, b, a; };
+    struct Gray32F { float v; };
     struct Gray8 { uint8_t v; };
 
     extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num];
@@ -80,7 +84,8 @@ namespace VLR {
     class Image2D : public Object {
         uint32_t m_width, m_height;
         DataFormat m_dataFormat;
-        optix::Buffer m_optixDataBuffer;
+        mutable optix::Buffer m_optixDataBuffer;
+        mutable bool m_initOptiXObject;
 
     public:
         static const ClassIdentifier ClassID;
@@ -91,31 +96,48 @@ namespace VLR {
         Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat);
         virtual ~Image2D();
 
+        virtual Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const = 0;
+        virtual Image2D* createLuminanceImage2D() const = 0;
+        virtual void* createLinearImageData() const = 0;
+
         uint32_t getWidth() const {
             return m_width;
         }
         uint32_t getHeight() const {
             return m_height;
         }
+        DataFormat getDataFormat() const {
+            return m_dataFormat;
+        }
         uint32_t getStride() const {
             return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
         }
 
-        const optix::Buffer &getOptiXObject() const {
-            return m_optixDataBuffer;
-        }
+        virtual optix::Buffer getOptiXObject() const;
     };
 
 
 
     class LinearImage2D : public Image2D {
         std::vector<uint8_t> m_data;
+        mutable bool m_copyDone;
 
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat);
+
+        template <typename PixelType>
+        PixelType get(uint32_t x, uint32_t y) const {
+            return *(PixelType*)(m_data.data() + (y * getWidth() + x) * getStride());
+        }
+
+        Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const override;
+        Image2D* createLuminanceImage2D() const override;
+        void* createLinearImageData() const override;
+
+        optix::Buffer getOptiXObject() const override;
     };
 
 
@@ -176,6 +198,10 @@ namespace VLR {
         }
 
         void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+
+        virtual void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const {
+            VLRAssert_NotImplemented();
+        }
     };
 
 
@@ -201,6 +227,8 @@ namespace VLR {
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         ImageFloat3Texture(Context &context, const Image2D* image);
+
+        void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const override;
     };
 
 
@@ -422,6 +450,32 @@ namespace VLR {
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
         bool isEmitting() const override;
+    };
+
+
+
+    class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const Float3Texture* m_texEmittance;
+        RegularConstantContinuousDistribution2D m_importanceMap;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        EnvironmentEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance);
+        ~EnvironmentEmitterSurfaceMaterial();
+
+        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool isEmitting() const override { return true; }
+
+        const RegularConstantContinuousDistribution2D &getImportanceMap() const {
+            return m_importanceMap;
+        }
     };
 
     // END: Material

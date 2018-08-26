@@ -20,9 +20,15 @@
 #define STBI_MSC_SECURE_CRT
 #include "stb_image_write.h"
 
+#include <ImfInputFile.h>
+#include <ImfRgbaFile.h>
+#include <ImfArray.h>
+
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+
+
 
 #ifdef DEBUG
 #   define ENABLE_ASSERT
@@ -133,10 +139,38 @@ static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::strin
 
     Image2DRef ret;
 
-    int32_t width, height, n;
-    uint8_t* imageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
-    ret = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, imageData);
-    stbi_image_free(imageData);
+    std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
+    if (ext == "exr") {
+        using namespace Imf;
+        using namespace Imath;
+        RgbaInputFile file(filepath.c_str());
+        Imf::Header header = file.header();
+
+        Box2i dw = file.dataWindow();
+        long width = dw.max.x - dw.min.x + 1;
+        long height = dw.max.y - dw.min.y + 1;
+        Array2D<Rgba> pixels{ height, width };
+        pixels.resizeErase(height, width);
+        file.setFrameBuffer(&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
+        file.readPixels(dw.min.y, dw.max.y);
+
+        Rgba* linearImageData = new Rgba[width * height];
+        Rgba* curDataHead = linearImageData;
+        for (int i = 0; i < height; ++i) {
+            std::copy_n(pixels[i], width, (Rgba*)curDataHead);
+            curDataHead += width;
+        }
+
+        ret = context.createLinearImage2D(width, height, DataFormat::RGBA16Fx4, (uint8_t*)linearImageData);
+
+        delete[] linearImageData;
+    }
+    else {
+        int32_t width, height, n;
+        uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
+        ret = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, linearImageData);
+        stbi_image_free(linearImageData);
+    }
 
     return ret;
 }
@@ -573,121 +607,127 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     //scene->addChild(sphereNode);
     //sphereNode->setTransform(createShared<StaticTransform>(translate<float>(0, 1.0, 0) * scale(0.5f)));
 
-    TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
-    {
-        std::vector<Vertex> vertices;
+    //TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
+    //{
+    //    std::vector<Vertex> vertices;
 
-        // Floor
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 5.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 5.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Back wall
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Ceiling
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Left wall
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 0.0f) });
-        // Right wall
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 0.0f) });
-        // Light
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Light 2
-        vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+    //    // Floor
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 5.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 5.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+    //    // Back wall
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+    //    // Ceiling
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+    //    // Left wall
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 0.0f) });
+    //    // Right wall
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 0.0f) });
+    //    // Light
+    //    vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+    //    // Light 2
+    //    vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 0.0f) });
 
-        cornellBox->setVertices(vertices.data(), vertices.size());
+    //    cornellBox->setVertices(vertices.data(), vertices.size());
 
-        {
-            Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png");
-            Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-            texAlbedoRoughness->setTextureFilterMode(VLR::TextureFilter::Nearest, VLR::TextureFilter::Nearest, VLR::TextureFilter::None);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+    //    {
+    //        Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png");
+    //        Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
+    //        texAlbedoRoughness->setTextureFilterMode(VLR::TextureFilter::Nearest, VLR::TextureFilter::Nearest, VLR::TextureFilter::None);
+    //        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-            std::vector<uint32_t> matGroup = {
-                0, 1, 2, 0, 2, 3
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
+    //        std::vector<uint32_t> matGroup = {
+    //            0, 1, 2, 0, 2, 3
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+    //    }
 
-        {
-            float value[4] = { 0.75f, 0.75f, 0.75f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+    //    {
+    //        float value[4] = { 0.75f, 0.75f, 0.75f, 0.0f };
+    //        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    //        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-            std::vector<uint32_t> matGroup = {
-                4, 5, 6, 4, 6, 7,
-                8, 9, 10, 8, 10, 11,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
+    //        std::vector<uint32_t> matGroup = {
+    //            4, 5, 6, 4, 6, 7,
+    //            8, 9, 10, 8, 10, 11,
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+    //    }
 
-        {
-            float value[4] = { 0.75f, 0.25f, 0.25f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+    //    {
+    //        float value[4] = { 0.75f, 0.25f, 0.25f, 0.0f };
+    //        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    //        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-            //float value[3] = { 0.06f, 0.02f, 0.02f };
-            //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            //SurfaceMaterialRef matMatte = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+    //        //float value[3] = { 0.06f, 0.02f, 0.02f };
+    //        //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
+    //        //SurfaceMaterialRef matMatte = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
 
-            std::vector<uint32_t> matGroup = {
-                12, 13, 14, 12, 14, 15,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
+    //        std::vector<uint32_t> matGroup = {
+    //            12, 13, 14, 12, 14, 15,
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+    //    }
 
-        {
-            float value[4] = { 0.25f, 0.25f, 0.75f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+    //    {
+    //        float value[4] = { 0.25f, 0.25f, 0.75f, 0.0f };
+    //        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    //        SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
-            std::vector<uint32_t> matGroup = {
-                16, 17, 18, 16, 18, 19,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
+    //        std::vector<uint32_t> matGroup = {
+    //            16, 17, 18, 16, 18, 19,
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+    //    }
 
-        {
-            float value[3] = { 30.0f, 30.0f, 30.0f };
-            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+    //    {
+    //        float value[3] = { 30.0f, 30.0f, 30.0f };
+    //        Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
+    //        SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
 
-            std::vector<uint32_t> matGroup = {
-                20, 21, 22, 20, 22, 23,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
-        }
+    //        std::vector<uint32_t> matGroup = {
+    //            20, 21, 22, 20, 22, 23,
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
+    //    }
 
-        {
-            float value[3] = { 100.0f, 100.0f, 100.0f };
-            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+    //    {
+    //        float value[3] = { 100.0f, 100.0f, 100.0f };
+    //        Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
+    //        SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
 
-            std::vector<uint32_t> matGroup = {
-                24, 25, 26, 24, 26, 27,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
-        }
-    }
-    scene->addChild(cornellBox);
+    //        std::vector<uint32_t> matGroup = {
+    //            24, 25, 26, 24, 26, 27,
+    //        };
+    //        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
+    //    }
+    //}
+    //scene->addChild(cornellBox);
+
+    //Image2DRef imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr");
+    Image2DRef imgEnv = loadImage2D(context, "resources/environments/LA_Downtown_Afternoon_Fishing_3k_corrected.exr");
+    Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
+    scene->setEnvironment(matEnv);
 
     g_cameraPos = Point3D(0, 0, 5);
     g_cameraOrientation = qRotateY<float>(M_PI);

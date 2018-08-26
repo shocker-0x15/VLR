@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "materials.h"
 
@@ -19,6 +19,7 @@ namespace VLR {
         };
         std::map<const SHTransform*, TransformStatus> m_transforms;
         uint32_t m_numValidTransforms;
+        std::set<const SHGeometryGroup*> m_geomGroups;
 
     public:
         SHGroup(Context &context) : m_numValidTransforms(0) {
@@ -35,9 +36,9 @@ namespace VLR {
         void addChild(SHTransform* transform);
         void removeChild(SHTransform* transform);
         void updateChild(SHTransform* transform);
-        uint32_t getNumValidChildren() const {
-            return m_numValidTransforms;
-        }
+
+        void addChild(SHGeometryGroup* geomGroup);
+        void removeChild(SHGeometryGroup* geomGroup);
 
         const optix::Group &getOptiXObject() const {
             return m_optixGroup;
@@ -220,6 +221,7 @@ namespace VLR {
         std::vector<SurfaceMaterial*> m_materials;
         std::vector<Float4Texture*> m_texNormalAlphas;
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
+
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
@@ -235,6 +237,37 @@ namespace VLR {
 
         void setVertices(std::vector<Vertex> &&vertices);
         void addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material, Float4Texture* texNormalAlpha);
+    };
+
+
+
+    class InfiniteSphereSurfaceNode : public SurfaceNode {
+        struct OptiXProgramSet {
+            optix::Program programIntersectInfiniteSphere; // Intersection Program
+            optix::Program programCalcBBoxForInfiniteSphere; // Bounding Box Program
+            optix::Program callableProgramDecodeHitPointForInfiniteSphere;
+            optix::Program callableProgramDecodeTexCoordForInfiniteSphere;
+            optix::Program callableProgramSampleInfiniteSphere;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        optix::Geometry m_optixGeometry;
+        SurfaceMaterial* m_material;
+        SHGeometryInstance* m_shGeometryInstance;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        InfiniteSphereSurfaceNode(Context &context, const std::string &name, SurfaceMaterial* material);
+        ~InfiniteSphereSurfaceNode();
+
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
     };
 
 
@@ -316,6 +349,11 @@ namespace VLR {
         DiscreteDistribution1D m_surfaceLightImpDist;
         bool m_surfaceLightsAreSetup;
 
+        // DELETE ME
+        //Float4Texture* m_envTex;
+        //SurfaceMaterial* m_envMat;
+        //InfiniteSphereSurfaceNode* m_envSphere;
+
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
@@ -333,12 +371,15 @@ namespace VLR {
 
     class Scene : public Object {
         RootNode m_rootNode;
+        optix::Program m_callableProgramSampleInfiniteSphere;
+        EnvironmentEmitterSurfaceMaterial* m_matEnv;
 
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         Scene(Context &context, const Transform* localToWorld);
+        ~Scene();
 
         void setTransform(const Transform* localToWorld) {
             m_rootNode.setTransform(localToWorld);
@@ -356,6 +397,9 @@ namespace VLR {
         void removeChild(SurfaceNode* child) {
             m_rootNode.removeChild(child);
         }
+
+        // TODO: 内部実装をInfiniteSphereSurfaceNode + EnvironmentEmitterMaterialを使ったものに変えられないかを考える。
+        void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
 
         void set();
     };

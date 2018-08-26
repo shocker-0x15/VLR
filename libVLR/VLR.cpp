@@ -280,6 +280,23 @@ VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSur
 
 
 
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialCreate(VLRContext context, VLREnvironmentEmitterSurfaceMaterial* material,
+                                                             VLRFloat3Texture texEmittance) {
+    *material = new VLR::EnvironmentEmitterSurfaceMaterial(*context, texEmittance);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context, VLREnvironmentEmitterSurfaceMaterial material) {
+    if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete material;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode, 
                                                    const char* name) {
     *surfaceNode = new VLR::TriangleMeshSurfaceNode(*context, name);
@@ -467,6 +484,15 @@ VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child) {
         scene->removeChild((VLR::SurfaceNode*)child);
     else
         return VLR_ERROR_INVALID_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material) {
+    if (!scene->is<VLR::Scene>() || !material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+
+    scene->setEnvironment(material);
 
     return VLR_ERROR_NO_ERROR;
 }

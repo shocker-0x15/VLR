@@ -43,11 +43,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\OpenEXR_build\install\include\OpenEXR;$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\shocker_0x15\Desktop\OpenEXR_build\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\OpenEXR_build\install\include\OpenEXR;$(CUDA_PATH_V9_2)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\shocker_0x15\Desktop\OpenEXR_build\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -56,11 +58,11 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
@@ -82,11 +84,12 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64" to "$(OutDir)"

@@ -128,7 +128,9 @@
   <ItemGroup>
     <ClInclude Include="basic_types_internal.h" />
     <ClInclude Include="context.h" />
+    <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
+    <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
     <ClInclude Include="GPU_kernels\random_distributions.cuh" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
@@ -145,6 +147,11 @@
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\infinite_sphere_intersection.cu">
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\materials.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>

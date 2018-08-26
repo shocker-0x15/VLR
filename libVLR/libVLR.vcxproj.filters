@@ -24,10 +24,19 @@
     <ClInclude Include="scene.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="context.h" />
+    <ClInclude Include="GPU_kernels\light_transport_common.cuh">
+      <Filter>GPU Kernels</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\half.hpp">
+      <Filter>ext</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
       <UniqueIdentifier>{cd8adf6e-4acf-43fa-89da-8cff4a35f48b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext">
+      <UniqueIdentifier>{e2341fa3-8b02-4d88-bd27-8911d42f9713}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -41,6 +50,9 @@
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\cameras.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\infinite_sphere_intersection.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
   </ItemGroup>

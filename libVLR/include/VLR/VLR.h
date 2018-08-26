@@ -35,6 +35,7 @@ namespace VLR {
     class UE4SurfaceMaterial;
     class DiffuseEmitterSurfaceMaterial;
     class MultiSurfaceMaterial;
+    class EnvironmentEmitterSurfaceMaterial;
 
     class SurfaceNode;
     struct Vertex;
@@ -84,6 +85,7 @@ namespace VLR {
         RGBA8x4,
         RGBA16Fx4,
         RGBA32Fx4,
+        Gray32F,
         Gray8,
         Num
     };
@@ -140,6 +142,7 @@ extern "C" {
     typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
     typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
     typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
+    typedef VLR::EnvironmentEmitterSurfaceMaterial* VLREnvironmentEmitterSurfaceMaterial;
 
     typedef VLR::SurfaceNode* VLRSurfaceNode;
     typedef VLR::Vertex VLRVertex;
@@ -220,6 +223,10 @@ extern "C" {
                                                     const VLRSurfaceMaterial* materials, uint32_t numMaterials);
     VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSurfaceMaterial material);
 
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialCreate(VLRContext context, VLREnvironmentEmitterSurfaceMaterial* material,
+                                                                 VLRFloat3Texture texEmittance);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context, VLREnvironmentEmitterSurfaceMaterial material);
+
 
 
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode,
@@ -251,6 +258,7 @@ extern "C" {
     VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::Transform* localToWorld);
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child);
+    VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material);
 
 
 
@@ -297,6 +305,7 @@ namespace VLRCpp {
     class UE4SurfaceMaterialHolder;
     class DiffuseEmitterSurfaceMaterialHolder;
     class MultiSurfaceMaterialHolder;
+    class EnvironmentEmitterSurfaceMaterialHolder;
 
     class NodeHolder;
     class SurfaceNodeHolder;
@@ -331,6 +340,7 @@ namespace VLRCpp {
     typedef std::shared_ptr<UE4SurfaceMaterialHolder> UE4SurfaceMaterialRef;
     typedef std::shared_ptr<DiffuseEmitterSurfaceMaterialHolder> DiffuseEmitterSurfaceMaterialRef;
     typedef std::shared_ptr<MultiSurfaceMaterialHolder> MultiSurfaceMaterialRef;
+    typedef std::shared_ptr<EnvironmentEmitterSurfaceMaterialHolder> EnvironmentEmitterSurfaceMaterialRef;
 
     typedef std::shared_ptr<NodeHolder> NodeRef;
     typedef std::shared_ptr<SurfaceNodeHolder> SurfaceNodeRef;
@@ -630,6 +640,23 @@ namespace VLRCpp {
 
         VLRObject get() const override { return (VLRObject)m_raw; }
     };
+
+
+
+    class EnvironmentEmitterSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        Float3TextureRef m_texEmittance;
+
+    public:
+        EnvironmentEmitterSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEmittance) :
+            SurfaceMaterialHolder(context), m_texEmittance(texEmittance) {
+            VLRResult res = vlrEnvironmentEmitterSurfaceMaterialCreate(context, (VLREnvironmentEmitterSurfaceMaterial*)&m_raw, (VLRFloat3Texture)m_texEmittance->get());
+        }
+        ~EnvironmentEmitterSurfaceMaterialHolder() {
+            VLRResult res = vlrEnvironmentEmitterSurfaceMaterialDestroy(m_rawContext, (VLREnvironmentEmitterSurfaceMaterial)m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
     
     
     
@@ -768,6 +795,7 @@ namespace VLRCpp {
         VLRScene m_raw;
         StaticTransformRef m_transform;
         std::set<NodeRef> m_children;
+        EnvironmentEmitterSurfaceMaterialRef m_matEnv;
 
     public:
         SceneHolder(VLRContext context, const StaticTransformRef &transform) :
@@ -811,6 +839,11 @@ namespace VLRCpp {
             auto it = m_children.cbegin();
             std::advance(it, index);
             return *it;
+        }
+
+        void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv) {
+            m_matEnv = matEnv;
+            VLRResult res = vlrSceneSetEnvironment(m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get());
         }
     };
 
@@ -963,6 +996,10 @@ namespace VLRCpp {
 
         MultiSurfaceMaterialRef createMultiSurfaceMaterial(const SurfaceMaterialRef* materials, uint32_t numMaterials) const {
             return std::make_shared<MultiSurfaceMaterialHolder>(m_rawContext, materials, numMaterials);
+        }
+
+        EnvironmentEmitterSurfaceMaterialRef createEnvironmentEmitterSurfaceMaterial(const Float3TextureRef &texEmittance) const {
+            return std::make_shared<EnvironmentEmitterSurfaceMaterialHolder>(m_rawContext, texEmittance);
         }
 
         TriangleMeshSurfaceNodeRef createTriangleMeshSurfaceNode(const char* name) const {
