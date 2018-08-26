@@ -77,6 +77,24 @@ namespace VLR {
         }
     }
 
+    void SHGroup::addChild(SHGeometryGroup* geomGroup) {
+        m_geomGroups.insert(geomGroup);
+
+        optix::GeometryGroup optixGeomGroup = geomGroup->getOptiXObject();
+
+        m_optixGroup->addChild(optixGeomGroup);
+        m_optixAcceleration->markDirty();
+    }
+
+    void SHGroup::removeChild(SHGeometryGroup* geomGroup) {
+        m_geomGroups.erase(geomGroup);
+
+        optix::GeometryGroup optixGeomGroup = geomGroup->getOptiXObject();
+
+        m_optixGroup->removeChild(optixGeomGroup);
+        m_optixAcceleration->markDirty();
+    }
+
     void SHGroup::printOptiXHierarchy() {
         std::stack<RTobject> stackRTObjects;
         std::stack<RTobjecttype> stackRTObjectTypes;
@@ -352,10 +370,12 @@ namespace VLR {
     // static
     void SurfaceNode::initialize(Context &context) {
         TriangleMeshSurfaceNode::initialize(context);
+        InfiniteSphereSurfaceNode::initialize(context);
     }
 
     // static
     void SurfaceNode::finalize(Context &context) {
+        InfiniteSphereSurfaceNode::finalize(context);
         TriangleMeshSurfaceNode::finalize(context);
     }
 
@@ -505,10 +525,10 @@ namespace VLR {
         m_texNormalAlphas.push_back(texNormalAlpha);
 
         Shared::SurfaceLightDescriptor lightDesc;
-        lightDesc.body.vertexBuffer = m_optixVertexBuffer->getId();
-        lightDesc.body.triangleBuffer = geom.optixIndexBuffer->getId();
-        geom.primDist.getInternalType(&lightDesc.body.primDistribution);
-        lightDesc.body.materialIndex = material->getMaterialIndex();
+        lightDesc.body.asMeshLight.vertexBuffer = m_optixVertexBuffer->getId();
+        lightDesc.body.asMeshLight.triangleBuffer = geom.optixIndexBuffer->getId();
+        geom.primDist.getInternalType(&lightDesc.body.asMeshLight.primDistribution);
+        lightDesc.body.asMeshLight.materialIndex = material->getMaterialIndex();
         lightDesc.sampleFunc = progSet.callableProgramSampleTriangleMesh->getId();
         lightDesc.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO:
 
@@ -543,6 +563,98 @@ namespace VLR {
             ParentNode* parent = *it;
             parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryAdded, delta);
         }
+    }
+
+
+
+    std::map<uint32_t, InfiniteSphereSurfaceNode::OptiXProgramSet> InfiniteSphereSurfaceNode::OptiXProgramSets;
+
+    // static
+    void InfiniteSphereSurfaceNode::initialize(Context &context) {
+        std::string ptx = readTxtFile("resources/ptxes/infinite_sphere_intersection.ptx");
+
+        OptiXProgramSet programSet;
+
+        optix::Context optixContext = context.getOptiXContext();
+
+        programSet.programIntersectInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::intersectInfiniteSphere");
+        programSet.programCalcBBoxForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::calcBBoxForInfiniteSphere");
+
+        programSet.callableProgramDecodeHitPointForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::decodeHitPointForInfiniteSphere");
+        programSet.callableProgramDecodeTexCoordForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::decodeTexCoordForInfiniteSphere");
+
+        programSet.callableProgramSampleInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::sampleInfiniteSphere");
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void InfiniteSphereSurfaceNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+
+        programSet.callableProgramSampleInfiniteSphere->destroy();
+
+        programSet.callableProgramDecodeTexCoordForInfiniteSphere->destroy();
+        programSet.callableProgramDecodeHitPointForInfiniteSphere->destroy();
+
+        programSet.programCalcBBoxForInfiniteSphere->destroy();
+        programSet.programIntersectInfiniteSphere->destroy();
+
+        OptiXProgramSets.erase(context.getID());
+    }
+
+    InfiniteSphereSurfaceNode::InfiniteSphereSurfaceNode(Context &context, const std::string &name, SurfaceMaterial* material) : 
+        SurfaceNode(context, name), m_material(material) {
+        optix::Context optixContext = m_context.getOptiXContext();
+        const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        m_optixGeometry = optixContext->createGeometry();
+        m_optixGeometry->setPrimitiveCount(1);
+        m_optixGeometry->setIntersectionProgram(progSet.programIntersectInfiniteSphere);
+        m_optixGeometry->setBoundingBoxProgram(progSet.programCalcBBoxForInfiniteSphere);
+
+        Shared::SurfaceLightDescriptor lightDesc;
+        lightDesc.body.asEnvironmentLight.materialIndex = m_material->getMaterialIndex();
+        //geom.primDist.getInternalType(&lightDesc.body.asEnvironmentLight.importanceMap);
+        lightDesc.sampleFunc = progSet.callableProgramSampleInfiniteSphere->getId();
+        lightDesc.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO:
+
+        m_shGeometryInstance = new SHGeometryInstance(m_context, lightDesc);
+        {
+            optix::GeometryInstance optixGeomInst = m_shGeometryInstance->getOptiXObject();
+            optixGeomInst->setGeometry(m_optixGeometry);
+            optixGeomInst->setMaterialCount(1);
+            optixGeomInst->setMaterial(0, material->getOptiXObject());
+            optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForInfiniteSphere);
+            optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForInfiniteSphere);
+            optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
+            optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
+            optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
+        }
+    }
+
+    InfiniteSphereSurfaceNode::~InfiniteSphereSurfaceNode() {
+        delete m_shGeometryInstance;
+
+        m_optixGeometry->destroy();
+    }
+
+    void InfiniteSphereSurfaceNode::addParent(ParentNode* parent) {
+        SurfaceNode::addParent(parent);
+
+        // JP: 追加した親に対してジオメトリインスタンスの追加を行わせる。
+        std::set<SHGeometryInstance*> delta;
+        delta.insert(m_shGeometryInstance);
+        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryAdded, delta);
+    }
+
+    void InfiniteSphereSurfaceNode::removeParent(ParentNode* parent) {
+        SurfaceNode::removeParent(parent);
+
+        // JP: 削除した親に対してジオメトリインスタンスの削除を行わせる。
+        std::set<SHGeometryInstance*> delta;
+        delta.insert(m_shGeometryInstance);
+        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryRemoved, delta);
     }
     
     
@@ -878,7 +990,7 @@ namespace VLR {
                         StaticTransform tr = it->transform->getStaticTransform();
                         float mat[16], invMat[16];
                         tr.getArrays(mat, invMat);
-                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
                     }
                     else {
                         VLRAssert_NotImplemented();
@@ -947,7 +1059,7 @@ namespace VLR {
                         StaticTransform tr = it->transform->getStaticTransform();
                         float mat[16], invMat[16];
                         tr.getArrays(mat, invMat);
-                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
                     }
                     else {
                         VLRAssert_NotImplemented();
@@ -987,7 +1099,7 @@ namespace VLR {
                         StaticTransform tr = it->transform->getStaticTransform();
                         float mat[16], invMat[16];
                         tr.getArrays(mat, invMat);
-                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
                     }
                     else {
                         VLRAssert_NotImplemented();
@@ -1050,7 +1162,7 @@ namespace VLR {
                         StaticTransform tr = selfTransform->getStaticTransform();
                         float mat[16], invMat[16];
                         tr.getArrays(mat, invMat);
-                        lightDesc.body.transform = Shared::StaticTransform(Matrix4x4(mat));
+                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
                     }
                     else {
                         VLRAssert_NotImplemented();
@@ -1095,6 +1207,14 @@ namespace VLR {
         ParentNode(context, "Root", localToWorld), m_shGroup(context), m_surfaceLightsAreSetup(false) {
         SHTransform* shtr = m_shTransforms[0];
         m_shGroup.addChild(shtr);
+
+        // DELETE ME
+        //float value[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        //m_envTex = new ConstantFloat4Texture(context, value);
+        //m_envMat = new MatteSurfaceMaterial(context, m_envTex);
+        //m_envSphere = new InfiniteSphereSurfaceNode(context, "Env", m_envMat);
+
+        //addChild(m_envSphere);
     }
 
     RootNode::~RootNode() {
@@ -1105,6 +1225,13 @@ namespace VLR {
 
             m_surfaceLightsAreSetup = false;
         }
+
+        // DELETE ME
+        //removeChild(m_envSphere);
+
+        //delete m_envSphere;
+        //delete m_envMat;
+        //delete m_envTex;
     }
 
     void RootNode::set() {
@@ -1148,12 +1275,37 @@ namespace VLR {
 
 
     Scene::Scene(Context &context, const Transform* localToWorld) : 
-    Object(context), m_rootNode(context, localToWorld) {
+    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr) {
+        std::string ptx = readTxtFile("resources/ptxes/infinite_sphere_intersection.ptx");
 
+        optix::Context optixContext = context.getOptiXContext();
+
+        m_callableProgramSampleInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::sampleInfiniteSphere");
+    }
+
+    Scene::~Scene() {
+        m_callableProgramSampleInfiniteSphere->destroy();
+    }
+
+    void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
+        m_matEnv = matEnv;
     }
 
     void Scene::set() {
         m_rootNode.set();
+
+        optix::Context optixContext = m_context.getOptiXContext();
+
+        Shared::SurfaceLightDescriptor envLight;
+        envLight.importance = 0.0f;
+        if (m_matEnv) {
+            m_matEnv->getImportanceMap().getInternalType(&envLight.body.asEnvironmentLight.importanceMap);
+            envLight.body.asEnvironmentLight.materialIndex = m_matEnv->getMaterialIndex();
+            envLight.importance = 1.0f;
+            envLight.sampleFunc = m_callableProgramSampleInfiniteSphere->getId();
+        }
+
+        optixContext["VLR::pv_envLightDescriptor"]->setUserData(sizeof(envLight), &envLight);
     }
 
 

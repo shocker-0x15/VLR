@@ -46,10 +46,12 @@ namespace VLR {
     defineClassID(SurfaceMaterial, UE4SurfaceMaterial);
     defineClassID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);
     defineClassID(SurfaceMaterial, MultiSurfaceMaterial);
+    defineClassID(SurfaceMaterial, EnvironmentEmitterSurfaceMaterial);
 
     defineClassID(Object, Node);
     defineClassID(Node, SurfaceNode);
     defineClassID(SurfaceNode, TriangleMeshSurfaceNode);
+    defineClassID(SurfaceNode, InfiniteSphereSurfaceNode);
     defineClassID(Node, ParentNode);
     defineClassID(ParentNode, InternalNode);
     defineClassID(ParentNode, RootNode);

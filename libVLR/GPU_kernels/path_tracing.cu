@@ -1,4 +1,4 @@
-﻿#include "kernel_common.cuh"
+﻿#include "light_transport_common.cuh"
 
 namespace VLR {
     // Context-scope Variables
@@ -43,7 +43,7 @@ namespace VLR {
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
                 float bsdfPDF = sm_payload.prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                float lightPDF = pv_importance / pv_lightImpDist.integral() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
+                float lightPDF = pv_importance / getSumLightImportances() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
@@ -121,6 +121,52 @@ namespace VLR {
     }
 
     RT_PROGRAM void pathTracingMiss() {
+        if (pv_envLightDescriptor.importance == 0)
+            return;
+
+        Vector3D direction = asVector3D(sm_ray.direction);
+        float phi, theta;
+        direction.toPolarYUp(&theta, &phi);
+
+        Vector3D texCoord0Dir = Vector3D(-std::cos(theta), 0.0f, -std::sin(theta));
+        ReferenceFrame shadingFrame;
+        shadingFrame.x = texCoord0Dir;
+        shadingFrame.z = -direction;
+        shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+
+        SurfacePoint surfPt;
+        surfPt.position = Point3D(direction.x, direction.y, direction.z);
+        surfPt.shadingFrame = shadingFrame;
+        surfPt.isPoint = false;
+        surfPt.atInfinity = true;
+
+        surfPt.geometricNormal = -direction;
+        surfPt.u = phi;
+        surfPt.v = theta;
+        surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
+
+        float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
+
+        const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_envLightDescriptor.body.asEnvironmentLight.materialIndex];
+        EDF edf(matDesc, surfPt);
+
+        Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
+
+        // implicit light sampling
+        RGBSpectrum spEmittance = edf.evaluateEmittance();
+        if (spEmittance.hasNonZero()) {
+            RGBSpectrum Le = spEmittance * edf.evaluateEDF(EDFQuery(), dirOutLocal);
+
+            float MISWeight = 1.0f;
+            if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
+                float bsdfPDF = sm_payload.prevDirPDF;
+                float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
+                float lightPDF = pv_envLightDescriptor.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
+                MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
+            }
+
+            sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
+        }
     }
 
     // Common Ray Generation Program for All Camera Types

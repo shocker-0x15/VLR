@@ -73,7 +73,7 @@ namespace VLR {
             RT_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
 
             RT_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
-                VLRAssert(u < 1, "\"u\" must be in range [0, 1).");
+                VLRAssert(u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
                     int newIdx = idx - d;
@@ -86,8 +86,9 @@ namespace VLR {
                 return (idx + t) / m_numValues;
             }
             RT_FUNCTION RealType evaluatePDF(RealType smp) const {
-                VLRAssert(smp >= 0 && smp < 1.0, "\"smp\" is out of range [0, 1)");
-                return m_PDF[(int32_t)(smp * m_numValues)];
+                VLRAssert(smp >= 0 && smp < 1.0, "\"smp\": %g is out of range [0, 1).", smp);
+                int32_t idx = std::min<int32_t>(m_numValues - 1, smp * m_numValues);
+                return m_PDF[idx];
             }
             RT_FUNCTION RealType integral() const { return m_integral; }
 
@@ -101,32 +102,26 @@ namespace VLR {
         template <typename RealType>
         class RegularConstantContinuousDistribution2DTemplate {
             rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> m_1DDists;
-            uint32_t m_num1DDists;
-            RealType m_integral;
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
-            RegularConstantContinuousDistribution2DTemplate(const rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> &_1DDists, uint32_t num1DDists, 
-                                                            RealType integral, const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
-                m_1DDists(_1DDists), m_num1DDists(num1DDists), m_integral(integral), m_top1DDist(top1DDist) {
+            RegularConstantContinuousDistribution2DTemplate(const rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> &_1DDists, 
+                                                            const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
+                m_1DDists(_1DDists), m_top1DDist(top1DDist) {
             }
 
             RT_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
             RT_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
 
-            void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
-                VLRAssert(u0 >= 0 && u0 < 1, "\"u0\" must be in range [0, 1).: %g", u0);
-                VLRAssert(u1 >= 0 && u1 < 1, "\"u1\" must be in range [0, 1).: %g", u1);
+            RT_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
                 *d1 = m_top1DDist.sample(u1, &topPDF);
-                uint32_t idx1D = std::min(uint32_t(m_num1DDists * *d1), m_num1DDists - 1);
+                uint32_t idx1D = std::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
                 *d0 = m_1DDists[idx1D].sample(u0, probDensity);
                 *probDensity *= topPDF;
             }
-            RealType evaluatePDF(RealType d0, RealType d1) const {
-                VLRAssert(d0 >= 0 && d0 < 1.0, "\"d0\" is out of range [0, 1)");
-                VLRAssert(d1 >= 0 && d1 < 1.0, "\"d1\" is out of range [0, 1)");
-                uint32_t idx1D = std::min(uint32_t(m_num1DDists * d1), m_num1DDists - 1);
+            RT_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
+                uint32_t idx1D = std::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
                 return m_top1DDist.evaluatePDF(d1) * m_1DDists[idx1D].evaluatePDF(d0);
             }
         };
@@ -204,12 +199,18 @@ namespace VLR {
         };
         
         struct SurfaceLightDescriptor {
-            struct Body {
-                rtBufferId<Vertex> vertexBuffer;
-                rtBufferId<Triangle> triangleBuffer;
-                uint32_t materialIndex;
-                DiscreteDistribution1D primDistribution;
-                StaticTransform transform;
+            union Body {
+                struct {
+                    rtBufferId<Vertex> vertexBuffer;
+                    rtBufferId<Triangle> triangleBuffer;
+                    uint32_t materialIndex;
+                    DiscreteDistribution1D primDistribution;
+                    StaticTransform transform;
+                } asMeshLight;
+                struct {
+                    uint32_t materialIndex;
+                    RegularConstantContinuousDistribution2D importanceMap;
+                } asEnvironmentLight;
 
                 RT_FUNCTION Body() {}
                 RT_FUNCTION ~Body() {}
@@ -322,6 +323,10 @@ namespace VLR {
                 unsigned int matOffset3 : 6;
                 unsigned int numMaterials : 8;
             };
+        };
+
+        struct EnvironmentEmitterSurfaceMaterial {
+            int32_t texEmittance;
         };
     }
 }

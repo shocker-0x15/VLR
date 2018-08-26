@@ -87,6 +87,7 @@ namespace VLR {
 
         surfPt->position = position;
         surfPt->shadingFrame = ReferenceFrame(shadingTangent, shadingNormal);
+        surfPt->isPoint = false;
         surfPt->atInfinity = false;
 
         surfPt->geometricNormal = normalize(transform(RT_OBJECT_TO_WORLD, geometricNormal));
@@ -117,14 +118,14 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM void sampleTriangleMesh(const SurfaceLightDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
-        uint32_t primIdx = desc.primDistribution.sample(sample.uElem, &primProb);
+        uint32_t primIdx = desc.asMeshLight.primDistribution.sample(sample.uElem, &primProb);
 
-        result->materialIndex = desc.materialIndex;
+        result->materialIndex = desc.asMeshLight.materialIndex;
 
-        const Triangle &triangle = desc.triangleBuffer[primIdx];
-        const Vertex &v0 = desc.vertexBuffer[triangle.index0];
-        const Vertex &v1 = desc.vertexBuffer[triangle.index1];
-        const Vertex &v2 = desc.vertexBuffer[triangle.index2];
+        const Triangle &triangle = desc.asMeshLight.triangleBuffer[primIdx];
+        const Vertex &v0 = desc.asMeshLight.vertexBuffer[triangle.index0];
+        const Vertex &v1 = desc.asMeshLight.vertexBuffer[triangle.index1];
+        const Vertex &v2 = desc.asMeshLight.vertexBuffer[triangle.index2];
 
         Normal3D geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
         float area = geometricNormal.length() / 2;
@@ -140,8 +141,8 @@ namespace VLR {
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
         ReferenceFrame shadingFrame;
-        shadingFrame.z = normalize(desc.transform * shadingNormal);
-        shadingFrame.x = normalize(desc.transform * shadingTangent);
+        shadingFrame.z = normalize(desc.asMeshLight.transform * shadingNormal);
+        shadingFrame.x = normalize(desc.asMeshLight.transform * shadingTangent);
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
         // EN: guarantee the orthogonality between the normal and tangent.
@@ -153,12 +154,12 @@ namespace VLR {
 
         SurfacePoint &surfPt = result->surfPt;
 
-        surfPt.position = desc.transform * position;
+        surfPt.position = desc.asMeshLight.transform * position;
         surfPt.shadingFrame = shadingFrame;
         surfPt.isPoint = false;
         surfPt.atInfinity = false;
 
-        surfPt.geometricNormal = normalize(desc.transform * geometricNormal);
+        surfPt.geometricNormal = normalize(desc.asMeshLight.transform * geometricNormal);
         surfPt.u = b0;
         surfPt.v = b1;
         surfPt.texCoord = texCoord;

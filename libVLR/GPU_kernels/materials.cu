@@ -992,4 +992,35 @@ namespace VLR {
 
     // END: MultiBSDF / MultiEDF
     // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // EnvironmentEDF
+
+    struct EnvironmentEDF {
+        RGBSpectrum emittance;
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t EnvironmentEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
+        EnvironmentEDF &p = *(EnvironmentEDF*)params;
+        const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+
+        optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texEmittance, surfPt.texCoord.u, surfPt.texCoord.v);
+        p.emittance = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+
+        return sizeof(EnvironmentEDF) / 4;
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum EnvironmentEDF_evaluateEmittanceInternal(const uint32_t* params) {
+        EnvironmentEDF &p = *(EnvironmentEDF*)params;
+        return M_PIf * p.emittance;
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum EnvironmentEDF_evaluateEDFInternal(const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
+        return RGBSpectrum(dirLocal.z > 0.0f ? 1.0f / M_PIf : 0.0f);
+    }
+
+    // END: EnvironmentEDF
+    // ----------------------------------------------------------------
 }
