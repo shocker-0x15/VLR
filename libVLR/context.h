@@ -62,12 +62,14 @@ namespace VLR {
         uint32_t m_numAccumFrames;
 
     public:
-        Context();
+        Context(bool logging, uint32_t stackSize);
         ~Context();
 
         uint32_t getID() const {
             return m_ID;
         }
+
+        void setDevices(const int32_t* devices, uint32_t numDevices);
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID);
         void* mapOutputBuffer();

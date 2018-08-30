@@ -14,7 +14,9 @@
 //#define VLR_INFINITY
 //#define VLR_NAN
 
-//#define VLR_LOGGING_MODE
+#define VLR_ENABLE_VALIDATION
+#define VLR_ENABLE_TIMEOUT_CALLBACK
+#define VLR_USE_OUTPUTSTRING
 
 // Platform defines
 #if defined(VLR_Host)
@@ -81,12 +83,17 @@
 
 #if defined(VLR_Host)
 #   if defined(VLR_Platform_Windows_MSVC)
-VLR_API void VLRDebugPrintf(const char* fmt, ...);
+VLR_API void VLROutputDebugString(const char* fmt, ...);
+#       if defined(VLR_USE_OUTPUTSTRING)
+#           define VLRDebugPrintf VLROutputDebugString
+#       else
+#           define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#       endif
 #   else
-#       define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#       define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
 #else
-#   define VLRDebugPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__);
+#   define VLRDebugPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
 #endif
 
 #if defined(ENABLE_ASSERT)

@@ -67,7 +67,7 @@ namespace VLR {
 
     uint32_t Context::NextID = 0;
 
-    Context::Context() {
+    Context::Context(bool logging, uint32_t stackSize) {
         m_ID = getInstanceID();
 
         m_optixContext = optix::Context::create();
@@ -162,20 +162,25 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
-        RTsize stackSize = m_optixContext->getStackSize();
-        VLRDebugPrintf("Default Stack Size: %u\n", stackSize);
+        RTsize defaultStackSize = m_optixContext->getStackSize();
+        VLRDebugPrintf("Default Stack Size: %u\n", defaultStackSize);
 
-#if defined(VLR_LOGGING_MODE)
-        m_optixContext->setPrintEnabled(true);
-        m_optixContext->setPrintBufferSize(4096);
-        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
-        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
-        //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
-        m_optixContext->setStackSize(1280);
-#else
-        m_optixContext->setExceptionEnabled(RT_EXCEPTION_STACK_OVERFLOW, false);
-        m_optixContext->setStackSize(512);
-#endif
+        if (logging) {
+            m_optixContext->setPrintEnabled(true);
+            m_optixContext->setPrintBufferSize(4096);
+            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
+            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
+            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
+            if (stackSize == 0)
+                stackSize = 1280;
+        }
+        else {
+            m_optixContext->setExceptionEnabled(RT_EXCEPTION_STACK_OVERFLOW, false);
+            if (stackSize == 0)
+                stackSize = 640;
+        }
+        m_optixContext->setStackSize(stackSize);
+        VLRDebugPrintf("Stack Size: %u\n", stackSize);
     }
 
     Context::~Context() {
@@ -226,6 +231,10 @@ namespace VLR {
         m_optixCallableProgramNullFetchAlpha->destroy();
 
         m_optixContext->destroy();
+    }
+
+    void Context::setDevices(const int32_t* devices, uint32_t numDevices) {
+        m_optixContext->setDevices(devices, devices + numDevices);
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {
@@ -314,39 +323,13 @@ namespace VLR {
 
         camera->set();
 
+#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
         optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+#endif
 
-        //uint32_t deviceIdx = 0;
-
-        //int32_t numMaxTexs = optixContext->getMaxTextureCount();
-        //int32_t numCPUThreads = optixContext->getCPUNumThreads();
-        //RTsize usedHostMem = optixContext->getUsedHostMemory();
-        //RTsize availMem = optixContext->getAvailableDeviceMemory(deviceIdx);
-
-        //char name[256];
-        //char pciBusId[16];
-        //int computeCaps[2];
-        //RTsize total_mem;
-        //int clock_rate;
-        //int threads_per_block;
-        //int sm_count;
-        //int execution_timeout_enabled;
-        //int texture_count;
-        //int tcc_driver;
-        //int cuda_device_ordinal;
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(pciBusId), pciBusId);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCaps), &computeCaps);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(total_mem), &total_mem);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clock_rate), &clock_rate);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(threads_per_block), &threads_per_block);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(sm_count), &sm_count);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(execution_timeout_enabled), &execution_timeout_enabled);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(texture_count), &texture_count);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tcc_driver), &tcc_driver);
-        //optixContext->getDeviceAttribute(deviceIdx, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cuda_device_ordinal), &cuda_device_ordinal);
-
+#if defined(VLR_ENABLE_VALIDATION)
         optixContext->validate();
+#endif
 
         optixContext->launch(0, imageSize.x, imageSize.y);
     }

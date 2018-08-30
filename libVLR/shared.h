@@ -20,7 +20,7 @@ namespace VLR {
             RT_FUNCTION ~DiscreteDistribution1DTemplate() {}
 
             RT_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
-                VLRAssert(u >= 0 && u < 1, "\"u\" must be in range [0, 1).");
+                VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
                     int newIdx = idx - d;
@@ -28,11 +28,12 @@ namespace VLR {
                         idx = newIdx;
                 }
                 --idx;
+                VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 return idx;
             }
             RT_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
-                VLRAssert(u >= 0 && u < 1, "\"u\" must be in range [0, 1).");
+                VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
                     int newIdx = idx - d;
@@ -40,6 +41,7 @@ namespace VLR {
                         idx = newIdx;
                 }
                 --idx;
+                VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return idx;
@@ -81,6 +83,7 @@ namespace VLR {
                         idx = newIdx;
                 }
                 --idx;
+                VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *probDensity = m_PDF[idx];
                 RealType t = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return (idx + t) / m_numValues;

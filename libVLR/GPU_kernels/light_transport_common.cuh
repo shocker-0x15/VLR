@@ -174,7 +174,7 @@ namespace VLR {
             *lightProb = pv_envLightDescriptor.importance / sumImps;
         }
         else {
-            lightSample = (lightSample - pv_envLightDescriptor.importance) / (pv_lightImpDist.integral() / sumImps);
+            lightSample = (su - pv_envLightDescriptor.importance) / pv_lightImpDist.integral();
             uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
             *light = SurfaceLight(pv_surfaceLightDescriptorBuffer[lightIdx]);
             *lightProb *= pv_lightImpDist.integral() / sumImps;
