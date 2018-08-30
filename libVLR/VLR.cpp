@@ -5,8 +5,70 @@
 
 
 
-VLR_API VLRResult vlrCreateContext(VLRContext* context) {
-    *context = new VLR::Context;
+VLR_API VLRResult vlrPrintDevices() {
+    const auto checkError = [](RTresult code) {
+        if (code != RT_SUCCESS && code != RT_TIMEOUT_CALLBACK)
+            throw optix::Exception::makeException(code, 0);
+    };
+
+    uint32_t numDevices;
+    checkError(rtDeviceGetDeviceCount(&numDevices));
+
+    for (int dev = 0; dev < numDevices; ++dev) {
+        VLRDebugPrintf("----------------------------------------------------------------\n");
+
+        char strBuffer[256];
+        int32_t intBuffer[2];
+        RTsize sizeValue;
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_NAME, sizeof(strBuffer), strBuffer);
+        VLRDebugPrintf("%d: %s\n", dev, strBuffer);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    CUDA Device Ordinal: %d\n", intBuffer[0]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(strBuffer), strBuffer);
+        VLRDebugPrintf("    PCI Bus ID: %s\n", strBuffer);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(intBuffer), intBuffer);
+        VLRDebugPrintf("    Compute Capability: %d, %d\n", intBuffer[0], intBuffer[1]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    TCC (Tesla Compute Cluster) Driver: %s\n", intBuffer[0] ? "Yes" : "No");
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(sizeValue), &sizeValue);
+        VLRDebugPrintf("    Total Memory: %llu [Byte]\n", sizeValue);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    Clock Rate: %d [kHz]\n", intBuffer[0]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    Max Threads per Block: %d\n", intBuffer[0]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    Multi Processor Count: %d\n", intBuffer[0]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    Max Hardware Texture Count: %d\n", intBuffer[0]);
+
+        rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(intBuffer[0]), &intBuffer[0]);
+        VLRDebugPrintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
+    }
+    VLRDebugPrintf("----------------------------------------------------------------\n");
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize) {
+    *context = new VLR::Context(logging, stackSize);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrContextSetDevices(VLRContext context, const int32_t* devices, uint32_t numDevices) {
+    context->setDevices(devices, numDevices);
 
     return VLR_ERROR_NO_ERROR;
 }

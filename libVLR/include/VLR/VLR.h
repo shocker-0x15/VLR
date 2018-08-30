@@ -156,7 +156,10 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrCreateContext(VLRContext* context);
+    VLR_API VLRResult vlrPrintDevices();
+
+    VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize);
+    VLR_API VLRResult vlrContextSetDevices(VLRContext context, const int32_t* devices, uint32_t numDevices);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
 
     VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);
@@ -929,11 +932,15 @@ namespace VLRCpp {
         VLRContext m_rawContext;
 
     public:
-        Context() {
-            VLRResult res = vlrCreateContext(&m_rawContext);
+        Context(bool logging, uint32_t stackSize) {
+            VLRResult res = vlrCreateContext(&m_rawContext, logging, stackSize);
         }
         ~Context() {
             VLRResult res = vlrDestroyContext(m_rawContext);
+        }
+
+        void setDevices(const int32_t* devices, uint32_t numDevices) const {
+            VLRResult res = vlrContextSetDevices(m_rawContext, devices, numDevices);
         }
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {
