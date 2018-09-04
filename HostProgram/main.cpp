@@ -385,59 +385,31 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     SceneRef scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
 
-    TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
+    InternalNodeRef modelNode;
+
+
+
+    TriangleMeshSurfaceNodeRef room = context.createTriangleMeshSurfaceNode("Room");
     {
         std::vector<Vertex> vertices;
 
         // Floor
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 5.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 5.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(5.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 0,  1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-30.0f,  0.0f, -30.0f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 5.0f) });
+        vertices.push_back(Vertex{ Point3D(30.0f,  0.0f, -30.0f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(5.0f, 5.0f) });
+        vertices.push_back(Vertex{ Point3D(30.0f,  0.0f,  30.0f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(5.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-30.0f,  0.0f,  30.0f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
         // Back wall
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0,  0, 1), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Ceiling
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Left wall
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D( 1,  0, 0), Vector3D( 0,  0, -1), TexCoord2D(0.0f, 0.0f) });
-        // Right wall
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D( 1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D( 0,  0,  1), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-30.0f,   0.0f, -30.0f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(30.0f,   0.0f, -30.0f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(30.0f,  10.0f, -30.0f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-30.0f,  10.0f, -30.0f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
         // Light
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f, -0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D( 0, -1, 0), Vector3D( 1,  0,  0), TexCoord2D(0.0f, 0.0f) });
-        // Light 2
-        vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f,  1.0f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D( 0.5f, 0.01f, 1.25f), Normal3D( 0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-10.0f,  35.0f, -10.0f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(10.0f,  35.0f, -10.0f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(10.0f,  35.0f,  10.0f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-10.0f,  35.0f,  10.0f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
 
-        cornellBox->setVertices(vertices.data(), vertices.size());
-
-        {
-            Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png");
-            Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-            texAlbedoRoughness->setTextureFilterMode(VLR::TextureFilter::Nearest, VLR::TextureFilter::Nearest, VLR::TextureFilter::None);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
-
-            std::vector<uint32_t> matGroup = {
-                0, 1, 2, 0, 2, 3
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
+        room->setVertices(vertices.data(), vertices.size());
 
         {
             float value[4] = { 0.75f, 0.75f, 0.75f, 0.0f };
@@ -445,66 +417,225 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
 
             std::vector<uint32_t> matGroup = {
-                4, 5, 6, 4, 6, 7,
-                8, 9, 10, 8, 10, 11,
+                0, 1, 2, 0, 2, 3,
+                4, 5, 6, 4, 6, 7
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+            room->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
         }
 
         {
-            float value[4] = { 0.75f, 0.25f, 0.25f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
-
-            //float value[3] = { 0.06f, 0.02f, 0.02f };
-            //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            //SurfaceMaterialRef matMatte = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
-
-            std::vector<uint32_t> matGroup = {
-                12, 13, 14, 12, 14, 15,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
-
-        {
-            float value[4] = { 0.25f, 0.25f, 0.75f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness);
-
-            std::vector<uint32_t> matGroup = {
-                16, 17, 18, 16, 18, 19,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
-        }
-
-        {
-            float value[3] = { 30.0f, 30.0f, 30.0f };
+            float value[3] = { 125.0f, 125.0f, 125.0f };
             Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
             SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
 
             std::vector<uint32_t> matGroup = {
-                20, 21, 22, 20, 22, 23,
+                8, 9, 10, 8, 10, 11
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
-        }
-
-        {
-            float value[3] = { 100.0f, 100.0f, 100.0f };
-            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
-
-            std::vector<uint32_t> matGroup = {
-                24, 25, 26, 24, 26, 27,
-            };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
+            room->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
         }
     }
-    scene->addChild(cornellBox);
+    scene->addChild(room);
 
 
 
-    InternalNodeRef sphereNode;
-    construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "../../assets/RT6/cutting_mat/cutting_mat.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        Float3TextureRef texBaseColor;
+        Float3TextureRef texOcclusionRoughnessMetallic;
+        Float4TextureRef texNormalAlpha;
+        Image2DRef image;
+        if (strcmp(strValue.C_Str(), "Material.001") == 0) {
+            image = loadImage2D(context, pathPrefix + "cutting_mat_Material.001_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "cutting_mat_Material.001_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "cutting_mat_Material.001_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+
+        SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
+    });
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(rotateY<float>(M_PI)));
+
+
+
+    construct(context, "../../assets/RT6/cornell_box/cornell_box.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        Float3TextureRef texBaseColor;
+        Float3TextureRef texOcclusionRoughnessMetallic;
+        Float4TextureRef texNormalAlpha;
+        Image2DRef image;
+        if (strcmp(strValue.C_Str(), "Material") == 0) {
+            image = loadImage2D(context, pathPrefix + "cornell_box_Material_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "cornell_box_Material_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "cornell_box_Material_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+
+        SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
+    });
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(translate<float>(-7.0f, 0.12f, -4.5f) *
+                                                          rotateY<float>(20 * M_PI / 180)));
+
+
+
+    construct(context, "../../assets/RT6/silver_pencil/silver_pencil.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        Float3TextureRef texBaseColor;
+        Float3TextureRef texOcclusionRoughnessMetallic;
+        Float4TextureRef texNormalAlpha;
+        Image2DRef image;
+        if (strcmp(strValue.C_Str(), "unified") == 0) {
+            image = loadImage2D(context, pathPrefix + "silver_pencil_unified_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "silver_pencil_unified_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "silver_pencil_unified_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+
+        SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
+    });
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(translate<float>(-1.0f, 0.5f, 7.0f) *
+                                                          rotateY<float>(-30 * M_PI / 180) *
+                                                          rotateX<float>(20 * M_PI / 180) *
+                                                          rotateZ<float>(M_PI / 2)));
+
+
+
+    construct(context, "../../assets/RT6/papers/papers.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        Float3TextureRef texBaseColor;
+        Float3TextureRef texOcclusionRoughnessMetallic;
+        Float4TextureRef texNormalAlpha;
+        Image2DRef image;
+        if (strcmp(strValue.C_Str(), "Material.001") == 0) {
+            image = loadImage2D(context, pathPrefix + "papers_Material.001_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.001_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.001_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else if (strcmp(strValue.C_Str(), "Material.002") == 0) {
+            image = loadImage2D(context, pathPrefix + "papers_Material.002_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.002_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.002_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else if (strcmp(strValue.C_Str(), "Material.003") == 0) {
+            image = loadImage2D(context, pathPrefix + "papers_Material.003_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.003_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "papers_Material.003_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+
+        SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
+    });
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(translate<float>(5.0f, 0.11f, 5.0f) * rotateY<float>(-10 * M_PI / 180) * scale(1.5f)));
+
+
+
+    construct(context, "../../assets/RT6/teapot/teapot.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        Float3TextureRef texBaseColor;
+        Float3TextureRef texOcclusionRoughnessMetallic;
+        Float4TextureRef texNormalAlpha;
+        Image2DRef image;
+        if (strcmp(strValue.C_Str(), "None") == 0) {
+            image = loadImage2D(context, pathPrefix + "teapot_None_BaseColor.png");
+            texBaseColor = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "teapot_None_OcclusionRoughnessMetallic.png");
+            texOcclusionRoughnessMetallic = context.createImageFloat3Texture(image);
+            image = loadImage2D(context, pathPrefix + "teapot_None_NormalAlpha.png");
+            texNormalAlpha = context.createImageFloat4Texture(image);
+        }
+        else {
+            return createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        }
+
+        SurfaceMaterialRef mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
+    });
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(translate<float>(5.0f, 0.1f, 5.0f) *
+                                                          rotateY<float>(210 * M_PI / 180) *
+                                                          scale(0.75f)));
+
+
+
+    construct(context, "resources/sphere/sphere.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -572,18 +703,22 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         return SurfaceAttributeTuple(mat, nullptr);
     });
-    scene->addChild(sphereNode);
-    sphereNode->setTransform(createShared<StaticTransform>(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+    scene->addChild(modelNode);
+    modelNode->setTransform(createShared<StaticTransform>(translate<float>(7.0f, 2.0f + 0.11f, -4.0f) * scale(2.0f)));
 
 
 
-    //Image2DRef imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr");
-    //Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
-    //EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
-    //scene->setEnvironment(matEnv);
+    //Image2DRef imgEnv = loadImage2D(context, "../../assets/environments/LA_Downtown_Afternoon_Fishing_3k_corrected.exr");
+    Image2DRef imgEnv = loadImage2D(context, "../../assets/environments/Alexs_Apt_2k.exr");
+    //Image2DRef imgEnv = loadImage2D(context, "../../assets/environments/Malibu_Overlook_3k_corrected.exr");
+    Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
+    scene->setEnvironment(matEnv);
 
-    g_cameraPos = Point3D(0, 1.5f, 6.0f);
-    g_cameraOrientation = qRotateY<float>(M_PI);
+
+
+    g_cameraPos = Point3D(0, 10.0f, 20.0f);
+    g_cameraOrientation = qRotateX<float>(-M_PI / 6) * qRotateY<float>(M_PI);
     g_brightnessCoeff = 1.0f;
 
     uint32_t renderTargetSizeX = 1280;
