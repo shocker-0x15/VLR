@@ -221,7 +221,7 @@ namespace VLR {
     RT_CALLABLE_PROGRAM Normal3D NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
         float4 texValue = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v);
         Normal3D normalLocal = 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
-        normalLocal.y *= -1;
+        normalLocal.y *= -1; // for DirectX format normal map
         return normalLocal;
     }
 
