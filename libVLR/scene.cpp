@@ -537,21 +537,24 @@ namespace VLR {
             optix::GeometryInstance optixGeomInst = geomInst->getOptiXObject();
             optixGeomInst->setGeometry(geom.optixGeometry);
             optixGeomInst->setMaterialCount(1);
-            optixGeomInst->setMaterial(0, material->getOptiXObject());
             optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);
             optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
             optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
             if (texNormalAlpha) {
+                optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
                 optixGeomInst["VLR::pv_texNormalAlpha"]->set(texNormalAlpha->getOptiXObject());
                 optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramFetchAlpha());
                 optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramFetchNormal());
             }
             else {
+                optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
                 optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
                 optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
             }
+            uint32_t matIndex = material->getMaterialIndex();
+            optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
             optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
         }
         m_shGeometryInstances.push_back(geomInst);
@@ -624,11 +627,13 @@ namespace VLR {
             optix::GeometryInstance optixGeomInst = m_shGeometryInstance->getOptiXObject();
             optixGeomInst->setGeometry(m_optixGeometry);
             optixGeomInst->setMaterialCount(1);
-            optixGeomInst->setMaterial(0, material->getOptiXObject());
+            optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForInfiniteSphere);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForInfiniteSphere);
             optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
             optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
+            uint32_t matIndex = material->getMaterialIndex();
+            optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
             optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
         }
     }

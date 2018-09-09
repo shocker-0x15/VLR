@@ -261,29 +261,6 @@ namespace VLR {
 
 
 
-    struct Payload {
-        struct {
-            unsigned int wlHint : 29;
-            bool wavelengthSelected : 1;
-            bool terminate : 1;
-            bool maxLengthTerminate : 1;
-        };
-        KernelRNG rng;
-        float initImportance;
-        RGBSpectrum alpha;
-        RGBSpectrum contribution;
-        Point3D origin;
-        Vector3D direction;
-        float prevDirPDF;
-        DirectionType prevSampledType;
-    };
-
-    struct ShadowRayPayload {
-        float fractionalVisibility;
-    };
-
-
-
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> progSigSetupBSDF;
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> progSigSetupEDF;
 

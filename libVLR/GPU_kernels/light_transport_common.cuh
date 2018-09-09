@@ -145,6 +145,29 @@ namespace VLR {
 
 
 
+    struct Payload {
+        struct {
+            unsigned int wlHint : 29;
+            bool wavelengthSelected : 1;
+            bool terminate : 1;
+            bool maxLengthTerminate : 1;
+        };
+        KernelRNG rng;
+        float initImportance;
+        RGBSpectrum alpha;
+        RGBSpectrum contribution;
+        Point3D origin;
+        Vector3D direction;
+        float prevDirPDF;
+        DirectionType prevSampledType;
+    };
+
+    struct ShadowPayload {
+        float fractionalVisibility;
+    };
+
+
+
     // ----------------------------------------------------------------
     // Light
 
@@ -157,7 +180,7 @@ namespace VLR {
         if (!lightSurfacePoint.atInfinity)
             shadowRay.tmax = std::sqrt(*squaredDistance) * 0.9999f;
 
-        ShadowRayPayload shadowPayload;
+        ShadowPayload shadowPayload;
         shadowPayload.fractionalVisibility = 1.0f;
         rtTrace(pv_topGroup, shadowRay, shadowPayload);
 
@@ -248,7 +271,7 @@ namespace VLR {
 
     rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
     rtDeclareVariable(Payload, sm_payload, rtPayload, );
-    rtDeclareVariable(ShadowRayPayload, sm_shadowRayPayload, rtPayload, );
+    rtDeclareVariable(ShadowPayload, sm_shadowPayload, rtPayload, );
 
     typedef rtCallableProgramX<RGBSpectrum(const LensPosSample &, LensPosQueryResult*)> progSigSampleLensPosition;
     typedef rtCallableProgramX<RGBSpectrum(const SurfacePoint &, const IDFSample &, IDFQueryResult*)> progSigSampleIDF;
@@ -263,26 +286,32 @@ namespace VLR {
     rtDeclareVariable(progSigFetchAlpha, pv_progFetchAlpha, , );
     rtDeclareVariable(progSigFetchNormal, pv_progFetchNormal, , );
 
+    RT_PROGRAM void shadowAnyHitDefault() {
+        sm_shadowPayload.fractionalVisibility = 0.0f;
+        rtTerminateRay();
+    }
+
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void stochasticAlphaAnyHit() {
+    RT_PROGRAM void anyHitWithAlpha() {
         HitPointParameter hitPointParam = a_hitPointParam;
         TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
 
         float alpha = pv_progFetchAlpha(texCoord);
 
+        // Stochastic Alpha Test
         if (sm_payload.rng.getFloat0cTo1o() >= alpha)
             rtIgnoreIntersection();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
-    RT_PROGRAM void alphaAnyHit() {
+    RT_PROGRAM void shadowAnyHitWithAlpha() {
         HitPointParameter hitPointParam = a_hitPointParam;
         TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
 
         float alpha = pv_progFetchAlpha(texCoord);
 
-        sm_shadowRayPayload.fractionalVisibility *= (1 - alpha);
-        if (sm_shadowRayPayload.fractionalVisibility == 0.0f)
+        sm_shadowPayload.fractionalVisibility *= (1 - alpha);
+        if (sm_shadowPayload.fractionalVisibility == 0.0f)
             rtTerminateRay();
     }
 }

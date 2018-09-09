@@ -752,15 +752,6 @@ namespace VLR {
     }
 
     SurfaceMaterial::SurfaceMaterial(Context &context) : Object(context) {
-        optix::Context optixContext = context.getOptiXContext();
-        m_optixMaterial = optixContext->createMaterial();
-
-        m_optixMaterial->setClosestHitProgram(Shared::RayType::Primary, context.getOptiXProgramPathTracingIteration());
-        m_optixMaterial->setClosestHitProgram(Shared::RayType::Scattered, context.getOptiXProgramPathTracingIteration());
-        m_optixMaterial->setAnyHitProgram(Shared::RayType::Primary, context.getOptiXProgramStochasticAlphaAnyHit());
-        m_optixMaterial->setAnyHitProgram(Shared::RayType::Scattered, context.getOptiXProgramStochasticAlphaAnyHit());
-        m_optixMaterial->setAnyHitProgram(Shared::RayType::Shadow, context.getOptiXProgramAlphaAnyHit());
-
         m_matIndex = 0xFFFFFFFF;
     }
 
@@ -768,8 +759,6 @@ namespace VLR {
         if (m_matIndex != 0xFFFFFFFF)
             m_context.unsetSurfaceMaterialDescriptor(m_matIndex);
         m_matIndex = 0xFFFFFFFF;
-
-        m_optixMaterial->destroy();
     }
 
 
@@ -808,8 +797,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     MatteSurfaceMaterial::~MatteSurfaceMaterial() {
@@ -861,8 +848,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     SpecularReflectionSurfaceMaterial::~SpecularReflectionSurfaceMaterial() {
@@ -916,8 +901,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     SpecularScatteringSurfaceMaterial::~SpecularScatteringSurfaceMaterial() {
@@ -971,7 +954,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     UE4SurfaceMaterial::~UE4SurfaceMaterial() {
@@ -1024,8 +1006,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     DiffuseEmitterSurfaceMaterial::~DiffuseEmitterSurfaceMaterial() {
@@ -1081,8 +1061,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
     }
 
     MultiSurfaceMaterial::~MultiSurfaceMaterial() {
@@ -1157,8 +1135,6 @@ namespace VLR {
         setupMaterialDescriptor(&matDesc, 0);
 
         m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
-        //m_optixMaterial["VLR::pv_materialIndex"]->setUint(m_matIndex); // 何故かvalidate()でエラーになる。
-        m_optixMaterial["VLR::pv_materialIndex"]->setUserData(sizeof(m_matIndex), &m_matIndex);
 
         m_texEmittance->createImportanceMap(&m_importanceMap);
     }

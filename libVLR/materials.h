@@ -296,7 +296,6 @@ namespace VLR {
             uint32_t edfProcedureSetIndex;
         };
 
-        optix::Material m_optixMaterial;
         uint32_t m_matIndex;
 
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
@@ -313,9 +312,6 @@ namespace VLR {
         SurfaceMaterial(Context &context);
         virtual ~SurfaceMaterial();
 
-        optix::Material &getOptiXObject() {
-            return m_optixMaterial;
-        }
         uint32_t getMaterialIndex() const {
             return m_matIndex;
         }

@@ -72,6 +72,9 @@ namespace VLR {
 
         m_optixContext = optix::Context::create();
 
+        m_optixContext->setEntryPointCount(1);
+        m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
+
         {
             std::string ptx = readTxtFile("resources/ptxes/path_tracing.ptx");
 
@@ -80,14 +83,35 @@ namespace VLR {
             m_optixCallableProgramFetchAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::NormalAlphaModifier_fetchAlpha");
             m_optixCallableProgramFetchNormal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NormalAlphaModifier_fetchNormal");
 
-            m_optixProgramStochasticAlphaAnyHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::stochasticAlphaAnyHit");
-            m_optixProgramAlphaAnyHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::alphaAnyHit");
+            m_optixProgramShadowAnyHitDefault = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitDefault");
+            m_optixProgramAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::anyHitWithAlpha");
+            m_optixProgramShadowAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitWithAlpha");
             m_optixProgramPathTracingIteration = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingIteration");
 
             m_optixProgramPathTracing = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracing");
             m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
             m_optixProgramException = m_optixContext->createProgramFromPTXString(ptx, "VLR::exception");
         }
+
+        m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
+        m_optixContext->setExceptionProgram(0, m_optixProgramException);
+
+        m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
+        m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
+
+        m_optixMaterialDefault = m_optixContext->createMaterial();
+        m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
+        m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
+        //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Primary, );
+        //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Scattered, );
+        m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitDefault);
+
+        m_optixMaterialWithAlpha = m_optixContext->createMaterial();
+        m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
+        m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
+        m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Primary, m_optixProgramAnyHitWithAlpha);
+        m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Scattered, m_optixProgramAnyHitWithAlpha);
+        m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitWithAlpha);
 
 
 
@@ -148,16 +172,6 @@ namespace VLR {
 
         m_optixContext["VLR::pv_materialDescriptorBuffer"]->set(m_optixSurfaceMaterialDescriptorBuffer);
 
-
-
-        m_optixContext->setEntryPointCount(1);
-        m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
-        m_optixContext->setExceptionProgram(0, m_optixProgramException);
-
-        m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
-        m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
-        m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
-
         SurfaceNode::initialize(*this);
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
@@ -217,13 +231,16 @@ namespace VLR {
         m_bsdfProcSetSlotManager.finalize();
         m_optixBSDFProcedureSetBuffer->destroy();
 
+        m_optixMaterialWithAlpha->destroy();
+        m_optixMaterialDefault->destroy();
+
         m_optixProgramException->destroy();
         m_optixProgramPathTracingMiss->destroy();
         m_optixProgramPathTracing->destroy();
 
         m_optixProgramPathTracingIteration->destroy();
-        m_optixProgramAlphaAnyHit->destroy();
-        m_optixProgramStochasticAlphaAnyHit->destroy();
+        m_optixProgramShadowAnyHitWithAlpha->destroy();
+        m_optixProgramAnyHitWithAlpha->destroy();
 
         m_optixCallableProgramFetchNormal->destroy();
         m_optixCallableProgramFetchAlpha->destroy();

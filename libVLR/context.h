@@ -21,13 +21,17 @@ namespace VLR {
         optix::Program m_optixCallableProgramFetchAlpha;
         optix::Program m_optixCallableProgramFetchNormal;
 
-        optix::Program m_optixProgramStochasticAlphaAnyHit; // -- Any Hit Program
-        optix::Program m_optixProgramAlphaAnyHit; // ------------ Any Hit Program
+        optix::Program m_optixProgramShadowAnyHitDefault; // ---- Any Hit Program
+        optix::Program m_optixProgramAnyHitWithAlpha; // -------- Any Hit Program
+        optix::Program m_optixProgramShadowAnyHitWithAlpha; // -- Any Hit Program
         optix::Program m_optixProgramPathTracingIteration; // --- Closest Hit Program
 
         optix::Program m_optixProgramPathTracing; // ------------ Ray Generation Program
         optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramException; // -------------- Exception Program
+
+        optix::Material m_optixMaterialDefault;
+        optix::Material m_optixMaterialWithAlpha;
 
         optix::Buffer m_optixBSDFProcedureSetBuffer;
         uint32_t m_maxNumBSDFProcSet;
@@ -94,15 +98,11 @@ namespace VLR {
             return m_optixCallableProgramFetchNormal;
         }
 
-        // JP: 全マテリアルが共通のClosest Hit, Any Hit Programをバインドする。
-        const optix::Program &getOptiXProgramStochasticAlphaAnyHit() const {
-            return m_optixProgramStochasticAlphaAnyHit;
+        const optix::Material &getOptiXMaterialDefault() const {
+            return m_optixMaterialDefault;
         }
-        const optix::Program &getOptiXProgramAlphaAnyHit() const {
-            return m_optixProgramAlphaAnyHit;
-        }
-        const optix::Program &getOptiXProgramPathTracingIteration() const {
-            return m_optixProgramPathTracingIteration;
+        const optix::Material &getOptiXMaterialWithAlpha() const {
+            return m_optixMaterialWithAlpha;
         }
 
         uint32_t setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet);

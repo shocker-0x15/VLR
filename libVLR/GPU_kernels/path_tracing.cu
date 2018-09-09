@@ -10,11 +10,9 @@ namespace VLR {
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
 
-    // per Material
-    rtDeclareVariable(uint32_t, pv_materialIndex, , );
-
     // per GeometryInstance
     rtDeclareVariable(progSigDecodeHitPoint, pv_progDecodeHitPoint, , );
+    rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
 
     // Common Closest Hit Program for All Primitive Types and Materials
