@@ -29,12 +29,14 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
 現状以下の環境で動作を確認しています。  
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 & Visual Studio 2017 (15.8.2)
+* Windows 10 & Visual Studio 2017 (15.8.5)
 * MacBook Pro Retina Late 2013 (GT 750M 2GB)
 
 動作させるにあたっては以下のライブラリが必要です。  
 It requires the following libraries.
 
+* CUDA 10.0
+* OptiX 5.1
 * OpenEXR 2.2
 * assimp 4.1
 
