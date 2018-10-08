@@ -364,9 +364,9 @@ namespace VLR {
 
     // END: Shallow Hierarchy
     // ----------------------------------------------------------------
-    
-    
-    
+
+
+
     // static
     void SurfaceNode::initialize(Context &context) {
         TriangleMeshSurfaceNode::initialize(context);
@@ -661,9 +661,9 @@ namespace VLR {
         delta.insert(m_shGeometryInstance);
         parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryRemoved, delta);
     }
-    
-    
-    
+
+
+
     ParentNode::ParentNode(Context &context, const std::string &name, const Transform* localToWorld) :
         Node(context, name), m_localToWorld(localToWorld), m_shGeomGroup(context) {
         // JP: 自分自身のTransformを持ったSHTransformを生成。
@@ -688,7 +688,7 @@ namespace VLR {
         for (auto it = m_shTransforms.begin(); it != m_shTransforms.end(); ++it)
             it->second->setName(name);
     }
-    
+
     void ParentNode::addChild(InternalNode* child) {
         m_children.insert(child);
         child->addParent(this);
@@ -851,7 +851,7 @@ namespace VLR {
             //     このInternalNodeのTransformを末尾に持つTransformに変更があったことを親に知らせる。
             if (m_shGeomGroup.getNumInstances() > 0) {
                 selfTransform->setChild(&m_shGeomGroup);
-                
+
                 std::set<SHTransform*> delta;
                 delta.insert(selfTransform);
                 for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
@@ -1326,11 +1326,11 @@ namespace VLR {
         EquirectangularCamera::finalize(context);
         PerspectiveCamera::finalize(context);
     }
-    
-    
-    
+
+
+
     std::map<uint32_t, PerspectiveCamera::OptiXProgramSet> PerspectiveCamera::OptiXProgramSets;
-    
+
     // static
     void PerspectiveCamera::initialize(Context &context) {
         std::string ptx = readTxtFile("resources/ptxes/cameras.ptx");
@@ -1354,7 +1354,7 @@ namespace VLR {
 
         OptiXProgramSets.erase(context.getID());
     }
-    
+
     PerspectiveCamera::PerspectiveCamera(Context &context, const Point3D &position, const Quaternion &orientation,
                                          float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
         Camera(context), m_data(sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist) {

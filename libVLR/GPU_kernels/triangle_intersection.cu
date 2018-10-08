@@ -52,7 +52,7 @@ namespace VLR {
     }
 
 
-    
+
     // bound
     RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];

@@ -158,7 +158,7 @@ namespace std {
     __device__ constexpr bool isinf(float x) {
         return ::isinf(x);
     }
-    
+
     __device__ constexpr bool isnan(float x) {
         return ::isnan(x);
     }

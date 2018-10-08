@@ -166,9 +166,9 @@ namespace VLR {
 
         RT_FUNCTION EDFQuery(DirectionType f = DirectionType::All()) : flags(f) {}
     };
-    
-    
-    
+
+
+
     struct BSDFQuery {
         Vector3D dirLocal;
         Normal3D geometricNormalLocal;
@@ -210,7 +210,7 @@ namespace VLR {
     };
 
 
-    
+
     struct SurfaceLightPosSample {
         float uElem;
         float uPos[2];
@@ -261,6 +261,8 @@ namespace VLR {
 
 
 
+    typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> progSigTextureMap;
+
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> progSigSetupBSDF;
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> progSigSetupEDF;
 
@@ -280,6 +282,7 @@ namespace VLR {
     rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
 
     // Context-scope Variables
+    rtBuffer<TextureMapDescriptor, 1> pv_textureMapDescriptorBuffer;
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
 }

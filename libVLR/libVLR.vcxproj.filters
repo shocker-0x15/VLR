@@ -7,6 +7,7 @@
     <ClCompile Include="slot_manager.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="textures.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\VLR\common.h" />
@@ -30,6 +31,7 @@
     <ClInclude Include="ext\include\half.hpp">
       <Filter>ext</Filter>
     </ClInclude>
+    <ClInclude Include="textures.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

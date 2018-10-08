@@ -278,7 +278,7 @@ namespace VLR {
     };
 
 
-    
+
     class ParentNode : public Node {
     protected:
         std::set<Node*> m_children;

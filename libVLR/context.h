@@ -7,6 +7,10 @@
 #include "slot_manager.h"
 
 namespace VLR {
+    std::string readTxtFile(const std::string& filepath);
+
+
+
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
@@ -32,6 +36,10 @@ namespace VLR {
 
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
+
+        optix::Buffer m_optixTextureMapDescriptorBuffer;
+        uint32_t m_maxNumTextureMapDescriptors;
+        SlotManager m_texMapDescSlotManager;
 
         optix::Buffer m_optixBSDFProcedureSetBuffer;
         uint32_t m_maxNumBSDFProcSet;
@@ -105,6 +113,9 @@ namespace VLR {
             return m_optixMaterialWithAlpha;
         }
 
+        uint32_t setTextureMapDescriptor(const Shared::TextureMapDescriptor &texMapDesc);
+        void unsetTextureMapDescriptor(uint32_t index);
+
         uint32_t setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet);
         void unsetBSDFProcedureSet(uint32_t index);
 
@@ -170,4 +181,66 @@ namespace VLR {
             return m_context;
         }
     };
+
+
+
+    // ----------------------------------------------------------------
+    // Miscellaneous
+
+    template <typename RealType>
+    class DiscreteDistribution1DTemplate {
+        optix::Buffer m_PMF;
+        optix::Buffer m_CDF;
+        RealType m_integral;
+        uint32_t m_numValues;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numValues);
+        void finalize(Context &context);
+
+        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
+    };
+
+    using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    class RegularConstantContinuousDistribution1DTemplate {
+        optix::Buffer m_PDF;
+        optix::Buffer m_CDF;
+        RealType m_integral;
+        uint32_t m_numValues;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numValues);
+        void finalize(Context &context);
+
+        RealType getIntegral() const { return m_integral; }
+        uint32_t getNumValues() const { return m_numValues; }
+
+        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
+    };
+
+    using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
+
+
+
+    template <typename RealType>
+    class RegularConstantContinuousDistribution2DTemplate {
+        optix::Buffer m_raw1DDists;
+        RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
+        RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
+
+    public:
+        void initialize(Context &context, const RealType* values, size_t numD1, size_t numD2);
+        void finalize(Context &context);
+
+        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
+    };
+
+    using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;
+
+    // END: Miscellaneous
+    // ----------------------------------------------------------------
 }

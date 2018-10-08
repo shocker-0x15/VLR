@@ -195,7 +195,7 @@ namespace VLR {
         payload.alpha = alpha;
         payload.contribution = RGBSpectrum::Zero();
 
-        const uint32_t MaxPathLength = 5;
+        const uint32_t MaxPathLength = 25;
         uint32_t pathLength = 0;
         while (true) {
             payload.terminate = true;

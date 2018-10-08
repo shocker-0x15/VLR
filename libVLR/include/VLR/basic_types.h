@@ -1418,7 +1418,7 @@ namespace VLR {
     }
 
 
-    
+
     template <typename RealType>
     struct VLR_API RGBTemplate {
         RealType r, g, b;

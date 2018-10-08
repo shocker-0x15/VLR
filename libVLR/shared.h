@@ -174,6 +174,14 @@ namespace VLR {
 
 
 
+        struct TextureMapDescriptor {
+            int32_t progTextureMap;
+#define VLR_MAX_NUM_TEXTURE_MAPPING_DESCRIPTOR_SLOTS (32)
+            uint32_t data[VLR_MAX_NUM_TEXTURE_MAPPING_DESCRIPTOR_SLOTS];
+        };
+
+
+
         struct SurfaceMaterialDescriptor {
 #define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
             union {
@@ -200,7 +208,7 @@ namespace VLR {
         struct Triangle {
             uint32_t index0, index1, index2;
         };
-        
+
         struct SurfaceLightDescriptor {
             union Body {
                 struct {
@@ -286,6 +294,13 @@ namespace VLR {
 
 
 
+        struct OffsetAndScaleUVTextureMap2D {
+            float offset[2];
+            float scale[2];
+        };
+
+
+
         struct SurfaceMaterialHead {
             int32_t progSetupBSDF;
             uint32_t bsdfProcedureSetIndex;
@@ -295,27 +310,32 @@ namespace VLR {
 
         struct MatteSurfaceMaterial {
             int32_t texAlbedoRoughness;
+            uint32_t texMap;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             int32_t texCoeffR;
             int32_t texEta;
             int32_t tex_k;
+            uint32_t texMap;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texEtaExt;
             int32_t texEtaInt;
+            uint32_t texMap;
         };
 
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
             int32_t texOcclusionRoughnessMetallic;
+            uint32_t texMap;
         };
 
         struct DiffuseEmitterSurfaceMaterial {
             int32_t texEmittance;
+            uint32_t texMap;
         };
 
         struct MultiSurfaceMaterial {

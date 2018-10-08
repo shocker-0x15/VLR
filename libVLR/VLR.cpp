@@ -110,8 +110,8 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
 
 
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                         uint32_t width, uint32_t height, VLRDataFormat format, uint8_t* linearData) {
-    *image = new VLR::LinearImage2D(*context, linearData, width, height, format);
+                                         uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) {
+    *image = new VLR::LinearImage2D(*context, linearData, width, height, format, applyDegamma);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -144,6 +144,23 @@ VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* st
     if (!image->is<VLR::LinearImage2D>())
         return VLR_ERROR_INVALID_TYPE;
     *stride = image->getStride();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2D* texMap,
+                                                        const float offset[2], const float scale[2]) {
+    *texMap = new VLR::OffsetAndScaleUVTextureMap2D(*context, offset, scale);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2D texMap) {
+    if (!texMap->is<VLR::OffsetAndScaleUVTextureMap2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete texMap;
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -241,8 +258,8 @@ VLR_API VLRResult vlrImageFloat4TextureDestroy(VLRContext context, VLRImageFloat
 
 
 VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material,
-                                                VLRFloat4Texture texAlbedoRoughness) {
-    *material = new VLR::MatteSurfaceMaterial(*context, texAlbedoRoughness);
+                                                VLRFloat4Texture texAlbedoRoughness, VLRTextureMap2D texMap) {
+    *material = new VLR::MatteSurfaceMaterial(*context, texAlbedoRoughness, texMap);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -258,8 +275,8 @@ VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSur
 
 
 VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material,
-                                                             VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k) {
-    *material = new VLR::SpecularReflectionSurfaceMaterial(*context, texCoeffR, texEta, tex_k);
+                                                             VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRTextureMap2D texMap) {
+    *material = new VLR::SpecularReflectionSurfaceMaterial(*context, texCoeffR, texEta, tex_k, texMap);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -275,8 +292,8 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context
 
 
 VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
-                                                             VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt) {
-    *material = new VLR::SpecularScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt);
+                                                             VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRTextureMap2D texMap) {
+    *material = new VLR::SpecularScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texMap);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -292,8 +309,8 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context
 
 
 VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                              VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic) {
-    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texOcclusionRoughnessMetallic);
+                                              VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRTextureMap2D texMap) {
+    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texOcclusionRoughnessMetallic, texMap);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -309,8 +326,8 @@ VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4Surface
 
 
 VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
-                                                         VLRFloat3Texture texEmittance) {
-    *material = new VLR::DiffuseEmitterSurfaceMaterial(*context, texEmittance);
+                                                         VLRFloat3Texture texEmittance, VLRTextureMap2D texMap) {
+    *material = new VLR::DiffuseEmitterSurfaceMaterial(*context, texEmittance, texMap);
 
     return VLR_ERROR_NO_ERROR;
 }
