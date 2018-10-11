@@ -1471,10 +1471,16 @@ namespace VLR {
         RT_FUNCTION RealType maxValue() const { return std::fmax(r, std::fmax(g, b)); }
         RT_FUNCTION RealType minValue() const { return std::fmin(r, std::fmin(g, b)); }
         RT_FUNCTION bool hasNonZero() const { return r != 0 || g != 0 || b != 0; }
+        RT_FUNCTION bool hasNegative() const {
+            return r < 0 || g < 0 || b < 0;
+        }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(r) || isnan(g) || isnan(b); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(r) || isinf(g) || isinf(b); }
         RT_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
+        }
+        RT_FUNCTION bool allPositiveFinite() const {
+            return !hasNaN() && !hasInf() && !hasNegative();
         }
 
         RT_FUNCTION RealType luminance(RGBColorSpace space = RGBColorSpace::sRGB) const {

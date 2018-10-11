@@ -167,6 +167,34 @@ VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLR
 
 
 
+VLR_API VLRResult vlrFloat2TextureSetFilterMode(VLRContext context, VLRFloat2Texture texture,
+                                                VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+    if (!texture->isMemberOf<VLR::Float2Texture>())
+        return VLR_ERROR_INVALID_TYPE;
+    texture->setTextureFilterMode(minification, magnification, mipmapping);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrConstantFloat2TextureCreate(VLRContext context, VLRConstantFloat2Texture* texture,
+                                                 const float value[2]) {
+    *texture = new VLR::ConstantFloat2Texture(*context, value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrConstantFloat2TextureDestroy(VLRContext context, VLRConstantFloat2Texture texture) {
+    if (!texture->is<VLR::ConstantFloat2Texture>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete texture;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrFloat3TextureSetFilterMode(VLRContext context, VLRFloat3Texture texture,
                                                 VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
     if (!texture->isMemberOf<VLR::Float3Texture>())
@@ -300,6 +328,23 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context,
 
 VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete material;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
+                                                               VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap) {
+    *material = new VLR::MicrofacetScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texRoughness, texMap);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial material) {
+    if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     delete material;
 

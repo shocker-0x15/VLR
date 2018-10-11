@@ -14,6 +14,7 @@ namespace VLR {
     struct RGBA8x4 { uint8_t r, g, b, a; };
     struct RGBA16Fx4 { half r, g, b, a; };
     struct RGBA32Fx4 { float r, g, b, a; };
+    struct RG32Fx2 { float r, g; };
     struct Gray32F { float v; };
     struct Gray8 { uint8_t v; };
 
@@ -173,6 +174,19 @@ namespace VLR {
         }
 
         void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+    };
+
+
+
+    class ConstantFloat2Texture : public Float2Texture {
+        Image2D* m_image;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        ConstantFloat2Texture(Context &context, const float value[2]);
+        ~ConstantFloat2Texture();
     };
 
 

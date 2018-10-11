@@ -327,6 +327,14 @@ namespace VLR {
             uint32_t texMap;
         };
 
+        struct MicrofacetScatteringSurfaceMaterial {
+            int32_t texCoeff;
+            int32_t texEtaExt;
+            int32_t texEtaInt;
+            int32_t texRoughness;
+            uint32_t texMap;
+        };
+
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
             int32_t texOcclusionRoughnessMetallic;

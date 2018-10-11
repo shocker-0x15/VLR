@@ -102,6 +102,7 @@ namespace VLR {
         MatteSurfaceMaterial::initialize(context);
         SpecularReflectionSurfaceMaterial::initialize(context);
         SpecularScatteringSurfaceMaterial::initialize(context);
+        MicrofacetScatteringSurfaceMaterial::initialize(context);
         UE4SurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
         MultiSurfaceMaterial::initialize(context);
@@ -114,6 +115,7 @@ namespace VLR {
         MultiSurfaceMaterial::finalize(context);
         DiffuseEmitterSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
+        MicrofacetScatteringSurfaceMaterial::finalize(context);
         SpecularScatteringSurfaceMaterial::finalize(context);
         SpecularReflectionSurfaceMaterial::finalize(context);
         MatteSurfaceMaterial::finalize(context);
@@ -296,6 +298,64 @@ namespace VLR {
             mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
 
         return baseIndex + sizeof(Shared::SpecularScatteringSurfaceMaterial) / 4;
+    }
+
+
+
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::OptiXProgramSets;
+
+    // static
+    void MicrofacetScatteringSurfaceMaterial::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::MicrofacetScatteringSurfaceMaterial_setupBSDF",
+            "VLR::MicrofacetBSDF_getBaseColor",
+            "VLR::MicrofacetBSDF_matches",
+            "VLR::MicrofacetBSDF_sampleBSDFInternal",
+            "VLR::MicrofacetBSDF_evaluateBSDFInternal",
+            "VLR::MicrofacetBSDF_evaluateBSDF_PDFInternal",
+            "VLR::MicrofacetBSDF_weightInternal",
+            nullptr,
+            nullptr,
+            nullptr
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void MicrofacetScatteringSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const Float2Texture* texRoughness, const TextureMap2D* texMap) :
+        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texRoughness(texRoughness), m_texMap(texMap) {
+        Shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptor(&matDesc, 0);
+
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+    }
+
+    MicrofacetScatteringSurfaceMaterial::~MicrofacetScatteringSurfaceMaterial() {
+    }
+
+    uint32_t MicrofacetScatteringSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
+        Shared::MicrofacetScatteringSurfaceMaterial &mat = *(Shared::MicrofacetScatteringSurfaceMaterial*)&matDesc->i1[baseIndex];
+        mat.texCoeff = m_texCoeff->getOptiXObject()->getId();
+        mat.texEtaExt = m_texEtaExt->getOptiXObject()->getId();
+        mat.texEtaInt = m_texEtaInt->getOptiXObject()->getId();
+        mat.texRoughness = m_texRoughness->getOptiXObject()->getId();
+        if (m_texMap)
+            mat.texMap = m_texMap->getTextureMapIndex();
+        else
+            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+
+        return baseIndex + sizeof(Shared::MicrofacetScatteringSurfaceMaterial) / 4;
     }
 
 

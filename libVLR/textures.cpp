@@ -10,6 +10,7 @@ namespace VLR {
         sizeof(RGBA8x4),
         sizeof(RGBA16Fx4),
         sizeof(RGBA32Fx4),
+        sizeof(RG32Fx2),
         sizeof(Gray32F),
         sizeof(Gray8),
     };
@@ -26,6 +27,8 @@ namespace VLR {
             return DataFormat::RGBA16Fx4;
         case DataFormat::RGBA32Fx4:
             return DataFormat::RGBA32Fx4;
+        case DataFormat::RG32Fx2:
+            return DataFormat::RG32Fx2;
         case DataFormat::Gray32F:
             return DataFormat::Gray32F;
         case DataFormat::Gray8:
@@ -66,6 +69,9 @@ namespace VLR {
             break;
         case VLR::DataFormat::RGBA32Fx4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
+            break;
+        case VLR::DataFormat::RG32Fx2:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
             break;
         case VLR::DataFormat::Gray32F:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
@@ -182,6 +188,26 @@ namespace VLR {
                         dst.g = sRGB_degamma_s(src.g);
                         dst.b = sRGB_degamma_s(src.b);
                         dst.a = src.a;
+                    }
+                }
+            }
+            else {
+                std::copy_n(srcHead, width * height, dstHead);
+            }
+            break;
+        }
+        case DataFormat::RG32Fx2: {
+            auto srcHead = (const RG32Fx2*)linearData;
+            auto dstHead = (RG32Fx2*)m_data.data();
+            if (applyDegamma) {
+                for (int y = 0; y < height; ++y) {
+                    auto srcLineHead = srcHead + width * y;
+                    auto dstLineHead = dstHead + width * y;
+                    for (int x = 0; x < width; ++x) {
+                        const RG32Fx2 &src = *(srcLineHead + x);
+                        RG32Fx2 &dst = *(dstLineHead + x);
+                        dst.r = sRGB_degamma_s(src.r);
+                        dst.g = sRGB_degamma_s(src.g);
                     }
                 }
             }
@@ -518,6 +544,19 @@ namespace VLR {
 
     void Float2Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
+
+
+    ConstantFloat2Texture::ConstantFloat2Texture(Context &context, const float value[2]) :
+        Float2Texture(context) {
+        float value2[] = {value[0], value[1]};
+        m_image = new LinearImage2D(context, (const uint8_t*)value2, 1, 1, DataFormat::RG32Fx2, false);
+        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+    }
+
+    ConstantFloat2Texture::~ConstantFloat2Texture() {
+        delete m_image;
     }
 
 
