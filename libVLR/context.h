@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <VLR.h>
+#include <VLR_public_types.h>
 #include "basic_types_internal.h"
 #include "shared.h"
 
@@ -11,6 +11,9 @@ namespace VLR {
 
 
 
+    class Scene;
+    class Camera;
+    
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
@@ -150,14 +153,10 @@ namespace VLR {
         }
     };
 
-    class Object {
-    protected:
-        Context &m_context;
 
+
+    class TypeAwareClass {
     public:
-        Object(Context &context);
-        virtual ~Object() {}
-
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
@@ -176,6 +175,20 @@ namespace VLR {
             }
             return false;
         }
+    };
+
+
+
+    class Object : public TypeAwareClass {
+    protected:
+        Context &m_context;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        Object(Context &context);
+        virtual ~Object() {}
 
         Context &getContext() {
             return m_context;

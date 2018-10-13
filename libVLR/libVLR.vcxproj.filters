@@ -3,15 +3,16 @@
   <ItemGroup>
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="debugPrintf.cpp" />
-    <ClCompile Include="VLR.cpp" />
     <ClCompile Include="slot_manager.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="textures.cpp" />
+    <ClCompile Include="VLR.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\VLR\common.h" />
-    <ClInclude Include="include\VLR\VLR.h" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="basic_types_internal.h" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -32,6 +33,16 @@
       <Filter>ext</Filter>
     </ClInclude>
     <ClInclude Include="textures.h" />
+    <ClInclude Include="common_internal.h" />
+    <ClInclude Include="include\VLR\VLR.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\VLRpp.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\VLR_public_types.h">
+      <Filter>API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
@@ -39,6 +50,9 @@
     </Filter>
     <Filter Include="ext">
       <UniqueIdentifier>{e2341fa3-8b02-4d88-bd27-8911d42f9713}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{5b29098c-54b2-455f-a988-5afcf02f08ea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

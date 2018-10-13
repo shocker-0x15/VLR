@@ -198,13 +198,6 @@ namespace VLR {
 
 
 
-        struct Vertex {
-            Point3D position;
-            Normal3D normal;
-            Vector3D tangent;
-            TexCoord2D texCoord;
-        };
-
         struct Triangle {
             uint32_t index0, index1, index2;
         };

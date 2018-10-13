@@ -18,11 +18,11 @@ namespace VLR {
     struct Gray32F { float v; };
     struct Gray8 { uint8_t v; };
 
-    extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num];
+    extern const size_t sizesOfDataFormats[(uint32_t)VLRDataFormat::NumVLRDataFormats];
 
     class Image2D : public Object {
         uint32_t m_width, m_height;
-        DataFormat m_dataFormat;
+        VLRDataFormat m_dataFormat;
         mutable optix::Buffer m_optixDataBuffer;
         mutable bool m_initOptiXObject;
 
@@ -30,9 +30,9 @@ namespace VLR {
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
-        static DataFormat getInternalFormat(DataFormat inputFormat);
+        static VLRDataFormat getInternalFormat(VLRDataFormat inputFormat);
 
-        Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat);
+        Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat dataFormat);
         virtual ~Image2D();
 
         virtual Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const = 0;
@@ -45,7 +45,7 @@ namespace VLR {
         uint32_t getHeight() const {
             return m_height;
         }
-        DataFormat getDataFormat() const {
+        VLRDataFormat getDataFormat() const {
             return m_dataFormat;
         }
         uint32_t getStride() const {
@@ -66,7 +66,7 @@ namespace VLR {
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         // EN: "linearData" means data layout is linear.
-        LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat, bool applyDegamma);
+        LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma);
 
         template <typename PixelType>
         PixelType get(uint32_t x, uint32_t y) const {
@@ -153,7 +153,7 @@ namespace VLR {
             return m_optixTextureSampler;
         }
 
-        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
     };
 
 
@@ -173,7 +173,7 @@ namespace VLR {
             return m_optixTextureSampler;
         }
 
-        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
     };
 
 
@@ -206,7 +206,7 @@ namespace VLR {
             return m_optixTextureSampler;
         }
 
-        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
 
         virtual void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const {
             VLRAssert_NotImplemented();
@@ -257,7 +257,7 @@ namespace VLR {
             return m_optixTextureSampler;
         }
 
-        void setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping);
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
     };
 
 

@@ -4,7 +4,7 @@ namespace VLR {
     // ----------------------------------------------------------------
     // Textures
 
-    const size_t sizesOfDataFormats[(uint32_t)DataFormat::Num] = {
+    const size_t sizesOfDataFormats[(uint32_t)NumVLRDataFormats] = {
         sizeof(RGB8x3),
         sizeof(RGB_8x4),
         sizeof(RGBA8x4),
@@ -15,32 +15,32 @@ namespace VLR {
         sizeof(Gray8),
     };
 
-    DataFormat Image2D::getInternalFormat(DataFormat inputFormat) {
+    VLRDataFormat Image2D::getInternalFormat(VLRDataFormat inputFormat) {
         switch (inputFormat) {
-        case DataFormat::RGB8x3:
-            return DataFormat::RGBA8x4;
-        case DataFormat::RGB_8x4:
-            return DataFormat::RGBA8x4;
-        case DataFormat::RGBA8x4:
-            return DataFormat::RGBA8x4;
-        case DataFormat::RGBA16Fx4:
-            return DataFormat::RGBA16Fx4;
-        case DataFormat::RGBA32Fx4:
-            return DataFormat::RGBA32Fx4;
-        case DataFormat::RG32Fx2:
-            return DataFormat::RG32Fx2;
-        case DataFormat::Gray32F:
-            return DataFormat::Gray32F;
-        case DataFormat::Gray8:
-            return DataFormat::Gray8;
+        case VLRDataFormat_RGB8x3:
+            return VLRDataFormat_RGBA8x4;
+        case VLRDataFormat_RGB_8x4:
+            return VLRDataFormat_RGBA8x4;
+        case VLRDataFormat_RGBA8x4:
+            return VLRDataFormat_RGBA8x4;
+        case VLRDataFormat_RGBA16Fx4:
+            return VLRDataFormat_RGBA16Fx4;
+        case VLRDataFormat_RGBA32Fx4:
+            return VLRDataFormat_RGBA32Fx4;
+        case VLRDataFormat_RG32Fx2:
+            return VLRDataFormat_RG32Fx2;
+        case VLRDataFormat_Gray32F:
+            return VLRDataFormat_Gray32F;
+        case VLRDataFormat_Gray8:
+            return VLRDataFormat_Gray8;
         default:
             VLRAssert(false, "Data format is invalid.");
             break;
         }
-        return DataFormat::RGBA8x4;
+        return VLRDataFormat_RGBA8x4;
     }
 
-    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, DataFormat dataFormat) :
+    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat dataFormat) :
         Object(context), m_width(width), m_height(height), m_dataFormat(dataFormat), m_initOptiXObject(false) {
     }
 
@@ -55,28 +55,28 @@ namespace VLR {
 
         optix::Context optixContext = m_context.getOptiXContext();
         switch (m_dataFormat) {
-        case VLR::DataFormat::RGB8x3:
+        case VLRDataFormat_RGB8x3:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
             break;
-        case VLR::DataFormat::RGB_8x4:
+        case VLRDataFormat_RGB_8x4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
             break;
-        case VLR::DataFormat::RGBA8x4:
+        case VLRDataFormat_RGBA8x4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
             break;
-        case VLR::DataFormat::RGBA16Fx4:
+        case VLRDataFormat_RGBA16Fx4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
             break;
-        case VLR::DataFormat::RGBA32Fx4:
+        case VLRDataFormat_RGBA32Fx4:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
             break;
-        case VLR::DataFormat::RG32Fx2:
+        case VLRDataFormat_RG32Fx2:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
             break;
-        case VLR::DataFormat::Gray32F:
+        case VLRDataFormat_Gray32F:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
             break;
-        case VLR::DataFormat::Gray8:
+        case VLRDataFormat_Gray8:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
             break;
         default:
@@ -91,12 +91,12 @@ namespace VLR {
 
 
 
-    LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, DataFormat dataFormat, bool applyDegamma) :
+    LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
         Image2D(context, width, height, Image2D::getInternalFormat(dataFormat)), m_copyDone(false) {
         m_data.resize(getStride() * getWidth() * getHeight());
 
         switch (dataFormat) {
-        case DataFormat::RGB8x3: {
+        case VLRDataFormat_RGB8x3: {
             auto srcHead = (const RGB8x3*)linearData;
             auto dstHead = (RGBA8x4*)m_data.data();
             for (int y = 0; y < height; ++y) {
@@ -113,7 +113,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::RGB_8x4: {
+        case VLRDataFormat_RGB_8x4: {
             auto srcHead = (const RGB_8x4*)linearData;
             auto dstHead = (RGBA8x4*)m_data.data();
             for (int y = 0; y < height; ++y) {
@@ -130,7 +130,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::RGBA8x4: {
+        case VLRDataFormat_RGBA8x4: {
             auto srcHead = (const RGBA8x4*)linearData;
             auto dstHead = (RGBA8x4*)m_data.data();
             if (applyDegamma) {
@@ -152,7 +152,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::RGBA16Fx4: {
+        case VLRDataFormat_RGBA16Fx4: {
             auto srcHead = (const RGBA16Fx4*)linearData;
             auto dstHead = (RGBA16Fx4*)m_data.data();
             if (applyDegamma) {
@@ -174,7 +174,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::RGBA32Fx4: {
+        case VLRDataFormat_RGBA32Fx4: {
             auto srcHead = (const RGBA32Fx4*)linearData;
             auto dstHead = (RGBA32Fx4*)m_data.data();
             if (applyDegamma) {
@@ -196,7 +196,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::RG32Fx2: {
+        case VLRDataFormat_RG32Fx2: {
             auto srcHead = (const RG32Fx2*)linearData;
             auto dstHead = (RG32Fx2*)m_data.data();
             if (applyDegamma) {
@@ -216,7 +216,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::Gray32F: {
+        case VLRDataFormat_Gray32F: {
             auto srcHead = (const Gray32F*)linearData;
             auto dstHead = (Gray32F*)m_data.data();
             if (applyDegamma) {
@@ -235,7 +235,7 @@ namespace VLR {
             }
             break;
         }
-        case DataFormat::Gray8: {
+        case VLRDataFormat_Gray8: {
             auto srcHead = (const Gray8*)linearData;
             auto dstHead = (Gray8*)m_data.data();
             if (applyDegamma) {
@@ -300,7 +300,7 @@ namespace VLR {
                 };
 
                 switch (getDataFormat()) {
-                case DataFormat::RGBA16Fx4: {
+                case VLRDataFormat_RGBA16Fx4: {
                     CompensatedSum<float> sumR(0), sumG(0), sumB(0), sumA(0);
                     RGBA16Fx4 pix;
 
@@ -367,11 +367,11 @@ namespace VLR {
         uint32_t width = getWidth();
         uint32_t height = getHeight();
         uint32_t stride;
-        DataFormat newDataFormat;
+        VLRDataFormat newDataFormat;
         switch (getDataFormat()) {
-        case DataFormat::RGBA16Fx4: {
+        case VLRDataFormat_RGBA16Fx4: {
             stride = sizeof(float);
-            newDataFormat = DataFormat::Gray32F;
+            newDataFormat = VLRDataFormat_Gray32F;
             break;
         }
         default:
@@ -384,7 +384,7 @@ namespace VLR {
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 switch (getDataFormat()) {
-                case DataFormat::RGBA16Fx4: {
+                case VLRDataFormat_RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
                     float Y = RGBSpectrum(pix.r, pix.g, pix.b).luminance(RGBColorSpace::sRGB);
                     *(float*)&data[(y * width + x) * stride] = Y;
@@ -521,7 +521,7 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
-    void FloatTexture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+    void FloatTexture::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
@@ -542,7 +542,7 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
-    void Float2Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+    void Float2Texture::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
@@ -551,7 +551,7 @@ namespace VLR {
     ConstantFloat2Texture::ConstantFloat2Texture(Context &context, const float value[2]) :
         Float2Texture(context) {
         float value2[] = {value[0], value[1]};
-        m_image = new LinearImage2D(context, (const uint8_t*)value2, 1, 1, DataFormat::RG32Fx2, false);
+        m_image = new LinearImage2D(context, (const uint8_t*)value2, 1, 1, VLRDataFormat_RG32Fx2, false);
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
     }
 
@@ -576,7 +576,7 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
-    void Float3Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+    void Float3Texture::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
@@ -585,7 +585,7 @@ namespace VLR {
     ConstantFloat3Texture::ConstantFloat3Texture(Context &context, const float value[3]) :
         Float3Texture(context) {
         float value4[] = { value[0], value[1], value[2], 0 };
-        m_image = new LinearImage2D(context, (const uint8_t*)value4, 1, 1, DataFormat::RGBA32Fx4, false);
+        m_image = new LinearImage2D(context, (const uint8_t*)value4, 1, 1, VLRDataFormat_RGBA32Fx4, false);
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
     }
 
@@ -637,7 +637,7 @@ namespace VLR {
         m_optixTextureSampler->destroy();
     }
 
-    void Float4Texture::setTextureFilterMode(TextureFilter minification, TextureFilter magnification, TextureFilter mipmapping) {
+    void Float4Texture::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
@@ -645,7 +645,7 @@ namespace VLR {
 
     ConstantFloat4Texture::ConstantFloat4Texture(Context &context, const float value[4]) :
         Float4Texture(context) {
-        m_image = new LinearImage2D(context, (const uint8_t*)value, 1, 1, DataFormat::RGBA32Fx4, false);
+        m_image = new LinearImage2D(context, (const uint8_t*)value, 1, 1, VLRDataFormat_RGBA32Fx4, false);
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
     }
 

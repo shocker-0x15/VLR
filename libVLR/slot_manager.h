@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "common.h"
+#include "common_internal.h"
 
 namespace VLR {
     class SlotManager {

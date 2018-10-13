@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "../basic_types_internal.h"
 #include "../shared.h"
 #include "random_distributions.cuh"
 

@@ -130,6 +130,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic_types_internal.h" />
+    <ClInclude Include="common_internal.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
@@ -138,6 +139,8 @@
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
     <ClInclude Include="include\VLR\VLR.h" />
+    <ClInclude Include="include\VLR\VLRpp.h" />
+    <ClInclude Include="include\VLR\VLR_public_types.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared.h" />

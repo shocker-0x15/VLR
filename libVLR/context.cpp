@@ -2,7 +2,6 @@
 
 #include <random>
 
-#include "materials.h"
 #include "scene.h"
 
 namespace VLR {
@@ -25,7 +24,9 @@ namespace VLR {
 
 #define defineClassID(BaseType, Type) const ClassIdentifier Type::ClassID = ClassIdentifier(&BaseType::ClassID)
 
-    const ClassIdentifier Object::ClassID = ClassIdentifier((ClassIdentifier*)nullptr);
+    const ClassIdentifier TypeAwareClass::ClassID = ClassIdentifier((ClassIdentifier*)nullptr);
+
+    defineClassID(TypeAwareClass, Object);
 
     defineClassID(Object, Image2D);
     defineClassID(Image2D, LinearImage2D);
@@ -52,6 +53,9 @@ namespace VLR {
     defineClassID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);
     defineClassID(SurfaceMaterial, MultiSurfaceMaterial);
     defineClassID(SurfaceMaterial, EnvironmentEmitterSurfaceMaterial);
+
+    defineClassID(Object, Transform);
+    defineClassID(Transform, StaticTransform);
 
     defineClassID(Object, Node);
     defineClassID(Node, SurfaceNode);

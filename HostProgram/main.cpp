@@ -1,8 +1,11 @@
 ﻿#include <cstdio>
 #include <cstdint>
+#include <set>
+#include <functional>
 
-#include <VLR/VLR.h>
+#include <VLR/VLRpp.h>
 
+// only for catching an exception.
 #include <optix_world.h>
 
 #include "StopWatch.h"
@@ -117,6 +120,11 @@ float g_phiAngle;
 float g_thetaAngle;
 int32_t g_cameraType;
 
+template <typename T, size_t size>
+constexpr size_t lengthof(const T(&array)[size]) {
+    return size;
+}
+
 static std::string readTxtFile(const std::string& filepath) {
     std::ifstream ifs;
     ifs.open(filepath, std::ios::in);
@@ -161,14 +169,14 @@ static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::strin
             curDataHead += width;
         }
 
-        ret = context.createLinearImage2D(width, height, DataFormat::RGBA16Fx4, applyDegamma, (uint8_t*)linearImageData);
+        ret = context.createLinearImage2D(width, height, VLRDataFormat_RGBA16Fx4, applyDegamma, (uint8_t*)linearImageData);
 
         delete[] linearImageData;
     }
     else {
         int32_t width, height, n;
         uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
-        ret = context.createLinearImage2D(width, height, DataFormat::RGBA8x4, applyDegamma, linearImageData);
+        ret = context.createLinearImage2D(width, height, VLRDataFormat_RGBA8x4, applyDegamma, linearImageData);
         stbi_image_free(linearImageData);
     }
 
@@ -195,7 +203,7 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
         tf.d1, tf.d2, tf.d3, tf.d4,
     };
 
-    *nodeOut = context.createInternalNode(nodeSrc->mName.C_Str(), createShared<StaticTransform>(Matrix4x4(tfElems)));
+    *nodeOut = context.createInternalNode(nodeSrc->mName.C_Str(), context.createStaticTransform(tfElems));
 
     std::vector<uint32_t> meshIndices;
     for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
@@ -334,7 +342,7 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    g_scene = context.createScene(std::make_shared<StaticTransform>(translate(0.0f, 0.0f, 0.0f)));
+    g_scene = context.createScene(context.createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
@@ -381,7 +389,7 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
         {
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
             Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-            texAlbedoRoughness->setTextureFilterMode(VLR::TextureFilter::Nearest, VLR::TextureFilter::Nearest, VLR::TextureFilter::None);
+            texAlbedoRoughness->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
 
             std::vector<uint32_t> matGroup = {
@@ -524,7 +532,7 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
         return SurfaceAttributeTuple(mat, nullptr);
     });
     g_scene->addChild(sphereNode);
-    sphereNode->setTransform(createShared<StaticTransform>(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+    sphereNode->setTransform(context.createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
 
 
 
@@ -560,7 +568,7 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    g_scene = context.createScene(std::make_shared<StaticTransform>(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    g_scene = context.createScene(context.createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -570,7 +578,7 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
         Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-        texAlbedoRoughness->setTextureFilterMode(TextureFilter::Nearest, TextureFilter::Nearest, TextureFilter::None);
+        texAlbedoRoughness->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
         SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, context.createOffsetAndScaleUVTextureMap2D(offset, scale));
@@ -654,7 +662,7 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
         return SurfaceAttributeTuple(mat, nullptr);
     });
     g_scene->addChild(modelNode);
-    modelNode->setTransform(std::make_shared<StaticTransform>(translate<float>(0, 0.04089, 0)));
+    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
 
 
 
@@ -750,8 +758,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         context.setDevices(deviceArray.data(), deviceArray.size());
     }
 
-    createCornellBoxScene(context);
-    //createMaterialTestScene(context);
+    //createCornellBoxScene(context);
+    createMaterialTestScene(context);
 
 
 

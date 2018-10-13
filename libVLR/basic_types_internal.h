@@ -1,19 +1,20 @@
 #pragma once
 
 #include <optix_world.h>
+#include "common_internal.h"
 #include "include/VLR/basic_types.h"
 
 namespace VLR {
-    template struct VLR_API Vector3DTemplate<float>;
-    template struct VLR_API Vector4DTemplate<float>;
-    template struct VLR_API Normal3DTemplate<float>;
-    template struct VLR_API Point3DTemplate<float>;
-    template struct VLR_API TexCoord2DTemplate<float>;
-    template struct VLR_API BoundingBox3DTemplate<float>;
-    template struct VLR_API Matrix3x3Template<float>;
-    template struct VLR_API Matrix4x4Template<float>;
-    template struct VLR_API QuaternionTemplate<float>;
-    template struct VLR_API RGBTemplate<float>;
+    //template struct VLR_API Vector3DTemplate<float>;
+    //template struct VLR_API Vector4DTemplate<float>;
+    //template struct VLR_API Normal3DTemplate<float>;
+    //template struct VLR_API Point3DTemplate<float>;
+    //template struct VLR_API TexCoord2DTemplate<float>;
+    //template struct VLR_API BoundingBox3DTemplate<float>;
+    //template struct VLR_API Matrix3x3Template<float>;
+    //template struct VLR_API Matrix4x4Template<float>;
+    //template struct VLR_API QuaternionTemplate<float>;
+    //template struct VLR_API RGBTemplate<float>;
 
 
 

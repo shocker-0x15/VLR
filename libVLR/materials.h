@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "context.h"
 #include "textures.h"
 
 namespace VLR {

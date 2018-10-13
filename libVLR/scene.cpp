@@ -469,11 +469,10 @@ namespace VLR {
 
         optix::Context optixContext = m_context.getOptiXContext();
         m_optixVertexBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_vertices.size());
-        m_optixVertexBuffer->setElementSize(sizeof(Shared::Vertex));
+        m_optixVertexBuffer->setElementSize(sizeof(Vertex));
         {
-            auto dstVertices = (Shared::Vertex*)m_optixVertexBuffer->map();
-            static_assert(sizeof(Vertex) == sizeof(Shared::Vertex), "These two types must match in size (and structure).");
-            std::copy_n((Shared::Vertex*)m_vertices.data(), m_vertices.size(), dstVertices);
+            auto dstVertices = (Vertex*)m_optixVertexBuffer->map();
+            std::copy_n((Vertex*)m_vertices.data(), m_vertices.size(), dstVertices);
             m_optixVertexBuffer->unmap();
         }
 
@@ -669,7 +668,7 @@ namespace VLR {
         // JP: 自分自身のTransformを持ったSHTransformを生成。
         // EN: 
         if (m_localToWorld->isStatic()) {
-            StaticTransform* tr = (StaticTransform*)m_localToWorld;
+            auto tr = (const StaticTransform*)m_localToWorld;
             m_shTransforms[nullptr] = new SHTransform(name, m_context, *tr, nullptr);
         }
         else {

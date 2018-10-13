@@ -1,7 +1,51 @@
 ﻿#pragma once
 
-#include <VLR.h>
 #include "scene.h"
+
+typedef VLR::Object* VLRObject;
+
+typedef VLR::Context* VLRContext;
+
+typedef VLR::Image2D* VLRImage2D;
+typedef VLR::LinearImage2D* VLRLinearImage2D;
+
+typedef VLR::TextureMap2D* VLRTextureMap2D;
+typedef VLR::OffsetAndScaleUVTextureMap2D* VLROffsetAndScaleUVTextureMap2D;
+typedef VLR::FloatTexture* VLRFloatTexture;
+typedef VLR::Float2Texture* VLRFloat2Texture;
+typedef VLR::ConstantFloat2Texture* VLRConstantFloat2Texture;
+typedef VLR::Float3Texture* VLRFloat3Texture;
+typedef VLR::ConstantFloat3Texture* VLRConstantFloat3Texture;
+typedef VLR::ImageFloat3Texture* VLRImageFloat3Texture;
+typedef VLR::Float4Texture* VLRFloat4Texture;
+typedef VLR::ConstantFloat4Texture* VLRConstantFloat4Texture;
+typedef VLR::ImageFloat4Texture* VLRImageFloat4Texture;
+
+typedef VLR::SurfaceMaterial* VLRSurfaceMaterial;
+typedef VLR::MatteSurfaceMaterial* VLRMatteSurfaceMaterial;
+typedef VLR::SpecularReflectionSurfaceMaterial* VLRSpecularReflectionSurfaceMaterial;
+typedef VLR::SpecularScatteringSurfaceMaterial* VLRSpecularScatteringSurfaceMaterial;
+typedef VLR::MicrofacetReflectionSurfaceMaterial* VLRMicrofacetReflectionSurfaceMaterial;
+typedef VLR::MicrofacetScatteringSurfaceMaterial* VLRMicrofacetScatteringSurfaceMaterial;
+typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
+typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
+typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
+typedef VLR::EnvironmentEmitterSurfaceMaterial* VLREnvironmentEmitterSurfaceMaterial;
+
+typedef VLR::Transform* VLRTransform;
+typedef VLR::Transform const* VLRTransformConst;
+typedef VLR::StaticTransform* VLRStaticTransform;
+
+typedef VLR::SurfaceNode* VLRSurfaceNode;
+typedef VLR::TriangleMeshSurfaceNode* VLRTriangleMeshSurfaceNode;
+typedef VLR::InternalNode* VLRInternalNode;
+typedef VLR::Scene* VLRScene;
+
+typedef VLR::Camera* VLRCamera;
+typedef VLR::PerspectiveCamera* VLRPerspectiveCamera;
+typedef VLR::EquirectangularCamera* VLREquirectangularCamera;
+
+#include <VLR.h>
 
 
 
@@ -438,6 +482,24 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context
 
 
 
+VLR_API VLRResult vlrStaticTransformCreate(VLRContext context, VLRStaticTransform* transform,
+                                           const float mat[16]) {
+    VLR::Matrix4x4 mat4x4(mat);
+    *transform = new VLR::StaticTransform(mat4x4);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrStaticTransformDestroy(VLRContext context, VLRStaticTransform transform) {
+    if (!transform->is<VLR::StaticTransform>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete transform;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode, 
                                                    const char* name) {
     *surfaceNode = new VLR::TriangleMeshSurfaceNode(*context, name);
@@ -475,7 +537,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
 
     std::vector<VLR::Vertex> vecVertices;
     vecVertices.resize(numVertices);
-    std::copy_n(vertices, numVertices, vecVertices.data());
+    std::copy_n((VLR::Vertex*)vertices, numVertices, vecVertices.data());
 
     surfaceNode->setVertices(std::move(vecVertices));
 
@@ -502,7 +564,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
 
 VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                        const char* name, const VLR::Transform* transform) {
+                                        const char* name, VLRTransform transform) {
     *node = new VLR::InternalNode(*context, name, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -532,7 +594,7 @@ VLR_API VLRResult vlrInternalNodeGetName(VLRInternalNode node, const char** name
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::Transform* localToWorld) {
+VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransform localToWorld) {
     if (!node->is<VLR::InternalNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setTransform(localToWorld);
@@ -540,7 +602,7 @@ VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, const VLR::T
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, const VLR::Transform** localToWorld) {
+VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, VLRTransformConst* localToWorld) {
     if (!node->is<VLR::InternalNode>())
         return VLR_ERROR_INVALID_TYPE;
     *localToWorld = node->getTransform();
@@ -579,7 +641,7 @@ VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject chi
 
 
 VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                 const VLR::Transform* transform) {
+                                 VLRTransform transform) {
     *scene = new VLR::Scene(*context, transform);
 
     return VLR_ERROR_NO_ERROR;
@@ -593,7 +655,7 @@ VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, const VLR::Transform* localToWorld) {
+VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransform localToWorld) {
     if (!scene->is<VLR::Scene>())
         return VLR_ERROR_INVALID_TYPE;
     scene->setTransform(localToWorld);
@@ -642,9 +704,9 @@ VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSu
 
 
 VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera,
-                                             const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                             const VLRPoint3D* position, const VLRQuaternion* orientation,
                                              float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) {
-    *camera = new VLR::PerspectiveCamera(*context, position, orientation, sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
+    *camera = new VLR::PerspectiveCamera(*context, *(VLR::Point3D*)position, *(VLR::Quaternion*)orientation, sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -657,18 +719,18 @@ VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspective
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLR::Point3D &position) {
+VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLRPoint3D* position) {
     if (!camera->is<VLR::PerspectiveCamera>())
         return VLR_ERROR_INVALID_TYPE;
-    camera->setPosition(position);
+    camera->setPosition(*(VLR::Point3D*)position);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLR::Quaternion &orientation) {
+VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLRQuaternion* orientation) {
     if (!camera->is<VLR::PerspectiveCamera>())
         return VLR_ERROR_INVALID_TYPE;
-    camera->setOrientation(orientation);
+    camera->setOrientation(*(VLR::Quaternion*)orientation);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -708,9 +770,9 @@ VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamer
 
 
 VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera,
-                                             const VLR::Point3D &position, const VLR::Quaternion &orientation,
+                                                 const VLRPoint3D* position, const VLRQuaternion* orientation,
                                                  float sensitivity, float phiAngle, float thetaAngle) {
-    *camera = new VLR::EquirectangularCamera(*context, position, orientation, sensitivity, phiAngle, thetaAngle);
+    *camera = new VLR::EquirectangularCamera(*context, *(VLR::Point3D*)position, *(VLR::Quaternion*)orientation, sensitivity, phiAngle, thetaAngle);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -723,18 +785,18 @@ VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirec
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLR::Point3D &position) {
+VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLRPoint3D* position) {
     if (!camera->is<VLR::EquirectangularCamera>())
         return VLR_ERROR_INVALID_TYPE;
-    camera->setPosition(position);
+    camera->setPosition(*(VLR::Point3D*)position);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLR::Quaternion &orientation) {
+VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLRQuaternion* orientation) {
     if (!camera->is<VLR::EquirectangularCamera>())
         return VLR_ERROR_INVALID_TYPE;
-    camera->setOrientation(orientation);
+    camera->setOrientation(*(VLR::Quaternion*)orientation);
 
     return VLR_ERROR_NO_ERROR;
 }

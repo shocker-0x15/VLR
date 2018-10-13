@@ -3,6 +3,43 @@
 #include "materials.h"
 
 namespace VLR {
+    class Transform : public TypeAwareClass {
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        virtual ~Transform() {}
+
+        virtual bool isStatic() const = 0;
+    };
+
+
+
+    class StaticTransform : public Transform {
+        Matrix4x4 m_matrix;
+        Matrix4x4 m_invMatrix;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
+
+        bool isStatic() const override { return true; }
+
+        StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
+        StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
+        bool operator==(const StaticTransform &t) const { return m_matrix == t.m_matrix; }
+        bool operator!=(const StaticTransform &t) const { return m_matrix != t.m_matrix; }
+
+        void getArrays(float mat[16], float invMat[16]) const {
+            m_matrix.getArray(mat);
+            m_invMatrix.getArray(invMat);
+        }
+    };
+
+
+
     // ----------------------------------------------------------------
     // Shallow Hierarchy
 
@@ -153,6 +190,7 @@ namespace VLR {
     class Node;
     class ParentNode;
     class RootNode;
+    class InternalNode;
 
 
 

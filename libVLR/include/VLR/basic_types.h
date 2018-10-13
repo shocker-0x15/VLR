@@ -4,7 +4,7 @@
 
 namespace VLR {
     template <typename RealType>
-    struct VLR_API Vector3DTemplate {
+    struct Vector3DTemplate {
         RealType x, y, z;
 
 #if defined(VLR_Device)
@@ -133,7 +133,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API Vector4DTemplate {
+    struct Vector4DTemplate {
     public:
         RealType x, y, z, w;
 
@@ -201,7 +201,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API Normal3DTemplate {
+    struct Normal3DTemplate {
         RealType x, y, z;
 
 #if defined(VLR_Device)
@@ -351,7 +351,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API Point3DTemplate {
+    struct Point3DTemplate {
         RealType x, y, z;
 
 #if defined(VLR_Device)
@@ -441,7 +441,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API TexCoord2DTemplate {
+    struct TexCoord2DTemplate {
         RealType u, v;
 
 #if defined(VLR_Device)
@@ -489,7 +489,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API BoundingBox3DTemplate {
+    struct BoundingBox3DTemplate {
         enum Axis : uint8_t {
             Axis_X = 0,
             Axis_Y,
@@ -597,7 +597,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API Matrix3x3Template {
+    struct Matrix3x3Template {
         union {
             struct { RealType m00, m10, m20; };
             Vector3DTemplate<RealType> c0;
@@ -616,7 +616,7 @@ namespace VLR {
 #else
         constexpr Matrix3x3Template() : c0(), c1(), c2() { }
 #endif
-        RT_FUNCTION constexpr Matrix3x3Template(RealType array[9]) :
+        RT_FUNCTION constexpr Matrix3x3Template(const RealType array[9]) :
             m00(array[0]), m10(array[1]), m20(array[2]),
             m01(array[3]), m11(array[4]), m21(array[5]),
             m02(array[6]), m12(array[7]), m22(array[8]) { }
@@ -824,7 +824,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API Matrix4x4Template {
+    struct Matrix4x4Template {
         union {
             struct { RealType m00, m10, m20, m30; };
             Vector4DTemplate<RealType> c0;
@@ -847,7 +847,7 @@ namespace VLR {
 #else
         constexpr Matrix4x4Template() : c0(), c1(), c2(), c3() { }
 #endif
-        RT_FUNCTION constexpr Matrix4x4Template(RealType array[16]) :
+        RT_FUNCTION constexpr Matrix4x4Template(const RealType array[16]) :
             m00(array[0]), m10(array[1]), m20(array[2]), m30(array[3]),
             m01(array[4]), m11(array[5]), m21(array[6]), m31(array[7]),
             m02(array[8]), m12(array[9]), m22(array[10]), m32(array[11]),
@@ -1176,10 +1176,10 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API QuaternionTemplate {
+    struct QuaternionTemplate {
         union {
             Vector3DTemplate<RealType> v;
-            struct VLR_API { RealType x, y, z; };
+            struct { RealType x, y, z; };
         };
         RealType w;
 
@@ -1420,7 +1420,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    struct VLR_API RGBTemplate {
+    struct RGBTemplate {
         RealType r, g, b;
         RT_FUNCTION static constexpr uint32_t NumComponents() { return 3; }
 
@@ -1569,4 +1569,13 @@ namespace VLR {
     using Matrix4x4 = Matrix4x4Template<float>;
     using Quaternion = QuaternionTemplate<float>;
     using RGBSpectrum = RGBTemplate<float>;
+
+
+
+    struct Vertex {
+        Point3D position;
+        Normal3D normal;
+        Vector3D tangent;
+        TexCoord2D texCoord;
+    };
 }
