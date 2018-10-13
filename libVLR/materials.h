@@ -118,6 +118,29 @@ namespace VLR {
 
 
 
+    class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const Float3Texture* m_texEta;
+        const Float3Texture* m_tex_k;
+        const Float2Texture* m_texRoughness;
+        const TextureMap2D* m_texMap;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        MicrofacetReflectionSurfaceMaterial(Context &context, const Float3Texture* texEta, const Float3Texture* tex_k, const Float2Texture* texRoughness, const TextureMap2D* texMap);
+        ~MicrofacetReflectionSurfaceMaterial();
+
+        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+    };
+
+
+
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 

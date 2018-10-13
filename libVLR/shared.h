@@ -327,6 +327,13 @@ namespace VLR {
             uint32_t texMap;
         };
 
+        struct MicrofacetReflectionSurfaceMaterial {
+            int32_t texEta;
+            int32_t tex_k;
+            int32_t texRoughness;
+            uint32_t texMap;
+        };
+
         struct MicrofacetScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texEtaExt;

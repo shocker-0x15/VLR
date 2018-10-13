@@ -8,6 +8,158 @@ namespace VLR {
 
 
 
+    class FresnelConductor {
+        RGBSpectrum m_eta;
+        RGBSpectrum m_k;
+
+    public:
+        RT_FUNCTION FresnelConductor(const RGBSpectrum &eta, const RGBSpectrum &k) : m_eta(eta), m_k(k) {}
+
+        RT_FUNCTION RGBSpectrum evaluate(float cosEnter) const {
+            cosEnter = std::fabs(cosEnter);
+            float cosEnter2 = cosEnter * cosEnter;
+            RGBSpectrum _2EtaCosEnter = 2.0f * m_eta * cosEnter;
+            RGBSpectrum tmp_f = m_eta * m_eta + m_k * m_k;
+            RGBSpectrum tmp = tmp_f * cosEnter2;
+            RGBSpectrum Rparl2 = (tmp - _2EtaCosEnter + 1) / (tmp + _2EtaCosEnter + 1);
+            RGBSpectrum Rperp2 = (tmp_f - _2EtaCosEnter + cosEnter2) / (tmp_f + _2EtaCosEnter + cosEnter2);
+
+            return (Rparl2 + Rperp2) / 2.0f;
+        }
+        RT_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+            cosEnter = std::fabs(cosEnter);
+            float cosEnter2 = cosEnter * cosEnter;
+            float _2EtaCosEnter = 2.0f * m_eta[wlIdx] * cosEnter;
+            float tmp_f = m_eta[wlIdx] * m_eta[wlIdx] + m_k[wlIdx] * m_k[wlIdx];
+            float tmp = tmp_f * cosEnter2;
+            float Rparl2 = (tmp - _2EtaCosEnter + 1) / (tmp + _2EtaCosEnter + 1);
+            float Rperp2 = (tmp_f - _2EtaCosEnter + cosEnter2) / (tmp_f + _2EtaCosEnter + cosEnter2);
+
+            return (Rparl2 + Rperp2) / 2.0f;
+        }
+    };
+
+
+
+    class FresnelDielectric {
+        RGBSpectrum m_etaExt;
+        RGBSpectrum m_etaInt;
+
+    public:
+        RT_FUNCTION FresnelDielectric(const RGBSpectrum &etaExt, const RGBSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
+
+        RT_FUNCTION RGBSpectrum etaExt() const { return m_etaExt; }
+        RT_FUNCTION RGBSpectrum etaInt() const { return m_etaInt; }
+
+        RT_FUNCTION RGBSpectrum evaluate(float cosEnter) const {
+            cosEnter = clamp(cosEnter, -1.0f, 1.0f);
+
+            bool entering = cosEnter > 0.0f;
+            const RGBSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
+            const RGBSpectrum &eExit = entering ? m_etaInt : m_etaExt;
+
+            RGBSpectrum sinExit = eEnter / eExit * std::sqrt(std::fmax(0.0f, 1.0f - cosEnter * cosEnter));
+            RGBSpectrum ret = RGBSpectrum::Zero();
+            cosEnter = std::fabs(cosEnter);
+            for (int i = 0; i < RGBSpectrum::NumComponents(); ++i) {
+                if (sinExit[i] >= 1.0f) {
+                    ret[i] = 1.0f;
+                }
+                else {
+                    float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit[i] * sinExit[i]));
+                    ret[i] = evalF(eEnter[i], eExit[i], cosEnter, cosExit);
+                }
+            }
+            return ret;
+        }
+        RT_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+            cosEnter = clamp(cosEnter, -1.0f, 1.0f);
+
+            bool entering = cosEnter > 0.0f;
+            const float &eEnter = entering ? m_etaExt[wlIdx] : m_etaInt[wlIdx];
+            const float &eExit = entering ? m_etaInt[wlIdx] : m_etaExt[wlIdx];
+
+            float sinExit = eEnter / eExit * std::sqrt(std::fmax(0.0f, 1.0f - cosEnter * cosEnter));
+            cosEnter = std::fabs(cosEnter);
+            if (sinExit >= 1.0f) {
+                return 1.0f;
+            }
+            else {
+                float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit * sinExit));
+                return evalF(eEnter, eExit, cosEnter, cosExit);
+            }
+        }
+
+        RT_FUNCTION static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
+    };
+
+    RT_FUNCTION float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
+        float Rparl = ((etaExit * cosEnter) - (etaEnter * cosExit)) / ((etaExit * cosEnter) + (etaEnter * cosExit));
+        float Rperp = ((etaEnter * cosEnter) - (etaExit * cosExit)) / ((etaEnter * cosEnter) + (etaExit * cosExit));
+        return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
+    }
+
+
+
+    class GGXMicrofacetDistribution {
+        float m_alpha_gx;
+        float m_alpha_gy;
+
+    public:
+        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy) :
+            m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {}
+
+        RT_FUNCTION float evaluate(const Normal3D &m) {
+            if (m.z <= 0)
+                return 0.0f;
+            float temp = m.x * m.x / (m_alpha_gx * m_alpha_gx) + m.y * m.y / (m_alpha_gy * m_alpha_gy) + m.z * m.z;
+            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * temp * temp);
+        }
+
+        RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
+            float chi = (dot(v, m) / v.z) > 0 ? 1 : 0;
+            float tanTheta_v_alpha_go_2 = (v.x * v.x * m_alpha_gx * m_alpha_gx + v.y * v.y * m_alpha_gy * m_alpha_gy) / (v.z * v.z);
+            return chi * 2 / (1 + std::sqrt(1 + tanTheta_v_alpha_go_2));
+        }
+
+        RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
+            // stretch view
+            Vector3D sv = normalize(Vector3D(m_alpha_gx * v.x, m_alpha_gy * v.y, v.z));
+
+            // orthonormal basis
+            //        Vector3D T1 = (sv.z < 0.9999f) ? normalize(cross(sv, Vector3D::Ez)) : Vector3D::Ex;
+            //        Vector3D T2 = cross(T1, sv);
+            float distIn2D = std::sqrt(sv.x * sv.x + sv.y * sv.y);
+            float recDistIn2D = 1.0f / distIn2D;
+            Vector3D T1 = (sv.z < 0.9999f) ? Vector3D(sv.y * recDistIn2D, -sv.x * recDistIn2D, 0) : Vector3D::Ex();
+            Vector3D T2 = Vector3D(T1.y * sv.z, -T1.x * sv.z, distIn2D);
+
+            // sample point with polar coordinates (r, phi)
+            float a = 1.0f / (1.0f + sv.z);
+            float r = std::sqrt(u0);
+            float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
+            float P1 = r * std::cos(phi);
+            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0 : sv.z);
+
+            // compute normal
+            *m = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
+
+            // unstretch
+            *m = normalize(Normal3D(m_alpha_gx * m->x, m_alpha_gy * m->y, m->z));
+
+            float D = evaluate(*m);
+            *normalPDF = evaluateSmithG1(v, *m) * absDot(v, *m) * D / std::abs(v.z);
+
+            return D;
+        }
+
+        RT_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
+            return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::abs(v.z);
+        }
+    };
+
+
+
     // ----------------------------------------------------------------
     // Texture Mappings
 
@@ -138,48 +290,6 @@ namespace VLR {
 
 
 
-    RT_FUNCTION RGBSpectrum evaluateFresnelConductor(const RGBSpectrum &eta, const RGBSpectrum &k, float cosEnter) {
-        cosEnter = std::fabs(cosEnter);
-        float cosEnter2 = cosEnter * cosEnter;
-        RGBSpectrum _2EtaCosEnter = 2.0f * eta * cosEnter;
-        RGBSpectrum tmp_f = eta * eta + k * k;
-        RGBSpectrum tmp = tmp_f * cosEnter2;
-        RGBSpectrum Rparl2 = (tmp - _2EtaCosEnter + 1) / (tmp + _2EtaCosEnter + 1);
-        RGBSpectrum Rperp2 = (tmp_f - _2EtaCosEnter + cosEnter2) / (tmp_f + _2EtaCosEnter + cosEnter2);
-        return (Rparl2 + Rperp2) / 2.0f;
-    }
-
-    RT_FUNCTION float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
-        float Rparl = ((etaExit * cosEnter) - (etaEnter * cosExit)) / ((etaExit * cosEnter) + (etaEnter * cosExit));
-        float Rperp = ((etaEnter * cosEnter) - (etaExit * cosExit)) / ((etaEnter * cosEnter) + (etaExit * cosExit));
-        return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
-    }
-
-    RT_FUNCTION RGBSpectrum evaluateFresnelDielectric(const RGBSpectrum &etaExt, const RGBSpectrum &etaInt, float cosEnter) {
-        cosEnter = std::fmin(std::fmax(cosEnter, -1.0f), 1.0f);
-
-        bool entering = cosEnter > 0.0f;
-        const RGBSpectrum &eEnter = entering ? etaExt : etaInt;
-        const RGBSpectrum &eExit = entering ? etaInt : etaExt;
-
-        RGBSpectrum sinExit = eEnter / eExit * std::sqrt(std::fmax(0.0f, 1.0f - cosEnter * cosEnter));
-        RGBSpectrum ret = RGBSpectrum::Zero();
-        cosEnter = std::fabs(cosEnter);
-        for (int i = 0; i < RGBSpectrum::NumComponents(); ++i) {
-            if (sinExit[i] >= 1.0f) {
-                ret[i] = 1.0f;
-            }
-            else {
-                float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit[i] * sinExit[i]));
-                ret[i] = evalF(eEnter[i], eExit[i], cosEnter, cosExit);
-            }
-        }
-
-        return ret;
-    }
-
-
-
     // ----------------------------------------------------------------
     // SpecularBRDF
 
@@ -220,10 +330,12 @@ namespace VLR {
     RT_CALLABLE_PROGRAM RGBSpectrum SpecularBRDF_sampleBSDFInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         SpecularBRDF &p = *(SpecularBRDF*)params;
 
+        FresnelConductor fresnel(p.eta, p.k);
+
         result->dirLocal = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
         result->dirPDF = 1.0f;
         result->sampledType = DirectionType::Reflection() | DirectionType::Delta0D();
-        RGBSpectrum fs = p.coeffR * evaluateFresnelConductor(p.eta, p.k, query.dirLocal.z) / std::fabs(query.dirLocal.z);
+        RGBSpectrum fs = p.coeffR * fresnel.evaluate(query.dirLocal.z) / std::fabs(query.dirLocal.z);
 
         return fs;
     }
@@ -238,10 +350,10 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM float SpecularBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
         SpecularBRDF &p = *(SpecularBRDF*)params;
-        float ret = (p.coeffR * evaluateFresnelConductor(p.eta, p.k, query.dirLocal.z)).importance(query.wlHint);
-        //float snCorrection = query.adjoint ? std::fabs(dot(Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z), query.gNormalLocal) /
-        //                                               query.dirLocal.z) : 1;
-        return ret;
+
+        FresnelDielectric fresnel(p.eta, p.k);
+
+        return (p.coeffR * fresnel.evaluate(query.dirLocal.z)).importance(query.wlHint);
     }
 
     // END: SpecularBRDF
@@ -291,43 +403,48 @@ namespace VLR {
     RT_CALLABLE_PROGRAM RGBSpectrum SpecularBSDF_sampleBSDFInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         SpecularBSDF &p = *(SpecularBSDF*)params;
 
-        RGBSpectrum F = evaluateFresnelDielectric(p.etaExt, p.etaInt, query.dirLocal.z);
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        const RGBSpectrum &eEnter = entering ? p.etaExt : p.etaInt;
+        const RGBSpectrum &eExit = entering ? p.etaInt : p.etaExt;
+        FresnelDielectric fresnel(eEnter, eExit);
+
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        RGBSpectrum F = fresnel.evaluate(dirV.z);
         float reflectProb = F.importance(query.wlHint);
         if (query.dirTypeFilter.isReflection())
             reflectProb = 1.0f;
         if (query.dirTypeFilter.isTransmission())
             reflectProb = 0.0f;
         if (uComponent < reflectProb) {
-            if (query.dirLocal.z == 0.0f) {
+            if (dirV.z == 0.0f) {
                 result->dirPDF = 0.0f;
                 return RGBSpectrum::Zero();
             }
-            result->dirLocal = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
+            Vector3D dirL = Vector3D(-dirV.x, -dirV.y, dirV.z);
+            result->dirLocal = entering ? dirL : -dirL;
             result->dirPDF = reflectProb;
             result->sampledType = DirectionType::Reflection() | DirectionType::Delta0D();
-            RGBSpectrum fs = p.coeff * F / std::fabs(query.dirLocal.z);
+            RGBSpectrum fs = p.coeff * F / std::fabs(dirV.z);
 
             return fs;
         }
         else {
-            bool entering = query.dirLocal.z > 0.0f;
-            float eEnter = entering ? p.etaExt[query.wlHint] : p.etaInt[query.wlHint];
-            float eExit = entering ? p.etaInt[query.wlHint] : p.etaExt[query.wlHint];
-
-            float sinEnter2 = 1.0f - query.dirLocal.z * query.dirLocal.z;
-            float rrEta = eEnter / eExit;// reciprocal of relative IOR.
-            float sinExit2 = rrEta * rrEta * sinEnter2;
+            float sinEnter2 = 1.0f - dirV.z * dirV.z;
+            float recRelIOR = eEnter[query.wlHint] / eExit[query.wlHint];// reciprocal of relative IOR.
+            float sinExit2 = recRelIOR * recRelIOR * sinEnter2;
 
             if (sinExit2 >= 1.0f) {
                 result->dirPDF = 0.0f;
                 return RGBSpectrum::Zero();
             }
             float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
-            if (entering)
-                cosExit = -cosExit;
-            result->dirLocal = Vector3D(rrEta * -query.dirLocal.x, rrEta * -query.dirLocal.y, cosExit);
+            Vector3D dirL = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
+            result->dirLocal = entering ? dirL : -dirL;
             result->dirPDF = 1.0f - reflectProb;
             result->sampledType = DirectionType::Transmission() | DirectionType::Delta0D() | (p.dispersive ? DirectionType::Dispersive() : DirectionType());
+
             RGBSpectrum ret = RGBSpectrum::Zero();
             ret[query.wlHint] = p.coeff[query.wlHint] * (1.0f - F[query.wlHint]);
             RGBSpectrum fs = ret / std::fabs(cosExit);
@@ -354,122 +471,171 @@ namespace VLR {
 
 
 
-    class FresnelDielectric {
-        RGBSpectrum m_etaExt;
-        RGBSpectrum m_etaInt;
+    // ----------------------------------------------------------------
+    // MicrofacetBRDF
 
-    public:
-        RT_FUNCTION FresnelDielectric(const RGBSpectrum &etaExt, const RGBSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
-
-        RT_FUNCTION RGBSpectrum etaExt() const { return m_etaExt; }
-        RT_FUNCTION RGBSpectrum etaInt() const { return m_etaInt; }
-
-        RT_FUNCTION RGBSpectrum evaluate(float cosEnter) const {
-            cosEnter = clamp(cosEnter, -1.0f, 1.0f);
-
-            bool entering = cosEnter > 0.0f;
-            const RGBSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
-            const RGBSpectrum &eExit = entering ? m_etaInt : m_etaExt;
-
-            RGBSpectrum sinExit = eEnter / eExit * std::sqrt(std::fmax(0.0f, 1.0f - cosEnter * cosEnter));
-            RGBSpectrum ret = RGBSpectrum::Zero();
-            cosEnter = std::fabs(cosEnter);
-            for (int i = 0; i < RGBSpectrum::NumComponents(); ++i) {
-                if (sinExit[i] >= 1.0f) {
-                    ret[i] = 1.0f;
-                }
-                else {
-                    float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit[i] * sinExit[i]));
-                    ret[i] = evalF(eEnter[i], eExit[i], cosEnter, cosExit);
-                }
-            }
-            return ret;
-        }
-        RT_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
-            cosEnter = clamp(cosEnter, -1.0f, 1.0f);
-
-            bool entering = cosEnter > 0.0f;
-            const float &eEnter = entering ? m_etaExt[wlIdx] : m_etaInt[wlIdx];
-            const float &eExit = entering ? m_etaInt[wlIdx] : m_etaExt[wlIdx];
-
-            float sinExit = eEnter / eExit * std::sqrt(std::fmax(0.0f, 1.0f - cosEnter * cosEnter));
-            cosEnter = std::fabs(cosEnter);
-            if (sinExit >= 1.0f) {
-                return 1.0f;
-            }
-            else {
-                float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit * sinExit));
-                return evalF(eEnter, eExit, cosEnter, cosExit);
-            }
-        }
-
-        RT_FUNCTION static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
+    struct MicrofacetBRDF {
+        RGBSpectrum eta;
+        RGBSpectrum k;
+        float roughnessX;
+        float roughnessY;
     };
 
-    RT_FUNCTION float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
-        float Rparl = ((etaExit * cosEnter) - (etaEnter * cosExit)) / ((etaExit * cosEnter) + (etaEnter * cosExit));
-        float Rperp = ((etaEnter * cosEnter) - (etaExit * cosExit)) / ((etaEnter * cosEnter) + (etaExit * cosExit));
-        return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
+    RT_CALLABLE_PROGRAM uint32_t MicrofacetReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, bool wavelengthSelected, uint32_t* params) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
+        const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+
+        Point3D texCoord = textureMap(mat.texMap, surfPt);
+
+        optix::float4 texValue;
+        optix::float2 texValueF2;
+        texValue = optix::rtTex2D<optix::float4>(mat.texEta, texCoord.x, texCoord.y);
+        p.eta = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        texValue = optix::rtTex2D<optix::float4>(mat.tex_k, texCoord.x, texCoord.y);
+        p.k = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        texValueF2 = optix::rtTex2D<optix::float2>(mat.texRoughness, texCoord.x, texCoord.y);
+        p.roughnessX = texValueF2.x;
+        p.roughnessY = texValueF2.y;
+
+        return sizeof(MicrofacetBRDF) / 4;
     }
 
+    RT_CALLABLE_PROGRAM RGBSpectrum MicrofacetBRDF_getBaseColor(const uint32_t* params) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
 
+        FresnelDielectric fresnel(p.eta, p.k);
 
-    class GGXMicrofacetDistribution {
-        float m_alpha_gx;
-        float m_alpha_gy;
+        return fresnel.evaluate(1.0f);
+    }
 
-    public:
-        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy) :
-            m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {}
+    RT_CALLABLE_PROGRAM bool MicrofacetBRDF_matches(const uint32_t* params, DirectionType flags) {
+        DirectionType m_type = DirectionType::Reflection() | DirectionType::HighFreq();
+        return m_type.matches(flags);
+    }
 
-        RT_FUNCTION float evaluate(const Normal3D &m) {
-            if (m.z <= 0)
-                return 0.0f;
-            float temp = m.x * m.x / (m_alpha_gx * m_alpha_gx) + m.y * m.y / (m_alpha_gy * m_alpha_gy) + m.z * m.z;
-            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * temp * temp);
+    RT_CALLABLE_PROGRAM RGBSpectrum MicrofacetBRDF_sampleBSDFInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        FresnelDielectric fresnel(p.eta, p.k);
+
+        float alphaX = p.roughnessX * p.roughnessX;
+        float alphaY = p.roughnessY * p.roughnessY;
+        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+        // JP: ハーフベクトルをサンプルして、最終的な方向サンプルを生成する。
+        // EN: sample a half vector, then generate a resulting direction sample based on it.
+        Normal3D m;
+        float mPDF;
+        float D = ggx.sample(dirV, uDir[0], uDir[1], &m, &mPDF);
+        float dotHV = dot(dirV, m);
+        if (dotHV <= 0) {
+            result->dirPDF = 0.0f;
+            return RGBSpectrum::Zero();
         }
 
-        RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
-            float chi = (dot(v, m) / v.z) > 0 ? 1 : 0;
-            float tanTheta_v_alpha_go_2 = (v.x * v.x * m_alpha_gx * m_alpha_gx + v.y * v.y * m_alpha_gy * m_alpha_gy) / (v.z * v.z);
-            return chi * 2 / (1 + std::sqrt(1 + tanTheta_v_alpha_go_2));
+        Vector3D dirL = 2 * dotHV * m - dirV;
+        result->dirLocal = entering ? dirL : -dirL;
+        if (dirL.z * dirV.z <= 0) {
+            result->dirPDF = 0.0f;
+            return RGBSpectrum::Zero();
         }
 
-        RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
-            // stretch view
-            Vector3D sv = normalize(Vector3D(m_alpha_gx * v.x, m_alpha_gy * v.y, v.z));
+        float commonPDFTerm = 1.0f / (4 * dotHV);
+        result->dirPDF = commonPDFTerm * mPDF;
+        result->sampledType = DirectionType::Reflection() | DirectionType::HighFreq();
 
-            // orthonormal basis
-            //        Vector3D T1 = (sv.z < 0.9999f) ? normalize(cross(sv, Vector3D::Ez)) : Vector3D::Ex;
-            //        Vector3D T2 = cross(T1, sv);
-            float distIn2D = std::sqrt(sv.x * sv.x + sv.y * sv.y);
-            float recDistIn2D = 1.0f / distIn2D;
-            Vector3D T1 = (sv.z < 0.9999f) ? Vector3D(sv.y * recDistIn2D, -sv.x * recDistIn2D, 0) : Vector3D::Ex();
-            Vector3D T2 = Vector3D(T1.y * sv.z, -T1.x * sv.z, distIn2D);
+        RGBSpectrum F = fresnel.evaluate(dotHV);
+        float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
+        RGBSpectrum fs = F * D * G / (4 * dirV.z * dirL.z);
 
-            // sample point with polar coordinates (r, phi)
-            float a = 1.0f / (1.0f + sv.z);
-            float r = std::sqrt(u0);
-            float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
-            float P1 = r * std::cos(phi);
-            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0 : sv.z);
+        //VLRAssert(fs.allFinite(), "fs: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, rDir: %s",
+        //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
-            // compute normal
-            *m = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
+        return fs;
+    }
 
-            // unstretch
-            *m = normalize(Normal3D(m_alpha_gx * m->x, m_alpha_gy * m->y, m->z));
+    RT_CALLABLE_PROGRAM RGBSpectrum MicrofacetBRDF_evaluateBSDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
 
-            float D = evaluate(*m);
-            *normalPDF = evaluateSmithG1(v, *m) * absDot(v, *m) * D / std::abs(v.z);
+        bool entering = query.dirLocal.z >= 0.0f;
 
-            return D;
-        }
+        FresnelConductor fresnel(p.eta, p.k);
 
-        RT_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
-            return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::abs(v.z);
-        }
-    };
+        float alphaX = p.roughnessX * p.roughnessX;
+        float alphaY = p.roughnessY * p.roughnessY;
+        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        float dotNVdotNL = dirL.z * dirV.z;
+
+        if (dotNVdotNL <= 0)
+            return RGBSpectrum::Zero();
+
+        Normal3D m = halfVector(dirV, dirL);
+        float dotHV = dot(dirV, m);
+        float D = ggx.evaluate(m);
+
+        RGBSpectrum F = fresnel.evaluate(dotHV);
+        float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
+        RGBSpectrum fs = F * D * G / (4 * dotNVdotNL);
+
+        //VLRAssert(fs.allFinite(), "fs: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, dir: %s",
+        //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
+
+        return fs;
+    }
+
+    RT_CALLABLE_PROGRAM float MicrofacetBRDF_evaluateBSDF_PDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        FresnelConductor fresnel(p.eta, p.k);
+
+        float alphaX = p.roughnessX * p.roughnessX;
+        float alphaY = p.roughnessY * p.roughnessY;
+        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        float dotNVdotNL = dirL.z * dirV.z;
+
+        if (dotNVdotNL <= 0.0f)
+            return 0.0f;
+
+        Normal3D m = halfVector(dirV, dirL);
+        float dotHV = dot(dirV, m);
+        if (dotHV <= 0)
+            return 0.0f;
+
+        float mPDF = ggx.evaluatePDF(dirV, m);
+        float commonPDFTerm = 1.0f / (4 * dotHV);
+        float ret = commonPDFTerm * mPDF;
+
+        //VLRAssert(std::isfinite(commonPDFTerm) && std::isfinite(mPDF),
+        //          "commonPDFTerm: %g, mPDF: %g, wlIdx: %u, qDir: %s, dir: %s",
+        //          commonPDFTerm, mPDF, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
+
+        return ret;
+    }
+
+    RT_CALLABLE_PROGRAM float MicrofacetBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+        MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
+
+        FresnelDielectric fresnel(p.eta, p.k);
+
+        float expectedDotHV = query.dirLocal.z;
+
+        return fresnel.evaluate(expectedDotHV).importance(query.wlHint);
+    }
+
+    // END: MicrofacetBRDF
+    // ----------------------------------------------------------------
 
 
 
@@ -743,7 +909,7 @@ namespace VLR {
 
 
     // ----------------------------------------------------------------
-    // UE4 BRDF
+    // UE4 (Modified) BRDF
 
     struct UE4BRDF {
         RGBSpectrum baseColor;
@@ -978,7 +1144,7 @@ namespace VLR {
         return diffuseWeight + specularWeight;
     }
 
-    // END: UE4 BRDF
+    // END: UE4 (Modified) BRDF
     // ----------------------------------------------------------------
 
 

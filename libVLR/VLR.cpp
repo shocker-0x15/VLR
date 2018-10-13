@@ -336,6 +336,23 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context
 
 
 
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material,
+                                                               VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap) {
+    *material = new VLR::MicrofacetReflectionSurfaceMaterial(*context, texEta, tex_k, texRoughness, texMap);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial material) {
+    if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete material;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
                                                                VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap) {
     *material = new VLR::MicrofacetScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texRoughness, texMap);

@@ -46,6 +46,7 @@ namespace VLR {
     defineClassID(SurfaceMaterial, MatteSurfaceMaterial);
     defineClassID(SurfaceMaterial, SpecularReflectionSurfaceMaterial);
     defineClassID(SurfaceMaterial, SpecularScatteringSurfaceMaterial);
+    defineClassID(SurfaceMaterial, MicrofacetReflectionSurfaceMaterial);
     defineClassID(SurfaceMaterial, MicrofacetScatteringSurfaceMaterial);
     defineClassID(SurfaceMaterial, UE4SurfaceMaterial);
     defineClassID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);

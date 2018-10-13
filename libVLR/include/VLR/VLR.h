@@ -35,6 +35,7 @@ namespace VLR {
     class MatteSurfaceMaterial;
     class SpecularReflectionSurfaceMaterial;
     class SpecularScatteringSurfaceMaterial;
+    class MicrofacetReflectionSurfaceMaterial;
     class MicrofacetScatteringSurfaceMaterial;
     class UE4SurfaceMaterial;
     class DiffuseEmitterSurfaceMaterial;
@@ -147,6 +148,7 @@ extern "C" {
     typedef VLR::MatteSurfaceMaterial* VLRMatteSurfaceMaterial;
     typedef VLR::SpecularReflectionSurfaceMaterial* VLRSpecularReflectionSurfaceMaterial;
     typedef VLR::SpecularScatteringSurfaceMaterial* VLRSpecularScatteringSurfaceMaterial;
+    typedef VLR::MicrofacetReflectionSurfaceMaterial* VLRMicrofacetReflectionSurfaceMaterial;
     typedef VLR::MicrofacetScatteringSurfaceMaterial* VLRMicrofacetScatteringSurfaceMaterial;
     typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
     typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
@@ -233,6 +235,10 @@ extern "C" {
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
                                                                  VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRTextureMap2D texMap);
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material);
+
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material,
+                                                                   VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial material);
 
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
                                                                    VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap);
@@ -332,6 +338,7 @@ namespace VLRCpp {
     class MatteSurfaceMaterialHolder;
     class SpecularReflectionSurfaceMaterialHolder;
     class SpecularScatteringSurfaceMaterialHolder;
+    class MicrofacetReflectionSurfaceMaterialHolder;
     class MicrofacetScatteringSurfaceMaterialHolder;
     class UE4SurfaceMaterialHolder;
     class DiffuseEmitterSurfaceMaterialHolder;
@@ -371,6 +378,7 @@ namespace VLRCpp {
     typedef std::shared_ptr<MatteSurfaceMaterialHolder> MatteSurfaceMaterialRef;
     typedef std::shared_ptr<SpecularReflectionSurfaceMaterialHolder> SpecularReflectionSurfaceMaterialRef;
     typedef std::shared_ptr<SpecularScatteringSurfaceMaterialHolder> SpecularScatteringSurfaceMaterialRef;
+    typedef std::shared_ptr<MicrofacetReflectionSurfaceMaterialHolder> MicrofacetReflectionSurfaceMaterialRef;
     typedef std::shared_ptr<MicrofacetScatteringSurfaceMaterialHolder> MicrofacetScatteringSurfaceMaterialRef;
     typedef std::shared_ptr<UE4SurfaceMaterialHolder> UE4SurfaceMaterialRef;
     typedef std::shared_ptr<DiffuseEmitterSurfaceMaterialHolder> DiffuseEmitterSurfaceMaterialRef;
@@ -664,6 +672,28 @@ namespace VLRCpp {
         }
         ~SpecularScatteringSurfaceMaterialHolder() {
             VLRResult res = vlrSpecularScatteringSurfaceMaterialDestroy(m_rawContext, (VLRSpecularScatteringSurfaceMaterial)m_raw);
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
+    };
+
+
+
+    class MicrofacetReflectionSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        Float3TextureRef m_texEta;
+        Float3TextureRef m_tex_k;
+        Float2TextureRef m_texRoughness;
+        TextureMap2DRef m_texMap;
+
+    public:
+        MicrofacetReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) :
+            SurfaceMaterialHolder(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_texMap(texMap) {
+            VLRResult res = vlrMicrofacetReflectionSurfaceMaterialCreate(context, (VLRMicrofacetReflectionSurfaceMaterial*)&m_raw,
+                                                                         (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get(), (VLRFloat2Texture)m_texRoughness->get(),
+                                                                         texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+        }
+        ~MicrofacetReflectionSurfaceMaterialHolder() {
+            VLRResult res = vlrMicrofacetReflectionSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetReflectionSurfaceMaterial)m_raw);
         }
 
         VLRObject get() const override { return (VLRObject)m_raw; }
@@ -1111,6 +1141,10 @@ namespace VLRCpp {
 
         SpecularScatteringSurfaceMaterialRef createSpecularScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const TextureMap2DRef &texMap) const {
             return std::make_shared<SpecularScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, texMap);
+        }
+
+        MicrofacetReflectionSurfaceMaterialRef createMicrofacetReflectionSurfaceMaterial(const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) const {
+            return std::make_shared<MicrofacetReflectionSurfaceMaterialHolder>(m_rawContext, texEta, tex_k, texRoughness, texMap);
         }
 
         MicrofacetScatteringSurfaceMaterialRef createMicrofacetScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) const {

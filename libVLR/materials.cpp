@@ -102,6 +102,7 @@ namespace VLR {
         MatteSurfaceMaterial::initialize(context);
         SpecularReflectionSurfaceMaterial::initialize(context);
         SpecularScatteringSurfaceMaterial::initialize(context);
+        MicrofacetReflectionSurfaceMaterial::initialize(context);
         MicrofacetScatteringSurfaceMaterial::initialize(context);
         UE4SurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
@@ -116,6 +117,7 @@ namespace VLR {
         DiffuseEmitterSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
         MicrofacetScatteringSurfaceMaterial::finalize(context);
+        MicrofacetReflectionSurfaceMaterial::finalize(context);
         SpecularScatteringSurfaceMaterial::finalize(context);
         SpecularReflectionSurfaceMaterial::finalize(context);
         MatteSurfaceMaterial::finalize(context);
@@ -298,6 +300,63 @@ namespace VLR {
             mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
 
         return baseIndex + sizeof(Shared::SpecularScatteringSurfaceMaterial) / 4;
+    }
+
+
+
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::OptiXProgramSets;
+
+    // static
+    void MicrofacetReflectionSurfaceMaterial::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::MicrofacetReflectionSurfaceMaterial_setupBSDF",
+            "VLR::MicrofacetBRDF_getBaseColor",
+            "VLR::MicrofacetBRDF_matches",
+            "VLR::MicrofacetBRDF_sampleBSDFInternal",
+            "VLR::MicrofacetBRDF_evaluateBSDFInternal",
+            "VLR::MicrofacetBRDF_evaluateBSDF_PDFInternal",
+            "VLR::MicrofacetBRDF_weightInternal",
+            nullptr,
+            nullptr,
+            nullptr
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void MicrofacetReflectionSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context, const Float3Texture* texEta, const Float3Texture* tex_k, const Float2Texture* texRoughness, const TextureMap2D* texMap) :
+        SurfaceMaterial(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_texMap(texMap) {
+        Shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptor(&matDesc, 0);
+
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+    }
+
+    MicrofacetReflectionSurfaceMaterial::~MicrofacetReflectionSurfaceMaterial() {
+    }
+
+    uint32_t MicrofacetReflectionSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
+        Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc->i1[baseIndex];
+        mat.texEta = m_texEta->getOptiXObject()->getId();
+        mat.tex_k = m_tex_k->getOptiXObject()->getId();
+        mat.texRoughness = m_texRoughness->getOptiXObject()->getId();
+        if (m_texMap)
+            mat.texMap = m_texMap->getTextureMapIndex();
+        else
+            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+
+        return baseIndex + sizeof(Shared::MicrofacetReflectionSurfaceMaterial) / 4;
     }
 
 
