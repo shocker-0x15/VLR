@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "VLR_public_types.h"
+#include "public_types.h"
 
 #define VLR_ERROR_NO_ERROR        0x80000000
 #define VLR_ERROR_INVALID_CONTEXT 0x80000001

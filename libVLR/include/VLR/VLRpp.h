@@ -784,6 +784,10 @@ namespace VLRCpp {
             VLRResult res = vlrDestroyContext(m_rawContext);
         }
 
+        VLRContext get() const {
+            return m_rawContext;
+        }
+
         void setDevices(const int32_t* devices, uint32_t numDevices) const {
             VLRResult res = vlrContextSetDevices(m_rawContext, devices, numDevices);
         }

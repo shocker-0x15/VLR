@@ -140,7 +140,7 @@
     <ClInclude Include="include\VLR\common.h" />
     <ClInclude Include="include\VLR\VLR.h" />
     <ClInclude Include="include\VLR\VLRpp.h" />
-    <ClInclude Include="include\VLR\VLR_public_types.h" />
+    <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared.h" />

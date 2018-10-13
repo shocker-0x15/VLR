@@ -40,9 +40,7 @@
     <ClInclude Include="include\VLR\VLRpp.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\VLR_public_types.h">
-      <Filter>API</Filter>
-    </ClInclude>
+    <ClInclude Include="include\VLR\public_types.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

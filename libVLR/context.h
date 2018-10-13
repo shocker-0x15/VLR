@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <VLR_public_types.h>
+#include <public_types.h>
 #include "basic_types_internal.h"
 #include "shared.h"
 
