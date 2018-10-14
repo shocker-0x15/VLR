@@ -101,6 +101,32 @@ namespace VLR {
 
 
 
+    class FresnelSchlick {
+        // assume vacuum-dielectric interface
+        float m_F0;
+
+    public:
+        RT_FUNCTION FresnelSchlick(float F0) : m_F0(F0) {}
+
+        RT_FUNCTION RGBSpectrum evaluate(float cosEnter) const {
+            bool entering = cosEnter >= 0;
+            float cosEval = cosEnter;
+            if (!entering) {
+                float sqrtF0 = std::sqrt(m_F0);
+                float etaExit = (1 + sqrtF0) / (1 - sqrtF0);
+                float invRelIOR = 1.0f / etaExit;
+                float sinExit2 = invRelIOR * invRelIOR * std::fmax(0.0f, 1.0f - cosEnter * cosEnter);
+                if (sinExit2 > 1.0f) {
+                    return RGBSpectrum::One();
+                }
+                cosEval = std::sqrt(1 - sinExit2);
+            }
+            return RGBSpectrum(m_F0 + (1.0f - m_F0) * pow5(1 - cosEval));
+        }
+    };
+
+
+
     class GGXMicrofacetDistribution {
         float m_alpha_gx;
         float m_alpha_gy;
@@ -255,7 +281,7 @@ namespace VLR {
         result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
         result->dirPDF = result->dirLocal.z / M_PIf;
         result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
-        result->dirLocal.z *= query.dirLocal.z > 0 ? 1 : -1;
+        result->dirLocal.z *= query.dirLocal.z >= 0 ? 1 : -1;
 
         return p.albedo / M_PIf;
     }
@@ -569,8 +595,8 @@ namespace VLR {
         float alphaY = p.roughnessY * p.roughnessY;
         GGXMicrofacetDistribution ggx(alphaX, alphaY);
 
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
         float dotNVdotNL = dirL.z * dirV.z;
 
         if (dotNVdotNL <= 0)
@@ -601,8 +627,8 @@ namespace VLR {
         float alphaY = p.roughnessY * p.roughnessY;
         GGXMicrofacetDistribution ggx(alphaX, alphaY);
 
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
         float dotNVdotNL = dirL.z * dirV.z;
 
         if (dotNVdotNL <= 0.0f)
@@ -797,8 +823,8 @@ namespace VLR {
         float alphaY = p.roughnessY * p.roughnessY;
         GGXMicrofacetDistribution ggx(alphaX, alphaY);
 
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
         float dotNVdotNL = dirL.z * dirV.z;
 
         if (dotNVdotNL > 0 && query.dirTypeFilter.matches(DirectionType::Reflection() | DirectionType::AllFreq())) {
@@ -855,8 +881,8 @@ namespace VLR {
         float alphaY = p.roughnessY * p.roughnessY;
         GGXMicrofacetDistribution ggx(alphaX, alphaY);
 
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
         float dotNVdotNL = dirL.z * dirV.z;
         if (dotNVdotNL == 0)
             return 0.0f;
@@ -904,6 +930,134 @@ namespace VLR {
     }
 
     // END: MicrofacetBSDF
+    // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // LambertianBSDF
+
+    struct LambertianBSDF {
+        RGBSpectrum coeff;
+        float F0;
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t LambertianScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, bool wavelengthSelected, uint32_t* params) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+        const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+
+        Point3D texCoord = textureMap(mat.texMap, surfPt);
+
+        optix::float4 texValue;
+        texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
+        p.coeff = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.F0 = optix::rtTex2D<float>(mat.texF0, texCoord.x, texCoord.y);
+
+        return sizeof(LambertianBSDF) / 4;
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum LambertianBSDF_getBaseColor(const uint32_t* params) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+
+        return p.coeff;
+    }
+
+    RT_CALLABLE_PROGRAM bool LambertianBSDF_matches(const uint32_t* params, DirectionType flags) {
+        DirectionType m_type = DirectionType::WholeSphere() | DirectionType::LowFreq();
+        return m_type.matches(flags);
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum LambertianBSDF_sampleBSDFInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        FresnelSchlick fresnel(p.F0);
+
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = cosineSampleHemisphere(uDir[0], uDir[1]);
+        result->dirPDF = dirL.z / M_PIf;
+
+        RGBSpectrum F = fresnel.evaluate(query.dirLocal.z);
+        float reflectProb = F.importance(query.wlHint);
+        if (query.dirTypeFilter.isReflection())
+            reflectProb = 1.0f;
+        if (query.dirTypeFilter.isTransmission())
+            reflectProb = 0.0f;
+
+        if (uComponent < reflectProb) {
+            result->dirLocal = entering ? dirL : -dirL;
+            result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
+            RGBSpectrum fs = F * p.coeff / M_PIf;
+            result->dirPDF *= reflectProb;
+
+            return fs;
+        }
+        else {
+            result->dirLocal = entering ? -dirL : dirL;
+            result->sampledType = DirectionType::Transmission() | DirectionType::LowFreq();
+            RGBSpectrum fs = (RGBSpectrum::One() - F) * p.coeff / M_PIf;
+            result->dirPDF *= (1 - reflectProb);
+
+            return fs;
+        }
+    }
+
+    RT_CALLABLE_PROGRAM RGBSpectrum LambertianBSDF_evaluateBSDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        FresnelSchlick fresnel(p.F0);
+
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+
+        RGBSpectrum F = fresnel.evaluate(query.dirLocal.z);
+
+        if (dirV.z * dirL.z > 0.0f) {
+            RGBSpectrum fs = F * p.coeff / M_PIf;
+            return fs;
+        }
+        else {
+            RGBSpectrum fs = (RGBSpectrum::One() - F) * p.coeff / M_PIf;
+            return fs;
+        }
+    }
+
+    RT_CALLABLE_PROGRAM float LambertianBSDF_evaluateBSDF_PDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+
+        bool entering = query.dirLocal.z >= 0.0f;
+
+        FresnelSchlick fresnel(p.F0);
+
+        Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
+
+        RGBSpectrum F = fresnel.evaluate(query.dirLocal.z);
+        float reflectProb = F.importance(query.wlHint);
+        if (query.dirTypeFilter.isReflection())
+            reflectProb = 1.0f;
+        if (query.dirTypeFilter.isTransmission())
+            reflectProb = 0.0f;
+
+        if (dirV.z * dirL.z > 0.0f) {
+            float dirPDF = reflectProb * dirL.z / M_PIf;
+            return dirPDF;
+        }
+        else {
+            float dirPDF = (1 - reflectProb) * std::fabs(dirL.z) / M_PIf;
+            return dirPDF;
+        }
+    }
+
+    RT_CALLABLE_PROGRAM float LambertianBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+        LambertianBSDF &p = *(LambertianBSDF*)params;
+        return p.coeff.importance(query.wlHint);
+    }
+
+    // END: LambertianBSDF
     // ----------------------------------------------------------------
 
 
@@ -1054,8 +1208,8 @@ namespace VLR {
         }
 
         bool entering = query.dirLocal.z >= 0.0f;
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
 
         Normal3D m = halfVector(dirL, dirV);
         float dotLH = dot(dirL, m);
@@ -1092,8 +1246,8 @@ namespace VLR {
         GGXMicrofacetDistribution ggx(alpha, alpha);
 
         bool entering = query.dirLocal.z >= 0.0f;
-        Vector3D dirL = entering ? dirLocal : -dirLocal;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+        Vector3D dirL = entering ? dirLocal : -dirLocal;
 
         Normal3D m = halfVector(dirL, dirV);
         float dotLH = dot(dirL, m);

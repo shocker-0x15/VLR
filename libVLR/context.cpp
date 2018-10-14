@@ -34,6 +34,7 @@ namespace VLR {
     defineClassID(Object, TextureMap2D);
     defineClassID(TextureMap2D, OffsetAndScaleUVTextureMap2D);
     defineClassID(Object, FloatTexture);
+    defineClassID(FloatTexture, ConstantFloatTexture);
     defineClassID(Object, Float2Texture);
     defineClassID(Float2Texture, ConstantFloat2Texture);
     defineClassID(Object, Float3Texture);
@@ -49,6 +50,7 @@ namespace VLR {
     defineClassID(SurfaceMaterial, SpecularScatteringSurfaceMaterial);
     defineClassID(SurfaceMaterial, MicrofacetReflectionSurfaceMaterial);
     defineClassID(SurfaceMaterial, MicrofacetScatteringSurfaceMaterial);
+    defineClassID(SurfaceMaterial, LambertianScatteringSurfaceMaterial);
     defineClassID(SurfaceMaterial, UE4SurfaceMaterial);
     defineClassID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);
     defineClassID(SurfaceMaterial, MultiSurfaceMaterial);

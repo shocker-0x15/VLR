@@ -125,6 +125,27 @@ namespace VLR {
         return a * (1 - t) + b * t;
     }
 
+    template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType pow1(RealType x) {
+        return x;
+    }
+    template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType pow2(RealType x) {
+        return x * x;
+    }
+    template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType pow3(RealType x) {
+        return x * x * x;
+    }
+    template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType pow4(RealType x) {
+        return x * x * x * x;
+    }
+    template <typename RealType>
+    RT_FUNCTION HOST_INLINE constexpr RealType pow5(RealType x) {
+        return x * x * x * x *x;
+    }
+
     template <typename T>
     RT_FUNCTION HOST_INLINE constexpr bool realEq(T a, T b, T epsilon) {
         bool forAbsolute = std::fabs(a - b) < epsilon;

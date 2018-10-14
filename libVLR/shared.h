@@ -335,6 +335,12 @@ namespace VLR {
             uint32_t texMap;
         };
 
+        struct LambertianScatteringSurfaceMaterial {
+            int32_t texCoeff;
+            int32_t texF0;
+            uint32_t texMap;
+        };
+
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
             int32_t texOcclusionRoughnessMetallic;

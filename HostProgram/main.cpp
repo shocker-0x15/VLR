@@ -657,6 +657,12 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
         //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
         //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
         //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
+
+        //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
+        //    //float F0 = 0.2f;
+        //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
+        //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
         //}
 
         return SurfaceAttributeTuple(mat, nullptr);

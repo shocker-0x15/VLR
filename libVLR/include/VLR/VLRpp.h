@@ -14,6 +14,7 @@ namespace VLRCpp {
     class TextureMap2DHolder;
     class OffsetAndScaleUVTextureMap2DHolder;
     class FloatTextureHolder;
+    class ConstantFloatTextureHolder;
     class Float2TextureHolder;
     class ConstantFloat2TextureHolder;
     class Float3TextureHolder;
@@ -29,6 +30,7 @@ namespace VLRCpp {
     class SpecularScatteringSurfaceMaterialHolder;
     class MicrofacetReflectionSurfaceMaterialHolder;
     class MicrofacetScatteringSurfaceMaterialHolder;
+    class LambertianScatteringSurfaceMaterialHolder;
     class UE4SurfaceMaterialHolder;
     class DiffuseEmitterSurfaceMaterialHolder;
     class MultiSurfaceMaterialHolder;
@@ -55,6 +57,7 @@ namespace VLRCpp {
     typedef std::shared_ptr<TextureMap2DHolder> TextureMap2DRef;
     typedef std::shared_ptr<OffsetAndScaleUVTextureMap2DHolder> OffsetAndScaleUVTextureMap2DRef;
     typedef std::shared_ptr<FloatTextureHolder> FloatTextureRef;
+    typedef std::shared_ptr<ConstantFloatTextureHolder> ConstantFloatTextureRef;
     typedef std::shared_ptr<Float2TextureHolder> Float2TextureRef;
     typedef std::shared_ptr<ConstantFloat2TextureHolder> ConstantFloat2TextureRef;
     typedef std::shared_ptr<Float3TextureHolder> Float3TextureRef;
@@ -70,6 +73,7 @@ namespace VLRCpp {
     typedef std::shared_ptr<SpecularScatteringSurfaceMaterialHolder> SpecularScatteringSurfaceMaterialRef;
     typedef std::shared_ptr<MicrofacetReflectionSurfaceMaterialHolder> MicrofacetReflectionSurfaceMaterialRef;
     typedef std::shared_ptr<MicrofacetScatteringSurfaceMaterialHolder> MicrofacetScatteringSurfaceMaterialRef;
+    typedef std::shared_ptr<LambertianScatteringSurfaceMaterialHolder> LambertianScatteringSurfaceMaterialRef;
     typedef std::shared_ptr<UE4SurfaceMaterialHolder> UE4SurfaceMaterialRef;
     typedef std::shared_ptr<DiffuseEmitterSurfaceMaterialHolder> DiffuseEmitterSurfaceMaterialRef;
     typedef std::shared_ptr<MultiSurfaceMaterialHolder> MultiSurfaceMaterialRef;
@@ -183,6 +187,19 @@ namespace VLRCpp {
 
 
 
+    class ConstantFloatTextureHolder : public FloatTextureHolder {
+    public:
+        ConstantFloatTextureHolder(VLRContext context, const float value) :
+            FloatTextureHolder(context) {
+            VLRResult res = vlrConstantFloatTextureCreate(context, (VLRConstantFloatTexture*)&m_raw, value);
+        }
+        ~ConstantFloatTextureHolder() {
+            VLRResult res = vlrConstantFloatTextureDestroy(m_rawContext, (VLRConstantFloatTexture)m_raw);
+        }
+    };
+
+
+
     class Float2TextureHolder : public Object {
     protected:
         VLRFloat2Texture m_raw;
@@ -204,8 +221,6 @@ namespace VLRCpp {
         ~ConstantFloat2TextureHolder() {
             VLRResult res = vlrConstantFloat2TextureDestroy(m_rawContext, (VLRConstantFloat2Texture)m_raw);
         }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -404,6 +419,25 @@ namespace VLRCpp {
         }
         ~MicrofacetScatteringSurfaceMaterialHolder() {
             VLRResult res = vlrMicrofacetScatteringSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetScatteringSurfaceMaterial)m_raw);
+        }
+    };
+
+
+
+    class LambertianScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        Float3TextureRef m_texCoeff;
+        FloatTextureRef m_texF0;
+        TextureMap2DRef m_texMap;
+
+    public:
+        LambertianScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const TextureMap2DRef &texMap) :
+            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texF0(texF0), m_texMap(texMap) {
+            VLRResult res = vlrLambertianScatteringSurfaceMaterialCreate(context, (VLRLambertianScatteringSurfaceMaterial*)&m_raw,
+                                                                         (VLRFloat3Texture)m_texCoeff->get(), (VLRFloatTexture)m_texF0->get(),
+                                                                         texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+        }
+        ~LambertianScatteringSurfaceMaterialHolder() {
+            VLRResult res = vlrLambertianScatteringSurfaceMaterialDestroy(m_rawContext, (VLRLambertianScatteringSurfaceMaterial)m_raw);
         }
     };
 
@@ -818,6 +852,10 @@ namespace VLRCpp {
             return std::make_shared<OffsetAndScaleUVTextureMap2DHolder>(m_rawContext, offset, scale);
         }
 
+        ConstantFloatTextureRef createConstantFloatTexture(const float value) const {
+            return std::make_shared<ConstantFloatTextureHolder>(m_rawContext, value);
+        }
+
         ConstantFloat2TextureRef createConstantFloat2Texture(const float value[2]) const {
             return std::make_shared<ConstantFloat2TextureHolder>(m_rawContext, value);
         }
@@ -856,6 +894,10 @@ namespace VLRCpp {
 
         MicrofacetScatteringSurfaceMaterialRef createMicrofacetScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) const {
             return std::make_shared<MicrofacetScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, texRoughness, texMap);
+        }
+
+        LambertianScatteringSurfaceMaterialRef createLambertianScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const TextureMap2DRef &texMap) const {
+            return std::make_shared<LambertianScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texF0, texMap);
         }
 
         UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic, const TextureMap2DRef &texMap) const {

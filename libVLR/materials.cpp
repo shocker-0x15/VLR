@@ -104,6 +104,7 @@ namespace VLR {
         SpecularScatteringSurfaceMaterial::initialize(context);
         MicrofacetReflectionSurfaceMaterial::initialize(context);
         MicrofacetScatteringSurfaceMaterial::initialize(context);
+        LambertianScatteringSurfaceMaterial::initialize(context);
         UE4SurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
         MultiSurfaceMaterial::initialize(context);
@@ -116,6 +117,7 @@ namespace VLR {
         MultiSurfaceMaterial::finalize(context);
         DiffuseEmitterSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
+        LambertianScatteringSurfaceMaterial::finalize(context);
         MicrofacetScatteringSurfaceMaterial::finalize(context);
         MicrofacetReflectionSurfaceMaterial::finalize(context);
         SpecularScatteringSurfaceMaterial::finalize(context);
@@ -415,6 +417,62 @@ namespace VLR {
             mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
 
         return baseIndex + sizeof(Shared::MicrofacetScatteringSurfaceMaterial) / 4;
+    }
+
+
+
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::OptiXProgramSets;
+
+    // static
+    void LambertianScatteringSurfaceMaterial::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::LambertianScatteringSurfaceMaterial_setupBSDF",
+            "VLR::LambertianBSDF_getBaseColor",
+            "VLR::LambertianBSDF_matches",
+            "VLR::LambertianBSDF_sampleBSDFInternal",
+            "VLR::LambertianBSDF_evaluateBSDFInternal",
+            "VLR::LambertianBSDF_evaluateBSDF_PDFInternal",
+            "VLR::LambertianBSDF_weightInternal",
+            nullptr,
+            nullptr,
+            nullptr
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void LambertianScatteringSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const FloatTexture* texF0, const TextureMap2D* texMap) :
+        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texF0(texF0), m_texMap(texMap) {
+        Shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptor(&matDesc, 0);
+
+        m_matIndex = m_context.setSurfaceMaterialDescriptor(matDesc);
+    }
+
+    LambertianScatteringSurfaceMaterial::~LambertianScatteringSurfaceMaterial() {
+    }
+
+    uint32_t LambertianScatteringSurfaceMaterial::setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
+        Shared::LambertianScatteringSurfaceMaterial &mat = *(Shared::LambertianScatteringSurfaceMaterial*)&matDesc->i1[baseIndex];
+        mat.texCoeff = m_texCoeff->getOptiXObject()->getId();
+        mat.texF0 = m_texF0->getOptiXObject()->getId();
+        if (m_texMap)
+            mat.texMap = m_texMap->getTextureMapIndex();
+        else
+            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+
+        return baseIndex + sizeof(Shared::LambertianScatteringSurfaceMaterial) / 4;
     }
 
 

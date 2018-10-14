@@ -164,6 +164,28 @@ namespace VLR {
 
 
 
+    class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const Float3Texture* m_texCoeff;
+        const FloatTexture* m_texF0;
+        const TextureMap2D* m_texMap;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        LambertianScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const FloatTexture* texF0, const TextureMap2D* texMap);
+        ~LambertianScatteringSurfaceMaterial();
+
+        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+    };
+
+
+
     class UE4SurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 

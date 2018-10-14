@@ -527,6 +527,18 @@ namespace VLR {
 
 
 
+    ConstantFloatTexture::ConstantFloatTexture(Context &context, const float value) :
+        FloatTexture(context) {
+        m_image = new LinearImage2D(context, (const uint8_t*)&value, 1, 1, VLRDataFormat_Gray32F, false);
+        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+    }
+
+    ConstantFloatTexture::~ConstantFloatTexture() {
+        delete m_image;
+    }
+
+
+
     Float2Texture::Float2Texture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();

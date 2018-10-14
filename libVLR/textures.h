@@ -158,6 +158,19 @@ namespace VLR {
 
 
 
+    class ConstantFloatTexture : public FloatTexture {
+        Image2D* m_image;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        ConstantFloatTexture(Context &context, const float value);
+        ~ConstantFloatTexture();
+    };
+
+
+
     class Float2Texture : public Object {
     protected:
         optix::TextureSampler m_optixTextureSampler;

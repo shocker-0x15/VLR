@@ -13,7 +13,7 @@ namespace VLR {
 
     class Scene;
     class Camera;
-    
+
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {

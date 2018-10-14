@@ -20,6 +20,7 @@ extern "C" {
     typedef struct VLRTextureMap2D_API* VLRTextureMap2D;
     typedef struct VLROffsetAndScaleUVTextureMap2D_API* VLROffsetAndScaleUVTextureMap2D;
     typedef struct VLRFloatTexture_API* VLRFloatTexture;
+    typedef struct VLRConstantFloatTexture_API* VLRConstantFloatTexture;
     typedef struct VLRFloat2Texture_API* VLRFloat2Texture;
     typedef struct VLRConstantFloat2Texture_API* VLRConstantFloat2Texture;
     typedef struct VLRFloat3Texture_API* VLRFloat3Texture;
@@ -35,6 +36,7 @@ extern "C" {
     typedef struct VLRSpecularScatteringSurfaceMaterial_API* VLRSpecularScatteringSurfaceMaterial;
     typedef struct VLRMicrofacetReflectionSurfaceMaterial_API* VLRMicrofacetReflectionSurfaceMaterial;
     typedef struct VLRMicrofacetScatteringSurfaceMaterial_API* VLRMicrofacetScatteringSurfaceMaterial;
+    typedef struct VLRLambertianScatteringSurfaceMaterial_API* VLRLambertianScatteringSurfaceMaterial;
     typedef struct VLRUE4SurfaceMaterial_API* VLRUE4SurfaceMaterial;
     typedef struct VLRDiffuseEmitterSurfaceMaterial_API* VLRDiffuseEmitterSurfaceMaterial;
     typedef struct VLRMultiSurfaceMaterial_API* VLRMultiSurfaceMaterial;
@@ -81,6 +83,15 @@ extern "C" {
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2D* texMap,
                                                             const float offset[2], const float scale[2]);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2D texMap);
+
+
+
+    VLR_API VLRResult vlrFloatTextureSetFilterMode(VLRContext context, VLRFloatTexture texture,
+                                                   VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+
+    VLR_API VLRResult vlrConstantFloatTextureCreate(VLRContext context, VLRConstantFloatTexture* texture,
+                                                    const float value);
+    VLR_API VLRResult vlrConstantFloatTextureDestroy(VLRContext context, VLRConstantFloatTexture texture);
 
     VLR_API VLRResult vlrFloat2TextureSetFilterMode(VLRContext context, VLRFloat2Texture texture,
                                                     VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
@@ -132,6 +143,10 @@ extern "C" {
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
                                                                    VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap);
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial material);
+
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material,
+                                                                   VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRTextureMap2D texMap);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext context, VLRLambertianScatteringSurfaceMaterial material);
 
     VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
                                                   VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRTextureMap2D texMap);

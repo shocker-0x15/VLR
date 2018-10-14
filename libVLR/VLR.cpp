@@ -12,6 +12,7 @@ typedef VLR::LinearImage2D* VLRLinearImage2D;
 typedef VLR::TextureMap2D* VLRTextureMap2D;
 typedef VLR::OffsetAndScaleUVTextureMap2D* VLROffsetAndScaleUVTextureMap2D;
 typedef VLR::FloatTexture* VLRFloatTexture;
+typedef VLR::ConstantFloatTexture* VLRConstantFloatTexture;
 typedef VLR::Float2Texture* VLRFloat2Texture;
 typedef VLR::ConstantFloat2Texture* VLRConstantFloat2Texture;
 typedef VLR::Float3Texture* VLRFloat3Texture;
@@ -27,6 +28,7 @@ typedef VLR::SpecularReflectionSurfaceMaterial* VLRSpecularReflectionSurfaceMate
 typedef VLR::SpecularScatteringSurfaceMaterial* VLRSpecularScatteringSurfaceMaterial;
 typedef VLR::MicrofacetReflectionSurfaceMaterial* VLRMicrofacetReflectionSurfaceMaterial;
 typedef VLR::MicrofacetScatteringSurfaceMaterial* VLRMicrofacetScatteringSurfaceMaterial;
+typedef VLR::LambertianScatteringSurfaceMaterial* VLRLambertianScatteringSurfaceMaterial;
 typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
 typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
 typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
@@ -205,6 +207,34 @@ VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLR
     if (!texMap->is<VLR::OffsetAndScaleUVTextureMap2D>())
         return VLR_ERROR_INVALID_TYPE;
     delete texMap;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrFloatTextureSetFilterMode(VLRContext context, VLRFloatTexture texture,
+                                               VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+    if (!texture->isMemberOf<VLR::FloatTexture>())
+        return VLR_ERROR_INVALID_TYPE;
+    texture->setTextureFilterMode(minification, magnification, mipmapping);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrConstantFloatTextureCreate(VLRContext context, VLRConstantFloatTexture* texture,
+                                                const float value) {
+    *texture = new VLR::ConstantFloatTexture(*context, value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrConstantFloatTextureDestroy(VLRContext context, VLRConstantFloatTexture texture) {
+    if (!texture->is<VLR::ConstantFloatTexture>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete texture;
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -406,6 +436,23 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext contex
 
 VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial material) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete material;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material,
+                                                               VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRTextureMap2D texMap) {
+    *material = new VLR::LambertianScatteringSurfaceMaterial(*context, texCoeff, texF0, texMap);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext context, VLRLambertianScatteringSurfaceMaterial material) {
+    if (!material->is<VLR::LambertianScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     delete material;
 
