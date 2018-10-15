@@ -138,14 +138,25 @@ namespace VLR {
         RT_FUNCTION float evaluate(const Normal3D &m) {
             if (m.z <= 0)
                 return 0.0f;
-            float temp = m.x * m.x / (m_alpha_gx * m_alpha_gx) + m.y * m.y / (m_alpha_gy * m_alpha_gy) + m.z * m.z;
-            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * temp * temp);
+            float temp = pow2(m.x / m_alpha_gx) + pow2(m.y / m_alpha_gy) + pow2(m.z);
+            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * pow2(temp));
         }
 
         RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
+            float alpha_g2_tanTheta2 = (pow2(v.x * m_alpha_gx) + pow2(v.y * m_alpha_gy)) / pow2(v.z);
+            float Lambda = (-1 + std::sqrt(1 + alpha_g2_tanTheta2)) / 2;
             float chi = (dot(v, m) / v.z) > 0 ? 1 : 0;
-            float tanTheta_v_alpha_go_2 = (v.x * v.x * m_alpha_gx * m_alpha_gx + v.y * v.y * m_alpha_gy * m_alpha_gy) / (v.z * v.z);
-            return chi * 2 / (1 + std::sqrt(1 + tanTheta_v_alpha_go_2));
+            return chi / (1 + Lambda);
+        }
+
+        RT_FUNCTION float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
+            float alpha_g2_tanTheta2_1 = (pow2(v1.x * m_alpha_gx) + pow2(v1.y * m_alpha_gy)) / pow2(v1.z);
+            float alpha_g2_tanTheta2_2 = (pow2(v2.x * m_alpha_gx) + pow2(v2.y * m_alpha_gy)) / pow2(v2.z);
+            float Lambda1 = (-1 + std::sqrt(1 + alpha_g2_tanTheta2_1)) / 2;
+            float Lambda2 = (-1 + std::sqrt(1 + alpha_g2_tanTheta2_2)) / 2;
+            float chi1 = (dot(v1, m) / v1.z) > 0 ? 1 : 0;
+            float chi2 = (dot(v2, m) / v2.z) > 0 ? 1 : 0;
+            return chi1 * chi2 / (1 + Lambda1 + Lambda2);
         }
 
         RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
@@ -1065,6 +1076,8 @@ namespace VLR {
     // ----------------------------------------------------------------
     // UE4 (Modified) BRDF
 
+#define USE_HEIGHT_CORRELATED_SMITH
+
     struct UE4BRDF {
         RGBSpectrum baseColor;
         float roughness;
@@ -1174,7 +1187,11 @@ namespace VLR {
 
         float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
 
+#if defined(USE_HEIGHT_CORRELATED_SMITH)
+        float G = ggx.evaluateHeightCorrelatedSmithG(dirL, dirV, m);
+#else
         float G = ggx.evaluateSmithG1(dirL, m) * ggx.evaluateSmithG1(dirV, m);
+#endif
         RGBSpectrum F = lerp(specularF0Color, RGBSpectrum::One(), oneMinusDotLH5);
 
         float microfacetDenom = 4 * dirL.z * dirV.z;
@@ -1219,7 +1236,11 @@ namespace VLR {
         RGBSpectrum specularF0Color = lerp(0.08f * specular * RGBSpectrum::One(), p.baseColor, p.metallic);
 
         float D = ggx.evaluate(m);
+#if defined(USE_HEIGHT_CORRELATED_SMITH)
+        float G = ggx.evaluateHeightCorrelatedSmithG(dirL, dirV, m);
+#else
         float G = ggx.evaluateSmithG1(dirL, m) * ggx.evaluateSmithG1(dirV, m);
+#endif
         RGBSpectrum F = lerp(specularF0Color, RGBSpectrum::One(), oneMinusDotLH5);
 
         float microfacetDenom = 4 * dirL.z * dirV.z;
