@@ -266,6 +266,7 @@ namespace VLR {
         m_optixProgramPathTracingIteration->destroy();
         m_optixProgramShadowAnyHitWithAlpha->destroy();
         m_optixProgramAnyHitWithAlpha->destroy();
+        m_optixProgramShadowAnyHitDefault->destroy();
 
         m_optixCallableProgramFetchNormal->destroy();
         m_optixCallableProgramFetchAlpha->destroy();

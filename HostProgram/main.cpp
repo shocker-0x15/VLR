@@ -332,17 +332,19 @@ static void construct(VLRCpp::Context &context, const std::string &filePath, boo
 
 
 
-VLRCpp::SceneRef g_scene;
-VLRCpp::CameraRef g_camera;
-VLRCpp::PerspectiveCameraRef g_perspectiveCamera;
-VLRCpp::EquirectangularCameraRef g_equirectangularCamera;
+struct Shot {
+    VLRCpp::SceneRef scene;
+    VLRCpp::CameraRef camera;
+    VLRCpp::PerspectiveCameraRef perspectiveCamera;
+    VLRCpp::EquirectangularCameraRef equirectangularCamera;
+};
 uint32_t g_renderTargetSizeX;
 uint32_t g_renderTargetSizeY;
-static void createCornellBoxScene(VLRCpp::Context &context) {
+static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    g_scene = context.createScene(context.createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context.createScene(context.createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
     {
@@ -458,7 +460,7 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
             cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
         }
     }
-    g_scene->addChild(cornellBox);
+    shot->scene->addChild(cornellBox);
 
 
 
@@ -531,7 +533,7 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
 
         return SurfaceAttributeTuple(mat, nullptr);
     });
-    g_scene->addChild(sphereNode);
+    shot->scene->addChild(sphereNode);
     sphereNode->setTransform(context.createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
 
 
@@ -552,23 +554,23 @@ static void createCornellBoxScene(VLRCpp::Context &context) {
     g_fovYInDeg = 40;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
-    g_perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                          g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+    shot->perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                              g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
     g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
     g_thetaAngle = g_phiAngle * g_renderTargetSizeY / g_renderTargetSizeX;
-    g_equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
-                                                                  g_equiSensitivity, g_phiAngle, g_thetaAngle);
+    shot->equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
+                                                                      g_equiSensitivity, g_phiAngle, g_thetaAngle);
 
     g_cameraType = 0;
-    g_camera = g_perspectiveCamera;
+    shot->camera = shot->perspectiveCamera;
 }
-static void createMaterialTestScene(VLRCpp::Context &context) {
+static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    g_scene = context.createScene(context.createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context.createScene(context.createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -585,11 +587,94 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
 
         return SurfaceAttributeTuple(mat, nullptr);
     });
-    g_scene->addChild(modelNode);
+    shot->scene->addChild(modelNode);
 
 
 
-    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    //construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    //    using namespace VLRCpp;
+    //    using namespace VLR;
+
+    //    aiReturn ret;
+    //    (void)ret;
+    //    aiString strValue;
+    //    float color[3];
+
+    //    aiMat->Get(AI_MATKEY_NAME, strValue);
+
+    //    SurfaceMaterialRef mat;
+    //    if (strcmp(strValue.C_Str(), "Base") == 0) {
+    //        float value[] = { 0.18f, 0.18f, 0.18f, 0.0f };
+    //        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+    //        mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+    //    }
+    //    else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
+    //        float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };
+    //        Float3TextureRef texBaseColor = context.createConstantFloat3Texture(baseColor);
+    //        float occlusionRoughnessMetallic[] = { 0.0f, 0.3f, 0.0f };
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createConstantFloat3Texture(occlusionRoughnessMetallic);
+    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+
+    //        ////// Aluminum
+    //        ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
+    //        ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
+    //        ////// Copper
+    //        ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
+    //        ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
+    //        //// Gold
+    //        //float eta[] = { 0.12481f, 0.468228f, 1.44476f };
+    //        //float k[] = { 3.32107f, 2.23761f, 1.69196f };
+    //        ////// Iron
+    //        ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
+    //        ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
+    //        ////// Lead
+    //        ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
+    //        ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
+    //        ////// Mercury
+    //        ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
+    //        ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
+    //        ////// Platinum
+    //        ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
+    //        ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
+    //        ////// Silver
+    //        ////float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+    //        ////float k[] = { 3.82431f, 3.1451f, 2.27711f };
+    //        ////// Titanium
+    //        ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
+    //        ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
+    //        //float roughness[] = { 0.2f, 0.2f };
+    //        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+    //        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+    //        //Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
+    //        //mat = context.createMicrofacetReflectionSurfaceMaterial(texEta, tex_k, texRoughness, nullptr);
+    //    }
+    //    //if (strcmp(strValue.C_Str(), "Base") == 0 || 
+    //    //    strcmp(strValue.C_Str(), "Glossy") == 0) {
+    //    //    float coeff[] = { 0.99f, 0.99f, 0.99f };
+    //    //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
+    //    //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
+    //    //    float roughness[] = { 0.1f, 0.1f };
+    //    //    Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+    //    //    Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
+    //    //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
+    //    //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
+    //    //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
+
+    //    //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
+    //    //    //float F0 = 0.2f;
+    //    //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+    //    //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
+    //    //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
+    //    //}
+
+    //    return SurfaceAttributeTuple(mat, nullptr);
+    //});
+    //shot->scene->addChild(modelNode);
+    //modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
+
+
+
+    construct(context, "../../assets/spman/spman.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -601,86 +686,51 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
         aiMat->Get(AI_MATKEY_NAME, strValue);
 
         SurfaceMaterialRef mat;
-        if (strcmp(strValue.C_Str(), "Base") == 0) {
-            float value[] = { 0.18f, 0.18f, 0.18f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
-        }
-        else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
-            float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };
-            Float3TextureRef texBaseColor = context.createConstantFloat3Texture(baseColor);
-            float occlusionRoughnessMetallic[] = { 0.0f, 0.3f, 0.0f };
-            Float3TextureRef texOcclusionRoughnessMetallic = context.createConstantFloat3Texture(occlusionRoughnessMetallic);
+        Float4TextureRef texNormalAlpha;
+        if (strcmp(strValue.C_Str(), "_Head1") == 0) {
+            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
+            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
+            texNormalAlpha = context.createImageFloat4Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
             mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
-
-            ////// Aluminum
-            ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
-            ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
-            ////// Copper
-            ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
-            ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
-            //// Gold
-            //float eta[] = { 0.12481f, 0.468228f, 1.44476f };
-            //float k[] = { 3.32107f, 2.23761f, 1.69196f };
-            ////// Iron
-            ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
-            ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
-            ////// Lead
-            ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
-            ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
-            ////// Mercury
-            ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
-            ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
-            ////// Platinum
-            ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
-            ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
-            ////// Silver
-            ////float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-            ////float k[] = { 3.82431f, 3.1451f, 2.27711f };
-            ////// Titanium
-            ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
-            ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
-            //float roughness[] = { 0.2f, 0.2f };
-            //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-            //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-            //Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-            //mat = context.createMicrofacetReflectionSurfaceMaterial(texEta, tex_k, texRoughness, nullptr);
         }
-        //if (strcmp(strValue.C_Str(), "Base") == 0 || 
-        //    strcmp(strValue.C_Str(), "Glossy") == 0) {
-        //    float coeff[] = { 0.99f, 0.99f, 0.99f };
-        //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
-        //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
-        //    float roughness[] = { 0.1f, 0.1f };
-        //    Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        //    Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
-        //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
-        //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-        //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
+        else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
+            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
+            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
+            texNormalAlpha = context.createImageFloat4Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+            mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+        }
+        else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
+            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
+            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
+            texNormalAlpha = context.createImageFloat4Texture(
+                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
+            mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+        }
 
-        //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
-        //    //float F0 = 0.2f;
-        //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
-        //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
-        //}
-
-        return SurfaceAttributeTuple(mat, nullptr);
+        return SurfaceAttributeTuple(mat, texNormalAlpha);
     });
-    g_scene->addChild(modelNode);
-    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
 
 
 
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
     Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
-    g_scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv);
 
 
 
     g_cameraPos = Point3D(10.0f, 5.0f, 0.0f);
-    g_cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(22 * M_PI / 180);
+    g_cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180);
     g_brightnessCoeff = 1.0f;
 
     g_renderTargetSizeX = 1280;
@@ -690,17 +740,17 @@ static void createMaterialTestScene(VLRCpp::Context &context) {
     g_fovYInDeg = 40;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
-    g_perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                          g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+    shot->perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                              g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
     g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
     g_thetaAngle = g_phiAngle * g_renderTargetSizeY / g_renderTargetSizeX;
-    g_equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
-                                                                  g_equiSensitivity, g_phiAngle, g_thetaAngle);
+    shot->equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
+                                                                      g_equiSensitivity, g_phiAngle, g_thetaAngle);
 
     g_cameraType = 0;
-    g_camera = g_perspectiveCamera;
+    shot->camera = shot->perspectiveCamera;
 }
 
 
@@ -764,8 +814,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         context.setDevices(deviceArray.data(), deviceArray.size());
     }
 
-    //createCornellBoxScene(context);
-    createMaterialTestScene(context);
+    Shot shot;
+    //createCornellBoxScene(context, &shot);
+    createMaterialTestScene(context, &shot);
 
 
 
@@ -958,8 +1009,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 frameBuffer.initialize(g_renderTargetSizeX, g_renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
 
-                g_perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                                      g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+                shot.perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                                         g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
                 resized = true;
             }
@@ -1086,7 +1137,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                         g_persSensitivity = g_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * g_lensRadius * g_lensRadius);
 
-                        g_camera = g_perspectiveCamera;
+                        shot.camera = shot.perspectiveCamera;
                     }
                     else if (g_cameraType == 1) {
                         cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &g_phiAngle, M_PI / 18, 2 * M_PI);
@@ -1094,7 +1145,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                         g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
 
-                        g_camera = g_equirectangularCamera;
+                        shot.camera = shot.equirectangularCamera;
                     }
 
                     ImGui::Text("%u [spp], %g [ms/sample]", g_numAccumFrames, (float)accumFrameTimes / (g_numAccumFrames - 1));
@@ -1161,8 +1212,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                     SelectedChild clickedChild{ nullptr, -1 };
 
-                    for (int i = 0; i < g_scene->getNumChildren(); ++i) {
-                        NodeRef child = g_scene->getChildAt(i);
+                    for (int i = 0; i < shot.scene->getNumChildren(); ++i) {
+                        NodeRef child = shot.scene->getChildAt(i);
                         SelectedChild curChild{ nullptr, i };
 
                         ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -1230,7 +1281,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                         if (sc.parent)
                             node = sc.parent->getChildAt(sc.childIndex);
                         else
-                            node = g_scene->getChildAt(sc.childIndex);
+                            node = shot.scene->getChildAt(sc.childIndex);
                     }
 
                     static char g_nodeName[256];
@@ -1264,21 +1315,21 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 }
 
                 if (g_cameraType == 0) {
-                    g_perspectiveCamera->setPosition(g_cameraPos);
-                    g_perspectiveCamera->setOrientation(tempOrientation);
+                    shot.perspectiveCamera->setPosition(g_cameraPos);
+                    shot.perspectiveCamera->setOrientation(tempOrientation);
                     if (cameraSettingsChanged) {
-                        g_perspectiveCamera->setSensitivity(g_persSensitivity);
-                        g_perspectiveCamera->setFovY(g_fovYInDeg * M_PI / 180);
-                        g_perspectiveCamera->setLensRadius(g_lensRadius);
-                        g_perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
+                        shot.perspectiveCamera->setSensitivity(g_persSensitivity);
+                        shot.perspectiveCamera->setFovY(g_fovYInDeg * M_PI / 180);
+                        shot.perspectiveCamera->setLensRadius(g_lensRadius);
+                        shot.perspectiveCamera->setObjectPlaneDistance(g_objPlaneDistance);
                     }
                 }
                 else if (g_cameraType == 1) {
-                    g_equirectangularCamera->setPosition(g_cameraPos);
-                    g_equirectangularCamera->setOrientation(tempOrientation);
+                    shot.equirectangularCamera->setPosition(g_cameraPos);
+                    shot.equirectangularCamera->setOrientation(tempOrientation);
                     if (cameraSettingsChanged) {
-                        g_equirectangularCamera->setSensitivity(g_equiSensitivity);
-                        g_equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
+                        shot.equirectangularCamera->setSensitivity(g_equiSensitivity);
+                        shot.equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
                     }
                 }
 
@@ -1290,7 +1341,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     accumFrameTimes = 0;
                 else
                     sw.start();
-                context.render(g_scene, g_camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
+                context.render(shot.scene, shot.camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
                 if (!firstFrame)
                     accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
@@ -1424,7 +1475,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t finishTime = 123 * 1000 - 3000;
         auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
-            context.render(g_scene, g_camera, 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
+            context.render(shot.scene, shot.camera, 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
 
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;
