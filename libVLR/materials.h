@@ -10,17 +10,17 @@ namespace VLR {
     protected:
         struct OptiXProgramSet {
             optix::Program callableProgramSetupBSDF;
-            optix::Program callableProgramGetBaseColor;
+            optix::Program callableProgramBSDFGetBaseColor;
             optix::Program callableProgramBSDFmatches;
-            optix::Program callableProgramSampleBSDFInternal;
-            optix::Program callableProgramEvaluateBSDFInternal;
-            optix::Program callableProgramEvaluateBSDF_PDFInternal;
+            optix::Program callableProgramBSDFSampleInternal;
+            optix::Program callableProgramBSDFEvaluateInternal;
+            optix::Program callableProgramBSDFEvaluatePDFInternal;
             optix::Program callableProgramBSDFWeightInternal;
             uint32_t bsdfProcedureSetIndex;
 
             optix::Program callableProgramSetupEDF;
-            optix::Program callableProgramEvaluateEmittanceInternal;
-            optix::Program callableProgramEvaluateEDFInternal;
+            optix::Program callableProgramEDFEvaluateEmittanceInternal;
+            optix::Program callableProgramEDFEvaluateInternal;
             uint32_t edfProcedureSetIndex;
         };
 

@@ -55,15 +55,15 @@ namespace VLR {
         optix::Program m_optixCallableProgramNullBSDF_setupBSDF;
         optix::Program m_optixCallableProgramNullBSDF_getBaseColor;
         optix::Program m_optixCallableProgramNullBSDF_matches;
-        optix::Program m_optixCallableProgramNullBSDF_sampleBSDFInternal;
-        optix::Program m_optixCallableProgramNullBSDF_evaluateBSDFInternal;
-        optix::Program m_optixCallableProgramNullBSDF_evaluateBSDF_PDFInternal;
+        optix::Program m_optixCallableProgramNullBSDF_sampleInternal;
+        optix::Program m_optixCallableProgramNullBSDF_evaluateInternal;
+        optix::Program m_optixCallableProgramNullBSDF_evaluatePDFInternal;
         optix::Program m_optixCallableProgramNullBSDF_weightInternal;
         uint32_t m_nullBSDFProcedureSetIndex;
 
         optix::Program m_optixCallableProgramNullEDF_setupEDF;
         optix::Program m_optixCallableProgramNullEDF_evaluateEmittanceInternal;
-        optix::Program m_optixCallableProgramNullEDF_evaluateEDFInternal;
+        optix::Program m_optixCallableProgramNullEDF_evaluateInternal;
         uint32_t m_nullEDFProcedureSetIndex;
 
         optix::Buffer m_optixSurfaceMaterialDescriptorBuffer;

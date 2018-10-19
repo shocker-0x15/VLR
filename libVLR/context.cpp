@@ -153,18 +153,18 @@ namespace VLR {
             m_optixCallableProgramNullBSDF_setupBSDF = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_setupBSDF");
             m_optixCallableProgramNullBSDF_getBaseColor = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_getBaseColor");
             m_optixCallableProgramNullBSDF_matches = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_matches");
-            m_optixCallableProgramNullBSDF_sampleBSDFInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_sampleBSDFInternal");
-            m_optixCallableProgramNullBSDF_evaluateBSDFInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_evaluateBSDFInternal");
-            m_optixCallableProgramNullBSDF_evaluateBSDF_PDFInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_evaluateBSDF_PDFInternal");
+            m_optixCallableProgramNullBSDF_sampleInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_sampleInternal");
+            m_optixCallableProgramNullBSDF_evaluateInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_evaluateInternal");
+            m_optixCallableProgramNullBSDF_evaluatePDFInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_evaluatePDFInternal");
             m_optixCallableProgramNullBSDF_weightInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_weightInternal");
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
                 bsdfProcSet.progGetBaseColor = m_optixCallableProgramNullBSDF_getBaseColor->getId();
-                bsdfProcSet.progBSDFmatches = m_optixCallableProgramNullBSDF_matches->getId();
-                bsdfProcSet.progSampleBSDFInternal = m_optixCallableProgramNullBSDF_sampleBSDFInternal->getId();
-                bsdfProcSet.progEvaluateBSDFInternal = m_optixCallableProgramNullBSDF_evaluateBSDFInternal->getId();
-                bsdfProcSet.progEvaluateBSDF_PDFInternal = m_optixCallableProgramNullBSDF_evaluateBSDF_PDFInternal->getId();
+                bsdfProcSet.progMatches = m_optixCallableProgramNullBSDF_matches->getId();
+                bsdfProcSet.progSampleInternal = m_optixCallableProgramNullBSDF_sampleInternal->getId();
+                bsdfProcSet.progEvaluateInternal = m_optixCallableProgramNullBSDF_evaluateInternal->getId();
+                bsdfProcSet.progEvaluatePDFInternal = m_optixCallableProgramNullBSDF_evaluatePDFInternal->getId();
                 bsdfProcSet.progWeightInternal = m_optixCallableProgramNullBSDF_weightInternal->getId();
             }
             m_nullBSDFProcedureSetIndex = setBSDFProcedureSet(bsdfProcSet);
@@ -174,12 +174,12 @@ namespace VLR {
 
             m_optixCallableProgramNullEDF_setupEDF = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_setupEDF");
             m_optixCallableProgramNullEDF_evaluateEmittanceInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEmittanceInternal");
-            m_optixCallableProgramNullEDF_evaluateEDFInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateEDFInternal");
+            m_optixCallableProgramNullEDF_evaluateInternal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullEDF_evaluateInternal");
 
             Shared::EDFProcedureSet edfProcSet;
             {
                 edfProcSet.progEvaluateEmittanceInternal = m_optixCallableProgramNullEDF_evaluateEmittanceInternal->getId();
-                edfProcSet.progEvaluateEDFInternal = m_optixCallableProgramNullEDF_evaluateEDFInternal->getId();
+                edfProcSet.progEvaluateInternal = m_optixCallableProgramNullEDF_evaluateInternal->getId();
             }
             m_nullEDFProcedureSetIndex = setEDFProcedureSet(edfProcSet);
             VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null EDF procedure set is expected to be 0.");
@@ -234,15 +234,15 @@ namespace VLR {
         m_optixSurfaceMaterialDescriptorBuffer->destroy();
 
         unsetEDFProcedureSet(m_nullEDFProcedureSetIndex);
-        m_optixCallableProgramNullEDF_evaluateEDFInternal->destroy();
+        m_optixCallableProgramNullEDF_evaluateInternal->destroy();
         m_optixCallableProgramNullEDF_evaluateEmittanceInternal->destroy();
         m_optixCallableProgramNullEDF_setupEDF->destroy();
 
         unsetBSDFProcedureSet(m_nullBSDFProcedureSetIndex);
         m_optixCallableProgramNullBSDF_weightInternal->destroy();
-        m_optixCallableProgramNullBSDF_evaluateBSDF_PDFInternal->destroy();
-        m_optixCallableProgramNullBSDF_evaluateBSDFInternal->destroy();
-        m_optixCallableProgramNullBSDF_sampleBSDFInternal->destroy();
+        m_optixCallableProgramNullBSDF_evaluatePDFInternal->destroy();
+        m_optixCallableProgramNullBSDF_evaluateInternal->destroy();
+        m_optixCallableProgramNullBSDF_sampleInternal->destroy();
         m_optixCallableProgramNullBSDF_matches->destroy();
         m_optixCallableProgramNullBSDF_getBaseColor->destroy();
         m_optixCallableProgramNullBSDF_setupBSDF->destroy();

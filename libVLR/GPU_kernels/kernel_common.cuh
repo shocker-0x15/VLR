@@ -260,20 +260,20 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> progSigTextureMap;
+    typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> ProgSigTextureMap;
 
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> progSigSetupBSDF;
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> progSigSetupEDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> ProgSigSetupBSDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> ProgSigSetupEDF;
 
-    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigGetBaseColor;
-    typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> progSigBSDFmatches;
-    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> progSigSampleBSDFInternal;
-    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDFInternal;
-    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> progSigEvaluateBSDF_PDFInternal;
-    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &)> progSigBSDFWeightInternal;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
+    typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> ProgSigBSDFSampleInternal;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluateInternal;
+    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluatePDFInternal;
+    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &)> ProgSigBSDFWeightInternal;
 
-    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> progSigEvaluateEmittanceInternal;
-    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> progSigEvaluateEDFInternal;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*)> ProgSigEDFEvaluateEmittanceInternal;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> ProgSigEDFEvaluateInternal;
 
 
 

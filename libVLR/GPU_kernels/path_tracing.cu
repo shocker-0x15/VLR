@@ -4,14 +4,14 @@ namespace VLR {
     // Context-scope Variables
     rtDeclareVariable(optix::uint2, pv_imageSize, , );
     rtDeclareVariable(uint32_t, pv_numAccumFrames, , );
-    rtDeclareVariable(progSigSampleLensPosition, pv_progSampleLensPosition, , );
-    rtDeclareVariable(progSigSampleIDF, pv_progSampleIDF, , );
+    rtDeclareVariable(ProgSigSampleLensPosition, pv_progSampleLensPosition, , );
+    rtDeclareVariable(ProgSigSampleIDF, pv_progSampleIDF, , );
     rtBuffer<KernelRNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
 
     // per GeometryInstance
-    rtDeclareVariable(progSigDecodeHitPoint, pv_progDecodeHitPoint, , );
+    rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
 
@@ -35,7 +35,7 @@ namespace VLR {
         // implicit light sampling
         RGBSpectrum spEmittance = edf.evaluateEmittance();
         if (spEmittance.hasNonZero()) {
-            RGBSpectrum Le = spEmittance * edf.evaluateEDF(EDFQuery(), dirOutLocal);
+            RGBSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
 
             float MISWeight = 1.0f;
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
@@ -81,15 +81,15 @@ namespace VLR {
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
-                RGBSpectrum Le = M * ledf.evaluateEDF(EDFQuery(), shadowRayDir_l);
+                RGBSpectrum Le = M * ledf.evaluate(EDFQuery(), shadowRayDir_l);
                 float lightPDF = lightProb * lpResult.areaPDF;
 
-                RGBSpectrum fs = bsdf.evaluateBSDF(fsQuery, shadowRayDir_sn);
+                RGBSpectrum fs = bsdf.evaluate(fsQuery, shadowRayDir_sn);
                 float cosLight = lpResult.surfPt.calcCosTerm(-shadowRayDir);
-                float bsdfPDF = bsdf.evaluateBSDF_PDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
+                float bsdfPDF = bsdf.evaluatePDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
 
                 float MISWeight = 1.0f;
-                if (!lpResult.posType.isDelta() && !std::isinf(lpResult.areaPDF))
+                if (!lpResult.posType.isDelta() && !std::isinf(lightPDF))
                     MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
@@ -100,7 +100,7 @@ namespace VLR {
 
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
-        RGBSpectrum fs = bsdf.sampleBSDF(fsQuery, sample, &fsResult);
+        RGBSpectrum fs = bsdf.sample(fsQuery, sample, &fsResult);
         if (fs == RGBSpectrum::Zero() || fsResult.dirPDF == 0.0f)
             return;
         if (fsResult.sampledType.isDispersive() && !sm_payload.wavelengthSelected) {
@@ -153,7 +153,7 @@ namespace VLR {
         // implicit light sampling
         RGBSpectrum spEmittance = edf.evaluateEmittance();
         if (spEmittance.hasNonZero()) {
-            RGBSpectrum Le = spEmittance * edf.evaluateEDF(EDFQuery(), dirOutLocal);
+            RGBSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
 
             float MISWeight = 1.0f;
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {

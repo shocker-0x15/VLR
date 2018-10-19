@@ -160,16 +160,16 @@ namespace VLR {
 
         struct BSDFProcedureSet {
             int32_t progGetBaseColor;
-            int32_t progBSDFmatches;
-            int32_t progSampleBSDFInternal;
-            int32_t progEvaluateBSDFInternal;
-            int32_t progEvaluateBSDF_PDFInternal;
+            int32_t progMatches;
+            int32_t progSampleInternal;
+            int32_t progEvaluateInternal;
+            int32_t progEvaluatePDFInternal;
             int32_t progWeightInternal;
         };
 
         struct EDFProcedureSet {
             int32_t progEvaluateEmittanceInternal;
-            int32_t progEvaluateEDFInternal;
+            int32_t progEvaluateInternal;
         };
 
 

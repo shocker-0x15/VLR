@@ -13,20 +13,20 @@ namespace VLR {
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
             programSet->callableProgramSetupBSDF = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
 
-            programSet->callableProgramGetBaseColor = optixContext->createProgramFromPTXString(ptx, identifiers[1]);
+            programSet->callableProgramBSDFGetBaseColor = optixContext->createProgramFromPTXString(ptx, identifiers[1]);
             programSet->callableProgramBSDFmatches = optixContext->createProgramFromPTXString(ptx, identifiers[2]);
-            programSet->callableProgramSampleBSDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[3]);
-            programSet->callableProgramEvaluateBSDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[4]);
-            programSet->callableProgramEvaluateBSDF_PDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[5]);
+            programSet->callableProgramBSDFSampleInternal = optixContext->createProgramFromPTXString(ptx, identifiers[3]);
+            programSet->callableProgramBSDFEvaluateInternal = optixContext->createProgramFromPTXString(ptx, identifiers[4]);
+            programSet->callableProgramBSDFEvaluatePDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[5]);
             programSet->callableProgramBSDFWeightInternal = optixContext->createProgramFromPTXString(ptx, identifiers[6]);
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
-                bsdfProcSet.progGetBaseColor = programSet->callableProgramGetBaseColor->getId();
-                bsdfProcSet.progBSDFmatches = programSet->callableProgramBSDFmatches->getId();
-                bsdfProcSet.progSampleBSDFInternal = programSet->callableProgramSampleBSDFInternal->getId();
-                bsdfProcSet.progEvaluateBSDFInternal = programSet->callableProgramEvaluateBSDFInternal->getId();
-                bsdfProcSet.progEvaluateBSDF_PDFInternal = programSet->callableProgramEvaluateBSDF_PDFInternal->getId();
+                bsdfProcSet.progGetBaseColor = programSet->callableProgramBSDFGetBaseColor->getId();
+                bsdfProcSet.progMatches = programSet->callableProgramBSDFmatches->getId();
+                bsdfProcSet.progSampleInternal = programSet->callableProgramBSDFSampleInternal->getId();
+                bsdfProcSet.progEvaluateInternal = programSet->callableProgramBSDFEvaluateInternal->getId();
+                bsdfProcSet.progEvaluatePDFInternal = programSet->callableProgramBSDFEvaluatePDFInternal->getId();
                 bsdfProcSet.progWeightInternal = programSet->callableProgramBSDFWeightInternal->getId();
             }
             programSet->bsdfProcedureSetIndex = context.setBSDFProcedureSet(bsdfProcSet);
@@ -35,13 +35,13 @@ namespace VLR {
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
             programSet->callableProgramSetupEDF = optixContext->createProgramFromPTXString(ptx, identifiers[7]);
 
-            programSet->callableProgramEvaluateEmittanceInternal = optixContext->createProgramFromPTXString(ptx, identifiers[8]);
-            programSet->callableProgramEvaluateEDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[9]);
+            programSet->callableProgramEDFEvaluateEmittanceInternal = optixContext->createProgramFromPTXString(ptx, identifiers[8]);
+            programSet->callableProgramEDFEvaluateInternal = optixContext->createProgramFromPTXString(ptx, identifiers[9]);
 
             Shared::EDFProcedureSet edfProcSet;
             {
-                edfProcSet.progEvaluateEmittanceInternal = programSet->callableProgramEvaluateEmittanceInternal->getId();
-                edfProcSet.progEvaluateEDFInternal = programSet->callableProgramEvaluateEDFInternal->getId();
+                edfProcSet.progEvaluateEmittanceInternal = programSet->callableProgramEDFEvaluateEmittanceInternal->getId();
+                edfProcSet.progEvaluateInternal = programSet->callableProgramEDFEvaluateInternal->getId();
             }
             programSet->edfProcedureSetIndex = context.setEDFProcedureSet(edfProcSet);
         }
@@ -52,8 +52,8 @@ namespace VLR {
         if (programSet.callableProgramSetupEDF) {
             context.unsetEDFProcedureSet(programSet.edfProcedureSetIndex);
 
-            programSet.callableProgramEvaluateEDFInternal->destroy();
-            programSet.callableProgramEvaluateEmittanceInternal->destroy();
+            programSet.callableProgramEDFEvaluateInternal->destroy();
+            programSet.callableProgramEDFEvaluateEmittanceInternal->destroy();
 
             programSet.callableProgramSetupEDF->destroy();
         }
@@ -62,11 +62,11 @@ namespace VLR {
             context.unsetBSDFProcedureSet(programSet.bsdfProcedureSetIndex);
 
             programSet.callableProgramBSDFWeightInternal->destroy();
-            programSet.callableProgramEvaluateBSDF_PDFInternal->destroy();
-            programSet.callableProgramEvaluateBSDFInternal->destroy();
-            programSet.callableProgramSampleBSDFInternal->destroy();
+            programSet.callableProgramBSDFEvaluatePDFInternal->destroy();
+            programSet.callableProgramBSDFEvaluateInternal->destroy();
+            programSet.callableProgramBSDFSampleInternal->destroy();
             programSet.callableProgramBSDFmatches->destroy();
-            programSet.callableProgramGetBaseColor->destroy();
+            programSet.callableProgramBSDFGetBaseColor->destroy();
 
             programSet.callableProgramSetupBSDF->destroy();
         }
@@ -145,9 +145,9 @@ namespace VLR {
             "VLR::MatteSurfaceMaterial_setupBSDF",
             "VLR::MatteBRDF_getBaseColor",
             "VLR::MatteBRDF_matches",
-            "VLR::MatteBRDF_sampleBSDFInternal",
-            "VLR::MatteBRDF_evaluateBSDFInternal",
-            "VLR::MatteBRDF_evaluateBSDF_PDFInternal",
+            "VLR::MatteBRDF_sampleInternal",
+            "VLR::MatteBRDF_evaluateInternal",
+            "VLR::MatteBRDF_evaluatePDFInternal",
             "VLR::MatteBRDF_weightInternal",
             nullptr,
             nullptr,
@@ -200,9 +200,9 @@ namespace VLR {
             "VLR::SpecularReflectionSurfaceMaterial_setupBSDF",
             "VLR::SpecularBRDF_getBaseColor",
             "VLR::SpecularBRDF_matches",
-            "VLR::SpecularBRDF_sampleBSDFInternal",
-            "VLR::SpecularBRDF_evaluateBSDFInternal",
-            "VLR::SpecularBRDF_evaluateBSDF_PDFInternal",
+            "VLR::SpecularBRDF_sampleInternal",
+            "VLR::SpecularBRDF_evaluateInternal",
+            "VLR::SpecularBRDF_evaluatePDFInternal",
             "VLR::SpecularBRDF_weightInternal",
             nullptr,
             nullptr,
@@ -257,9 +257,9 @@ namespace VLR {
             "VLR::SpecularScatteringSurfaceMaterial_setupBSDF",
             "VLR::SpecularBSDF_getBaseColor",
             "VLR::SpecularBSDF_matches",
-            "VLR::SpecularBSDF_sampleBSDFInternal",
-            "VLR::SpecularBSDF_evaluateBSDFInternal",
-            "VLR::SpecularBSDF_evaluateBSDF_PDFInternal",
+            "VLR::SpecularBSDF_sampleInternal",
+            "VLR::SpecularBSDF_evaluateInternal",
+            "VLR::SpecularBSDF_evaluatePDFInternal",
             "VLR::SpecularBSDF_weightInternal",
             nullptr,
             nullptr,
@@ -314,9 +314,9 @@ namespace VLR {
             "VLR::MicrofacetReflectionSurfaceMaterial_setupBSDF",
             "VLR::MicrofacetBRDF_getBaseColor",
             "VLR::MicrofacetBRDF_matches",
-            "VLR::MicrofacetBRDF_sampleBSDFInternal",
-            "VLR::MicrofacetBRDF_evaluateBSDFInternal",
-            "VLR::MicrofacetBRDF_evaluateBSDF_PDFInternal",
+            "VLR::MicrofacetBRDF_sampleInternal",
+            "VLR::MicrofacetBRDF_evaluateInternal",
+            "VLR::MicrofacetBRDF_evaluatePDFInternal",
             "VLR::MicrofacetBRDF_weightInternal",
             nullptr,
             nullptr,
@@ -371,9 +371,9 @@ namespace VLR {
             "VLR::MicrofacetScatteringSurfaceMaterial_setupBSDF",
             "VLR::MicrofacetBSDF_getBaseColor",
             "VLR::MicrofacetBSDF_matches",
-            "VLR::MicrofacetBSDF_sampleBSDFInternal",
-            "VLR::MicrofacetBSDF_evaluateBSDFInternal",
-            "VLR::MicrofacetBSDF_evaluateBSDF_PDFInternal",
+            "VLR::MicrofacetBSDF_sampleInternal",
+            "VLR::MicrofacetBSDF_evaluateInternal",
+            "VLR::MicrofacetBSDF_evaluatePDFInternal",
             "VLR::MicrofacetBSDF_weightInternal",
             nullptr,
             nullptr,
@@ -429,9 +429,9 @@ namespace VLR {
             "VLR::LambertianScatteringSurfaceMaterial_setupBSDF",
             "VLR::LambertianBSDF_getBaseColor",
             "VLR::LambertianBSDF_matches",
-            "VLR::LambertianBSDF_sampleBSDFInternal",
-            "VLR::LambertianBSDF_evaluateBSDFInternal",
-            "VLR::LambertianBSDF_evaluateBSDF_PDFInternal",
+            "VLR::LambertianBSDF_sampleInternal",
+            "VLR::LambertianBSDF_evaluateInternal",
+            "VLR::LambertianBSDF_evaluatePDFInternal",
             "VLR::LambertianBSDF_weightInternal",
             nullptr,
             nullptr,
@@ -485,9 +485,9 @@ namespace VLR {
             "VLR::UE4SurfaceMaterial_setupBSDF",
             "VLR::UE4BRDF_getBaseColor",
             "VLR::UE4BRDF_matches",
-            "VLR::UE4BRDF_sampleBSDFInternal",
-            "VLR::UE4BRDF_evaluateBSDFInternal",
-            "VLR::UE4BRDF_evaluateBSDF_PDFInternal",
+            "VLR::UE4BRDF_sampleInternal",
+            "VLR::UE4BRDF_evaluateInternal",
+            "VLR::UE4BRDF_evaluatePDFInternal",
             "VLR::UE4BRDF_weightInternal",
             nullptr,
             nullptr,
@@ -547,7 +547,7 @@ namespace VLR {
             nullptr,
             "VLR::DiffuseEmitterSurfaceMaterial_setupEDF",
             "VLR::DiffuseEDF_evaluateEmittanceInternal",
-            "VLR::DiffuseEDF_evaluateEDFInternal"
+            "VLR::DiffuseEDF_evaluateInternal"
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -596,13 +596,13 @@ namespace VLR {
             "VLR::MultiSurfaceMaterial_setupBSDF",
             "VLR::MultiBSDF_getBaseColor",
             "VLR::MultiBSDF_matches",
-            "VLR::MultiBSDF_sampleBSDFInternal",
-            "VLR::MultiBSDF_evaluateBSDFInternal",
-            "VLR::MultiBSDF_evaluateBSDF_PDFInternal",
+            "VLR::MultiBSDF_sampleInternal",
+            "VLR::MultiBSDF_evaluateInternal",
+            "VLR::MultiBSDF_evaluatePDFInternal",
             "VLR::MultiBSDF_weightInternal",
             "VLR::MultiSurfaceMaterial_setupEDF",
             "VLR::MultiEDF_evaluateEmittanceInternal",
-            "VLR::MultiEDF_evaluateEDFInternal"
+            "VLR::MultiEDF_evaluateInternal"
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -680,7 +680,7 @@ namespace VLR {
             nullptr,
             "VLR::EnvironmentEmitterSurfaceMaterial_setupEDF",
             "VLR::EnvironmentEDF_evaluateEmittanceInternal",
-            "VLR::EnvironmentEDF_evaluateEDFInternal"
+            "VLR::EnvironmentEDF_evaluateInternal"
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
