@@ -118,6 +118,9 @@ namespace VLR {
         sm_payload.terminate = false;
     }
 
+    // JP: 本当は無限大の球のIntersection/Bounding Box Programを使用して環境光に関する処理もClosest Hit Programで統一的に行いたい。
+    //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
+    //     仕方なくMiss Programで環境光を処理する。
     RT_PROGRAM void pathTracingMiss() {
         if (pv_envLightDescriptor.importance == 0)
             return;
