@@ -198,27 +198,6 @@ namespace VLR {
 
 
     // ----------------------------------------------------------------
-    // Texture Mappings
-
-    RT_CALLABLE_PROGRAM Point3D OffsetAndScaleUVTextureMap2D_map(const uint32_t* texMapDesc, const SurfacePoint &surfPt) {
-        const OffsetAndScaleUVTextureMap2D &texMap = *(const OffsetAndScaleUVTextureMap2D*)texMapDesc;
-        return Point3D(texMap.scale[0] * surfPt.texCoord.u + texMap.offset[0],
-                       texMap.scale[1] * surfPt.texCoord.v + texMap.offset[1],
-                       0.0f);
-    }
-
-    RT_FUNCTION Point3D textureMap(uint32_t texMapIndex, const SurfacePoint &surfPt) {
-        const TextureMapDescriptor &texMapDesc = pv_textureMapDescriptorBuffer[texMapIndex];
-        ProgSigTextureMap progTexMap = (ProgSigTextureMap)texMapDesc.progTextureMap;
-        return progTexMap(texMapDesc.data, surfPt);
-    }
-
-    // END: Texture Mappings
-    // ----------------------------------------------------------------
-
-
-
-    // ----------------------------------------------------------------
     // NullBSDF
 
     RT_CALLABLE_PROGRAM uint32_t NullBSDF_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, bool wavelengthSelected, uint32_t* params) {
@@ -266,11 +245,8 @@ namespace VLR {
         MatteBRDF &p = *(MatteBRDF*)params;
         const MatteSurfaceMaterial &mat = *(const MatteSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
-
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texAlbedoRoughness, texCoord.x, texCoord.y);
-        p.albedo = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        p.roughness = texValue.w;
+        p.albedo = calcRGBSpectrum(mat.nodeAlbedoRoughness, surfPt);
+        p.roughness = 0.0f;
 
         return sizeof(MatteBRDF) / 4;
     }
@@ -340,7 +316,7 @@ namespace VLR {
         SpecularBRDF &p = *(SpecularBRDF*)params;
         const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         texValue = optix::rtTex2D<optix::float4>(mat.texCoeffR, texCoord.x, texCoord.y);
@@ -412,7 +388,7 @@ namespace VLR {
         SpecularBSDF &p = *(SpecularBSDF*)params;
         const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
@@ -522,7 +498,7 @@ namespace VLR {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
         const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         optix::float2 texValueF2;
@@ -691,7 +667,7 @@ namespace VLR {
         MicrofacetBSDF &p = *(MicrofacetBSDF*)params;
         const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         optix::float2 texValueF2;
@@ -957,7 +933,7 @@ namespace VLR {
         LambertianBSDF &p = *(LambertianBSDF*)params;
         const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
@@ -1088,7 +1064,7 @@ namespace VLR {
         UE4BRDF &p = *(UE4BRDF*)params;
         const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue;
         texValue = optix::rtTex2D<optix::float4>(mat.texBaseColor, texCoord.x, texCoord.y);
@@ -1355,7 +1331,7 @@ namespace VLR {
         DiffuseEDF &p = *(DiffuseEDF*)params;
         const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = textureMap(mat.texMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(mat.nodeTexMap, surfPt);
 
         optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texEmittance, texCoord.x, texCoord.y);
         p.emittance = RGBSpectrum(texValue.x, texValue.y, texValue.z);

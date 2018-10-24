@@ -174,26 +174,17 @@ namespace VLR {
 
 
 
-        struct TextureMapDescriptor {
-            int32_t progTextureMap;
-#define VLR_MAX_NUM_TEXTURE_MAPPING_DESCRIPTOR_SLOTS (32)
-            uint32_t data[VLR_MAX_NUM_TEXTURE_MAPPING_DESCRIPTOR_SLOTS];
+        struct NodeDescriptor {
+            int32_t progNode;
+#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (32)
+            uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
         };
 
 
 
         struct SurfaceMaterialDescriptor {
 #define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
-            union {
-                int32_t i1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
-                uint32_t ui1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
-                float f1[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
-
-                optix::int2 i2[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 1];
-                optix::float2 f2[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 1];
-
-                optix::float4 f4[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS >> 2];
-            };
+            uint32_t data[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
         };
 
 
@@ -287,12 +278,31 @@ namespace VLR {
 
 
 
-        struct OffsetAndScaleUVTextureMap2D {
+        // ----------------------------------------------------------------
+        // Shader Nodes
+
+        struct OffsetAndScaleUVTextureMap2DShaderNode {
             float offset[2];
             float scale[2];
         };
 
+        struct ConstantTextureShaderNode {
+            RGBSpectrum spectrum;
+            float alpha;
+        };
 
+        struct ImageTextureShaderNode {
+            int32_t textureID;
+            uint32_t nodeTexMap;
+        };
+
+        // END: Shader Nodes
+        // ----------------------------------------------------------------
+
+
+
+        // ----------------------------------------------------------------
+        // Surface Materials
 
         struct SurfaceMaterialHead {
             int32_t progSetupBSDF;
@@ -302,29 +312,28 @@ namespace VLR {
         };
 
         struct MatteSurfaceMaterial {
-            int32_t texAlbedoRoughness;
-            uint32_t texMap;
+            uint32_t nodeAlbedoRoughness;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             int32_t texCoeffR;
             int32_t texEta;
             int32_t tex_k;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texEtaExt;
             int32_t texEtaInt;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
             int32_t texEta;
             int32_t tex_k;
             int32_t texRoughness;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct MicrofacetScatteringSurfaceMaterial {
@@ -332,24 +341,24 @@ namespace VLR {
             int32_t texEtaExt;
             int32_t texEtaInt;
             int32_t texRoughness;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct LambertianScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texF0;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
             int32_t texOcclusionRoughnessMetallic;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct DiffuseEmitterSurfaceMaterial {
             int32_t texEmittance;
-            uint32_t texMap;
+            uint32_t nodeTexMap;
         };
 
         struct MultiSurfaceMaterial {
@@ -365,5 +374,8 @@ namespace VLR {
         struct EnvironmentEmitterSurfaceMaterial {
             int32_t texEmittance;
         };
+
+        // END: Surface Materials
+        // ----------------------------------------------------------------
     }
 }

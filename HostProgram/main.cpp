@@ -591,90 +591,7 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
 
 
 
-    //construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-    //    using namespace VLRCpp;
-    //    using namespace VLR;
-
-    //    aiReturn ret;
-    //    (void)ret;
-    //    aiString strValue;
-    //    float color[3];
-
-    //    aiMat->Get(AI_MATKEY_NAME, strValue);
-
-    //    SurfaceMaterialRef mat;
-    //    if (strcmp(strValue.C_Str(), "Base") == 0) {
-    //        float value[] = { 0.18f, 0.18f, 0.18f, 0.0f };
-    //        Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-    //        mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
-    //    }
-    //    else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
-    //        float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };
-    //        Float3TextureRef texBaseColor = context.createConstantFloat3Texture(baseColor);
-    //        float occlusionRoughnessMetallic[] = { 0.0f, 0.3f, 0.0f };
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createConstantFloat3Texture(occlusionRoughnessMetallic);
-    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
-
-    //        ////// Aluminum
-    //        ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
-    //        ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
-    //        ////// Copper
-    //        ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
-    //        ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
-    //        //// Gold
-    //        //float eta[] = { 0.12481f, 0.468228f, 1.44476f };
-    //        //float k[] = { 3.32107f, 2.23761f, 1.69196f };
-    //        ////// Iron
-    //        ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
-    //        ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
-    //        ////// Lead
-    //        ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
-    //        ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
-    //        ////// Mercury
-    //        ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
-    //        ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
-    //        ////// Platinum
-    //        ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
-    //        ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
-    //        ////// Silver
-    //        ////float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-    //        ////float k[] = { 3.82431f, 3.1451f, 2.27711f };
-    //        ////// Titanium
-    //        ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
-    //        ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
-    //        //float roughness[] = { 0.2f, 0.2f };
-    //        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-    //        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-    //        //Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-    //        //mat = context.createMicrofacetReflectionSurfaceMaterial(texEta, tex_k, texRoughness, nullptr);
-    //    }
-    //    //if (strcmp(strValue.C_Str(), "Base") == 0 || 
-    //    //    strcmp(strValue.C_Str(), "Glossy") == 0) {
-    //    //    float coeff[] = { 0.99f, 0.99f, 0.99f };
-    //    //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
-    //    //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
-    //    //    float roughness[] = { 0.1f, 0.1f };
-    //    //    Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-    //    //    Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
-    //    //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
-    //    //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-    //    //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
-
-    //    //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
-    //    //    //float F0 = 0.2f;
-    //    //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-    //    //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
-    //    //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
-    //    //}
-
-    //    return SurfaceAttributeTuple(mat, nullptr);
-    //});
-    //shot->scene->addChild(modelNode);
-    //modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
-
-
-
-    construct(context, "../../assets/spman/spman.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -686,39 +603,124 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         aiMat->Get(AI_MATKEY_NAME, strValue);
 
         SurfaceMaterialRef mat;
-        Float4TextureRef texNormalAlpha;
-        if (strcmp(strValue.C_Str(), "_Head1") == 0) {
-            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
-            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
-            texNormalAlpha = context.createImageFloat4Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
-            mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+        Float4TextureRef normalAlpha;
+        if (strcmp(strValue.C_Str(), "Base") == 0) {
+            float value[] = { 0.18f, 0.18f, 0.18f, 0.0f };
+            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
+            mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
         }
-        else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
-            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
-            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
-            texNormalAlpha = context.createImageFloat4Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+        else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
+            float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };
+            Float3TextureRef texBaseColor = context.createConstantFloat3Texture(baseColor);
+            float occlusionRoughnessMetallic[] = { 0.0f, 0.3f, 0.0f };
+            Float3TextureRef texOcclusionRoughnessMetallic = context.createConstantFloat3Texture(occlusionRoughnessMetallic);
             mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
-        }
-        else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
-            Float3TextureRef texBaseColor = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
-            Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
-            texNormalAlpha = context.createImageFloat4Texture(
-                loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
-            mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
-        }
+            normalAlpha = context.createImageFloat4Texture(loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_normal_alpha.png", false));
 
-        return SurfaceAttributeTuple(mat, texNormalAlpha);
+            ////// Aluminum
+            ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
+            ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
+            ////// Copper
+            ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
+            ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
+            //// Gold
+            //float eta[] = { 0.12481f, 0.468228f, 1.44476f };
+            //float k[] = { 3.32107f, 2.23761f, 1.69196f };
+            ////// Iron
+            ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
+            ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
+            ////// Lead
+            ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
+            ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
+            ////// Mercury
+            ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
+            ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
+            ////// Platinum
+            ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
+            ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
+            ////// Silver
+            ////float eta[] = { 0.157099f, 0.144013f, 0.134847f };
+            ////float k[] = { 3.82431f, 3.1451f, 2.27711f };
+            ////// Titanium
+            ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
+            ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
+            //float roughness[] = { 0.2f, 0.2f };
+            //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
+            //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
+            //Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
+            //mat = context.createMicrofacetReflectionSurfaceMaterial(texEta, tex_k, texRoughness, nullptr);
+        }
+        //if (strcmp(strValue.C_Str(), "Base") == 0 || 
+        //    strcmp(strValue.C_Str(), "Glossy") == 0) {
+        //    float coeff[] = { 0.99f, 0.99f, 0.99f };
+        //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
+        //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
+        //    float roughness[] = { 0.1f, 0.1f };
+        //    Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        //    Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
+        //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
+        //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
+        //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
+
+        //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
+        //    //float F0 = 0.2f;
+        //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
+        //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
+        //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
+        //}
+
+        return SurfaceAttributeTuple(mat, normalAlpha);
     });
     shot->scene->addChild(modelNode);
-    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
+    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
+
+
+
+    //construct(context, "../../assets/spman/spman.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    //    using namespace VLRCpp;
+    //    using namespace VLR;
+
+    //    aiReturn ret;
+    //    (void)ret;
+    //    aiString strValue;
+    //    float color[3];
+
+    //    aiMat->Get(AI_MATKEY_NAME, strValue);
+
+    //    SurfaceMaterialRef mat;
+    //    Float4TextureRef texNormalAlpha;
+    //    if (strcmp(strValue.C_Str(), "_Head1") == 0) {
+    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
+    //        texNormalAlpha = context.createImageFloat4Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
+    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //    }
+    //    else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
+    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
+    //        texNormalAlpha = context.createImageFloat4Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //    }
+    //    else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
+    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
+    //        texNormalAlpha = context.createImageFloat4Texture(
+    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
+    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //    }
+
+    //    return SurfaceAttributeTuple(mat, texNormalAlpha);
+    //});
+    //shot->scene->addChild(modelNode);
+    //modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
 
 
 

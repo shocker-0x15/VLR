@@ -6,6 +6,30 @@
 using half_float::half;
 
 namespace VLR {
+    class ShaderNode : public Object {
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+    };
+
+
+
+    class TextureCoordinateShaderNode {
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+    };
+
+
+
+    class RGBSpectrumShaderNode {
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+    };
+
+
+
     // ----------------------------------------------------------------
     // Textures
 

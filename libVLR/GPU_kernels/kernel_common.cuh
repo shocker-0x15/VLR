@@ -260,7 +260,10 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> ProgSigTextureMap;
+    typedef rtCallableProgramId<float(const uint32_t*, const SurfacePoint &)> ProgSigFloatNode;
+    typedef rtCallableProgramId<Vector3D(const uint32_t*, const SurfacePoint &)> ProgSigVector3DNode;
+    typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> ProgSigTextureCoordinateNode;
+    typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const SurfacePoint &)> ProgSigRGBSpectrumNode;
 
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> ProgSigSetupBSDF;
     typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> ProgSigSetupEDF;
@@ -281,7 +284,33 @@ namespace VLR {
     rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
 
     // Context-scope Variables
-    rtBuffer<TextureMapDescriptor, 1> pv_textureMapDescriptorBuffer;
+    rtBuffer<NodeDescriptor, 1> pv_nodeDescriptorBuffer;
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
+
+
+
+    RT_FUNCTION float calcFloat(uint32_t nodeFloat, const SurfacePoint &surfPt) {
+        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeFloat];
+        ProgSigFloatNode program = (ProgSigFloatNode)nodeDesc.progNode;
+        return program(nodeDesc.data, surfPt);
+    }
+
+    RT_FUNCTION float calcVector3D(uint32_t nodeVector3D, const SurfacePoint &surfPt) {
+        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeVector3D];
+        ProgSigVector3DNode program = (ProgSigVector3DNode)nodeDesc.progNode;
+        return program(nodeDesc.data, surfPt);
+    }
+
+    RT_FUNCTION Point3D calcTextureCoodinate(uint32_t nodeTexMap, const SurfacePoint &surfPt) {
+        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeTexMap];
+        ProgSigTextureCoordinateNode program = (ProgSigTextureCoordinateNode)nodeDesc.progNode;
+        return program(nodeDesc.data, surfPt);
+    }
+
+    RT_FUNCTION RGBSpectrum calcRGBSpectrum(uint32_t nodeRGBSpectrum, const SurfacePoint &surfPt) {
+        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeRGBSpectrum];
+        ProgSigRGBSpectrumNode program = (ProgSigRGBSpectrumNode)nodeDesc.progNode;
+        return program(nodeDesc.data, surfPt);
+    }
 }

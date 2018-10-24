@@ -14,16 +14,7 @@ namespace VLR {
 
     class BSDF {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
-        union {
-            int32_t i1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
-            uint32_t ui1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
-            float f1[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
-
-            optix::int2 i2[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 1];
-            optix::float2 f2[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 1];
-
-            optix::float4 f4[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS >> 2];
-        };
+        uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
 
         //ProgSigBSDFGetBaseColor progGetBaseColor;
         ProgSigBSDFmatches progMatches;
@@ -46,7 +37,7 @@ namespace VLR {
 
     public:
         RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, bool wavelengthSelected) {
-            SurfaceMaterialHead &head = *(SurfaceMaterialHead*)&matDesc.i1[0];
+            const SurfaceMaterialHead &head = *(const SurfaceMaterialHead*)matDesc.data;
 
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)head.progSetupBSDF;
             setupBSDF((const uint32_t*)&matDesc, surfPt, wavelengthSelected, (uint32_t*)this);
@@ -100,16 +91,7 @@ namespace VLR {
 
     class EDF {
 #define VLR_MAX_NUM_EDF_PARAMETER_SLOTS (8)
-        union {
-            int32_t i1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
-            uint32_t ui1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
-            float f1[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
-
-            optix::int2 i2[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 1];
-            optix::float2 f2[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 1];
-
-            optix::float4 f4[VLR_MAX_NUM_EDF_PARAMETER_SLOTS >> 2];
-        };
+        uint32_t data[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
 
         ProgSigEDFEvaluateEmittanceInternal progEvaluateEmittanceInternal;
         ProgSigEDFEvaluateInternal progEvaluateInternal;
@@ -123,7 +105,7 @@ namespace VLR {
 
     public:
         RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt) {
-            SurfaceMaterialHead &head = *(SurfaceMaterialHead*)&matDesc.i1[0];
+            const SurfaceMaterialHead &head = *(const SurfaceMaterialHead*)matDesc.data;
 
             ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)head.progSetupEDF;
             setupEDF((const uint32_t*)&matDesc, surfPt, (uint32_t*)this);
