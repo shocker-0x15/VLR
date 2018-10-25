@@ -1,8 +1,143 @@
 #include "textures.h"
 
 namespace VLR {
-    // ----------------------------------------------------------------
-    // Textures
+    // static
+    void ShaderNode::commonInitializeProcedure(Context &context, const char* identifiers[1], OptiXProgramSet* programSet) {
+        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
+
+        optix::Context optixContext = context.getOptiXContext();
+
+        programSet->callableProgram = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
+    }
+
+    // static
+    void ShaderNode::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
+        programSet.callableProgram->destroy();
+    }
+
+    // static
+    void ShaderNode::initialize(Context &context) {
+        OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
+        ConstantTextureShaderNode::initialize(context);
+        Image2DTextureShaderNode::initialize(context);
+    }
+
+    // static
+    void ShaderNode::finalize(Context &context) {
+        Image2DTextureShaderNode::finalize(context);
+        ConstantTextureShaderNode::finalize(context);
+        OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
+    }
+
+    ShaderNode::ShaderNode(Context &context) : Object(context) {
+        m_nodeIndex = 0xFFFFFFFF;
+    }
+
+    ShaderNode::~ShaderNode() {
+        if (m_nodeIndex != 0xFFFFFFFF)
+            m_context.unsetNodeDescriptor(m_nodeIndex);
+        m_nodeIndex = 0xFFFFFFFF;
+    }
+
+
+
+    std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
+    std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode*> OffsetAndScaleUVTextureMap2DShaderNode::s_defaultInstance;
+
+    // static
+    void OffsetAndScaleUVTextureMap2DShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::OffsetAndScaleUVTextureMap2DShaderNode_TexCoord",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+
+        float offset[] = { 0.0f, 0.0f };
+        float scale[] = { 1.0f, 1.0f };
+        s_defaultInstance[context.getID()] = new OffsetAndScaleUVTextureMap2DShaderNode(context, offset, scale);
+    }
+
+    // static
+    void OffsetAndScaleUVTextureMap2DShaderNode::finalize(Context &context) {
+        delete s_defaultInstance.at(context.getID());
+        s_defaultInstance.erase(context.getID());
+
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    OffsetAndScaleUVTextureMap2DShaderNode::OffsetAndScaleUVTextureMap2DShaderNode(Context &context, const float offset[2], const float scale[2]) :
+        ShaderNode(context), m_offset{ offset[0], offset[1] }, m_scale{ scale[0], scale[1] } {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    OffsetAndScaleUVTextureMap2DShaderNode::~OffsetAndScaleUVTextureMap2DShaderNode() {
+    }
+
+    void OffsetAndScaleUVTextureMap2DShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::OffsetAndScaleUVTextureMap2DShaderNode &texMap = *(Shared::OffsetAndScaleUVTextureMap2DShaderNode*)&nodeDesc->data;
+        texMap.offset[0] = m_offset[0];
+        texMap.offset[1] = m_offset[1];
+        texMap.scale[0] = m_scale[0];
+        texMap.scale[1] = m_scale[1];
+    }
+
+
+
+    std::map<uint32_t, ConstantTextureShaderNode::OptiXProgramSet> ConstantTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ConstantTextureShaderNode*> ConstantTextureShaderNode::s_gray18;
+
+    // static
+    void ConstantTextureShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::ConstantTextureShaderNode_RGBSpectrum",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+
+        s_gray18[context.getID()] = new ConstantTextureShaderNode(context, RGBSpectrum(0.18f, 0.18f, 0.18f), 1.0f);
+    }
+
+    // static
+    void ConstantTextureShaderNode::finalize(Context &context) {
+        delete s_gray18.at(context.getID());
+        s_gray18.erase(context.getID());
+
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    ConstantTextureShaderNode::ConstantTextureShaderNode(Context &context, const RGBSpectrum &spectrum, float alpha) :
+        ShaderNode(context), m_spectrum(spectrum), m_alpha(alpha) {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    ConstantTextureShaderNode::~ConstantTextureShaderNode() {
+    }
+
+    void ConstantTextureShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::ConstantTextureShaderNode &nodeData = *(Shared::ConstantTextureShaderNode*)&nodeDesc->data;
+        nodeData.spectrum = m_spectrum;
+        nodeData.alpha = m_alpha;
+    }
+
+
 
     const size_t sizesOfDataFormats[(uint32_t)NumVLRDataFormats] = {
         sizeof(RGB8x3),
@@ -419,92 +554,64 @@ namespace VLR {
 
 
 
-    // static
-    void TextureMap2D::commonInitializeProcedure(Context &context, const char* identifiers[1], OptiXProgramSet* programSet) {
-        std::string ptx = readTxtFile("resources/ptxes/materials.ptx");
-
-        optix::Context optixContext = context.getOptiXContext();
-
-        programSet->callableProgramMap = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
-    }
+    std::map<uint32_t, Image2DTextureShaderNode::OptiXProgramSet> Image2DTextureShaderNode::OptiXProgramSets;
 
     // static
-    void TextureMap2D::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
-        programSet.callableProgramMap->destroy();
-    }
-
-    // static
-    void TextureMap2D::initialize(Context &context) {
-        OffsetAndScaleUVTextureMap2D::initialize(context);
-    }
-
-    // static
-    void TextureMap2D::finalize(Context &context) {
-        OffsetAndScaleUVTextureMap2D::finalize(context);
-    }
-
-    TextureMap2D::TextureMap2D(Context &context) : Object(context) {
-        m_texMapIndex = 0xFFFFFFFF;
-    }
-
-    TextureMap2D::~TextureMap2D() {
-        if (m_texMapIndex != 0xFFFFFFFF)
-            m_context.unsetTextureMapDescriptor(m_texMapIndex);
-        m_texMapIndex = 0xFFFFFFFF;
-    }
-
-
-
-    std::map<uint32_t, TextureMap2D::OptiXProgramSet> OffsetAndScaleUVTextureMap2D::OptiXProgramSets;
-    std::map<uint32_t, OffsetAndScaleUVTextureMap2D*> OffsetAndScaleUVTextureMap2D::s_defaultInstance;
-
-    // static
-    void OffsetAndScaleUVTextureMap2D::initialize(Context &context) {
+    void Image2DTextureShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::OffsetAndScaleUVTextureMap2D_map",
+            "VLR::Image2DTextureShaderNode_RGBSpectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
-
-        float offset[] = { 0.0f, 0.0f };
-        float scale[] = { 1.0f, 1.0f };
-        s_defaultInstance[context.getID()] = new OffsetAndScaleUVTextureMap2D(context, offset, scale);
     }
 
     // static
-    void OffsetAndScaleUVTextureMap2D::finalize(Context &context) {
-        delete s_defaultInstance.at(context.getID());
-        s_defaultInstance.erase(context.getID());
-
+    void Image2DTextureShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
     }
 
-    OffsetAndScaleUVTextureMap2D::OffsetAndScaleUVTextureMap2D(Context &context, const float offset[2], const float scale[2]) :
-        TextureMap2D(context), m_offset{ offset[0], offset[1] }, m_scale{ scale[0], scale[1] } {
-        Shared::TextureMapDescriptor texMatDesc;
-        setupTextureMapDescriptor(&texMatDesc);
+    Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context, const Image2D* image, const ShaderNode* nodeTexCoord) :
+        ShaderNode(context), m_image(image), m_nodeTexCoord(nodeTexCoord) {
+        optix::Context optixContext = context.getOptiXContext();
+        m_optixTextureSampler = optixContext->createTextureSampler();
+        m_optixTextureSampler->setBuffer(image->getOptiXObject());
+        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
+        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+        m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
+        m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
+        m_optixTextureSampler->setMaxAnisotropy(1.0f);
 
-        m_texMapIndex = m_context.setTextureMapDescriptor(texMatDesc);
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
     }
 
-    OffsetAndScaleUVTextureMap2D::~OffsetAndScaleUVTextureMap2D() {
+    Image2DTextureShaderNode::~Image2DTextureShaderNode() {
+        m_optixTextureSampler->destroy();
     }
 
-    void OffsetAndScaleUVTextureMap2D::setupTextureMapDescriptor(Shared::TextureMapDescriptor* texMapDesc) const {
+    void Image2DTextureShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        texMapDesc->progTextureMap = progSet.callableProgramMap->getId();
-        Shared::OffsetAndScaleUVTextureMap2D &texMap = *(Shared::OffsetAndScaleUVTextureMap2D*)&texMapDesc->data;
-        texMap.offset[0] = m_offset[0];
-        texMap.offset[1] = m_offset[1];
-        texMap.scale[0] = m_scale[0];
-        texMap.scale[1] = m_scale[1];
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::Image2DTextureShaderNode &nodeData = *(Shared::Image2DTextureShaderNode*)&nodeDesc->data;
+        nodeData.textureID = m_optixTextureSampler->getId();
+        nodeData.nodeTexCoord = m_nodeTexCoord->getShaderNodeIndex();
+    }
+
+    void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
 
+
+    // ----------------------------------------------------------------
+    // Textures
 
     FloatTexture::FloatTexture(Context &context) : Object(context) {
         optix::Context optixContext = context.getOptiXContext();

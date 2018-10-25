@@ -296,7 +296,7 @@ namespace VLR {
         return program(nodeDesc.data, surfPt);
     }
 
-    RT_FUNCTION float calcVector3D(uint32_t nodeVector3D, const SurfacePoint &surfPt) {
+    RT_FUNCTION Vector3D calcVector3D(uint32_t nodeVector3D, const SurfacePoint &surfPt) {
         const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeVector3D];
         ProgSigVector3DNode program = (ProgSigVector3DNode)nodeDesc.progNode;
         return program(nodeDesc.data, surfPt);

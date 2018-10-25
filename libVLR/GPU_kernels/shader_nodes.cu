@@ -18,10 +18,10 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM RGBSpectrum ImageTextureShaderNode_RGBSpectrum(const uint32_t* nodeData, const SurfacePoint &surfPt) {
-        const ImageTextureShaderNode &image = *(const ImageTextureShaderNode*)nodeData;
+    RT_CALLABLE_PROGRAM RGBSpectrum Image2DTextureShaderNode_RGBSpectrum(const uint32_t* nodeData, const SurfacePoint &surfPt) {
+        const Image2DTextureShaderNode &image = *(const Image2DTextureShaderNode*)nodeData;
 
-        Point3D texCoord = calcTextureCoodinate(image.nodeTexMap, surfPt);
+        Point3D texCoord = calcTextureCoodinate(image.nodeTexCoord, surfPt);
         optix::float4 texValue = optix::rtTex2D<optix::float4>(image.textureID, texCoord.x, texCoord.y);
 
         return RGBSpectrum(texValue.x, texValue.y, texValue.z);

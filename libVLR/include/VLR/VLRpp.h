@@ -8,89 +8,53 @@
 #include "basic_types.h"
 
 namespace VLRCpp {
-    class Image2DHolder;
-    class LinearImage2DHolder;
+#define VLR_DECLARE_HOLDER_AND_REFERENCE(Name)\
+    class Name ## Holder;\
+    typedef std::shared_ptr<Name ## Holder> Name ## Ref
 
-    class TextureMap2DHolder;
-    class OffsetAndScaleUVTextureMap2DHolder;
-    class FloatTextureHolder;
-    class ConstantFloatTextureHolder;
-    class Float2TextureHolder;
-    class ConstantFloat2TextureHolder;
-    class Float3TextureHolder;
-    class ConstantFloat3TextureHolder;
-    class ImageFloat3TextureHolder;
-    class Float4TextureHolder;
-    class ConstantFloat4TextureHolder;
-    class ImageFloat4TextureHolder;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Image2D);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(LinearImage2D);
 
-    class SurfaceMaterialHolder;
-    class MatteSurfaceMaterialHolder;
-    class SpecularReflectionSurfaceMaterialHolder;
-    class SpecularScatteringSurfaceMaterialHolder;
-    class MicrofacetReflectionSurfaceMaterialHolder;
-    class MicrofacetScatteringSurfaceMaterialHolder;
-    class LambertianScatteringSurfaceMaterialHolder;
-    class UE4SurfaceMaterialHolder;
-    class DiffuseEmitterSurfaceMaterialHolder;
-    class MultiSurfaceMaterialHolder;
-    class EnvironmentEmitterSurfaceMaterialHolder;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(OffsetAndScaleUVTextureMap2DShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantTextureShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
 
-    class TransformHolder;
-    class StaticTransformHolder;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(FloatTexture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantFloatTexture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Float2Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantFloat2Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Float3Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantFloat3Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ImageFloat3Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Float4Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantFloat4Texture);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ImageFloat4Texture);
 
-    class NodeHolder;
-    class SurfaceNodeHolder;
-    class TriangleMeshSurfaceNodeHolder;
-    class InternalNodeHolder;
-    class SceneHolder;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(SurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(MatteSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(SpecularReflectionSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(SpecularScatteringSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(MicrofacetReflectionSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(MicrofacetScatteringSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(LambertianScatteringSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(UE4SurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(DiffuseEmitterSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(MultiSurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentEmitterSurfaceMaterial);
 
-    class CameraHolder;
-    class PerspectiveCameraHolder;
-    class EquirectangularCameraHolder;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Transform);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(StaticTransform);
 
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Node);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(SurfaceNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(TriangleMeshSurfaceNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(InternalNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Scene);
 
-
-    typedef std::shared_ptr<Image2DHolder> Image2DRef;
-    typedef std::shared_ptr<LinearImage2DHolder> LinearImage2DRef;
-
-    typedef std::shared_ptr<TextureMap2DHolder> TextureMap2DRef;
-    typedef std::shared_ptr<OffsetAndScaleUVTextureMap2DHolder> OffsetAndScaleUVTextureMap2DRef;
-    typedef std::shared_ptr<FloatTextureHolder> FloatTextureRef;
-    typedef std::shared_ptr<ConstantFloatTextureHolder> ConstantFloatTextureRef;
-    typedef std::shared_ptr<Float2TextureHolder> Float2TextureRef;
-    typedef std::shared_ptr<ConstantFloat2TextureHolder> ConstantFloat2TextureRef;
-    typedef std::shared_ptr<Float3TextureHolder> Float3TextureRef;
-    typedef std::shared_ptr<ConstantFloat3TextureHolder> ConstantFloat3TextureRef;
-    typedef std::shared_ptr<ImageFloat3TextureHolder> ImageFloat3TextureRef;
-    typedef std::shared_ptr<Float4TextureHolder> Float4TextureRef;
-    typedef std::shared_ptr<ConstantFloat4TextureHolder> ConstantFloat4TextureRef;
-    typedef std::shared_ptr<ImageFloat4TextureHolder> ImageFloat4TextureRef;
-
-    typedef std::shared_ptr<SurfaceMaterialHolder> SurfaceMaterialRef;
-    typedef std::shared_ptr<MatteSurfaceMaterialHolder> MatteSurfaceMaterialRef;
-    typedef std::shared_ptr<SpecularReflectionSurfaceMaterialHolder> SpecularReflectionSurfaceMaterialRef;
-    typedef std::shared_ptr<SpecularScatteringSurfaceMaterialHolder> SpecularScatteringSurfaceMaterialRef;
-    typedef std::shared_ptr<MicrofacetReflectionSurfaceMaterialHolder> MicrofacetReflectionSurfaceMaterialRef;
-    typedef std::shared_ptr<MicrofacetScatteringSurfaceMaterialHolder> MicrofacetScatteringSurfaceMaterialRef;
-    typedef std::shared_ptr<LambertianScatteringSurfaceMaterialHolder> LambertianScatteringSurfaceMaterialRef;
-    typedef std::shared_ptr<UE4SurfaceMaterialHolder> UE4SurfaceMaterialRef;
-    typedef std::shared_ptr<DiffuseEmitterSurfaceMaterialHolder> DiffuseEmitterSurfaceMaterialRef;
-    typedef std::shared_ptr<MultiSurfaceMaterialHolder> MultiSurfaceMaterialRef;
-    typedef std::shared_ptr<EnvironmentEmitterSurfaceMaterialHolder> EnvironmentEmitterSurfaceMaterialRef;
-
-    typedef std::shared_ptr<TransformHolder> TransformRef;
-    typedef std::shared_ptr<StaticTransformHolder> StaticTransformRef;
-
-    typedef std::shared_ptr<NodeHolder> NodeRef;
-    typedef std::shared_ptr<SurfaceNodeHolder> SurfaceNodeRef;
-    typedef std::shared_ptr<TriangleMeshSurfaceNodeHolder> TriangleMeshSurfaceNodeRef;
-    typedef std::shared_ptr<InternalNodeHolder> InternalNodeRef;
-    typedef std::shared_ptr<SceneHolder> SceneRef;
-
-    typedef std::shared_ptr<CameraHolder> CameraRef;
-    typedef std::shared_ptr<PerspectiveCameraHolder> PerspectiveCameraRef;
-    typedef std::shared_ptr<EquirectangularCameraHolder> EquirectangularCameraRef;
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Camera);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(PerspectiveCamera);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(EquirectangularCamera);
 
 
 
@@ -147,29 +111,66 @@ namespace VLRCpp {
 
 
 
-    class TextureMap2DHolder : public Object {
+    class ShaderNodeHolder : public Object {
     protected:
-        VLRTextureMap2D m_raw;
+        VLRShaderNode m_raw;
 
     public:
-        TextureMap2DHolder(VLRContext context) : Object(context) {}
+        ShaderNodeHolder(VLRContext context) : Object(context) {}
 
         VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
 
-    class OffsetAndScaleUVTextureMap2DHolder : public TextureMap2DHolder {
+    class OffsetAndScaleUVTextureMap2DShaderNodeHolder : public ShaderNodeHolder {
         float m_offset[2];
         float m_scale[2];
 
     public:
-        OffsetAndScaleUVTextureMap2DHolder(VLRContext context, const float offset[2], const float scale[2]) :
-            TextureMap2DHolder(context), m_offset{ offset[0], offset[1] }, m_scale{ scale[0], scale[1] } {
-            VLRResult res = vlrOffsetAndScaleUVTextureMap2DCreate(context, (VLROffsetAndScaleUVTextureMap2D*)&m_raw, m_offset, m_scale);
+        OffsetAndScaleUVTextureMap2DShaderNodeHolder(VLRContext context, const float offset[2], const float scale[2]) :
+            ShaderNodeHolder(context), m_offset{ offset[0], offset[1] }, m_scale{ scale[0], scale[1] } {
+            VLRResult res = vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(context, (VLROffsetAndScaleUVTextureMap2DShaderNode*)&m_raw, m_offset, m_scale);
         }
-        ~OffsetAndScaleUVTextureMap2DHolder() {
-            VLRResult res = vlrOffsetAndScaleUVTextureMap2DDestroy(m_rawContext, (VLROffsetAndScaleUVTextureMap2D)m_raw);
+        ~OffsetAndScaleUVTextureMap2DShaderNodeHolder() {
+            VLRResult res = vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(m_rawContext, (VLROffsetAndScaleUVTextureMap2DShaderNode)m_raw);
+        }
+    };
+
+
+
+    class ConstantTextureShaderNodeHolder : public ShaderNodeHolder {
+        VLR::RGBSpectrum m_spectrum;
+        float m_alpha;
+
+    public:
+        ConstantTextureShaderNodeHolder(VLRContext context, const VLR::RGBSpectrum &spectrum, float alpha) :
+            ShaderNodeHolder(context), m_spectrum(spectrum), m_alpha(alpha) {
+            float _spectrum[] = { spectrum.r, spectrum.g, spectrum.b };
+            VLRResult res = vlrConstantTextureShaderNodeCreate(context, (VLRConstantTextureShaderNode*)&m_raw, _spectrum, m_alpha);
+        }
+        ~ConstantTextureShaderNodeHolder() {
+            VLRResult res = vlrConstantTextureShaderNodeDestroy(m_rawContext, (VLRConstantTextureShaderNode)m_raw);
+        }
+    };
+
+
+
+    class Image2DTextureShaderNodeHolder : public ShaderNodeHolder {
+        Image2DRef m_image;
+        ShaderNodeRef m_nodeTexCoord;
+
+    public:
+        Image2DTextureShaderNodeHolder(VLRContext context, const Image2DRef &image, const ShaderNodeRef &nodeTexCoord) :
+            ShaderNodeHolder(context), m_image(image), m_nodeTexCoord(nodeTexCoord) {
+            VLRResult res = vlrImage2DTextureShaderNodeCreate(context, (VLRImage2DTextureShaderNode*)&m_raw, (VLRImage2D)image->get(), (VLRShaderNode)m_nodeTexCoord->get());
+        }
+        ~Image2DTextureShaderNodeHolder() {
+            VLRResult res = vlrImage2DTextureShaderNodeDestroy(m_rawContext, (VLRImage2DTextureShaderNode)m_raw);
+        }
+
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+            VLRResult res = vlrImage2DTextureShaderNodeSetFilterMode(m_rawContext, (VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping);
         }
     };
 
@@ -326,15 +327,13 @@ namespace VLRCpp {
 
 
     class MatteSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        Float4TextureRef m_texAlbedoRoughness;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeAlbedo;
 
     public:
-        MatteSurfaceMaterialHolder(VLRContext context, const Float4TextureRef &texAlbedoRoughness, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texAlbedoRoughness(texAlbedoRoughness), m_texMap(texMap) {
+        MatteSurfaceMaterialHolder(VLRContext context, const ShaderNodeRef &nodeAlbedo) :
+            SurfaceMaterialHolder(context), m_nodeAlbedo(nodeAlbedo) {
             VLRResult res = vlrMatteSurfaceMaterialCreate(context, (VLRMatteSurfaceMaterial*)&m_raw,
-                (VLRFloat4Texture)m_texAlbedoRoughness->get(),
-                                                          texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                          m_nodeAlbedo ? (VLRShaderNode)m_nodeAlbedo->get() : nullptr);
         }
         ~MatteSurfaceMaterialHolder() {
             VLRResult res = vlrMatteSurfaceMaterialDestroy(m_rawContext, (VLRMatteSurfaceMaterial)m_raw);
@@ -347,14 +346,14 @@ namespace VLRCpp {
         Float3TextureRef m_texCoeffR;
         Float3TextureRef m_texEta;
         Float3TextureRef m_tex_k;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        SpecularReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texCoeffR(texCoeffR), m_texEta(texEta), m_tex_k(tex_k), m_texMap(texMap) {
+        SpecularReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texCoeffR(texCoeffR), m_texEta(texEta), m_tex_k(tex_k), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrSpecularReflectionSurfaceMaterialCreate(context, (VLRSpecularReflectionSurfaceMaterial*)&m_raw,
-                (VLRFloat3Texture)m_texCoeffR->get(), (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get(),
-                                                                       texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                       (VLRFloat3Texture)m_texCoeffR->get(), (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get(),
+                                                                       m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~SpecularReflectionSurfaceMaterialHolder() {
             VLRResult res = vlrSpecularReflectionSurfaceMaterialDestroy(m_rawContext, (VLRSpecularReflectionSurfaceMaterial)m_raw);
@@ -367,14 +366,14 @@ namespace VLRCpp {
         Float3TextureRef m_texCoeff;
         Float3TextureRef m_texEtaExt;
         Float3TextureRef m_texEtaInt;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        SpecularScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texMap(texMap) {
+        SpecularScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrSpecularScatteringSurfaceMaterialCreate(context, (VLRSpecularScatteringSurfaceMaterial*)&m_raw,
-                (VLRFloat3Texture)m_texCoeff->get(), (VLRFloat3Texture)m_texEtaExt->get(), (VLRFloat3Texture)m_texEtaInt->get(),
-                                                                       texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                       (VLRFloat3Texture)m_texCoeff->get(), (VLRFloat3Texture)m_texEtaExt->get(), (VLRFloat3Texture)m_texEtaInt->get(),
+                                                                       m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~SpecularScatteringSurfaceMaterialHolder() {
             VLRResult res = vlrSpecularScatteringSurfaceMaterialDestroy(m_rawContext, (VLRSpecularScatteringSurfaceMaterial)m_raw);
@@ -387,14 +386,14 @@ namespace VLRCpp {
         Float3TextureRef m_texEta;
         Float3TextureRef m_tex_k;
         Float2TextureRef m_texRoughness;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        MicrofacetReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_texMap(texMap) {
+        MicrofacetReflectionSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrMicrofacetReflectionSurfaceMaterialCreate(context, (VLRMicrofacetReflectionSurfaceMaterial*)&m_raw,
-                (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get(), (VLRFloat2Texture)m_texRoughness->get(),
-                                                                         texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                         (VLRFloat3Texture)m_texEta->get(), (VLRFloat3Texture)m_tex_k->get(), (VLRFloat2Texture)m_texRoughness->get(),
+                                                                         m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~MicrofacetReflectionSurfaceMaterialHolder() {
             VLRResult res = vlrMicrofacetReflectionSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetReflectionSurfaceMaterial)m_raw);
@@ -408,14 +407,14 @@ namespace VLRCpp {
         Float3TextureRef m_texEtaExt;
         Float3TextureRef m_texEtaInt;
         Float2TextureRef m_texRoughness;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        MicrofacetScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texRoughness(texRoughness), m_texMap(texMap) {
+        MicrofacetScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texRoughness(texRoughness), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrMicrofacetScatteringSurfaceMaterialCreate(context, (VLRMicrofacetScatteringSurfaceMaterial*)&m_raw,
-                (VLRFloat3Texture)m_texCoeff->get(), (VLRFloat3Texture)m_texEtaExt->get(), (VLRFloat3Texture)m_texEtaInt->get(), (VLRFloat2Texture)m_texRoughness->get(),
-                                                                         texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                         (VLRFloat3Texture)m_texCoeff->get(), (VLRFloat3Texture)m_texEtaExt->get(), (VLRFloat3Texture)m_texEtaInt->get(), (VLRFloat2Texture)m_texRoughness->get(),
+                                                                         m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~MicrofacetScatteringSurfaceMaterialHolder() {
             VLRResult res = vlrMicrofacetScatteringSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetScatteringSurfaceMaterial)m_raw);
@@ -427,14 +426,14 @@ namespace VLRCpp {
     class LambertianScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
         Float3TextureRef m_texCoeff;
         FloatTextureRef m_texF0;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        LambertianScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texF0(texF0), m_texMap(texMap) {
+        LambertianScatteringSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texCoeff(texCoeff), m_texF0(texF0), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrLambertianScatteringSurfaceMaterialCreate(context, (VLRLambertianScatteringSurfaceMaterial*)&m_raw,
                                                                          (VLRFloat3Texture)m_texCoeff->get(), (VLRFloatTexture)m_texF0->get(),
-                                                                         texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                         m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~LambertianScatteringSurfaceMaterialHolder() {
             VLRResult res = vlrLambertianScatteringSurfaceMaterialDestroy(m_rawContext, (VLRLambertianScatteringSurfaceMaterial)m_raw);
@@ -446,14 +445,14 @@ namespace VLRCpp {
     class UE4SurfaceMaterialHolder : public SurfaceMaterialHolder {
         Float3TextureRef m_texBaseColor;
         Float3TextureRef m_texOcclusionRoughnessMetallic;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        UE4SurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic), m_texMap(texMap) {
+        UE4SurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrUE4SurfaceMaterialCreate(context, (VLRUE4SurfaceMaterial*)&m_raw,
                                                         (VLRFloat3Texture)m_texBaseColor->get(), (VLRFloat3Texture)m_texOcclusionRoughnessMetallic->get(),
-                                                        texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                        m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~UE4SurfaceMaterialHolder() {
             VLRResult res = vlrUE4SurfaceMaterialDestroy(m_rawContext, (VLRUE4SurfaceMaterial)m_raw);
@@ -464,14 +463,14 @@ namespace VLRCpp {
 
     class DiffuseEmitterSurfaceMaterialHolder : public SurfaceMaterialHolder {
         Float3TextureRef m_texEmittance;
-        TextureMap2DRef m_texMap;
+        ShaderNodeRef m_nodeTexCoord;
 
     public:
-        DiffuseEmitterSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEmittance, const TextureMap2DRef &texMap) :
-            SurfaceMaterialHolder(context), m_texEmittance(texEmittance), m_texMap(texMap) {
+        DiffuseEmitterSurfaceMaterialHolder(VLRContext context, const Float3TextureRef &texEmittance, const ShaderNodeRef &nodeTexCoord) :
+            SurfaceMaterialHolder(context), m_texEmittance(texEmittance), m_nodeTexCoord(nodeTexCoord) {
             VLRResult res = vlrDiffuseEmitterSurfaceMaterialCreate(context, (VLRDiffuseEmitterSurfaceMaterial*)&m_raw,
                                                                    (VLRFloat3Texture)m_texEmittance->get(),
-                                                                   texMap ? (VLRTextureMap2D)texMap->get() : nullptr);
+                                                                   m_nodeTexCoord ? (VLRShaderNode)m_nodeTexCoord->get() : nullptr);
         }
         ~DiffuseEmitterSurfaceMaterialHolder() {
             VLRResult res = vlrDiffuseEmitterSurfaceMaterialDestroy(m_rawContext, (VLRDiffuseEmitterSurfaceMaterial)m_raw);
@@ -848,8 +847,16 @@ namespace VLRCpp {
             return std::make_shared<LinearImage2DHolder>(m_rawContext, width, height, format, applyDegamma, linearData);
         }
 
-        OffsetAndScaleUVTextureMap2DRef createOffsetAndScaleUVTextureMap2D(const float offset[2], const float scale[2]) const {
-            return std::make_shared<OffsetAndScaleUVTextureMap2DHolder>(m_rawContext, offset, scale);
+        OffsetAndScaleUVTextureMap2DShaderNodeRef createOffsetAndScaleUVTextureMap2DShaderNode(const float offset[2], const float scale[2]) const {
+            return std::make_shared<OffsetAndScaleUVTextureMap2DShaderNodeHolder>(m_rawContext, offset, scale);
+        }
+
+        ConstantTextureShaderNodeRef createConstantTextureShaderNode(const VLR::RGBSpectrum &spectrum, float alpha) const {
+            return std::make_shared<ConstantTextureShaderNodeHolder>(m_rawContext, spectrum, alpha);
+        }
+
+        Image2DTextureShaderNodeRef createImage2DTextureShaderNode(const Image2DRef &image, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<Image2DTextureShaderNodeHolder>(m_rawContext, image, nodeTexCoord);
         }
 
         ConstantFloatTextureRef createConstantFloatTexture(const float value) const {
@@ -876,36 +883,36 @@ namespace VLRCpp {
             return std::make_shared<ImageFloat4TextureHolder>(m_rawContext, image);
         }
 
-        MatteSurfaceMaterialRef createMatteSurfaceMaterial(const Float4TextureRef &texAlbedoRoughness, const TextureMap2DRef &texMap) const {
-            return std::make_shared<MatteSurfaceMaterialHolder>(m_rawContext, texAlbedoRoughness, texMap);
+        MatteSurfaceMaterialRef createMatteSurfaceMaterial(const ShaderNodeRef &nodeAlbedo) const {
+            return std::make_shared<MatteSurfaceMaterialHolder>(m_rawContext, nodeAlbedo);
         }
 
-        SpecularReflectionSurfaceMaterialRef createSpecularReflectionSurfaceMaterial(const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const TextureMap2DRef &texMap) const {
-            return std::make_shared<SpecularReflectionSurfaceMaterialHolder>(m_rawContext, texCoeffR, texEta, tex_k, texMap);
+        SpecularReflectionSurfaceMaterialRef createSpecularReflectionSurfaceMaterial(const Float3TextureRef &texCoeffR, const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<SpecularReflectionSurfaceMaterialHolder>(m_rawContext, texCoeffR, texEta, tex_k, nodeTexCoord);
         }
 
-        SpecularScatteringSurfaceMaterialRef createSpecularScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const TextureMap2DRef &texMap) const {
-            return std::make_shared<SpecularScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, texMap);
+        SpecularScatteringSurfaceMaterialRef createSpecularScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<SpecularScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, nodeTexCoord);
         }
 
-        MicrofacetReflectionSurfaceMaterialRef createMicrofacetReflectionSurfaceMaterial(const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) const {
-            return std::make_shared<MicrofacetReflectionSurfaceMaterialHolder>(m_rawContext, texEta, tex_k, texRoughness, texMap);
+        MicrofacetReflectionSurfaceMaterialRef createMicrofacetReflectionSurfaceMaterial(const Float3TextureRef &texEta, const Float3TextureRef &tex_k, const Float2TextureRef &texRoughness, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<MicrofacetReflectionSurfaceMaterialHolder>(m_rawContext, texEta, tex_k, texRoughness, nodeTexCoord);
         }
 
-        MicrofacetScatteringSurfaceMaterialRef createMicrofacetScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const TextureMap2DRef &texMap) const {
-            return std::make_shared<MicrofacetScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, texRoughness, texMap);
+        MicrofacetScatteringSurfaceMaterialRef createMicrofacetScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const Float3TextureRef &texEtaExt, const Float3TextureRef &texEtaInt, const Float2TextureRef &texRoughness, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<MicrofacetScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texEtaExt, texEtaInt, texRoughness, nodeTexCoord);
         }
 
-        LambertianScatteringSurfaceMaterialRef createLambertianScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const TextureMap2DRef &texMap) const {
-            return std::make_shared<LambertianScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texF0, texMap);
+        LambertianScatteringSurfaceMaterialRef createLambertianScatteringSurfaceMaterial(const Float3TextureRef &texCoeff, const FloatTextureRef &texF0, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<LambertianScatteringSurfaceMaterialHolder>(m_rawContext, texCoeff, texF0, nodeTexCoord);
         }
 
-        UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic, const TextureMap2DRef &texMap) const {
-            return std::make_shared<UE4SurfaceMaterialHolder>(m_rawContext, texBaseColor, texOcclusionRoughnessMetallic, texMap);
+        UE4SurfaceMaterialRef createUE4SurfaceMaterial(const Float3TextureRef &texBaseColor, const Float3TextureRef &texOcclusionRoughnessMetallic, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<UE4SurfaceMaterialHolder>(m_rawContext, texBaseColor, texOcclusionRoughnessMetallic, nodeTexCoord);
         }
 
-        DiffuseEmitterSurfaceMaterialRef createDiffuseEmitterSurfaceMaterial(const Float3TextureRef &texEmittance, const TextureMap2DRef &texMap) const {
-            return std::make_shared<DiffuseEmitterSurfaceMaterialHolder>(m_rawContext, texEmittance, texMap);
+        DiffuseEmitterSurfaceMaterialRef createDiffuseEmitterSurfaceMaterial(const Float3TextureRef &texEmittance, const ShaderNodeRef &nodeTexCoord) const {
+            return std::make_shared<DiffuseEmitterSurfaceMaterialHolder>(m_rawContext, texEmittance, nodeTexCoord);
         }
 
         MultiSurfaceMaterialRef createMultiSurfaceMaterial(const SurfaceMaterialRef* materials, uint32_t numMaterials) const {

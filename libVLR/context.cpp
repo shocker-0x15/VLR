@@ -31,8 +31,11 @@ namespace VLR {
     defineClassID(Object, Image2D);
     defineClassID(Image2D, LinearImage2D);
 
-    defineClassID(Object, TextureMap2D);
-    defineClassID(TextureMap2D, OffsetAndScaleUVTextureMap2D);
+    defineClassID(Object, ShaderNode);
+    defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
+    defineClassID(ShaderNode, ConstantTextureShaderNode);
+    defineClassID(ShaderNode, Image2DTextureShaderNode);
+
     defineClassID(Object, FloatTexture);
     defineClassID(FloatTexture, ConstantFloatTexture);
     defineClassID(Object, Float2Texture);
@@ -126,12 +129,12 @@ namespace VLR {
 
 
 
-        m_maxNumTextureMapDescriptors = 8192;
-        m_optixTextureMapDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumTextureMapDescriptors);
-        m_optixTextureMapDescriptorBuffer->setElementSize(sizeof(Shared::TextureMapDescriptor));
-        m_texMapDescSlotManager.initialize(m_maxNumTextureMapDescriptors);
+        m_maxNumNodeDescriptors = 8192;
+        m_optixNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeDescriptors);
+        m_optixNodeDescriptorBuffer->setElementSize(sizeof(Shared::NodeDescriptor));
+        m_nodeDescSlotManager.initialize(m_maxNumNodeDescriptors);
 
-        m_optixContext["VLR::pv_textureMapDescriptorBuffer"]->set(m_optixTextureMapDescriptorBuffer);
+        m_optixContext["VLR::pv_nodeDescriptorBuffer"]->set(m_optixNodeDescriptorBuffer);
 
 
 
@@ -193,7 +196,7 @@ namespace VLR {
         m_optixContext["VLR::pv_materialDescriptorBuffer"]->set(m_optixSurfaceMaterialDescriptorBuffer);
 
         SurfaceNode::initialize(*this);
-        TextureMap2D::initialize(*this);
+        ShaderNode::initialize(*this);
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
@@ -227,7 +230,7 @@ namespace VLR {
 
         Camera::finalize(*this);
         SurfaceMaterial::finalize(*this);
-        TextureMap2D::finalize(*this);
+        ShaderNode::finalize(*this);
         SurfaceNode::finalize(*this);
 
         m_surfMatDescSlotManager.finalize();
@@ -253,8 +256,8 @@ namespace VLR {
         m_bsdfProcSetSlotManager.finalize();
         m_optixBSDFProcedureSetBuffer->destroy();
 
-        m_texMapDescSlotManager.finalize();
-        m_optixTextureMapDescriptorBuffer->destroy();
+        m_nodeDescSlotManager.finalize();
+        m_optixNodeDescriptorBuffer->destroy();
 
         m_optixMaterialWithAlpha->destroy();
         m_optixMaterialDefault->destroy();
@@ -377,20 +380,20 @@ namespace VLR {
         optixContext->launch(0, imageSize.x, imageSize.y);
     }
 
-    uint32_t Context::setTextureMapDescriptor(const Shared::TextureMapDescriptor &texMapDesc) {
-        uint32_t index = m_texMapDescSlotManager.getFirstAvailableSlot();
+    uint32_t Context::setNodeDescriptor(const Shared::NodeDescriptor &nodeDesc) {
+        uint32_t index = m_nodeDescSlotManager.getFirstAvailableSlot();
         {
-            auto texMapDescs = (Shared::TextureMapDescriptor*)m_optixTextureMapDescriptorBuffer->map();
-            texMapDescs[index] = texMapDesc;
-            m_optixTextureMapDescriptorBuffer->unmap();
+            auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map();
+            nodeDescs[index] = nodeDesc;
+            m_optixNodeDescriptorBuffer->unmap();
         }
-        m_texMapDescSlotManager.setInUse(index);
+        m_nodeDescSlotManager.setInUse(index);
 
         return index;
     }
 
-    void Context::unsetTextureMapDescriptor(uint32_t index) {
-        m_texMapDescSlotManager.setNotInUse(index);
+    void Context::unsetNodeDescriptor(uint32_t index) {
+        m_nodeDescSlotManager.setNotInUse(index);
     }
 
     uint32_t Context::setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet) {

@@ -74,7 +74,7 @@ namespace VLR {
 
     // static
     uint32_t SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) {
-        Shared::SurfaceMaterialHead &head = *(Shared::SurfaceMaterialHead*)&matDesc->i1[baseIndex];
+        Shared::SurfaceMaterialHead &head = *(Shared::SurfaceMaterialHead*)&matDesc->data[baseIndex];
 
         if (progSet.callableProgramSetupBSDF) {
             head.progSetupBSDF = progSet.callableProgramSetupBSDF->getId();
@@ -165,8 +165,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context, const Float4Texture* texAlbedoRoughness, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texAlbedoRoughness(texAlbedoRoughness), m_texMap(texMap) {
+    MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context, const ShaderNode* nodeAlbedo) :
+        SurfaceMaterial(context), m_nodeAlbedo(nodeAlbedo) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -180,12 +180,8 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc->i1[baseIndex];
-        mat.texAlbedoRoughness = m_texAlbedoRoughness->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc->data[baseIndex];
+        mat.nodeAlbedo = m_nodeAlbedo ? m_nodeAlbedo->getShaderNodeIndex() : ConstantTextureShaderNode::getGray18(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::MatteSurfaceMaterial) / 4;
     }
@@ -220,8 +216,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context, const Float3Texture* texCoeffR, const Float3Texture* texEta, const Float3Texture* tex_k, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texCoeffR(texCoeffR), m_texEta(texEta), m_tex_k(tex_k), m_texMap(texMap) {
+    SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context, const Float3Texture* texCoeffR, const Float3Texture* texEta, const Float3Texture* tex_k, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texCoeffR(texCoeffR), m_texEta(texEta), m_tex_k(tex_k), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -235,14 +231,11 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::SpecularReflectionSurfaceMaterial &mat = *(Shared::SpecularReflectionSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::SpecularReflectionSurfaceMaterial &mat = *(Shared::SpecularReflectionSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texCoeffR = m_texCoeffR->getOptiXObject()->getId();
         mat.texEta = m_texEta->getOptiXObject()->getId();
         mat.tex_k = m_tex_k->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::SpecularReflectionSurfaceMaterial) / 4;
     }
@@ -277,8 +270,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texMap(texMap) {
+    SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -292,14 +285,11 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::SpecularScatteringSurfaceMaterial &mat = *(Shared::SpecularScatteringSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::SpecularScatteringSurfaceMaterial &mat = *(Shared::SpecularScatteringSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texCoeff = m_texCoeff->getOptiXObject()->getId();
         mat.texEtaExt = m_texEtaExt->getOptiXObject()->getId();
         mat.texEtaInt = m_texEtaInt->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::SpecularScatteringSurfaceMaterial) / 4;
     }
@@ -334,8 +324,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context, const Float3Texture* texEta, const Float3Texture* tex_k, const Float2Texture* texRoughness, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_texMap(texMap) {
+    MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context, const Float3Texture* texEta, const Float3Texture* tex_k, const Float2Texture* texRoughness, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texEta(texEta), m_tex_k(tex_k), m_texRoughness(texRoughness), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -349,14 +339,11 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texEta = m_texEta->getOptiXObject()->getId();
         mat.tex_k = m_tex_k->getOptiXObject()->getId();
         mat.texRoughness = m_texRoughness->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::MicrofacetReflectionSurfaceMaterial) / 4;
     }
@@ -391,8 +378,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const Float2Texture* texRoughness, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texRoughness(texRoughness), m_texMap(texMap) {
+    MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const Float2Texture* texRoughness, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texEtaExt(texEtaExt), m_texEtaInt(texEtaInt), m_texRoughness(texRoughness), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -406,15 +393,12 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::MicrofacetScatteringSurfaceMaterial &mat = *(Shared::MicrofacetScatteringSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::MicrofacetScatteringSurfaceMaterial &mat = *(Shared::MicrofacetScatteringSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texCoeff = m_texCoeff->getOptiXObject()->getId();
         mat.texEtaExt = m_texEtaExt->getOptiXObject()->getId();
         mat.texEtaInt = m_texEtaInt->getOptiXObject()->getId();
         mat.texRoughness = m_texRoughness->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::MicrofacetScatteringSurfaceMaterial) / 4;
     }
@@ -449,8 +433,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const FloatTexture* texF0, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texF0(texF0), m_texMap(texMap) {
+    LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const FloatTexture* texF0, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texCoeff(texCoeff), m_texF0(texF0), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -464,13 +448,10 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::LambertianScatteringSurfaceMaterial &mat = *(Shared::LambertianScatteringSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::LambertianScatteringSurfaceMaterial &mat = *(Shared::LambertianScatteringSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texCoeff = m_texCoeff->getOptiXObject()->getId();
         mat.texF0 = m_texF0->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::LambertianScatteringSurfaceMaterial) / 4;
     }
@@ -505,8 +486,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float3Texture* texOcclusionRoughnessMetallic, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic), m_texMap(texMap) {
+    UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float3Texture* texOcclusionRoughnessMetallic, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texBaseColor(texBaseColor), m_texOcclusionRoughnessMetallic(texOcclusionRoughnessMetallic), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -520,13 +501,10 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texBaseColor = m_texBaseColor->getOptiXObject()->getId();
         mat.texOcclusionRoughnessMetallic = m_texOcclusionRoughnessMetallic->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::UE4SurfaceMaterial) / 4;
     }
@@ -561,8 +539,8 @@ namespace VLR {
         commonFinalizeProcedure(context, programSet);
     }
 
-    DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance, const TextureMap2D* texMap) :
-        SurfaceMaterial(context), m_texEmittance(texEmittance), m_texMap(texMap) {
+    DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance, const ShaderNode* nodeTexCoord) :
+        SurfaceMaterial(context), m_texEmittance(texEmittance), m_nodeTexCoord(nodeTexCoord) {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptor(&matDesc, 0);
 
@@ -576,12 +554,9 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::DiffuseEmitterSurfaceMaterial &mat = *(Shared::DiffuseEmitterSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::DiffuseEmitterSurfaceMaterial &mat = *(Shared::DiffuseEmitterSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texEmittance = m_texEmittance->getOptiXObject()->getId();
-        if (m_texMap)
-            mat.texMap = m_texMap->getTextureMapIndex();
-        else
-            mat.texMap = OffsetAndScaleUVTextureMap2D::getDefault(m_context)->getTextureMapIndex();
+        mat.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : OffsetAndScaleUVTextureMap2DShaderNode::getDefault(m_context)->getShaderNodeIndex();
 
         return baseIndex + sizeof(Shared::DiffuseEmitterSurfaceMaterial) / 4;
     }
@@ -635,7 +610,7 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::MultiSurfaceMaterial &mat = *(Shared::MultiSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::MultiSurfaceMaterial &mat = *(Shared::MultiSurfaceMaterial*)&matDesc->data[baseIndex];
         baseIndex += sizeof(Shared::MultiSurfaceMaterial) / 4;
 
         uint32_t matOffsets[4] = { 0, 0, 0, 0 };
@@ -712,7 +687,7 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         baseIndex = setupMaterialDescriptorHead(m_context, progSet, matDesc, baseIndex);
-        Shared::EnvironmentEmitterSurfaceMaterial &mat = *(Shared::EnvironmentEmitterSurfaceMaterial*)&matDesc->i1[baseIndex];
+        Shared::EnvironmentEmitterSurfaceMaterial &mat = *(Shared::EnvironmentEmitterSurfaceMaterial*)&matDesc->data[baseIndex];
         mat.texEmittance = m_texEmittance->getOptiXObject()->getId();
 
         return baseIndex + sizeof(Shared::EnvironmentEmitterSurfaceMaterial) / 4;

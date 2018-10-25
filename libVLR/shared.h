@@ -291,9 +291,9 @@ namespace VLR {
             float alpha;
         };
 
-        struct ImageTextureShaderNode {
+        struct Image2DTextureShaderNode {
             int32_t textureID;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         // END: Shader Nodes
@@ -312,28 +312,28 @@ namespace VLR {
         };
 
         struct MatteSurfaceMaterial {
-            uint32_t nodeAlbedoRoughness;
+            uint32_t nodeAlbedo;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             int32_t texCoeffR;
             int32_t texEta;
             int32_t tex_k;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texEtaExt;
             int32_t texEtaInt;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
             int32_t texEta;
             int32_t tex_k;
             int32_t texRoughness;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct MicrofacetScatteringSurfaceMaterial {
@@ -341,24 +341,24 @@ namespace VLR {
             int32_t texEtaExt;
             int32_t texEtaInt;
             int32_t texRoughness;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct LambertianScatteringSurfaceMaterial {
             int32_t texCoeff;
             int32_t texF0;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct UE4SurfaceMaterial {
             int32_t texBaseColor;
             int32_t texOcclusionRoughnessMetallic;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct DiffuseEmitterSurfaceMaterial {
             int32_t texEmittance;
-            uint32_t nodeTexMap;
+            uint32_t nodeTexCoord;
         };
 
         struct MultiSurfaceMaterial {

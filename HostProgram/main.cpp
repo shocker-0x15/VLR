@@ -280,21 +280,21 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     aiMat->Get(AI_MATKEY_NAME, strValue);
     VLRDebugPrintf("Material: %s\n", strValue.C_Str());
 
-    Float4TextureRef texAlbedoRoughness;
+    ShaderNodeRef nodeAlbedo;
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
         Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        texAlbedoRoughness = context.createImageFloat4Texture(image);
+        nodeAlbedo = context.createImage2DTextureShaderNode(image, nullptr);
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-        float value[4] = { color[0], color[1], color[2], 0.0f };
-        texAlbedoRoughness = context.createConstantFloat4Texture(value);
+        RGBSpectrum spectrum(color[0], color[1], color[2]);
+        nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
     }
     else {
-        float value[4] = { 1.0f, 0.0f, 1.0f, 0.0f };
-        texAlbedoRoughness = context.createConstantFloat4Texture(value);
+        RGBSpectrum spectrum(1.0f, 0.0f, 1.0f);
+        nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
     }
 
-    SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+    SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(nodeAlbedo);
 
     return SurfaceAttributeTuple(mat, nullptr);
 }
@@ -390,9 +390,9 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
 
         {
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
-            Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-            texAlbedoRoughness->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+            Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode(image, nullptr);
+            nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -401,9 +401,9 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            float value[4] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.75f), sRGB_degamma_s(0.75f), 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+            VLR::RGBSpectrum spectrum(0.75f, 0.75f, 0.75f);
+            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
 
             std::vector<uint32_t> matGroup = {
                 4, 5, 6, 4, 6, 7,
@@ -413,9 +413,9 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            float value[4] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.25f), sRGB_degamma_s(0.25f), 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+            VLR::RGBSpectrum spectrum(0.75f, 0.25f, 0.25f);
+            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
             //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
@@ -428,9 +428,9 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            float value[4] = { sRGB_degamma_s(0.25f), sRGB_degamma_s(0.25f), sRGB_degamma_s(0.75f), 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+            VLR::RGBSpectrum spectrum(0.25f, 0.25f, 0.75f);
+            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
+            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
 
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
@@ -579,11 +579,12 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         using namespace VLR;
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
-        Float4TextureRef texAlbedoRoughness = context.createImageFloat4Texture(image);
-        texAlbedoRoughness->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
-        SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, context.createOffsetAndScaleUVTextureMap2D(offset, scale));
+        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context.createOffsetAndScaleUVTextureMap2DShaderNode(offset, scale);
+        Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode(image, nodeTexCoord);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(nodeAlbedo);
 
         return SurfaceAttributeTuple(mat, nullptr);
     });
@@ -605,9 +606,9 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         SurfaceMaterialRef mat;
         Float4TextureRef normalAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
-            float value[] = { 0.18f, 0.18f, 0.18f, 0.0f };
-            Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(value);
-            mat = context.createMatteSurfaceMaterial(texAlbedoRoughness, nullptr);
+            RGBSpectrum spectrum(0.18f, 0.18f, 0.18f);
+            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
+            mat = context.createMatteSurfaceMaterial(nodeAlbedo);
         }
         else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
             float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };

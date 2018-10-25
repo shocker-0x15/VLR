@@ -17,8 +17,11 @@ extern "C" {
     typedef struct VLRImage2D_API* VLRImage2D;
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
 
-    typedef struct VLRTextureMap2D_API* VLRTextureMap2D;
-    typedef struct VLROffsetAndScaleUVTextureMap2D_API* VLROffsetAndScaleUVTextureMap2D;
+    typedef struct VLRShaderNode_API* VLRShaderNode;
+    typedef struct VLROffsetAndScaleUVTextureMap2DShaderNode_API* VLROffsetAndScaleUVTextureMap2DShaderNode;
+    typedef struct VLRConstantTextureShaderNode_API* VLRConstantTextureShaderNode;
+    typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
+
     typedef struct VLRFloatTexture_API* VLRFloatTexture;
     typedef struct VLRConstantFloatTexture_API* VLRConstantFloatTexture;
     typedef struct VLRFloat2Texture_API* VLRFloat2Texture;
@@ -80,9 +83,19 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2D* texMap,
-                                                            const float offset[2], const float scale[2]);
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2D texMap);
+    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node,
+                                                                      const float offset[2], const float scale[2]);
+    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
+
+    VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node,
+                                                         const float spectrum[3], float alpha);
+    VLR_API VLRResult vlrConstantTextureShaderNodeDestroy(VLRContext context, VLRConstantTextureShaderNode node);
+
+    VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node,
+                                                        VLRImage2D image, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImage2DTextureShaderNode node);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRContext context, VLRImage2DTextureShaderNode node,
+                                                               VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
 
 
 
@@ -125,35 +138,35 @@ extern "C" {
 
 
     VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material,
-                                                    VLRFloat4Texture texAlbedoRoughness, VLRTextureMap2D texMap);
+                                                    VLRShaderNode nodeAlbedo);
     VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSurfaceMaterial material);
 
     VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material,
-                                                                 VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRTextureMap2D texMap);
+                                                                 VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context, VLRSpecularReflectionSurfaceMaterial material);
 
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
-                                                                 VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRTextureMap2D texMap);
+                                                                 VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material);
 
     VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap);
+                                                                   VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial material);
 
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap);
+                                                                   VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial material);
 
     VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRTextureMap2D texMap);
+                                                                   VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext context, VLRLambertianScatteringSurfaceMaterial material);
 
     VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                                  VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRTextureMap2D texMap);
+                                                  VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4SurfaceMaterial material);
 
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
-                                                             VLRFloat3Texture texEmittance, VLRTextureMap2D texMap);
+                                                             VLRFloat3Texture texEmittance, VLRShaderNode nodeTexCoord);
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialDestroy(VLRContext context, VLRDiffuseEmitterSurfaceMaterial material);
 
     VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material,

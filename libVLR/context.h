@@ -40,9 +40,9 @@ namespace VLR {
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
 
-        optix::Buffer m_optixTextureMapDescriptorBuffer;
-        uint32_t m_maxNumTextureMapDescriptors;
-        SlotManager m_texMapDescSlotManager;
+        optix::Buffer m_optixNodeDescriptorBuffer;
+        uint32_t m_maxNumNodeDescriptors;
+        SlotManager m_nodeDescSlotManager;
 
         optix::Buffer m_optixBSDFProcedureSetBuffer;
         uint32_t m_maxNumBSDFProcSet;
@@ -116,8 +116,8 @@ namespace VLR {
             return m_optixMaterialWithAlpha;
         }
 
-        uint32_t setTextureMapDescriptor(const Shared::TextureMapDescriptor &texMapDesc);
-        void unsetTextureMapDescriptor(uint32_t index);
+        uint32_t setNodeDescriptor(const Shared::NodeDescriptor &nodeDesc);
+        void unsetNodeDescriptor(uint32_t index);
 
         uint32_t setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet);
         void unsetBSDFProcedureSet(uint32_t index);

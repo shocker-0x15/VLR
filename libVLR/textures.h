@@ -7,31 +7,93 @@ using half_float::half;
 
 namespace VLR {
     class ShaderNode : public Object {
+    protected:
+        struct OptiXProgramSet {
+            optix::Program callableProgram;
+        };
+
+        uint32_t m_nodeIndex;
+
+        static void commonInitializeProcedure(Context &context, const char* identifiers[1], OptiXProgramSet* programSet);
+        static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
+
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        ShaderNode(Context &context);
+        virtual ~ShaderNode();
+
+        virtual bool hasTextureCoordinateOutput() const { return false; }
+        virtual bool hasRGBSpectrumOutput() const { return false; }
+        virtual bool hasFloatOutput() const { return false; }
+
+        virtual void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const = 0;
+
+        uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
     };
 
 
 
-    class TextureCoordinateShaderNode {
+    class OffsetAndScaleUVTextureMap2DShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode*> s_defaultInstance;
+
+        float m_offset[2];
+        float m_scale[2];
+
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        OffsetAndScaleUVTextureMap2DShaderNode(Context &context, const float offset[2], const float scale[2]);
+        ~OffsetAndScaleUVTextureMap2DShaderNode();
+
+        bool hasTextureCoordinateOutput() const override { return true; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+
+        static const OffsetAndScaleUVTextureMap2DShaderNode* getDefault(Context &context) {
+            return s_defaultInstance.at(context.getID());
+        }
     };
 
 
 
-    class RGBSpectrumShaderNode {
+    class ConstantTextureShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, ConstantTextureShaderNode*> s_gray18;
+
+        RGBSpectrum m_spectrum;
+        float m_alpha;
+
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        ConstantTextureShaderNode(Context &context, const RGBSpectrum &spectrum, float alpha);
+        ~ConstantTextureShaderNode();
+
+        bool hasRGBSpectrumOutput() const override { return true; }
+        bool hasFloatOutput() const override { return true; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+
+        static const ConstantTextureShaderNode* getGray18(Context &context) {
+            return s_gray18.at(context.getID());
+        }
     };
 
 
-
-    // ----------------------------------------------------------------
-    // Textures
 
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
@@ -89,7 +151,7 @@ namespace VLR {
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
-        // EN: "linearData" means data layout is linear.
+        // EN: "linearData" means data layout is linear, it doesn't mean gamma curve.
         LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma);
 
         template <typename PixelType>
@@ -106,42 +168,12 @@ namespace VLR {
 
 
 
-    class TextureMap2D : public Object {
-    protected:
-        struct OptiXProgramSet {
-            optix::Program callableProgramMap;
-        };
-
-        uint32_t m_texMapIndex;
-
-        static void commonInitializeProcedure(Context &context, const char* identifiers[1], OptiXProgramSet* programSet);
-        static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        TextureMap2D(Context &context);
-        virtual ~TextureMap2D();
-
-        uint32_t getTextureMapIndex() const {
-            return m_texMapIndex;
-        }
-
-        virtual void setupTextureMapDescriptor(Shared::TextureMapDescriptor* texMapDesc) const = 0;
-    };
-
-
-
-    class OffsetAndScaleUVTextureMap2D : public TextureMap2D {
+    class Image2DTextureShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-        static std::map<uint32_t, OffsetAndScaleUVTextureMap2D*> s_defaultInstance;
 
-        float m_offset[2];
-        float m_scale[2];
+        optix::TextureSampler m_optixTextureSampler;
+        const Image2D* m_image;
+        const ShaderNode* m_nodeTexCoord;
 
     public:
         static const ClassIdentifier ClassID;
@@ -150,17 +182,20 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        OffsetAndScaleUVTextureMap2D(Context &context, const float offset[2], const float scale[2]);
-        ~OffsetAndScaleUVTextureMap2D();
+        Image2DTextureShaderNode(Context &context, const Image2D* image, const ShaderNode* nodeTexCoord);
+        ~Image2DTextureShaderNode();
 
-        void setupTextureMapDescriptor(Shared::TextureMapDescriptor* texMapDesc) const override;
+        bool hasRGBSpectrumOutput() const override { return true; }
 
-        static const OffsetAndScaleUVTextureMap2D* getDefault(Context &context) {
-            return s_defaultInstance.at(context.getID());
-        }
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
     };
 
 
+
+    // ----------------------------------------------------------------
+    // Textures
 
     class FloatTexture : public Object {
     protected:

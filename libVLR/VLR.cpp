@@ -9,8 +9,11 @@ typedef VLR::Context* VLRContext;
 typedef VLR::Image2D* VLRImage2D;
 typedef VLR::LinearImage2D* VLRLinearImage2D;
 
-typedef VLR::TextureMap2D* VLRTextureMap2D;
-typedef VLR::OffsetAndScaleUVTextureMap2D* VLROffsetAndScaleUVTextureMap2D;
+typedef VLR::ShaderNode* VLRShaderNode;
+typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
+typedef VLR::ConstantTextureShaderNode* VLRConstantTextureShaderNode;
+typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
+
 typedef VLR::FloatTexture* VLRFloatTexture;
 typedef VLR::ConstantFloatTexture* VLRConstantFloatTexture;
 typedef VLR::Float2Texture* VLRFloat2Texture;
@@ -196,17 +199,60 @@ VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* st
 
 
 
-VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2D* texMap,
-                                                        const float offset[2], const float scale[2]) {
-    *texMap = new VLR::OffsetAndScaleUVTextureMap2D(*context, offset, scale);
+VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node,
+                                                                  const float offset[2], const float scale[2]) {
+    *node = new VLR::OffsetAndScaleUVTextureMap2DShaderNode(*context, offset, scale);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2D texMap) {
-    if (!texMap->is<VLR::OffsetAndScaleUVTextureMap2D>())
+VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node) {
+    if (!node->is<VLR::OffsetAndScaleUVTextureMap2DShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    delete texMap;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node,
+                                                     const float spectrum[3], float alpha) {
+    *node = new VLR::ConstantTextureShaderNode(*context, VLR::RGBSpectrum(spectrum[0], spectrum[1], spectrum[2]), alpha);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrConstantTextureShaderNodeDestroy(VLRContext context, VLRConstantTextureShaderNode node) {
+    if (!node->is<VLR::ConstantTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node,
+                                                    VLRImage2D image, VLRShaderNode nodeTexCoord) {
+    *node = new VLR::Image2DTextureShaderNode(*context, image, nodeTexCoord);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImage2DTextureShaderNode node) {
+    if (!node->is<VLR::Image2DTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRContext context, VLRImage2DTextureShaderNode node,
+                                                           VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+    if (!node->is<VLR::Image2DTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setTextureFilterMode(minification, magnification, mipmapping);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -360,8 +406,8 @@ VLR_API VLRResult vlrImageFloat4TextureDestroy(VLRContext context, VLRImageFloat
 
 
 VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material,
-                                                VLRFloat4Texture texAlbedoRoughness, VLRTextureMap2D texMap) {
-    *material = new VLR::MatteSurfaceMaterial(*context, texAlbedoRoughness, texMap);
+                                                VLRShaderNode nodeAlbedo) {
+    *material = new VLR::MatteSurfaceMaterial(*context, nodeAlbedo);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -377,8 +423,8 @@ VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSur
 
 
 VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material,
-                                                             VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRTextureMap2D texMap) {
-    *material = new VLR::SpecularReflectionSurfaceMaterial(*context, texCoeffR, texEta, tex_k, texMap);
+                                                             VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::SpecularReflectionSurfaceMaterial(*context, texCoeffR, texEta, tex_k, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -394,8 +440,8 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context
 
 
 VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
-                                                             VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRTextureMap2D texMap) {
-    *material = new VLR::SpecularScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texMap);
+                                                             VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::SpecularScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -411,8 +457,8 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context
 
 
 VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material,
-                                                               VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap) {
-    *material = new VLR::MicrofacetReflectionSurfaceMaterial(*context, texEta, tex_k, texRoughness, texMap);
+                                                               VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::MicrofacetReflectionSurfaceMaterial(*context, texEta, tex_k, texRoughness, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -428,8 +474,8 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext conte
 
 
 VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
-                                                               VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRTextureMap2D texMap) {
-    *material = new VLR::MicrofacetScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texRoughness, texMap);
+                                                               VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::MicrofacetScatteringSurfaceMaterial(*context, texCoeff, texEtaExt, texEtaInt, texRoughness, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -445,8 +491,8 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext conte
 
 
 VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material,
-                                                               VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRTextureMap2D texMap) {
-    *material = new VLR::LambertianScatteringSurfaceMaterial(*context, texCoeff, texF0, texMap);
+                                                               VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::LambertianScatteringSurfaceMaterial(*context, texCoeff, texF0, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -462,8 +508,8 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext conte
 
 
 VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                              VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRTextureMap2D texMap) {
-    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texOcclusionRoughnessMetallic, texMap);
+                                              VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::UE4SurfaceMaterial(*context, texBaseColor, texOcclusionRoughnessMetallic, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -479,8 +525,8 @@ VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4Surface
 
 
 VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
-                                                         VLRFloat3Texture texEmittance, VLRTextureMap2D texMap) {
-    *material = new VLR::DiffuseEmitterSurfaceMaterial(*context, texEmittance, texMap);
+                                                         VLRFloat3Texture texEmittance, VLRShaderNode nodeTexCoord) {
+    *material = new VLR::DiffuseEmitterSurfaceMaterial(*context, texEmittance, nodeTexCoord);
 
     return VLR_ERROR_NO_ERROR;
 }
