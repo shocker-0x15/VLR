@@ -316,15 +316,9 @@ namespace VLR {
         SpecularBRDF &p = *(SpecularBRDF*)params;
         const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        texValue = optix::rtTex2D<optix::float4>(mat.texCoeffR, texCoord.x, texCoord.y);
-        p.coeffR = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texEta, texCoord.x, texCoord.y);
-        p.eta = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.tex_k, texCoord.x, texCoord.y);
-        p.k = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.coeffR = calcRGBSpectrum(mat.nodeCoeffR, surfPt);
+        p.eta = calcRGBSpectrum(mat.nodeEta, surfPt);
+        p.k = calcRGBSpectrum(mat.node_k, surfPt);
 
         return sizeof(SpecularBRDF) / 4;
     }
@@ -388,15 +382,9 @@ namespace VLR {
         SpecularBSDF &p = *(SpecularBSDF*)params;
         const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
-        p.coeff = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texEtaExt, texCoord.x, texCoord.y);
-        p.etaExt = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texEtaInt, texCoord.x, texCoord.y);
-        p.etaInt = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
+        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
+        p.etaInt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
         p.dispersive = !wavelengthSelected;
 
         return sizeof(SpecularBSDF) / 4;
@@ -498,17 +486,11 @@ namespace VLR {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
         const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        optix::float2 texValueF2;
-        texValue = optix::rtTex2D<optix::float4>(mat.texEta, texCoord.x, texCoord.y);
-        p.eta = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.tex_k, texCoord.x, texCoord.y);
-        p.k = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValueF2 = optix::rtTex2D<optix::float2>(mat.texRoughness, texCoord.x, texCoord.y);
-        p.roughnessX = texValueF2.x;
-        p.roughnessY = texValueF2.y;
+        p.eta = calcRGBSpectrum(mat.nodeEta, surfPt);
+        p.k = calcRGBSpectrum(mat.node_k, surfPt);
+        optix::float2 roughness = calcFloat2(mat.nodeRoughness, surfPt);
+        p.roughnessX = roughness.x;
+        p.roughnessY = roughness.y;
 
         return sizeof(MicrofacetBRDF) / 4;
     }
@@ -667,19 +649,12 @@ namespace VLR {
         MicrofacetBSDF &p = *(MicrofacetBSDF*)params;
         const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        optix::float2 texValueF2;
-        texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
-        p.coeff = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texEtaExt, texCoord.x, texCoord.y);
-        p.etaExt = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texEtaInt, texCoord.x, texCoord.y);
-        p.etaInt = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValueF2 = optix::rtTex2D<optix::float2>(mat.texRoughness, texCoord.x, texCoord.y);
-        p.roughnessX = texValueF2.x;
-        p.roughnessY = texValueF2.y;
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
+        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
+        p.etaInt = calcRGBSpectrum(mat.nodeEtaInt, surfPt);
+        optix::float2 roughness = calcFloat2(mat.nodeRoughness, surfPt);
+        p.roughnessX = roughness.x;
+        p.roughnessY = roughness.y;
 
         return sizeof(MicrofacetBSDF) / 4;
     }
@@ -933,12 +908,8 @@ namespace VLR {
         LambertianBSDF &p = *(LambertianBSDF*)params;
         const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        texValue = optix::rtTex2D<optix::float4>(mat.texCoeff, texCoord.x, texCoord.y);
-        p.coeff = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        p.F0 = optix::rtTex2D<float>(mat.texF0, texCoord.x, texCoord.y);
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
+        p.F0 = calcFloat(mat.nodeF0, surfPt);
 
         return sizeof(LambertianBSDF) / 4;
     }
@@ -1064,14 +1035,10 @@ namespace VLR {
         UE4BRDF &p = *(UE4BRDF*)params;
         const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue;
-        texValue = optix::rtTex2D<optix::float4>(mat.texBaseColor, texCoord.x, texCoord.y);
-        p.baseColor = RGBSpectrum(texValue.x, texValue.y, texValue.z);
-        texValue = optix::rtTex2D<optix::float4>(mat.texOcclusionRoughnessMetallic, texCoord.x, texCoord.y);
-        p.roughness = texValue.y;
-        p.metallic = texValue.z;
+        p.baseColor = calcRGBSpectrum(mat.nodeBaseColor, surfPt);
+        optix::float3 occlusionRoughnessMetallic = calcFloat3(mat.nodeOcclusionRoughnessMetallic, surfPt);
+        p.roughness = occlusionRoughnessMetallic.y;
+        p.metallic = occlusionRoughnessMetallic.z;
 
         return sizeof(UE4BRDF) / 4;
     }
@@ -1331,10 +1298,7 @@ namespace VLR {
         DiffuseEDF &p = *(DiffuseEDF*)params;
         const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        Point3D texCoord = calcTextureCoodinate(mat.nodeTexCoord, surfPt);
-
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texEmittance, texCoord.x, texCoord.y);
-        p.emittance = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.emittance = calcRGBSpectrum(mat.nodeEmittance, surfPt);
 
         return sizeof(DiffuseEDF) / 4;
     }
@@ -1683,8 +1647,7 @@ namespace VLR {
         EnvironmentEDF &p = *(EnvironmentEDF*)params;
         const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(mat.texEmittance, surfPt.texCoord.u, surfPt.texCoord.v);
-        p.emittance = RGBSpectrum(texValue.x, texValue.y, texValue.z);
+        p.emittance = calcRGBSpectrum(mat.nodeEmittance, surfPt);
 
         return sizeof(EnvironmentEDF) / 4;
     }

@@ -41,6 +41,188 @@ namespace VLR {
 
 
 
+    std::map<uint32_t, FloatShaderNode::OptiXProgramSet> FloatShaderNode::OptiXProgramSets;
+
+    // static
+    void FloatShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::FloatShaderNode_float",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void FloatShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    FloatShaderNode::FloatShaderNode(Context &context, const ShaderNode* node0, float default0) :
+        ShaderNode(context), m_node0(node0), m_default0(default0) {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    FloatShaderNode::~FloatShaderNode() {
+    }
+
+    void FloatShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::FloatShaderNode &nodeData = *(Shared::FloatShaderNode*)&nodeDesc->data;
+        nodeData.node0 = m_node0 ? m_node0->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.default0 = m_default0;
+    }
+
+
+
+    std::map<uint32_t, Float2ShaderNode::OptiXProgramSet> Float2ShaderNode::OptiXProgramSets;
+
+    // static
+    void Float2ShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::Float2ShaderNode_float2",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void Float2ShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    Float2ShaderNode::Float2ShaderNode(Context &context, 
+                                       const ShaderNode* node0, const ShaderNode* node1, 
+                                       float default0, float default1) :
+        ShaderNode(context), m_node0(node0), m_node1(node1), m_default0(default0), m_default1(default1) {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    Float2ShaderNode::~Float2ShaderNode() {
+    }
+
+    void Float2ShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::Float2ShaderNode &nodeData = *(Shared::Float2ShaderNode*)&nodeDesc->data;
+        nodeData.node0 = m_node0 ? m_node0->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node1 = m_node1 ? m_node1->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.default0 = m_default0;
+        nodeData.default1 = m_default1;
+    }
+
+
+
+    std::map<uint32_t, Float3ShaderNode::OptiXProgramSet> Float3ShaderNode::OptiXProgramSets;
+
+    // static
+    void Float3ShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::Float3ShaderNode_float3",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void Float3ShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    Float3ShaderNode::Float3ShaderNode(Context &context, 
+                                       const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, 
+                                       float default0, float default1, float default2) :
+        ShaderNode(context), m_node0(node0), m_node1(node1), m_node2(node2), m_default0(default0), m_default1(default1), m_default2(default2) {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    Float3ShaderNode::~Float3ShaderNode() {
+    }
+
+    void Float3ShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::Float3ShaderNode &nodeData = *(Shared::Float3ShaderNode*)&nodeDesc->data;
+        nodeData.node0 = m_node0 ? m_node0->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node1 = m_node1 ? m_node1->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node2 = m_node2 ? m_node2->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.default0 = m_default0;
+        nodeData.default1 = m_default1;
+        nodeData.default2 = m_default2;
+    }
+
+
+
+    std::map<uint32_t, Float4ShaderNode::OptiXProgramSet> Float4ShaderNode::OptiXProgramSets;
+
+    // static
+    void Float4ShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::Float4ShaderNode_float4",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void Float4ShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    Float4ShaderNode::Float4ShaderNode(Context &context, 
+                                       const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, const ShaderNode* node3, 
+                                       float default0, float default1, float default2, float default3) :
+        ShaderNode(context), m_node0(node0), m_node1(node1), m_node2(node2), m_node3(node3), m_default0(default0), m_default1(default1), m_default2(default2), m_default3(default3) {
+        Shared::NodeDescriptor nodeDesc;
+        setupNodeDescriptor(&nodeDesc);
+
+        m_nodeIndex = m_context.setNodeDescriptor(nodeDesc);
+    }
+
+    Float4ShaderNode::~Float4ShaderNode() {
+    }
+
+    void Float4ShaderNode::setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        nodeDesc->progNode = progSet.callableProgram->getId();
+        Shared::Float4ShaderNode &nodeData = *(Shared::Float4ShaderNode*)&nodeDesc->data;
+        nodeData.node0 = m_node0 ? m_node0->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node1 = m_node1 ? m_node1->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node2 = m_node2 ? m_node2->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.node3 = m_node3 ? m_node3->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
+        nodeData.default0 = m_default0;
+        nodeData.default1 = m_default1;
+        nodeData.default2 = m_default2;
+        nodeData.default3 = m_default3;
+    }
+
+
+
     std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
     std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode*> OffsetAndScaleUVTextureMap2DShaderNode::s_defaultInstance;
 
@@ -83,11 +265,11 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         nodeDesc->progNode = progSet.callableProgram->getId();
-        Shared::OffsetAndScaleUVTextureMap2DShaderNode &texMap = *(Shared::OffsetAndScaleUVTextureMap2DShaderNode*)&nodeDesc->data;
-        texMap.offset[0] = m_offset[0];
-        texMap.offset[1] = m_offset[1];
-        texMap.scale[0] = m_scale[0];
-        texMap.scale[1] = m_scale[1];
+        Shared::OffsetAndScaleUVTextureMap2DShaderNode &nodeData = *(Shared::OffsetAndScaleUVTextureMap2DShaderNode*)&nodeDesc->data;
+        nodeData.offset[0] = m_offset[0];
+        nodeData.offset[1] = m_offset[1];
+        nodeData.scale[0] = m_scale[0];
+        nodeData.scale[1] = m_scale[1];
     }
 
 
@@ -601,7 +783,7 @@ namespace VLR {
         nodeDesc->progNode = progSet.callableProgram->getId();
         Shared::Image2DTextureShaderNode &nodeData = *(Shared::Image2DTextureShaderNode*)&nodeDesc->data;
         nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.nodeTexCoord = m_nodeTexCoord->getShaderNodeIndex();
+        nodeData.nodeTexCoord = m_nodeTexCoord ? m_nodeTexCoord->getShaderNodeIndex() : VLR_INVALID_NODE_INDEX;
     }
 
     void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {

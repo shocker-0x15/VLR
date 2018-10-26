@@ -30,10 +30,123 @@ namespace VLR {
         virtual bool hasTextureCoordinateOutput() const { return false; }
         virtual bool hasRGBSpectrumOutput() const { return false; }
         virtual bool hasFloatOutput() const { return false; }
+        virtual bool hasFloat2Output() const { return false; }
+        virtual bool hasFloat3Output() const { return false; }
+        virtual bool hasFloat4Output() const { return false; }
 
         virtual void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const = 0;
 
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
+    };
+
+
+
+    class FloatShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const ShaderNode* m_node0;
+        float m_default0;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        FloatShaderNode(Context &context, const ShaderNode* node0, float default0);
+        ~FloatShaderNode();
+
+        bool hasFloatOutput() const override { return false; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+    };
+
+
+
+    class Float2ShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const ShaderNode* m_node0;
+        const ShaderNode* m_node1;
+        float m_default0;
+        float m_default1;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float2ShaderNode(Context &context, 
+                         const ShaderNode* node0, const ShaderNode* node1, 
+                         float default0, float default1);
+        ~Float2ShaderNode();
+
+        bool hasFloatOutput() const override { return false; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+    };
+
+
+
+    class Float3ShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const ShaderNode* m_node0;
+        const ShaderNode* m_node1;
+        const ShaderNode* m_node2;
+        float m_default0;
+        float m_default1;
+        float m_default2;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float3ShaderNode(Context &context, 
+                         const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, 
+                         float default0, float default1, float default2);
+        ~Float3ShaderNode();
+
+        bool hasFloatOutput() const override { return false; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
+    };
+
+
+
+    class Float4ShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        const ShaderNode* m_node0;
+        const ShaderNode* m_node1;
+        const ShaderNode* m_node2;
+        const ShaderNode* m_node3;
+        float m_default0;
+        float m_default1;
+        float m_default2;
+        float m_default3;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float4ShaderNode(Context &context, 
+                         const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, const ShaderNode* node3, 
+                         float default0, float default1, float default2, float default3);
+        ~Float4ShaderNode();
+
+        bool hasFloatOutput() const override { return false; }
+
+        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
     };
 
 

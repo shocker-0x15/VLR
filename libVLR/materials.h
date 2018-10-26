@@ -73,10 +73,9 @@ namespace VLR {
     class SpecularReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texCoeffR;
-        const Float3Texture* m_texEta;
-        const Float3Texture* m_tex_k;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeCoeffR;
+        const ShaderNode* m_nodeEta;
+        const ShaderNode* m_node_k;
 
     public:
         static const ClassIdentifier ClassID;
@@ -85,7 +84,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        SpecularReflectionSurfaceMaterial(Context &context, const Float3Texture* texCoeffR, const Float3Texture* texEta, const Float3Texture* tex_k, const ShaderNode* nodeTexCoord);
+        SpecularReflectionSurfaceMaterial(Context &context, const ShaderNode* nodeCoeffR, const ShaderNode* nodeEta, const ShaderNode* node_k);
         ~SpecularReflectionSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -96,10 +95,9 @@ namespace VLR {
     class SpecularScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texCoeff;
-        const Float3Texture* m_texEtaExt;
-        const Float3Texture* m_texEtaInt;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeCoeff;
+        const ShaderNode* m_nodeEtaExt;
+        const ShaderNode* m_nodeEtaInt;
 
     public:
         static const ClassIdentifier ClassID;
@@ -108,7 +106,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        SpecularScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const ShaderNode* nodeTexCoord);
+        SpecularScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeEtaExt, const ShaderNode* nodeEtaInt);
         ~SpecularScatteringSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -119,10 +117,9 @@ namespace VLR {
     class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texEta;
-        const Float3Texture* m_tex_k;
-        const Float2Texture* m_texRoughness;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeEta;
+        const ShaderNode* m_node_k;
+        const ShaderNode* m_nodeRoughness;
 
     public:
         static const ClassIdentifier ClassID;
@@ -131,7 +128,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MicrofacetReflectionSurfaceMaterial(Context &context, const Float3Texture* texEta, const Float3Texture* tex_k, const Float2Texture* texRoughness, const ShaderNode* nodeTexCoord);
+        MicrofacetReflectionSurfaceMaterial(Context &context, const ShaderNode* nodeEta, const ShaderNode* node_k, const ShaderNode* nodeRoughness);
         ~MicrofacetReflectionSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -142,11 +139,10 @@ namespace VLR {
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texCoeff;
-        const Float3Texture* m_texEtaExt;
-        const Float3Texture* m_texEtaInt;
-        const Float2Texture* m_texRoughness;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeCoeff;
+        const ShaderNode* m_nodeEtaExt;
+        const ShaderNode* m_nodeEtaInt;
+        const ShaderNode* m_nodeRoughness;
 
     public:
         static const ClassIdentifier ClassID;
@@ -155,7 +151,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MicrofacetScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const Float3Texture* texEtaExt, const Float3Texture* texEtaInt, const Float2Texture* texRoughness, const ShaderNode* nodeTexCoord);
+        MicrofacetScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeEtaExt, const ShaderNode* nodeEtaInt, const ShaderNode* nodeRoughness);
         ~MicrofacetScatteringSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -166,9 +162,8 @@ namespace VLR {
     class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texCoeff;
-        const FloatTexture* m_texF0;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeCoeff;
+        const ShaderNode* m_nodeF0;
 
     public:
         static const ClassIdentifier ClassID;
@@ -177,7 +172,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        LambertianScatteringSurfaceMaterial(Context &context, const Float3Texture* texCoeff, const FloatTexture* texF0, const ShaderNode* nodeTexCoord);
+        LambertianScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeF0);
         ~LambertianScatteringSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -188,9 +183,8 @@ namespace VLR {
     class UE4SurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texBaseColor;
-        const Float3Texture* m_texOcclusionRoughnessMetallic;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeBaseColor;
+        const ShaderNode* m_nodeOcclusionRoughnessMetallic;
 
     public:
         static const ClassIdentifier ClassID;
@@ -199,7 +193,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        UE4SurfaceMaterial(Context &context, const Float3Texture* texBaseColor, const Float3Texture* texOcclusionRoughnessMetallic, const ShaderNode* nodeTexCoord);
+        UE4SurfaceMaterial(Context &context, const ShaderNode* nodeBaseColor, const ShaderNode* nodeOcclusionRoughnessMetallic);
         ~UE4SurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -210,8 +204,7 @@ namespace VLR {
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texEmittance;
-        const ShaderNode* m_nodeTexCoord;
+        const ShaderNode* m_nodeEmittance;
 
     public:
         static const ClassIdentifier ClassID;
@@ -220,7 +213,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        DiffuseEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance, const ShaderNode* nodeTexCoord);
+        DiffuseEmitterSurfaceMaterial(Context &context, const ShaderNode* nodeEmittance);
         ~DiffuseEmitterSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
@@ -254,7 +247,7 @@ namespace VLR {
     class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const Float3Texture* m_texEmittance;
+        const ShaderNode* m_nodeEmittance;
         RegularConstantContinuousDistribution2D m_importanceMap;
 
     public:
@@ -264,7 +257,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        EnvironmentEmitterSurfaceMaterial(Context &context, const Float3Texture* texEmittance);
+        EnvironmentEmitterSurfaceMaterial(Context &context, const ShaderNode* nodeEmittance);
         ~EnvironmentEmitterSurfaceMaterial();
 
         uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;

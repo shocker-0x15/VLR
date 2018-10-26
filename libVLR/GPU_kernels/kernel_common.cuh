@@ -261,6 +261,9 @@ namespace VLR {
 
 
     typedef rtCallableProgramId<float(const uint32_t*, const SurfacePoint &)> ProgSigFloatNode;
+    typedef rtCallableProgramId<optix::float2(const uint32_t*, const SurfacePoint &)> ProgSigFloat2Node;
+    typedef rtCallableProgramId<optix::float3(const uint32_t*, const SurfacePoint &)> ProgSigFloat3Node;
+    typedef rtCallableProgramId<optix::float4(const uint32_t*, const SurfacePoint &)> ProgSigFloat4Node;
     typedef rtCallableProgramId<Vector3D(const uint32_t*, const SurfacePoint &)> ProgSigVector3DNode;
     typedef rtCallableProgramId<Point3D(const uint32_t*, const SurfacePoint &)> ProgSigTextureCoordinateNode;
     typedef rtCallableProgramId<RGBSpectrum(const uint32_t*, const SurfacePoint &)> ProgSigRGBSpectrumNode;
@@ -290,27 +293,80 @@ namespace VLR {
 
 
 
-    RT_FUNCTION float calcFloat(uint32_t nodeFloat, const SurfacePoint &surfPt) {
-        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeFloat];
-        ProgSigFloatNode program = (ProgSigFloatNode)nodeDesc.progNode;
-        return program(nodeDesc.data, surfPt);
+    RT_FUNCTION float calcFloat(uint32_t node, float defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigFloatNode program = (ProgSigFloatNode)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
     }
 
-    RT_FUNCTION Vector3D calcVector3D(uint32_t nodeVector3D, const SurfacePoint &surfPt) {
-        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeVector3D];
-        ProgSigVector3DNode program = (ProgSigVector3DNode)nodeDesc.progNode;
-        return program(nodeDesc.data, surfPt);
+    RT_FUNCTION optix::float2 calcFloat2(uint32_t node, const optix::float2 &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigFloat2Node program = (ProgSigFloat2Node)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
     }
 
-    RT_FUNCTION Point3D calcTextureCoodinate(uint32_t nodeTexMap, const SurfacePoint &surfPt) {
-        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeTexMap];
-        ProgSigTextureCoordinateNode program = (ProgSigTextureCoordinateNode)nodeDesc.progNode;
-        return program(nodeDesc.data, surfPt);
+    RT_FUNCTION optix::float3 calcFloat3(uint32_t node, const optix::float3 &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigFloat3Node program = (ProgSigFloat3Node)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
     }
 
-    RT_FUNCTION RGBSpectrum calcRGBSpectrum(uint32_t nodeRGBSpectrum, const SurfacePoint &surfPt) {
-        const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[nodeRGBSpectrum];
-        ProgSigRGBSpectrumNode program = (ProgSigRGBSpectrumNode)nodeDesc.progNode;
-        return program(nodeDesc.data, surfPt);
+    RT_FUNCTION optix::float4 calcFloat4(uint32_t node, const optix::float4 &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigFloat4Node program = (ProgSigFloat4Node)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
+    }
+
+    RT_FUNCTION Vector3D calcVector3D(uint32_t node, const Vector3D &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigVector3DNode program = (ProgSigVector3DNode)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
+    }
+
+    RT_FUNCTION Point3D calcTextureCoodinate(uint32_t node, const Point3D &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigTextureCoordinateNode program = (ProgSigTextureCoordinateNode)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
+    }
+
+    RT_FUNCTION RGBSpectrum calcRGBSpectrum(uint32_t node, const RGBSpectrum &defaultValue, const SurfacePoint &surfPt) {
+        if (node != VLR_INVALID_NODE_INDEX) {
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[node];
+            ProgSigRGBSpectrumNode program = (ProgSigRGBSpectrumNode)nodeDesc.progNode;
+            return program(nodeDesc.data, surfPt);
+        }
+        else {
+            return defaultValue;
+        }
     }
 }
