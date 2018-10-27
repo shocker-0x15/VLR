@@ -116,14 +116,17 @@ namespace VLR {
             return m_optixMaterialWithAlpha;
         }
 
-        uint32_t setNodeDescriptor(const Shared::NodeDescriptor &nodeDesc);
-        void unsetNodeDescriptor(uint32_t index);
+        uint32_t allocateNodeDescriptor();
+        void releaseNodeDescriptor(uint32_t index);
+        void updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc);
 
-        uint32_t setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet);
-        void unsetBSDFProcedureSet(uint32_t index);
+        uint32_t allocateBSDFProcedureSet();
+        void releaseBSDFProcedureSet(uint32_t index);
+        void updateBSDFProcedureSet(uint32_t index, const Shared::BSDFProcedureSet &procSet);
 
-        uint32_t setEDFProcedureSet(const Shared::EDFProcedureSet &procSet);
-        void unsetEDFProcedureSet(uint32_t index);
+        uint32_t allocateEDFProcedureSet();
+        void releaseEDFProcedureSet(uint32_t index);
+        void updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet);
 
         const optix::Program &getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optixCallableProgramNullBSDF_setupBSDF;
@@ -134,8 +137,9 @@ namespace VLR {
         }
         uint32_t getNullEDFProcedureSetIndex() const { return m_nullEDFProcedureSetIndex; }
 
-        uint32_t setSurfaceMaterialDescriptor(const Shared::SurfaceMaterialDescriptor &matDesc);
-        void unsetSurfaceMaterialDescriptor(uint32_t index);
+        uint32_t allocateSurfaceMaterialDescriptor();
+        void releaseSurfaceMaterialDescriptor(uint32_t index);
+        void updateSurfaceMaterialDescriptor(uint32_t index, const Shared::SurfaceMaterialDescriptor &matDesc);
     };
 
 

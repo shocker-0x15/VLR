@@ -202,32 +202,62 @@ namespace VLR {
 
 
 
-    // ----------------------------------------------------------------
-    // NormalAlphaModifier
+    rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
+    rtDeclareVariable(Payload, sm_payload, rtPayload, );
+    rtDeclareVariable(ShadowPayload, sm_shadowPayload, rtPayload, );
 
-    // bound
-    RT_CALLABLE_PROGRAM float Null_NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
-        return 1.0f;
-    }
+    typedef rtCallableProgramX<RGBSpectrum(const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
+    typedef rtCallableProgramX<RGBSpectrum(const SurfacePoint &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
 
-    // bound
-    RT_CALLABLE_PROGRAM Normal3D Null_NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
-        return Normal3D(0, 0, 1);
-    }
+    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> ProgSigDecodeTexCoord;
+    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
+    typedef rtCallableProgramX<float(const TexCoord2D &)> ProgSigFetchAlpha;
+    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
 
     // per GeometryInstance
-    rtTextureSampler<uchar4, 2, cudaReadModeNormalizedFloat> pv_texNormalAlpha;
+    rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
+    rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
+    rtDeclareVariable(NodeIndex, pv_nodeIndexNormal, , );
+    rtDeclareVariable(NodeIndex, pv_nodeIndexAlpha, , );
+    rtDeclareVariable(uint32_t, pv_materialIndex, , );
+    rtDeclareVariable(float, pv_importance, , );
 
-    // bound
-    RT_CALLABLE_PROGRAM float NormalAlphaModifier_fetchAlpha(const TexCoord2D &texCoord) {
-        float alpha = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v).w;
-        return alpha;
+    RT_PROGRAM void shadowAnyHitDefault() {
+        sm_shadowPayload.fractionalVisibility = 0.0f;
+        rtTerminateRay();
     }
 
-    // bound
-    RT_CALLABLE_PROGRAM Normal3D NormalAlphaModifier_fetchNormal(const TexCoord2D &texCoord) {
-        float4 texValue = tex2D(pv_texNormalAlpha, texCoord.u, texCoord.v);
-        Normal3D normalLocal = 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
+    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
+    RT_PROGRAM void anyHitWithAlpha() {
+        HitPointParameter hitPointParam = a_hitPointParam;
+        SurfacePoint surfPt;
+        float hypAreaPDF;
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+
+        float alpha = calcFloat(pv_nodeIndexAlpha, 1.0f, surfPt);
+
+        // Stochastic Alpha Test
+        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
+            rtIgnoreIntersection();
+    }
+
+    // Common Any Hit Program for All Primitive Types and Materials for shadow rays
+    RT_PROGRAM void shadowAnyHitWithAlpha() {
+        HitPointParameter hitPointParam = a_hitPointParam;
+        SurfacePoint surfPt;
+        float hypAreaPDF;
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+
+        float alpha = calcFloat(pv_nodeIndexAlpha, 1.0f, surfPt);
+
+        sm_shadowPayload.fractionalVisibility *= (1 - alpha);
+        if (sm_shadowPayload.fractionalVisibility == 0.0f)
+            rtTerminateRay();
+    }
+
+    RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
+        optix::float3 value = calcFloat3(pv_nodeIndexNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt);
+        Normal3D normalLocal = 2 * Normal3D(value.x, value.y, value.z) - 1.0f;
         normalLocal.y *= -1; // for DirectX format normal map
         return normalLocal;
     }
@@ -246,56 +276,5 @@ namespace VLR {
         ReferenceFrame bumpFrame(t, b, n);
 
         surfPt->shadingFrame = bumpFrame;
-    }
-
-    // END: NormalAlphaModifier
-    // ----------------------------------------------------------------
-
-
-
-    rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
-    rtDeclareVariable(Payload, sm_payload, rtPayload, );
-    rtDeclareVariable(ShadowPayload, sm_shadowPayload, rtPayload, );
-
-    typedef rtCallableProgramX<RGBSpectrum(const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
-    typedef rtCallableProgramX<RGBSpectrum(const SurfacePoint &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
-
-    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> ProgSigDecodeTexCoord;
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
-    typedef rtCallableProgramX<float(const TexCoord2D &)> ProgSigFetchAlpha;
-    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
-
-    // per GeometryInstance
-    rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
-    rtDeclareVariable(ProgSigFetchAlpha, pv_progFetchAlpha, , );
-    rtDeclareVariable(ProgSigFetchNormal, pv_progFetchNormal, , );
-
-    RT_PROGRAM void shadowAnyHitDefault() {
-        sm_shadowPayload.fractionalVisibility = 0.0f;
-        rtTerminateRay();
-    }
-
-    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void anyHitWithAlpha() {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
-
-        float alpha = pv_progFetchAlpha(texCoord);
-
-        // Stochastic Alpha Test
-        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
-            rtIgnoreIntersection();
-    }
-
-    // Common Any Hit Program for All Primitive Types and Materials for shadow rays
-    RT_PROGRAM void shadowAnyHitWithAlpha() {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        TexCoord2D texCoord = pv_progDecodeTexCoord(hitPointParam);
-
-        float alpha = pv_progFetchAlpha(texCoord);
-
-        sm_shadowPayload.fractionalVisibility *= (1 - alpha);
-        if (sm_shadowPayload.fractionalVisibility == 0.0f)
-            rtTerminateRay();
     }
 }

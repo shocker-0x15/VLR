@@ -39,17 +39,7 @@ namespace VLR {
     defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, ConstantTextureShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);
-
-    defineClassID(Object, FloatTexture);
-    defineClassID(FloatTexture, ConstantFloatTexture);
-    defineClassID(Object, Float2Texture);
-    defineClassID(Float2Texture, ConstantFloat2Texture);
-    defineClassID(Object, Float3Texture);
-    defineClassID(Float3Texture, ConstantFloat3Texture);
-    defineClassID(Float3Texture, ImageFloat3Texture);
-    defineClassID(Object, Float4Texture);
-    defineClassID(Float4Texture, ConstantFloat4Texture);
-    defineClassID(Float4Texture, ImageFloat4Texture);
+    defineClassID(ShaderNode, EnvironmentTextureShaderNode);
 
     defineClassID(Object, SurfaceMaterial);
     defineClassID(SurfaceMaterial, MatteSurfaceMaterial);
@@ -174,7 +164,8 @@ namespace VLR {
                 bsdfProcSet.progEvaluatePDFInternal = m_optixCallableProgramNullBSDF_evaluatePDFInternal->getId();
                 bsdfProcSet.progWeightInternal = m_optixCallableProgramNullBSDF_weightInternal->getId();
             }
-            m_nullBSDFProcedureSetIndex = setBSDFProcedureSet(bsdfProcSet);
+            m_nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
+            updateBSDFProcedureSet(m_nullBSDFProcedureSetIndex, bsdfProcSet);
             VLRAssert(m_nullBSDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
 
 
@@ -188,7 +179,8 @@ namespace VLR {
                 edfProcSet.progEvaluateEmittanceInternal = m_optixCallableProgramNullEDF_evaluateEmittanceInternal->getId();
                 edfProcSet.progEvaluateInternal = m_optixCallableProgramNullEDF_evaluateInternal->getId();
             }
-            m_nullEDFProcedureSetIndex = setEDFProcedureSet(edfProcSet);
+            m_nullEDFProcedureSetIndex = allocateEDFProcedureSet();
+            updateEDFProcedureSet(m_nullEDFProcedureSetIndex, edfProcSet);
             VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null EDF procedure set is expected to be 0.");
         }
 
@@ -240,12 +232,12 @@ namespace VLR {
         m_surfMatDescSlotManager.finalize();
         m_optixSurfaceMaterialDescriptorBuffer->destroy();
 
-        unsetEDFProcedureSet(m_nullEDFProcedureSetIndex);
+        releaseEDFProcedureSet(m_nullEDFProcedureSetIndex);
         m_optixCallableProgramNullEDF_evaluateInternal->destroy();
         m_optixCallableProgramNullEDF_evaluateEmittanceInternal->destroy();
         m_optixCallableProgramNullEDF_setupEDF->destroy();
 
-        unsetBSDFProcedureSet(m_nullBSDFProcedureSetIndex);
+        releaseBSDFProcedureSet(m_nullBSDFProcedureSetIndex);
         m_optixCallableProgramNullBSDF_weightInternal->destroy();
         m_optixCallableProgramNullBSDF_evaluatePDFInternal->destroy();
         m_optixCallableProgramNullBSDF_evaluateInternal->destroy();
@@ -384,68 +376,76 @@ namespace VLR {
         optixContext->launch(0, imageSize.x, imageSize.y);
     }
 
-    uint32_t Context::setNodeDescriptor(const Shared::NodeDescriptor &nodeDesc) {
+    uint32_t Context::allocateNodeDescriptor() {
         uint32_t index = m_nodeDescSlotManager.getFirstAvailableSlot();
-        {
-            auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map();
-            nodeDescs[index] = nodeDesc;
-            m_optixNodeDescriptorBuffer->unmap();
-        }
         m_nodeDescSlotManager.setInUse(index);
-
         return index;
     }
 
-    void Context::unsetNodeDescriptor(uint32_t index) {
+    void Context::releaseNodeDescriptor(uint32_t index) {
+        VLRAssert(m_nodeDescSlotManager.getUsage(index), "Invalid index.");
         m_nodeDescSlotManager.setNotInUse(index);
     }
 
-    uint32_t Context::setBSDFProcedureSet(const Shared::BSDFProcedureSet &procSet) {
-        uint32_t index = m_bsdfProcSetSlotManager.getFirstAvailableSlot();
-        {
-            auto procSets = (Shared::BSDFProcedureSet*)m_optixBSDFProcedureSetBuffer->map();
-            procSets[index] = procSet;
-            m_optixBSDFProcedureSetBuffer->unmap();
-        }
-        m_bsdfProcSetSlotManager.setInUse(index);
+    void Context::updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc) {
+        VLRAssert(m_nodeDescSlotManager.getUsage(index), "Invalid index.");
+        auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map();
+        nodeDescs[index] = nodeDesc;
+        m_optixNodeDescriptorBuffer->unmap();
+    }
 
+    uint32_t Context::allocateBSDFProcedureSet() {
+        uint32_t index = m_bsdfProcSetSlotManager.getFirstAvailableSlot();
+        m_bsdfProcSetSlotManager.setInUse(index);
         return index;
     }
 
-    void Context::unsetBSDFProcedureSet(uint32_t index) {
+    void Context::releaseBSDFProcedureSet(uint32_t index) {
+        VLRAssert(m_bsdfProcSetSlotManager.getUsage(index), "Invalid index.");
         m_bsdfProcSetSlotManager.setNotInUse(index);
     }
 
-    uint32_t Context::setEDFProcedureSet(const Shared::EDFProcedureSet &procSet) {
-        uint32_t index = m_edfProcSetSlotManager.getFirstAvailableSlot();
-        {
-            auto procSets = (Shared::EDFProcedureSet*)m_optixEDFProcedureSetBuffer->map();
-            procSets[index] = procSet;
-            m_optixEDFProcedureSetBuffer->unmap();
-        }
-        m_edfProcSetSlotManager.setInUse(index);
+    void Context::updateBSDFProcedureSet(uint32_t index, const Shared::BSDFProcedureSet &procSet) {
+        VLRAssert(m_bsdfProcSetSlotManager.getUsage(index), "Invalid index.");
+        auto procSets = (Shared::BSDFProcedureSet*)m_optixBSDFProcedureSetBuffer->map();
+        procSets[index] = procSet;
+        m_optixBSDFProcedureSetBuffer->unmap();
+    }
 
+    uint32_t Context::allocateEDFProcedureSet() {
+        uint32_t index = m_edfProcSetSlotManager.getFirstAvailableSlot();
+        m_edfProcSetSlotManager.setInUse(index);
         return index;
     }
 
-    void Context::unsetEDFProcedureSet(uint32_t index) {
+    void Context::releaseEDFProcedureSet(uint32_t index) {
+        VLRAssert(m_edfProcSetSlotManager.getUsage(index), "Invalid index.");
         m_edfProcSetSlotManager.setNotInUse(index);
     }
 
-    uint32_t Context::setSurfaceMaterialDescriptor(const Shared::SurfaceMaterialDescriptor &matDesc) {
-        uint32_t index = m_surfMatDescSlotManager.getFirstAvailableSlot();
-        {
-            auto matDescs = (Shared::SurfaceMaterialDescriptor*)m_optixSurfaceMaterialDescriptorBuffer->map();
-            matDescs[index] = matDesc;
-            m_optixSurfaceMaterialDescriptorBuffer->unmap();
-        }
-        m_surfMatDescSlotManager.setInUse(index);
+    void Context::updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet) {
+        VLRAssert(m_edfProcSetSlotManager.getUsage(index), "Invalid index.");
+        auto procSets = (Shared::EDFProcedureSet*)m_optixEDFProcedureSetBuffer->map();
+        procSets[index] = procSet;
+        m_optixEDFProcedureSetBuffer->unmap();
+    }
 
+    uint32_t Context::allocateSurfaceMaterialDescriptor() {
+        uint32_t index = m_surfMatDescSlotManager.getFirstAvailableSlot();
+        m_surfMatDescSlotManager.setInUse(index);
         return index;
     }
 
-    void Context::unsetSurfaceMaterialDescriptor(uint32_t index) {
+    void Context::releaseSurfaceMaterialDescriptor(uint32_t index) {
+        VLRAssert(m_surfMatDescSlotManager.getUsage(index), "Invalid index.");
         m_surfMatDescSlotManager.setNotInUse(index);
+    }
+
+    void Context::updateSurfaceMaterialDescriptor(uint32_t index, const Shared::SurfaceMaterialDescriptor &matDesc) {
+        VLRAssert(m_surfMatDescSlotManager.getUsage(index), "Invalid index.");
+        auto matDescs = (Shared::SurfaceMaterialDescriptor*)m_optixSurfaceMaterialDescriptorBuffer->map();
+        matDescs[index] = matDesc;
+        m_optixSurfaceMaterialDescriptorBuffer->unmap();
     }
 
 

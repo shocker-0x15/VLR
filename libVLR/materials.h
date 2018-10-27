@@ -28,7 +28,7 @@ namespace VLR {
 
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
-        static uint32_t setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex);
+        static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc);
 
     public:
         static const ClassIdentifier ClassID;
@@ -44,7 +44,6 @@ namespace VLR {
             return m_matIndex;
         }
 
-        virtual uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const = 0;
         virtual bool isEmitting() const { return false; }
     };
 
@@ -53,7 +52,10 @@ namespace VLR {
     class MatteSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeAlbedo;
+        const ShaderNodeSocketIdentifier* m_nodeAlbedo;
+        RGBSpectrum m_immAlbedo;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -62,10 +64,11 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MatteSurfaceMaterial(Context &context, const ShaderNode* nodeAlbedo);
+        MatteSurfaceMaterial(Context &context);
         ~MatteSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeAlbedo(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueAlbedo(const RGBSpectrum &value);
     };
 
 
@@ -73,9 +76,14 @@ namespace VLR {
     class SpecularReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeCoeffR;
-        const ShaderNode* m_nodeEta;
-        const ShaderNode* m_node_k;
+        const ShaderNodeSocketIdentifier* m_nodeCoeffR;
+        const ShaderNodeSocketIdentifier* m_nodeEta;
+        const ShaderNodeSocketIdentifier* m_node_k;
+        RGBSpectrum m_immCoeffR;
+        RGBSpectrum m_immEta;
+        RGBSpectrum m_imm_k;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -84,10 +92,15 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        SpecularReflectionSurfaceMaterial(Context &context, const ShaderNode* nodeCoeffR, const ShaderNode* nodeEta, const ShaderNode* node_k);
+        SpecularReflectionSurfaceMaterial(Context &context);
         ~SpecularReflectionSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeCoeffR(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueCoeffR(const RGBSpectrum &value);
+        bool setNodeEta(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEta(const RGBSpectrum &value);
+        bool setNode_k(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValue_k(const RGBSpectrum &value);
     };
 
 
@@ -95,9 +108,14 @@ namespace VLR {
     class SpecularScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeCoeff;
-        const ShaderNode* m_nodeEtaExt;
-        const ShaderNode* m_nodeEtaInt;
+        const ShaderNodeSocketIdentifier* m_nodeCoeff;
+        const ShaderNodeSocketIdentifier* m_nodeEtaExt;
+        const ShaderNodeSocketIdentifier* m_nodeEtaInt;
+        RGBSpectrum m_immCoeff;
+        RGBSpectrum m_immEtaExt;
+        RGBSpectrum m_immEtaInt;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -106,10 +124,15 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        SpecularScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeEtaExt, const ShaderNode* nodeEtaInt);
+        SpecularScatteringSurfaceMaterial(Context &context);
         ~SpecularScatteringSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueCoeff(const RGBSpectrum &value);
+        bool setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEtaExt(const RGBSpectrum &value);
+        bool setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEtaInt(const RGBSpectrum &value);
     };
 
 
@@ -117,9 +140,14 @@ namespace VLR {
     class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeEta;
-        const ShaderNode* m_node_k;
-        const ShaderNode* m_nodeRoughness;
+        const ShaderNodeSocketIdentifier* m_nodeEta;
+        const ShaderNodeSocketIdentifier* m_node_k;
+        const ShaderNodeSocketIdentifier* m_nodeRoughness;
+        RGBSpectrum m_immEta;
+        RGBSpectrum m_imm_k;
+        float m_immRoughness[2];
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -128,10 +156,15 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MicrofacetReflectionSurfaceMaterial(Context &context, const ShaderNode* nodeEta, const ShaderNode* node_k, const ShaderNode* nodeRoughness);
+        MicrofacetReflectionSurfaceMaterial(Context &context);
         ~MicrofacetReflectionSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeEta(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEta(const RGBSpectrum &value);
+        bool setNode_k(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValue_k(const RGBSpectrum &value);
+        bool setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueRoughness(const float value[2]);
     };
 
 
@@ -139,10 +172,16 @@ namespace VLR {
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeCoeff;
-        const ShaderNode* m_nodeEtaExt;
-        const ShaderNode* m_nodeEtaInt;
-        const ShaderNode* m_nodeRoughness;
+        const ShaderNodeSocketIdentifier* m_nodeCoeff;
+        const ShaderNodeSocketIdentifier* m_nodeEtaExt;
+        const ShaderNodeSocketIdentifier* m_nodeEtaInt;
+        const ShaderNodeSocketIdentifier* m_nodeRoughness;
+        RGBSpectrum m_immCoeff;
+        RGBSpectrum m_immEtaExt;
+        RGBSpectrum m_immEtaInt;
+        float m_immRoughness[2];
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -151,10 +190,17 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MicrofacetScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeEtaExt, const ShaderNode* nodeEtaInt, const ShaderNode* nodeRoughness);
+        MicrofacetScatteringSurfaceMaterial(Context &context);
         ~MicrofacetScatteringSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueCoeff(const RGBSpectrum &value);
+        bool setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEtaExt(const RGBSpectrum &value);
+        bool setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEtaInt(const RGBSpectrum &value);
+        bool setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueRoughness(const float value[2]);
     };
 
 
@@ -162,8 +208,12 @@ namespace VLR {
     class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeCoeff;
-        const ShaderNode* m_nodeF0;
+        const ShaderNodeSocketIdentifier* m_nodeCoeff;
+        const ShaderNodeSocketIdentifier* m_nodeF0;
+        RGBSpectrum m_immCoeff;
+        float m_immF0;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -172,10 +222,13 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        LambertianScatteringSurfaceMaterial(Context &context, const ShaderNode* nodeCoeff, const ShaderNode* nodeF0);
+        LambertianScatteringSurfaceMaterial(Context &context);
         ~LambertianScatteringSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueCoeff(const RGBSpectrum &value);
+        bool setNodeF0(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueF0(float value);
     };
 
 
@@ -183,8 +236,14 @@ namespace VLR {
     class UE4SurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeBaseColor;
-        const ShaderNode* m_nodeOcclusionRoughnessMetallic;
+        const ShaderNodeSocketIdentifier* m_nodeBaseColor;
+        const ShaderNodeSocketIdentifier* m_nodeOcclusionRoughnessMetallic;
+        RGBSpectrum m_immBaseColor;
+        float m_immOcculusion;
+        float m_immRoughness;
+        float m_immMetallic;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -193,10 +252,15 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        UE4SurfaceMaterial(Context &context, const ShaderNode* nodeBaseColor, const ShaderNode* nodeOcclusionRoughnessMetallic);
+        UE4SurfaceMaterial(Context &context);
         ~UE4SurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
+        bool setNodeBaseColor(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueBaseColor(const RGBSpectrum &value);
+        bool setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueOcclusion(float value);
+        void setImmediateValueRoughness(float value);
+        void setImmediateValueMetallic(float value);
     };
 
 
@@ -204,7 +268,10 @@ namespace VLR {
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeEmittance;
+        const ShaderNodeSocketIdentifier* m_nodeEmittance;
+        RGBSpectrum m_immEmittance;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -213,11 +280,13 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        DiffuseEmitterSurfaceMaterial(Context &context, const ShaderNode* nodeEmittance);
+        DiffuseEmitterSurfaceMaterial(Context &context);
         ~DiffuseEmitterSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
         bool isEmitting() const override { return true; }
+
+        bool setNodeEmittance(const ShaderNodeSocketIdentifier* outputSocket);
+        void setImmediateValueEmittance(const RGBSpectrum &value);
     };
 
 
@@ -225,8 +294,10 @@ namespace VLR {
     class MultiSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const SurfaceMaterial* m_materials[4];
-        uint32_t m_numMaterials;
+        const SurfaceMaterial* m_subMaterials[4];
+        uint32_t m_numSubMaterials;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -235,11 +306,12 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        MultiSurfaceMaterial(Context &context, const SurfaceMaterial** materials, uint32_t numMaterials);
+        MultiSurfaceMaterial(Context &context);
         ~MultiSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
         bool isEmitting() const override;
+
+        void setSubMaterial(uint32_t index, const SurfaceMaterial* mat);
     };
 
 
@@ -247,8 +319,11 @@ namespace VLR {
     class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNode* m_nodeEmittance;
+        const EnvironmentTextureShaderNode* m_nodeEmittance;
+        RGBSpectrum m_immEmittance;
         RegularConstantContinuousDistribution2D m_importanceMap;
+
+        void setupMaterialDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
@@ -257,11 +332,13 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        EnvironmentEmitterSurfaceMaterial(Context &context, const ShaderNode* nodeEmittance);
+        EnvironmentEmitterSurfaceMaterial(Context &context);
         ~EnvironmentEmitterSurfaceMaterial();
 
-        uint32_t setupMaterialDescriptor(Shared::SurfaceMaterialDescriptor* matDesc, uint32_t baseIndex) const override;
         bool isEmitting() const override { return true; }
+
+        bool setNodeEmittance(const EnvironmentTextureShaderNode* node);
+        void setImmediateValueEmittance(const RGBSpectrum &value);
 
         const RegularConstantContinuousDistribution2D &getImportanceMap() const {
             return m_importanceMap;

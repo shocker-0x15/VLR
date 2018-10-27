@@ -245,7 +245,7 @@ namespace VLR {
         MatteBRDF &p = *(MatteBRDF*)params;
         const MatteSurfaceMaterial &mat = *(const MatteSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.albedo = calcRGBSpectrum(mat.nodeAlbedo, surfPt);
+        p.albedo = calcRGBSpectrum(mat.nodeAlbedo, mat.immAlbedo, surfPt);
         p.roughness = 0.0f;
 
         return sizeof(MatteBRDF) / 4;
@@ -316,9 +316,9 @@ namespace VLR {
         SpecularBRDF &p = *(SpecularBRDF*)params;
         const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeffR = calcRGBSpectrum(mat.nodeCoeffR, surfPt);
-        p.eta = calcRGBSpectrum(mat.nodeEta, surfPt);
-        p.k = calcRGBSpectrum(mat.node_k, surfPt);
+        p.coeffR = calcRGBSpectrum(mat.nodeCoeffR, mat.immCoeffR, surfPt);
+        p.eta = calcRGBSpectrum(mat.nodeEta, mat.immEta, surfPt);
+        p.k = calcRGBSpectrum(mat.node_k, mat.imm_k, surfPt);
 
         return sizeof(SpecularBRDF) / 4;
     }
@@ -382,9 +382,9 @@ namespace VLR {
         SpecularBSDF &p = *(SpecularBSDF*)params;
         const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
-        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
-        p.etaInt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, mat.immEtaExt, surfPt);
+        p.etaInt = calcRGBSpectrum(mat.nodeEtaInt, mat.immEtaInt, surfPt);
         p.dispersive = !wavelengthSelected;
 
         return sizeof(SpecularBSDF) / 4;
@@ -486,9 +486,9 @@ namespace VLR {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
         const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.eta = calcRGBSpectrum(mat.nodeEta, surfPt);
-        p.k = calcRGBSpectrum(mat.node_k, surfPt);
-        optix::float2 roughness = calcFloat2(mat.nodeRoughness, surfPt);
+        p.eta = calcRGBSpectrum(mat.nodeEta, mat.immEta, surfPt);
+        p.k = calcRGBSpectrum(mat.node_k, mat.imm_k, surfPt);
+        optix::float2 roughness = calcFloat2(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
         p.roughnessX = roughness.x;
         p.roughnessY = roughness.y;
 
@@ -649,10 +649,10 @@ namespace VLR {
         MicrofacetBSDF &p = *(MicrofacetBSDF*)params;
         const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
-        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, surfPt);
-        p.etaInt = calcRGBSpectrum(mat.nodeEtaInt, surfPt);
-        optix::float2 roughness = calcFloat2(mat.nodeRoughness, surfPt);
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.etaExt = calcRGBSpectrum(mat.nodeEtaExt, mat.immEtaExt, surfPt);
+        p.etaInt = calcRGBSpectrum(mat.nodeEtaInt, mat.immEtaInt, surfPt);
+        optix::float2 roughness = calcFloat2(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
         p.roughnessX = roughness.x;
         p.roughnessY = roughness.y;
 
@@ -908,8 +908,8 @@ namespace VLR {
         LambertianBSDF &p = *(LambertianBSDF*)params;
         const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcRGBSpectrum(mat.nodeCoeff, surfPt);
-        p.F0 = calcFloat(mat.nodeF0, surfPt);
+        p.coeff = calcRGBSpectrum(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.F0 = calcFloat(mat.nodeF0, mat.immF0, surfPt);
 
         return sizeof(LambertianBSDF) / 4;
     }
@@ -1035,8 +1035,11 @@ namespace VLR {
         UE4BRDF &p = *(UE4BRDF*)params;
         const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.baseColor = calcRGBSpectrum(mat.nodeBaseColor, surfPt);
-        optix::float3 occlusionRoughnessMetallic = calcFloat3(mat.nodeOcclusionRoughnessMetallic, surfPt);
+        p.baseColor = calcRGBSpectrum(mat.nodeBaseColor, mat.immBaseColor, surfPt);
+        optix::float3 occlusionRoughnessMetallic = calcFloat3(mat.nodeOcclusionRoughnessMetallic, 
+                                                              optix::make_float3(mat.immOcclusionRoughnessMetallic[0],
+                                                                                 mat.immOcclusionRoughnessMetallic[1],
+                                                                                 mat.immOcclusionRoughnessMetallic[2]), surfPt);
         p.roughness = occlusionRoughnessMetallic.y;
         p.metallic = occlusionRoughnessMetallic.z;
 
@@ -1298,7 +1301,7 @@ namespace VLR {
         DiffuseEDF &p = *(DiffuseEDF*)params;
         const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.emittance = calcRGBSpectrum(mat.nodeEmittance, surfPt);
+        p.emittance = calcRGBSpectrum(mat.nodeEmittance, mat.immEmittance, surfPt);
 
         return sizeof(DiffuseEDF) / 4;
     }
@@ -1343,23 +1346,23 @@ namespace VLR {
         const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
         uint32_t baseIndex = sizeof(MultiBSDF) / 4;
-        const uint32_t matOffsets[] = { mat.matOffset0, mat.matOffset1, mat.matOffset2, mat.matOffset3 };
         uint32_t bsdfOffsets[4] = { 0, 0, 0, 0 };
-        for (int i = 0; i < mat.numMaterials; ++i) {
+        for (int i = 0; i < mat.numSubMaterials; ++i) {
             bsdfOffsets[i] = baseIndex;
 
-            const SurfaceMaterialHead &matHead = *(const SurfaceMaterialHead*)(matDesc + matOffsets[i]);
+            const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
+            const SurfaceMaterialHead &subMatHead = *(const SurfaceMaterialHead*)subMatDesc.data;
             //rtPrintf("%d: %u, %u, %u, %u\n", i, matHead.progSetupBSDF, matHead.bsdfProcedureSetIndex, matHead.progSetupEDF, matHead.edfProcedureSetIndex);
-            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matHead.progSetupBSDF;
-            *(uint32_t*)(params + baseIndex++) = matHead.bsdfProcedureSetIndex;
-            baseIndex += setupBSDF((const uint32_t*)&matHead, surfPt, wavelengthSelected, params + baseIndex);
+            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)subMatHead.progSetupBSDF;
+            *(uint32_t*)(params + baseIndex++) = subMatHead.bsdfProcedureSetIndex;
+            baseIndex += setupBSDF((const uint32_t*)&subMatHead, surfPt, wavelengthSelected, params + baseIndex);
         }
 
         p.bsdf0 = bsdfOffsets[0];
         p.bsdf1 = bsdfOffsets[1];
         p.bsdf2 = bsdfOffsets[2];
         p.bsdf3 = bsdfOffsets[3];
-        p.numBSDFs = mat.numMaterials;
+        p.numBSDFs = mat.numSubMaterials;
 
         //rtPrintf("%u, %u, %u, %u, %u mats\n", p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3, p.numBSDFs);
 
@@ -1570,22 +1573,22 @@ namespace VLR {
         const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
         uint32_t baseIndex = sizeof(MultiEDF) / 4;
-        const uint32_t matOffsets[] = { mat.matOffset0, mat.matOffset1, mat.matOffset2, mat.matOffset3 };
         uint32_t edfOffsets[4] = { 0, 0, 0, 0 };
-        for (int i = 0; i < mat.numMaterials; ++i) {
+        for (int i = 0; i < mat.numSubMaterials; ++i) {
             edfOffsets[i] = baseIndex;
 
-            const SurfaceMaterialHead &matHead = *(const SurfaceMaterialHead*)(matDesc + matOffsets[i]);
-            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matHead.progSetupEDF;
-            *(uint32_t*)(params + baseIndex++) = matHead.edfProcedureSetIndex;
-            baseIndex += setupEDF((const uint32_t*)&matHead, surfPt, params + baseIndex);
+            const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
+            const SurfaceMaterialHead &subMatHead = *(const SurfaceMaterialHead*)subMatDesc.data;
+            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)subMatHead.progSetupEDF;
+            *(uint32_t*)(params + baseIndex++) = subMatHead.edfProcedureSetIndex;
+            baseIndex += setupEDF((const uint32_t*)&subMatHead, surfPt, params + baseIndex);
         }
 
         p.edf0 = edfOffsets[0];
         p.edf1 = edfOffsets[1];
         p.edf2 = edfOffsets[2];
         p.edf3 = edfOffsets[3];
-        p.numEDFs = mat.numMaterials;
+        p.numEDFs = mat.numSubMaterials;
 
         return baseIndex;
     }
@@ -1647,7 +1650,7 @@ namespace VLR {
         EnvironmentEDF &p = *(EnvironmentEDF*)params;
         const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.emittance = calcRGBSpectrum(mat.nodeEmittance, surfPt);
+        p.emittance = calcRGBSpectrum(mat.nodeEmittance, mat.immEmittance, surfPt);
 
         return sizeof(EnvironmentEDF) / 4;
     }

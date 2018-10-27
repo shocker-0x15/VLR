@@ -479,7 +479,8 @@ namespace VLR {
         // TODO: 頂点情報更新時の処理。(IndexBufferとの整合性など)
     }
 
-    void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, SurfaceMaterial* material, Float4Texture* texNormalAlpha) {
+    void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
+                                                   const ShaderNodeSocketIdentifier &nodeNormal, const ShaderNodeSocketIdentifier &nodeAlpha) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -520,8 +521,26 @@ namespace VLR {
         }
         m_optixGeometries.push_back(geom);
 
+        bool nodeNormalIsValid;
+        bool nodeAlphaIsValid;
+
         m_materials.push_back(material);
-        m_texNormalAlphas.push_back(texNormalAlpha);
+        if (nodeNormal.getType() == ShaderNodeSocketType_float3) {
+            m_nodeNormals.push_back(nodeNormal);
+            nodeNormalIsValid = true;
+        }
+        else {
+            m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
+            nodeNormalIsValid = false;
+        }
+        if (nodeAlpha.getType() == ShaderNodeSocketType_float) {
+            m_nodeAlphas.push_back(nodeAlpha);
+            nodeAlphaIsValid = true;
+        }
+        else {
+            m_nodeAlphas.push_back(ShaderNodeSocketIdentifier());
+            nodeAlphaIsValid = false;
+        }
 
         Shared::SurfaceLightDescriptor lightDesc;
         lightDesc.body.asMeshLight.vertexBuffer = m_optixVertexBuffer->getId();
@@ -536,22 +555,29 @@ namespace VLR {
             optix::GeometryInstance optixGeomInst = geomInst->getOptiXObject();
             optixGeomInst->setGeometry(geom.optixGeometry);
             optixGeomInst->setMaterialCount(1);
+
             optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);
             optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
             optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
+
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
-            if (texNormalAlpha) {
+
+            Shared::NodeIndex nodeIndexNormal = Shared::NodeIndex::Invalid();
+            if (nodeNormalIsValid)
+                nodeIndexNormal = nodeNormal.getNodeIndex();
+            optixGeomInst["VLR::pv_nodeIndexNormal"]->setUserData(sizeof(nodeIndexNormal), &nodeIndexNormal);
+
+            Shared::NodeIndex nodeIndexAlpha = Shared::NodeIndex::Invalid();
+            if (nodeAlphaIsValid) {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
-                optixGeomInst["VLR::pv_texNormalAlpha"]->set(texNormalAlpha->getOptiXObject());
-                optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramFetchAlpha());
-                optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramFetchNormal());
+                nodeIndexAlpha = nodeAlpha.getNodeIndex();
             }
             else {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
-                optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
-                optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
             }
+            optixGeomInst["VLR::pv_nodeIndexAlpha"]->setUserData(sizeof(nodeIndexAlpha), &nodeIndexAlpha);
+
             uint32_t matIndex = material->getMaterialIndex();
             optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
             optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);

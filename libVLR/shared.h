@@ -174,8 +174,21 @@ namespace VLR {
 
 
 
+        union NodeIndex {
+            struct {
+                unsigned int bufferIndex : 27;
+                unsigned int outSocketIndex : 5;
+            };
+            uint32_t asUInt;
+            
+            RT_FUNCTION NodeIndex() {}
+            explicit constexpr NodeIndex(uint32_t ui) : asUInt(ui) {}
+            RT_FUNCTION bool isValid() const { return asUInt != 0xFFFFFFFF; }
+
+            static constexpr NodeIndex Invalid() { return NodeIndex(0xFFFFFFFF); }
+        };
+        
         struct NodeDescriptor {
-            int32_t progNode;
 #define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (32)
             uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
         };
@@ -281,53 +294,66 @@ namespace VLR {
         // ----------------------------------------------------------------
         // Shader Nodes
 
-#define VLR_INVALID_NODE_INDEX 0xFFFFFFFF
-
         struct FloatShaderNode {
-            uint32_t node0;
-            float default0;
+            int32_t socketFloat;
+            NodeIndex node0;
+            float imm0;
         };
 
         struct Float2ShaderNode {
-            uint32_t node0;
-            uint32_t node1;
-            float default0;
-            float default1;
+            int32_t socketFloat2;
+            NodeIndex node0;
+            NodeIndex node1;
+            float imm0;
+            float imm1;
         };
 
         struct Float3ShaderNode {
-            uint32_t node0;
-            uint32_t node1;
-            uint32_t node2;
-            float default0;
-            float default1;
-            float default2;
+            int32_t socketFloat3;
+            NodeIndex node0;
+            NodeIndex node1;
+            NodeIndex node2;
+            float imm0;
+            float imm1;
+            float imm2;
         };
 
         struct Float4ShaderNode {
-            uint32_t node0;
-            uint32_t node1;
-            uint32_t node2;
-            uint32_t node3;
-            float default0;
-            float default1;
-            float default2;
-            float default3;
+            int32_t socketFloat4;
+            NodeIndex node0;
+            NodeIndex node1;
+            NodeIndex node2;
+            NodeIndex node3;
+            float imm0;
+            float imm1;
+            float imm2;
+            float imm3;
         };
 
         struct OffsetAndScaleUVTextureMap2DShaderNode {
+            int32_t socketTexCoord;
             float offset[2];
             float scale[2];
         };
 
         struct ConstantTextureShaderNode {
+            int32_t socketRGBSpectrum;
+            int32_t socketAlpha;
             RGBSpectrum spectrum;
             float alpha;
         };
 
         struct Image2DTextureShaderNode {
+            int32_t socketRGBSpectrum;
+            int32_t socketAlpha;
             int32_t textureID;
-            uint32_t nodeTexCoord;
+            NodeIndex nodeTexCoord;
+        };
+
+        struct EnvironmentTextureShaderNode {
+            int32_t socketRGBSpectrum;
+            int32_t textureID;
+            NodeIndex nodeTexCoord;
         };
 
         // END: Shader Nodes
@@ -346,60 +372,75 @@ namespace VLR {
         };
 
         struct MatteSurfaceMaterial {
-            uint32_t nodeAlbedo;
+            NodeIndex nodeAlbedo;
+            RGBSpectrum immAlbedo;
         };
 
         struct SpecularReflectionSurfaceMaterial {
-            int32_t nodeCoeffR;
-            int32_t nodeEta;
-            int32_t node_k;
+            NodeIndex nodeCoeffR;
+            NodeIndex nodeEta;
+            NodeIndex node_k;
+            RGBSpectrum immCoeffR;
+            RGBSpectrum immEta;
+            RGBSpectrum imm_k;
         };
 
         struct SpecularScatteringSurfaceMaterial {
-            int32_t nodeCoeff;
-            int32_t nodeEtaExt;
-            int32_t nodeEtaInt;
+            NodeIndex nodeCoeff;
+            NodeIndex nodeEtaExt;
+            NodeIndex nodeEtaInt;
+            RGBSpectrum immCoeff;
+            RGBSpectrum immEtaExt;
+            RGBSpectrum immEtaInt;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
-            int32_t nodeEta;
-            int32_t node_k;
-            int32_t nodeRoughness;
+            NodeIndex nodeEta;
+            NodeIndex node_k;
+            NodeIndex nodeRoughness;
+            RGBSpectrum immEta;
+            RGBSpectrum imm_k;
+            float immRoughness[2];
         };
 
         struct MicrofacetScatteringSurfaceMaterial {
-            int32_t nodeCoeff;
-            int32_t nodeEtaExt;
-            int32_t nodeEtaInt;
-            int32_t nodeRoughness;
+            NodeIndex nodeCoeff;
+            NodeIndex nodeEtaExt;
+            NodeIndex nodeEtaInt;
+            NodeIndex nodeRoughness;
+            RGBSpectrum immCoeff;
+            RGBSpectrum immEtaExt;
+            RGBSpectrum immEtaInt;
+            float immRoughness[2];
         };
 
         struct LambertianScatteringSurfaceMaterial {
-            int32_t nodeCoeff;
-            int32_t nodeF0;
+            NodeIndex nodeCoeff;
+            NodeIndex nodeF0;
+            RGBSpectrum immCoeff;
+            float immF0;
         };
 
         struct UE4SurfaceMaterial {
-            int32_t nodeBaseColor;
-            int32_t nodeOcclusionRoughnessMetallic;
+            NodeIndex nodeBaseColor;
+            NodeIndex nodeOcclusionRoughnessMetallic;
+            RGBSpectrum immBaseColor;
+            float immOcclusionRoughnessMetallic[3];
         };
 
         struct DiffuseEmitterSurfaceMaterial {
-            int32_t nodeEmittance;
+            NodeIndex nodeEmittance;
+            RGBSpectrum immEmittance;
         };
 
         struct MultiSurfaceMaterial {
-            struct { // offsets in DWs
-                unsigned int matOffset0 : 6;
-                unsigned int matOffset1 : 6;
-                unsigned int matOffset2 : 6;
-                unsigned int matOffset3 : 6;
-                unsigned int numMaterials : 8;
-            };
+            uint32_t subMatIndices[4];
+            uint32_t numSubMaterials;
         };
 
         struct EnvironmentEmitterSurfaceMaterial {
-            int32_t nodeEmittance;
+            NodeIndex nodeEmittance;
+            RGBSpectrum immEmittance;
         };
 
         // END: Surface Materials

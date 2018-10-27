@@ -8,12 +8,6 @@ namespace VLR {
     rtDeclareVariable(ProgSigSampleIDF, pv_progSampleIDF, , );
     rtBuffer<KernelRNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
-    rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
-
-    // per GeometryInstance
-    rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(uint32_t, pv_materialIndex, , );
-    rtDeclareVariable(float, pv_importance, , );
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void pathTracingIteration() {
@@ -24,7 +18,7 @@ namespace VLR {
         HitPointParameter hitPointParam = a_hitPointParam;
         pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
-        applyBumpMapping(pv_progFetchNormal(surfPt.texCoord), &surfPt);
+        applyBumpMapping(fetchNormal(surfPt), &surfPt);
 
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
         BSDF bsdf(matDesc, surfPt, sm_payload.wavelengthSelected);

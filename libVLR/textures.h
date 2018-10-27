@@ -6,208 +6,6 @@
 using half_float::half;
 
 namespace VLR {
-    class ShaderNode : public Object {
-    protected:
-        struct OptiXProgramSet {
-            optix::Program callableProgram;
-        };
-
-        uint32_t m_nodeIndex;
-
-        static void commonInitializeProcedure(Context &context, const char* identifiers[1], OptiXProgramSet* programSet);
-        static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        ShaderNode(Context &context);
-        virtual ~ShaderNode();
-
-        virtual bool hasTextureCoordinateOutput() const { return false; }
-        virtual bool hasRGBSpectrumOutput() const { return false; }
-        virtual bool hasFloatOutput() const { return false; }
-        virtual bool hasFloat2Output() const { return false; }
-        virtual bool hasFloat3Output() const { return false; }
-        virtual bool hasFloat4Output() const { return false; }
-
-        virtual void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const = 0;
-
-        uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
-    };
-
-
-
-    class FloatShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        const ShaderNode* m_node0;
-        float m_default0;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        FloatShaderNode(Context &context, const ShaderNode* node0, float default0);
-        ~FloatShaderNode();
-
-        bool hasFloatOutput() const override { return false; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-    };
-
-
-
-    class Float2ShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        const ShaderNode* m_node0;
-        const ShaderNode* m_node1;
-        float m_default0;
-        float m_default1;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        Float2ShaderNode(Context &context, 
-                         const ShaderNode* node0, const ShaderNode* node1, 
-                         float default0, float default1);
-        ~Float2ShaderNode();
-
-        bool hasFloatOutput() const override { return false; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-    };
-
-
-
-    class Float3ShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        const ShaderNode* m_node0;
-        const ShaderNode* m_node1;
-        const ShaderNode* m_node2;
-        float m_default0;
-        float m_default1;
-        float m_default2;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        Float3ShaderNode(Context &context, 
-                         const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, 
-                         float default0, float default1, float default2);
-        ~Float3ShaderNode();
-
-        bool hasFloatOutput() const override { return false; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-    };
-
-
-
-    class Float4ShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        const ShaderNode* m_node0;
-        const ShaderNode* m_node1;
-        const ShaderNode* m_node2;
-        const ShaderNode* m_node3;
-        float m_default0;
-        float m_default1;
-        float m_default2;
-        float m_default3;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        Float4ShaderNode(Context &context, 
-                         const ShaderNode* node0, const ShaderNode* node1, const ShaderNode* node2, const ShaderNode* node3, 
-                         float default0, float default1, float default2, float default3);
-        ~Float4ShaderNode();
-
-        bool hasFloatOutput() const override { return false; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-    };
-
-
-
-    class OffsetAndScaleUVTextureMap2DShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-        static std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode*> s_defaultInstance;
-
-        float m_offset[2];
-        float m_scale[2];
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        OffsetAndScaleUVTextureMap2DShaderNode(Context &context, const float offset[2], const float scale[2]);
-        ~OffsetAndScaleUVTextureMap2DShaderNode();
-
-        bool hasTextureCoordinateOutput() const override { return true; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-
-        static const OffsetAndScaleUVTextureMap2DShaderNode* getDefault(Context &context) {
-            return s_defaultInstance.at(context.getID());
-        }
-    };
-
-
-
-    class ConstantTextureShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-        static std::map<uint32_t, ConstantTextureShaderNode*> s_gray18;
-
-        RGBSpectrum m_spectrum;
-        float m_alpha;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        ConstantTextureShaderNode(Context &context, const RGBSpectrum &spectrum, float alpha);
-        ~ConstantTextureShaderNode();
-
-        bool hasRGBSpectrumOutput() const override { return true; }
-        bool hasFloatOutput() const override { return true; }
-
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-
-        static const ConstantTextureShaderNode* getGray18(Context &context) {
-            return s_gray18.at(context.getID());
-        }
-    };
-
-
-
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };
@@ -281,12 +79,22 @@ namespace VLR {
 
 
 
-    class Image2DTextureShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+    enum ShaderNodeSocketType {
+        ShaderNodeSocketType_float = 0,
+        ShaderNodeSocketType_float2 = 0,
+        ShaderNodeSocketType_float3 = 0,
+        ShaderNodeSocketType_float4 = 0,
+        ShaderNodeSocketType_RGBSpectrum = 0,
+        ShaderNodeSocketType_TextureCoordinates = 0,
+        NumShaderNodeSocketTypes,
+        ShaderNodeSocketType_Invalid
+    };
 
-        optix::TextureSampler m_optixTextureSampler;
-        const Image2D* m_image;
-        const ShaderNode* m_nodeTexCoord;
+
+
+    class ShaderNode : public Object {
+    protected:
+        uint32_t m_nodeIndex;
 
     public:
         static const ClassIdentifier ClassID;
@@ -295,181 +103,381 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        Image2DTextureShaderNode(Context &context, const Image2D* image, const ShaderNode* nodeTexCoord);
+        ShaderNode(Context &context);
+        virtual ~ShaderNode();
+
+        virtual uint32_t getNumOutputSockets() const = 0;
+        virtual ShaderNodeSocketType getSocketType(uint32_t index) const = 0;
+
+        uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
+    };
+
+
+
+    struct ShaderNodeSocketIdentifier {
+        const ShaderNode* node;
+        uint32_t index;
+
+        ShaderNodeSocketIdentifier() : node(nullptr), index(0) {}
+
+        ShaderNodeSocketType getType() const {
+            return node->getSocketType(index);
+        }
+
+        Shared::NodeIndex getNodeIndex() const {
+            if (node && index < node->getNumOutputSockets()) {
+                Shared::NodeIndex ret;
+                ret.bufferIndex = node->getShaderNodeIndex();
+                ret.outSocketIndex = index;
+            }
+            return Shared::NodeIndex::Invalid();
+        }
+    };
+
+
+
+    class FloatShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramFloat;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_node0;
+        float m_imm0;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        FloatShaderNode(Context &context);
+        ~FloatShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_float
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue0(float value);
+    };
+
+
+
+    class Float2ShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramFloat2;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_node0;
+        ShaderNodeSocketIdentifier m_node1;
+        float m_imm0;
+        float m_imm1;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float2ShaderNode(Context &context);
+        ~Float2ShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_float2
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue0(float value);
+        bool setNode1(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue1(float value);
+    };
+
+
+
+    class Float3ShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramFloat3;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_node0;
+        ShaderNodeSocketIdentifier m_node1;
+        ShaderNodeSocketIdentifier m_node2;
+        float m_imm0;
+        float m_imm1;
+        float m_imm2;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float3ShaderNode(Context &context);
+        ~Float3ShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_float3
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue0(float value);
+        bool setNode1(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue1(float value);
+        bool setNode2(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue2(float value);
+    };
+
+
+
+    class Float4ShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramFloat4;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_node0;
+        ShaderNodeSocketIdentifier m_node1;
+        ShaderNodeSocketIdentifier m_node2;
+        ShaderNodeSocketIdentifier m_node3;
+        float m_imm0;
+        float m_imm1;
+        float m_imm2;
+        float m_imm3;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Float4ShaderNode(Context &context);
+        ~Float4ShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_float4
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue0(float value);
+        bool setNode1(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue1(float value);
+        bool setNode2(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue2(float value);
+        bool setNode3(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValue3(float value);
+    };
+
+
+
+    class OffsetAndScaleUVTextureMap2DShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramTexCoord;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        float m_offset[2];
+        float m_scale[2];
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        OffsetAndScaleUVTextureMap2DShaderNode(Context &context);
+        ~OffsetAndScaleUVTextureMap2DShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_TextureCoordinates
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        void setValues(const float offset[2], const float scale[2]);
+    };
+
+
+
+    class ConstantTextureShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramRGBSpectrum;
+            optix::Program callableProgramAlpha;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        RGBSpectrum m_spectrum;
+        float m_alpha;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        ConstantTextureShaderNode(Context &context);
+        ~ConstantTextureShaderNode();
+
+        uint32_t getNumOutputSockets() const {
+            return 2;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_RGBSpectrum,
+                ShaderNodeSocketType_float
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
+
+        void setValues(const RGBSpectrum &spectrum, float alpha);
+    };
+
+
+
+    class Image2DTextureShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramRGBSpectrum;
+            optix::Program callableProgramAlpha;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        optix::TextureSampler m_optixTextureSampler;
+        const Image2D* m_image;
+        ShaderNodeSocketIdentifier m_nodeTexCoord;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Image2DTextureShaderNode(Context &context);
         ~Image2DTextureShaderNode();
 
-        bool hasRGBSpectrumOutput() const override { return true; }
+        uint32_t getNumOutputSockets() const {
+            return 5;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_RGBSpectrum,
+                ShaderNodeSocketType_float,
+                ShaderNodeSocketType_float2,
+                ShaderNodeSocketType_float3,
+                ShaderNodeSocketType_float4,
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
+        }
 
-        void setupNodeDescriptor(Shared::NodeDescriptor* nodeDesc) const override;
-
+        void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
     };
 
 
 
-    // ----------------------------------------------------------------
-    // Textures
+    class EnvironmentTextureShaderNode : public ShaderNode {
+        struct OptiXProgramSet {
+            optix::Program callableProgramRGBSpectrum;
+        };
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-    class FloatTexture : public Object {
-    protected:
         optix::TextureSampler m_optixTextureSampler;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        FloatTexture(Context &context);
-        virtual ~FloatTexture();
-
-        const optix::TextureSampler &getOptiXObject() const {
-            return m_optixTextureSampler;
-        }
-
-        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-    };
-
-
-
-    class ConstantFloatTexture : public FloatTexture {
-        Image2D* m_image;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        ConstantFloatTexture(Context &context, const float value);
-        ~ConstantFloatTexture();
-    };
-
-
-
-    class Float2Texture : public Object {
-    protected:
-        optix::TextureSampler m_optixTextureSampler;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        Float2Texture(Context &context);
-        virtual ~Float2Texture();
-
-        const optix::TextureSampler &getOptiXObject() const {
-            return m_optixTextureSampler;
-        }
-
-        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-    };
-
-
-
-    class ConstantFloat2Texture : public Float2Texture {
-        Image2D* m_image;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        ConstantFloat2Texture(Context &context, const float value[2]);
-        ~ConstantFloat2Texture();
-    };
-
-
-
-    class Float3Texture : public Object {
-    protected:
-        optix::TextureSampler m_optixTextureSampler;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        Float3Texture(Context &context);
-        virtual ~Float3Texture();
-
-        const optix::TextureSampler &getOptiXObject() const {
-            return m_optixTextureSampler;
-        }
-
-        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-
-        virtual void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const {
-            VLRAssert_NotImplemented();
-        }
-    };
-
-
-
-    class ConstantFloat3Texture : public Float3Texture {
-        Image2D* m_image;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        ConstantFloat3Texture(Context &context, const float value[3]);
-        ~ConstantFloat3Texture();
-    };
-
-
-
-    class ImageFloat3Texture : public Float3Texture {
         const Image2D* m_image;
+        ShaderNodeSocketIdentifier m_nodeTexCoord;
+
+        void setupNodeDescriptor() const;
 
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
-        ImageFloat3Texture(Context &context, const Image2D* image);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
-        void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const override;
-    };
+        EnvironmentTextureShaderNode(Context &context);
+        ~EnvironmentTextureShaderNode();
 
-
-
-    class Float4Texture : public Object {
-    protected:
-        optix::TextureSampler m_optixTextureSampler;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        Float4Texture(Context &context);
-        virtual ~Float4Texture();
-
-        const optix::TextureSampler &getOptiXObject() const {
-            return m_optixTextureSampler;
+        uint32_t getNumOutputSockets() const {
+            return 1;
+        }
+        ShaderNodeSocketType getSocketType(uint32_t index) const override {
+            ShaderNodeSocketType types[] = {
+                ShaderNodeSocketType_RGBSpectrum,
+            };
+            if (index >= getNumOutputSockets())
+                return ShaderNodeSocketType_Invalid;
+            return types[index];
         }
 
+        void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
+
+        void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;
     };
-
-
-
-    class ConstantFloat4Texture : public Float4Texture {
-        Image2D* m_image;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        ConstantFloat4Texture(Context &context, const float value[4]);
-        ~ConstantFloat4Texture();
-    };
-
-
-
-    class ImageFloat4Texture : public Float4Texture {
-        const Image2D* m_image;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        ImageFloat4Texture(Context &context, const Image2D* image);
-    };
-
-    // END: Textures
-    // ----------------------------------------------------------------
 }
