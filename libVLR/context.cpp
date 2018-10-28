@@ -86,11 +86,6 @@ namespace VLR {
         {
             std::string ptx = readTxtFile("resources/ptxes/path_tracing.ptx");
 
-            m_optixCallableProgramNullFetchAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::Null_NormalAlphaModifier_fetchAlpha");
-            m_optixCallableProgramNullFetchNormal = m_optixContext->createProgramFromPTXString(ptx, "VLR::Null_NormalAlphaModifier_fetchNormal");
-            m_optixCallableProgramFetchAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::NormalAlphaModifier_fetchAlpha");
-            m_optixCallableProgramFetchNormal = m_optixContext->createProgramFromPTXString(ptx, "VLR::NormalAlphaModifier_fetchNormal");
-
             m_optixProgramShadowAnyHitDefault = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitDefault");
             m_optixProgramAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::anyHitWithAlpha");
             m_optixProgramShadowAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitWithAlpha");
@@ -266,11 +261,6 @@ namespace VLR {
         m_optixProgramShadowAnyHitWithAlpha->destroy();
         m_optixProgramAnyHitWithAlpha->destroy();
         m_optixProgramShadowAnyHitDefault->destroy();
-
-        m_optixCallableProgramFetchNormal->destroy();
-        m_optixCallableProgramFetchAlpha->destroy();
-        m_optixCallableProgramNullFetchNormal->destroy();
-        m_optixCallableProgramNullFetchAlpha->destroy();
 
         m_optixContext->destroy();
     }
@@ -594,6 +584,7 @@ namespace VLR {
 
         m_raw1DDists->destroy();
         delete[] m_1DDists;
+        m_1DDists = nullptr;
     }
 
     template <typename RealType>

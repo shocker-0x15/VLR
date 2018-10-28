@@ -655,8 +655,6 @@ namespace VLR {
             optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForInfiniteSphere);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForInfiniteSphere);
-            optixGeomInst["VLR::pv_progFetchAlpha"]->set(m_context.getOptiXCallableProgramNullFetchAlpha());
-            optixGeomInst["VLR::pv_progFetchNormal"]->set(m_context.getOptiXCallableProgramNullFetchNormal());
             uint32_t matIndex = material->getMaterialIndex();
             optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
             optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);

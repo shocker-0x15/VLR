@@ -119,8 +119,11 @@ namespace VLR {
         uint32_t index;
 
         ShaderNodeSocketIdentifier() : node(nullptr), index(0) {}
+        ShaderNodeSocketIdentifier(const ShaderNode* _node, uint32_t _index) : node(_node), index(_index) {}
 
         ShaderNodeSocketType getType() const {
+            if (node == nullptr)
+                return ShaderNodeSocketType_Invalid;
             return node->getSocketType(index);
         }
 

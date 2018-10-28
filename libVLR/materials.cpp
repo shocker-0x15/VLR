@@ -166,7 +166,7 @@ namespace VLR {
     }
 
     MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_nodeAlbedo(nullptr), m_immAlbedo(RGBSpectrum(0.18f)) {
+        SurfaceMaterial(context), m_immAlbedo(RGBSpectrum(0.18f)) {
         setupMaterialDescriptor();
     }
 
@@ -179,14 +179,14 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeAlbedo = m_nodeAlbedo->getNodeIndex();
+        mat.nodeAlbedo = m_nodeAlbedo.getNodeIndex();
         mat.immAlbedo = m_immAlbedo;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool MatteSurfaceMaterial::setNodeAlbedo(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MatteSurfaceMaterial::setNodeAlbedo(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeAlbedo = outputSocket;
         setupMaterialDescriptor();
@@ -229,8 +229,7 @@ namespace VLR {
     }
 
     SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeCoeffR(nullptr), m_nodeEta(nullptr), m_node_k(nullptr), 
+        SurfaceMaterial(context),
         m_immCoeffR(RGBSpectrum(0.8f)), m_immEta(RGBSpectrum(1.0f)), m_imm_k(RGBSpectrum(0.0f)) {
         setupMaterialDescriptor();
     }
@@ -244,9 +243,9 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::SpecularReflectionSurfaceMaterial &mat = *(Shared::SpecularReflectionSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeCoeffR = m_nodeCoeffR->getNodeIndex();
-        mat.nodeEta = m_nodeEta->getNodeIndex();
-        mat.node_k = m_node_k->getNodeIndex();
+        mat.nodeCoeffR = m_nodeCoeffR.getNodeIndex();
+        mat.nodeEta = m_nodeEta.getNodeIndex();
+        mat.node_k = m_node_k.getNodeIndex();
         mat.immCoeffR = m_immCoeffR;
         mat.immEta = m_immEta;
         mat.imm_k = m_imm_k;
@@ -254,8 +253,8 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool SpecularReflectionSurfaceMaterial::setNodeCoeffR(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularReflectionSurfaceMaterial::setNodeCoeffR(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeCoeffR = outputSocket;
         setupMaterialDescriptor();
@@ -267,8 +266,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool SpecularReflectionSurfaceMaterial::setNodeEta(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularReflectionSurfaceMaterial::setNodeEta(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEta = outputSocket;
         setupMaterialDescriptor();
@@ -280,8 +279,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool SpecularReflectionSurfaceMaterial::setNode_k(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularReflectionSurfaceMaterial::setNode_k(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_node_k = outputSocket;
         setupMaterialDescriptor();
@@ -324,8 +323,7 @@ namespace VLR {
     }
 
     SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeCoeff(nullptr), m_nodeEtaExt(nullptr), m_nodeEtaInt(nullptr), 
+        SurfaceMaterial(context),
         m_immCoeff(RGBSpectrum(0.8f)), m_immEtaExt(RGBSpectrum(1.0f)), m_immEtaInt(RGBSpectrum(1.5f)) {
         setupMaterialDescriptor();
     }
@@ -339,9 +337,9 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::SpecularScatteringSurfaceMaterial &mat = *(Shared::SpecularScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeCoeff = m_nodeCoeff->getNodeIndex();
-        mat.nodeEtaExt = m_nodeEtaExt->getNodeIndex();
-        mat.nodeEtaInt = m_nodeEtaInt->getNodeIndex();
+        mat.nodeCoeff = m_nodeCoeff.getNodeIndex();
+        mat.nodeEtaExt = m_nodeEtaExt.getNodeIndex();
+        mat.nodeEtaInt = m_nodeEtaInt.getNodeIndex();
         mat.immCoeff = m_immCoeff;
         mat.immEtaExt = m_immEtaExt;
         mat.immEtaInt = m_immEtaInt;
@@ -349,8 +347,8 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool SpecularScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -362,8 +360,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool SpecularScatteringSurfaceMaterial::setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularScatteringSurfaceMaterial::setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEtaExt = outputSocket;
         setupMaterialDescriptor();
@@ -375,8 +373,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool SpecularScatteringSurfaceMaterial::setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool SpecularScatteringSurfaceMaterial::setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEtaInt = outputSocket;
         setupMaterialDescriptor();
@@ -419,8 +417,7 @@ namespace VLR {
     }
 
     MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeEta(nullptr), m_node_k(nullptr), m_nodeRoughness(nullptr), 
+        SurfaceMaterial(context),
         m_immEta(RGBSpectrum(1.0f)), m_imm_k(RGBSpectrum(0.0f)), m_immRoughness{ 0.1f, 0.1f } {
         setupMaterialDescriptor();
     }
@@ -434,9 +431,9 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeEta = m_nodeEta->getNodeIndex();
-        mat.node_k = m_node_k->getNodeIndex();
-        mat.nodeRoughness = m_nodeRoughness->getNodeIndex();
+        mat.nodeEta = m_nodeEta.getNodeIndex();
+        mat.node_k = m_node_k.getNodeIndex();
+        mat.nodeRoughness = m_nodeRoughness.getNodeIndex();
         mat.immEta = m_immEta;
         mat.imm_k = m_imm_k;
         mat.immRoughness[0] = m_immRoughness[0];
@@ -445,8 +442,8 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::setNodeEta(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MicrofacetReflectionSurfaceMaterial::setNodeEta(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEta = outputSocket;
         setupMaterialDescriptor();
@@ -458,8 +455,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::setNode_k(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MicrofacetReflectionSurfaceMaterial::setNode_k(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_node_k = outputSocket;
         setupMaterialDescriptor();
@@ -471,8 +468,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_float2)
+    bool MicrofacetReflectionSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_float2)
             return false;
         m_nodeRoughness = outputSocket;
         setupMaterialDescriptor();
@@ -515,8 +512,7 @@ namespace VLR {
     }
 
     MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeCoeff(nullptr), m_nodeEtaExt(nullptr), m_nodeEtaInt(nullptr), m_nodeRoughness(nullptr), 
+        SurfaceMaterial(context),
         m_immCoeff(RGBSpectrum(0.8f)), m_immEtaExt(RGBSpectrum(1.0f)), m_immEtaInt(RGBSpectrum(1.5f)), m_immRoughness{ 0.1f, 0.1f } {
         setupMaterialDescriptor();
     }
@@ -530,10 +526,10 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::MicrofacetScatteringSurfaceMaterial &mat = *(Shared::MicrofacetScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeCoeff = m_nodeCoeff->getNodeIndex();
-        mat.nodeEtaExt = m_nodeEtaExt->getNodeIndex();
-        mat.nodeEtaInt = m_nodeEtaInt->getNodeIndex();
-        mat.nodeRoughness = m_nodeRoughness->getNodeIndex();
+        mat.nodeCoeff = m_nodeCoeff.getNodeIndex();
+        mat.nodeEtaExt = m_nodeEtaExt.getNodeIndex();
+        mat.nodeEtaInt = m_nodeEtaInt.getNodeIndex();
+        mat.nodeRoughness = m_nodeRoughness.getNodeIndex();
         mat.immCoeff = m_immCoeff;
         mat.immEtaExt = m_immEtaExt;
         mat.immEtaInt = m_immEtaInt;
@@ -543,8 +539,8 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MicrofacetScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -556,8 +552,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MicrofacetScatteringSurfaceMaterial::setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEtaExt = outputSocket;
         setupMaterialDescriptor();
@@ -569,8 +565,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool MicrofacetScatteringSurfaceMaterial::setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEtaInt = outputSocket;
         setupMaterialDescriptor();
@@ -582,8 +578,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_float2)
+    bool MicrofacetScatteringSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_float2)
             return false;
         m_nodeRoughness = outputSocket;
         setupMaterialDescriptor();
@@ -626,8 +622,7 @@ namespace VLR {
     }
 
     LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeCoeff(nullptr), m_nodeF0(nullptr), 
+        SurfaceMaterial(context),
         m_immCoeff(RGBSpectrum(0.8f)), m_immF0(0.04f) {
         setupMaterialDescriptor();
     }
@@ -641,16 +636,16 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::LambertianScatteringSurfaceMaterial &mat = *(Shared::LambertianScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeCoeff = m_nodeCoeff->getNodeIndex();
-        mat.nodeF0 = m_nodeF0->getNodeIndex();
+        mat.nodeCoeff = m_nodeCoeff.getNodeIndex();
+        mat.nodeF0 = m_nodeF0.getNodeIndex();
         mat.immCoeff = m_immCoeff;
         mat.immF0 = m_immF0;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool LambertianScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool LambertianScatteringSurfaceMaterial::setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -662,8 +657,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool LambertianScatteringSurfaceMaterial::setNodeF0(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_float)
+    bool LambertianScatteringSurfaceMaterial::setNodeF0(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_float)
             return false;
         m_nodeF0 = outputSocket;
         setupMaterialDescriptor();
@@ -706,8 +701,7 @@ namespace VLR {
     }
 
     UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), 
-        m_nodeBaseColor(nullptr), m_nodeOcclusionRoughnessMetallic(nullptr), 
+        SurfaceMaterial(context),
         m_immBaseColor(RGBSpectrum(0.18f)), m_immOcculusion(0.0f), m_immRoughness(0.1f), m_immMetallic(0.0f) {
         setupMaterialDescriptor();
     }
@@ -721,8 +715,8 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeBaseColor = m_nodeBaseColor->getNodeIndex();
-        mat.nodeOcclusionRoughnessMetallic = m_nodeOcclusionRoughnessMetallic->getNodeIndex();
+        mat.nodeBaseColor = m_nodeBaseColor.getNodeIndex();
+        mat.nodeOcclusionRoughnessMetallic = m_nodeOcclusionRoughnessMetallic.getNodeIndex();
         mat.immBaseColor = m_immBaseColor;
         mat.immOcclusionRoughnessMetallic[0] = m_immOcculusion;
         mat.immOcclusionRoughnessMetallic[1] = m_immRoughness;
@@ -731,8 +725,8 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool UE4SurfaceMaterial::setNodeBaseColor(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool UE4SurfaceMaterial::setNodeBaseColor(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeBaseColor = outputSocket;
         setupMaterialDescriptor();
@@ -744,8 +738,8 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool UE4SurfaceMaterial::setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_float3)
+    bool UE4SurfaceMaterial::setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_float3)
             return false;
         m_nodeOcclusionRoughnessMetallic = outputSocket;
         setupMaterialDescriptor();
@@ -798,7 +792,7 @@ namespace VLR {
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_nodeEmittance(nullptr), m_immEmittance(RGBSpectrum(M_PI)) {
+        SurfaceMaterial(context), m_immEmittance(RGBSpectrum(M_PI)) {
         setupMaterialDescriptor();
     }
 
@@ -811,14 +805,14 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         Shared::DiffuseEmitterSurfaceMaterial &mat = *(Shared::DiffuseEmitterSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
-        mat.nodeEmittance = m_nodeEmittance->getNodeIndex();
+        mat.nodeEmittance = m_nodeEmittance.getNodeIndex();
         mat.immEmittance = m_immEmittance;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool DiffuseEmitterSurfaceMaterial::setNodeEmittance(const ShaderNodeSocketIdentifier* outputSocket) {
-        if (outputSocket->getType() != ShaderNodeSocketType_RGBSpectrum)
+    bool DiffuseEmitterSurfaceMaterial::setNodeEmittance(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != ShaderNodeSocketType_RGBSpectrum)
             return false;
         m_nodeEmittance = outputSocket;
         setupMaterialDescriptor();
@@ -893,6 +887,10 @@ namespace VLR {
     void MultiSurfaceMaterial::setSubMaterial(uint32_t index, const SurfaceMaterial* mat) {
         VLRAssert(index < lengthof(m_subMaterials), "Out of range.");
         m_subMaterials[index] = mat;
+        m_numSubMaterials = 0;
+        for (int i = 0; i < lengthof(m_subMaterials); ++i)
+            if (m_subMaterials[i] != nullptr)
+                ++m_numSubMaterials;
     }
 
 
@@ -951,6 +949,8 @@ namespace VLR {
 
     bool EnvironmentEmitterSurfaceMaterial::setNodeEmittance(const EnvironmentTextureShaderNode* node) {
         m_nodeEmittance = node;
+        if (m_importanceMap.isInitialized())
+            m_importanceMap.finalize(m_context);
         m_nodeEmittance->createImportanceMap(&m_importanceMap);
         setupMaterialDescriptor();
         return true;
@@ -958,6 +958,8 @@ namespace VLR {
 
     void EnvironmentEmitterSurfaceMaterial::setImmediateValueEmittance(const RGBSpectrum &value) {
         m_immEmittance = value;
+        if (m_importanceMap.isInitialized())
+            m_importanceMap.finalize(m_context);
         {
             uint32_t mapWidth = 512;
             uint32_t mapHeight = 256;

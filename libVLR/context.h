@@ -23,11 +23,6 @@ namespace VLR {
         uint32_t m_ID;
         optix::Context m_optixContext;
 
-        optix::Program m_optixCallableProgramNullFetchAlpha;
-        optix::Program m_optixCallableProgramNullFetchNormal;
-        optix::Program m_optixCallableProgramFetchAlpha;
-        optix::Program m_optixCallableProgramFetchNormal;
-
         optix::Program m_optixProgramShadowAnyHitDefault; // ---- Any Hit Program
         optix::Program m_optixProgramAnyHitWithAlpha; // -------- Any Hit Program
         optix::Program m_optixProgramShadowAnyHitWithAlpha; // -- Any Hit Program
@@ -94,19 +89,6 @@ namespace VLR {
 
         const optix::Context &getOptiXContext() const {
             return m_optixContext;
-        }
-
-        const optix::Program &getOptiXCallableProgramNullFetchAlpha() const {
-            return m_optixCallableProgramNullFetchAlpha;
-        }
-        const optix::Program &getOptiXCallableProgramNullFetchNormal() const {
-            return m_optixCallableProgramNullFetchNormal;
-        }
-        const optix::Program &getOptiXCallableProgramFetchAlpha() const {
-            return m_optixCallableProgramFetchAlpha;
-        }
-        const optix::Program &getOptiXCallableProgramFetchNormal() const {
-            return m_optixCallableProgramFetchNormal;
         }
 
         const optix::Material &getOptiXMaterialDefault() const {
@@ -250,8 +232,12 @@ namespace VLR {
         RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
     public:
+        RegularConstantContinuousDistribution2DTemplate() : m_1DDists(nullptr) {}
+
         void initialize(Context &context, const RealType* values, size_t numD1, size_t numD2);
         void finalize(Context &context);
+
+        bool isInitialized() const { return m_1DDists != nullptr; }
 
         void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
     };

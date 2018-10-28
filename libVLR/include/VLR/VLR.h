@@ -2,9 +2,10 @@
 
 #include "public_types.h"
 
-#define VLR_ERROR_NO_ERROR        0x80000000
-#define VLR_ERROR_INVALID_CONTEXT 0x80000001
-#define VLR_ERROR_INVALID_TYPE    0x80000002
+#define VLR_ERROR_NO_ERROR               0x80000000
+#define VLR_ERROR_INVALID_CONTEXT        0x80000001
+#define VLR_ERROR_INVALID_TYPE           0x80000002
+#define VLR_ERROR_INCOMPATIBLE_NODE_TYPE 0x80000003
 
 extern "C" {
     typedef uint32_t VLRResult;
@@ -18,20 +19,14 @@ extern "C" {
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
 
     typedef struct VLRShaderNode_API* VLRShaderNode;
+    typedef struct VLRFloatShaderNode_API* VLRFloatShaderNode;
+    typedef struct VLRFloat2ShaderNode_API* VLRFloat2ShaderNode;
+    typedef struct VLRFloat3ShaderNode_API* VLRFloat3ShaderNode;
+    typedef struct VLRFloat4ShaderNode_API* VLRFloat4ShaderNode;
     typedef struct VLROffsetAndScaleUVTextureMap2DShaderNode_API* VLROffsetAndScaleUVTextureMap2DShaderNode;
     typedef struct VLRConstantTextureShaderNode_API* VLRConstantTextureShaderNode;
     typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
-
-    typedef struct VLRFloatTexture_API* VLRFloatTexture;
-    typedef struct VLRConstantFloatTexture_API* VLRConstantFloatTexture;
-    typedef struct VLRFloat2Texture_API* VLRFloat2Texture;
-    typedef struct VLRConstantFloat2Texture_API* VLRConstantFloat2Texture;
-    typedef struct VLRFloat3Texture_API* VLRFloat3Texture;
-    typedef struct VLRConstantFloat3Texture_API* VLRConstantFloat3Texture;
-    typedef struct VLRImageFloat3Texture_API* VLRImageFloat3Texture;
-    typedef struct VLRFloat4Texture_API* VLRFloat4Texture;
-    typedef struct VLRConstantFloat4Texture_API* VLRConstantFloat4Texture;
-    typedef struct VLRImageFloat4Texture_API* VLRImageFloat4Texture;
+    typedef struct VLREnvironmentTextureShaderNode_API* VLREnvironmentTextureShaderNode;
 
     typedef struct VLRSurfaceMaterial_API* VLRSurfaceMaterial;
     typedef struct VLRMatteSurfaceMaterial_API* VLRMatteSurfaceMaterial;
@@ -63,6 +58,8 @@ extern "C" {
 
     VLR_API VLRResult vlrPrintDevices();
 
+    VLR_API const char* vlrGetErrorMessage(VLRResult code);
+
     VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize);
     VLR_API VLRResult vlrContextSetDevices(VLRContext context, const int32_t* devices, uint32_t numDevices);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
@@ -83,99 +80,132 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node,
-                                                                      const float offset[2], const float scale[2]);
+    VLR_API VLRResult vlrFloatShaderNodeCreate(VLRContext context, VLRFloatShaderNode* node);
+    VLR_API VLRResult vlrFloatShaderNodeDestroy(VLRContext context, VLRFloatShaderNode node);
+    VLR_API VLRResult vlrFloatShaderNodeSetNode0(VLRFloatShaderNode node, VLRShaderNode node0, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloatShaderNodeSetImmediateValue0(VLRFloatShaderNode node, float value);
+
+    VLR_API VLRResult vlrFloat2ShaderNodeCreate(VLRContext context, VLRFloat2ShaderNode* node);
+    VLR_API VLRResult vlrFloat2ShaderNodeDestroy(VLRContext context, VLRFloat2ShaderNode node);
+    VLR_API VLRResult vlrFloat2ShaderNodeSetNode0(VLRFloat2ShaderNode node, VLRShaderNode node0, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat2ShaderNodeSetImmediateValue0(VLRFloat2ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat2ShaderNodeSetNode1(VLRFloat2ShaderNode node, VLRShaderNode node1, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat2ShaderNodeSetImmediateValue1(VLRFloat2ShaderNode node, float value);
+
+    VLR_API VLRResult vlrFloat3ShaderNodeCreate(VLRContext context, VLRFloat3ShaderNode* node);
+    VLR_API VLRResult vlrFloat3ShaderNodeDestroy(VLRContext context, VLRFloat3ShaderNode node);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetNode0(VLRFloat3ShaderNode node, VLRShaderNode node0, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue0(VLRFloat3ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetNode1(VLRFloat3ShaderNode node, VLRShaderNode node1, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue1(VLRFloat3ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetNode2(VLRFloat3ShaderNode node, VLRShaderNode node2, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue2(VLRFloat3ShaderNode node, float value);
+
+    VLR_API VLRResult vlrFloat4ShaderNodeCreate(VLRContext context, VLRFloat4ShaderNode* node);
+    VLR_API VLRResult vlrFloat4ShaderNodeDestroy(VLRContext context, VLRFloat4ShaderNode node);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetNode0(VLRFloat4ShaderNode node, VLRShaderNode node0, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue0(VLRFloat4ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetNode1(VLRFloat4ShaderNode node, VLRShaderNode node1, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue1(VLRFloat4ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetNode2(VLRFloat4ShaderNode node, VLRShaderNode node2, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue2(VLRFloat4ShaderNode node, float value);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShaderNode node3, uint32_t socketIndex);
+    VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node, float value);
+    
+    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
+    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues(VLROffsetAndScaleUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]);
 
-    VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node,
-                                                         const float spectrum[3], float alpha);
+    VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node);
     VLR_API VLRResult vlrConstantTextureShaderNodeDestroy(VLRContext context, VLRConstantTextureShaderNode node);
+    VLR_API VLRResult vlrConstantTextureShaderNodeSetValues(VLRConstantTextureShaderNode node, const float spectrum[3], float alpha);
 
-    VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node,
-                                                        VLRImage2D image, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node);
     VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImage2DTextureShaderNode node);
-    VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRContext context, VLRImage2DTextureShaderNode node,
-                                                               VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRImage2D image);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+    VLR_API VLRResult vlrImage2DTextureShaderNodeSetNodeTexCoord(VLRImage2DTextureShaderNode node, VLRShaderNode nodeTexCoord, uint32_t socketIndex);
+
+    VLR_API VLRResult vlrEnvironmentTextureShaderNodeCreate(VLRContext context, VLREnvironmentTextureShaderNode* node);
+    VLR_API VLRResult vlrEnvironmentTextureShaderNodeDestroy(VLRContext context, VLREnvironmentTextureShaderNode node);
+    VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRImage2D image);
+    VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetFilterMode(VLREnvironmentTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+    VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetNodeTexCoord(VLREnvironmentTextureShaderNode node, VLRShaderNode nodeTexCoord, uint32_t socketIndex);
 
 
 
-    VLR_API VLRResult vlrFloatTextureSetFilterMode(VLRContext context, VLRFloatTexture texture,
-                                                   VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-
-    VLR_API VLRResult vlrConstantFloatTextureCreate(VLRContext context, VLRConstantFloatTexture* texture,
-                                                    const float value);
-    VLR_API VLRResult vlrConstantFloatTextureDestroy(VLRContext context, VLRConstantFloatTexture texture);
-
-    VLR_API VLRResult vlrFloat2TextureSetFilterMode(VLRContext context, VLRFloat2Texture texture,
-                                                    VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-
-    VLR_API VLRResult vlrConstantFloat2TextureCreate(VLRContext context, VLRConstantFloat2Texture* texture,
-                                                     const float value[2]);
-    VLR_API VLRResult vlrConstantFloat2TextureDestroy(VLRContext context, VLRConstantFloat2Texture texture);
-
-    VLR_API VLRResult vlrFloat3TextureSetFilterMode(VLRContext context, VLRFloat3Texture texture,
-                                                    VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-
-    VLR_API VLRResult vlrConstantFloat3TextureCreate(VLRContext context, VLRConstantFloat3Texture* texture,
-                                                     const float value[3]);
-    VLR_API VLRResult vlrConstantFloat3TextureDestroy(VLRContext context, VLRConstantFloat3Texture texture);
-
-    VLR_API VLRResult vlrImageFloat3TextureCreate(VLRContext context, VLRImageFloat3Texture* texture,
-                                                  VLRImage2D image);
-    VLR_API VLRResult vlrImageFloat3TextureDestroy(VLRContext context, VLRImageFloat3Texture texture);
-
-    VLR_API VLRResult vlrFloat4TextureSetFilterMode(VLRContext context, VLRFloat4Texture texture,
-                                                    VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-
-    VLR_API VLRResult vlrConstantFloat4TextureCreate(VLRContext context, VLRConstantFloat4Texture* texture,
-                                                     const float value[4]);
-    VLR_API VLRResult vlrConstantFloat4TextureDestroy(VLRContext context, VLRConstantFloat4Texture texture);
-
-    VLR_API VLRResult vlrImageFloat4TextureCreate(VLRContext context, VLRImageFloat4Texture* texture,
-                                                  VLRImage2D image);
-    VLR_API VLRResult vlrImageFloat4TextureDestroy(VLRContext context, VLRImageFloat4Texture texture);
-
-
-
-    VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material,
-                                                    VLRShaderNode nodeAlbedo);
+    VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material);
     VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSurfaceMaterial material);
+    VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMatteSurfaceMaterialSetImmediateValueAlbedo(VLRMatteSurfaceMaterial material, const float value[3]);
 
-    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material,
-                                                                 VLRFloat3Texture texCoeffR, VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialCreate(VLRContext context, VLRSpecularReflectionSurfaceMaterial* material);
     VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context, VLRSpecularReflectionSurfaceMaterial material);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(VLRSpecularReflectionSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeEta(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(VLRSpecularReflectionSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNode_k(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k(VLRSpecularReflectionSurfaceMaterial material, const float value[3]);
 
-    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material,
-                                                                 VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialCreate(VLRContext context, VLRSpecularScatteringSurfaceMaterial* material);
     VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context, VLRSpecularScatteringSurfaceMaterial material);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(VLRSpecularScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRSpecularScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRSpecularScatteringSurfaceMaterial material, const float value[3]);
 
-    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texEta, VLRFloat3Texture tex_k, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialCreate(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial* material);
     VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetReflectionSurfaceMaterial material);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(VLRMicrofacetReflectionSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNode_k(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRMicrofacetReflectionSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughness(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetReflectionSurfaceMaterial material, const float value[2]);
 
-    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texCoeff, VLRFloat3Texture texEtaExt, VLRFloat3Texture texEtaInt, VLRFloat2Texture texRoughness, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialCreate(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial* material);
     VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext context, VLRMicrofacetScatteringSurfaceMaterial material);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughness(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetScatteringSurfaceMaterial material, const float value[2]);
 
-    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material,
-                                                                   VLRFloat3Texture texCoeff, VLRFloatTexture texF0, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialCreate(VLRContext context, VLRLambertianScatteringSurfaceMaterial* material);
     VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext context, VLRLambertianScatteringSurfaceMaterial material);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(VLRLambertianScatteringSurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeF0(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueF0(VLRLambertianScatteringSurfaceMaterial material, float value);
 
-    VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material,
-                                                  VLRFloat3Texture texBaseColor, VLRFloat3Texture texOcclusionRoughnessMetallic, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrUE4SurfaceMaterialCreate(VLRContext context, VLRUE4SurfaceMaterial* material);
     VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4SurfaceMaterial material);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetNodeBaseColor(VLRUE4SurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueBaseColor(VLRUE4SurfaceMaterial material, const float value[3]);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic(VLRUE4SurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueOcclusion(VLRUE4SurfaceMaterial material, float value);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueRoughness(VLRUE4SurfaceMaterial material, float value);
+    VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueMetallic(VLRUE4SurfaceMaterial material, float value);
 
-    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material,
-                                                             VLRFloat3Texture texEmittance, VLRShaderNode nodeTexCoord);
+    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material);
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialDestroy(VLRContext context, VLRDiffuseEmitterSurfaceMaterial material);
+    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(VLRDiffuseEmitterSurfaceMaterial material, VLRShaderNode node, uint32_t socketIndex);
+    VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(VLRDiffuseEmitterSurfaceMaterial material, const float value[3]);
 
-    VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material,
-                                                    const VLRSurfaceMaterial* materials, uint32_t numMaterials);
+    VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material);
     VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSurfaceMaterial material);
+    VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterial mat);
 
-    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialCreate(VLRContext context, VLREnvironmentEmitterSurfaceMaterial* material,
-                                                                 VLRFloat3Texture texEmittance);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialCreate(VLRContext context, VLREnvironmentEmitterSurfaceMaterial* material);
     VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context, VLREnvironmentEmitterSurfaceMaterial material);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNode node);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance(VLREnvironmentEmitterSurfaceMaterial material, const float value[3]);
 
 
 
@@ -192,7 +222,9 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeGetName(VLRTriangleMeshSurfaceNode node, const char** name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
-                                                                 VLRSurfaceMaterial material, VLRFloat4Texture texNormalAlpha);
+                                                                 VLRSurfaceMaterial material, 
+                                                                 VLRShaderNode nodeNormal, uint32_t nodeNormalSocketIndex,
+                                                                 VLRShaderNode nodeAlpha, uint32_t nodeAlphaSocketIndex);
 
 
 

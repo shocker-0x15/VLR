@@ -52,7 +52,7 @@ namespace VLR {
     class MatteSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeAlbedo;
+        ShaderNodeSocketIdentifier m_nodeAlbedo;
         RGBSpectrum m_immAlbedo;
 
         void setupMaterialDescriptor() const;
@@ -67,7 +67,7 @@ namespace VLR {
         MatteSurfaceMaterial(Context &context);
         ~MatteSurfaceMaterial();
 
-        bool setNodeAlbedo(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeAlbedo(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueAlbedo(const RGBSpectrum &value);
     };
 
@@ -76,9 +76,9 @@ namespace VLR {
     class SpecularReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeCoeffR;
-        const ShaderNodeSocketIdentifier* m_nodeEta;
-        const ShaderNodeSocketIdentifier* m_node_k;
+        ShaderNodeSocketIdentifier m_nodeCoeffR;
+        ShaderNodeSocketIdentifier m_nodeEta;
+        ShaderNodeSocketIdentifier m_node_k;
         RGBSpectrum m_immCoeffR;
         RGBSpectrum m_immEta;
         RGBSpectrum m_imm_k;
@@ -95,11 +95,11 @@ namespace VLR {
         SpecularReflectionSurfaceMaterial(Context &context);
         ~SpecularReflectionSurfaceMaterial();
 
-        bool setNodeCoeffR(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeCoeffR(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueCoeffR(const RGBSpectrum &value);
-        bool setNodeEta(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEta(const RGBSpectrum &value);
-        bool setNode_k(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValue_k(const RGBSpectrum &value);
     };
 
@@ -108,9 +108,9 @@ namespace VLR {
     class SpecularScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeCoeff;
-        const ShaderNodeSocketIdentifier* m_nodeEtaExt;
-        const ShaderNodeSocketIdentifier* m_nodeEtaInt;
+        ShaderNodeSocketIdentifier m_nodeCoeff;
+        ShaderNodeSocketIdentifier m_nodeEtaExt;
+        ShaderNodeSocketIdentifier m_nodeEtaInt;
         RGBSpectrum m_immCoeff;
         RGBSpectrum m_immEtaExt;
         RGBSpectrum m_immEtaInt;
@@ -127,11 +127,11 @@ namespace VLR {
         SpecularScatteringSurfaceMaterial(Context &context);
         ~SpecularScatteringSurfaceMaterial();
 
-        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueCoeff(const RGBSpectrum &value);
-        bool setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEtaExt(const RGBSpectrum &value);
-        bool setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEtaInt(const RGBSpectrum &value);
     };
 
@@ -140,9 +140,9 @@ namespace VLR {
     class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeEta;
-        const ShaderNodeSocketIdentifier* m_node_k;
-        const ShaderNodeSocketIdentifier* m_nodeRoughness;
+        ShaderNodeSocketIdentifier m_nodeEta;
+        ShaderNodeSocketIdentifier m_node_k;
+        ShaderNodeSocketIdentifier m_nodeRoughness;
         RGBSpectrum m_immEta;
         RGBSpectrum m_imm_k;
         float m_immRoughness[2];
@@ -159,11 +159,11 @@ namespace VLR {
         MicrofacetReflectionSurfaceMaterial(Context &context);
         ~MicrofacetReflectionSurfaceMaterial();
 
-        bool setNodeEta(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEta(const RGBSpectrum &value);
-        bool setNode_k(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValue_k(const RGBSpectrum &value);
-        bool setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(const float value[2]);
     };
 
@@ -172,10 +172,10 @@ namespace VLR {
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeCoeff;
-        const ShaderNodeSocketIdentifier* m_nodeEtaExt;
-        const ShaderNodeSocketIdentifier* m_nodeEtaInt;
-        const ShaderNodeSocketIdentifier* m_nodeRoughness;
+        ShaderNodeSocketIdentifier m_nodeCoeff;
+        ShaderNodeSocketIdentifier m_nodeEtaExt;
+        ShaderNodeSocketIdentifier m_nodeEtaInt;
+        ShaderNodeSocketIdentifier m_nodeRoughness;
         RGBSpectrum m_immCoeff;
         RGBSpectrum m_immEtaExt;
         RGBSpectrum m_immEtaInt;
@@ -193,13 +193,13 @@ namespace VLR {
         MicrofacetScatteringSurfaceMaterial(Context &context);
         ~MicrofacetScatteringSurfaceMaterial();
 
-        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueCoeff(const RGBSpectrum &value);
-        bool setNodeEtaExt(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEtaExt(const RGBSpectrum &value);
-        bool setNodeEtaInt(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEtaInt(const RGBSpectrum &value);
-        bool setNodeRoughness(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(const float value[2]);
     };
 
@@ -208,8 +208,8 @@ namespace VLR {
     class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeCoeff;
-        const ShaderNodeSocketIdentifier* m_nodeF0;
+        ShaderNodeSocketIdentifier m_nodeCoeff;
+        ShaderNodeSocketIdentifier m_nodeF0;
         RGBSpectrum m_immCoeff;
         float m_immF0;
 
@@ -225,9 +225,9 @@ namespace VLR {
         LambertianScatteringSurfaceMaterial(Context &context);
         ~LambertianScatteringSurfaceMaterial();
 
-        bool setNodeCoeff(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueCoeff(const RGBSpectrum &value);
-        bool setNodeF0(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeF0(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueF0(float value);
     };
 
@@ -236,8 +236,8 @@ namespace VLR {
     class UE4SurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeBaseColor;
-        const ShaderNodeSocketIdentifier* m_nodeOcclusionRoughnessMetallic;
+        ShaderNodeSocketIdentifier m_nodeBaseColor;
+        ShaderNodeSocketIdentifier m_nodeOcclusionRoughnessMetallic;
         RGBSpectrum m_immBaseColor;
         float m_immOcculusion;
         float m_immRoughness;
@@ -255,9 +255,9 @@ namespace VLR {
         UE4SurfaceMaterial(Context &context);
         ~UE4SurfaceMaterial();
 
-        bool setNodeBaseColor(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeBaseColor(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueBaseColor(const RGBSpectrum &value);
-        bool setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueOcclusion(float value);
         void setImmediateValueRoughness(float value);
         void setImmediateValueMetallic(float value);
@@ -268,7 +268,7 @@ namespace VLR {
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const ShaderNodeSocketIdentifier* m_nodeEmittance;
+        ShaderNodeSocketIdentifier m_nodeEmittance;
         RGBSpectrum m_immEmittance;
 
         void setupMaterialDescriptor() const;
@@ -285,7 +285,7 @@ namespace VLR {
 
         bool isEmitting() const override { return true; }
 
-        bool setNodeEmittance(const ShaderNodeSocketIdentifier* outputSocket);
+        bool setNodeEmittance(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEmittance(const RGBSpectrum &value);
     };
 

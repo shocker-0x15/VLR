@@ -183,9 +183,22 @@ static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::strin
     return ret;
 }
 
+struct ShaderNodeSocket {
+    VLRCpp::ShaderNodeRef node;
+    uint32_t socketIndex;
+};
+
+struct SurfaceAttributeTuple {
+    VLRCpp::SurfaceMaterialRef material;
+    ShaderNodeSocket nodeNormal;
+    ShaderNodeSocket nodeAlpha;
+
+    SurfaceAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const ShaderNodeSocket &_nodeNormal, const ShaderNodeSocket &_nodeAlpha) :
+        material(_material), nodeNormal(_nodeNormal), nodeAlpha(_nodeAlpha) {}
+};
+
 static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, const aiNode* nodeSrc,
-                               const std::vector<VLRCpp::SurfaceMaterialRef> &materials, const std::vector<VLRCpp::Float4TextureRef> &normalAlphaMaps,
-                               bool flipV,
+                               const std::vector<SurfaceAttributeTuple> &attrTuples, bool flipV,
                                VLRCpp::InternalNodeRef* nodeOut) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -214,8 +227,10 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
         }
 
         auto surfMesh = context.createTriangleMeshSurfaceNode(mesh->mName.C_Str());
-        const SurfaceMaterialRef &surfMat = materials[mesh->mMaterialIndex];
-        const Float4TextureRef &normalAlphaMap = normalAlphaMaps[mesh->mMaterialIndex];
+        const SurfaceAttributeTuple attrTuple = attrTuples[mesh->mMaterialIndex];
+        const SurfaceMaterialRef &surfMat = attrTuple.material;
+        const ShaderNodeSocket &nodeNormal = attrTuple.nodeNormal;
+        const ShaderNodeSocket &nodeAlpha = attrTuple.nodeAlpha;
 
         std::vector<Vertex> vertices;
         for (int v = 0; v < mesh->mNumVertices; ++v) {
@@ -243,7 +258,9 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
             meshIndices.push_back(face.mIndices[1]);
             meshIndices.push_back(face.mIndices[2]);
         }
-        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, normalAlphaMap);
+        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, 
+                                   nodeNormal.node, nodeNormal.socketIndex,
+                                   nodeAlpha.node, nodeAlpha.socketIndex);
 
         (*nodeOut)->addChild(surfMesh);
     }
@@ -251,20 +268,12 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
     if (nodeSrc->mNumChildren) {
         for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
             InternalNodeRef subNode;
-            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], materials, normalAlphaMaps, flipV, &subNode);
+            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], attrTuples, flipV, &subNode);
             if (subNode != nullptr)
                 (*nodeOut)->addChild(subNode);
         }
     }
 }
-
-struct SurfaceAttributeTuple {
-    VLRCpp::SurfaceMaterialRef material;
-    VLRCpp::Float4TextureRef texNormalAlpha;
-
-    SurfaceAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const VLRCpp::Float4TextureRef &_texNormalAlpha) : 
-        material(_material), texNormalAlpha(_texNormalAlpha) {}
-};
 
 typedef SurfaceAttributeTuple(*CreateMaterialFunction)(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &);
 
@@ -280,23 +289,23 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     aiMat->Get(AI_MATKEY_NAME, strValue);
     VLRDebugPrintf("Material: %s\n", strValue.C_Str());
 
-    ShaderNodeRef nodeAlbedo;
+    MatteSurfaceMaterialRef mat = context.createMatteSurfaceMaterial();
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+        Image2DTextureShaderNodeRef tex = context.createImage2DTextureShaderNode();
         Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        nodeAlbedo = context.createImage2DTextureShaderNode(image, nullptr);
+        tex->setImage(image);
+        mat->setNodeAlbedo(tex, 0);
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
         RGBSpectrum spectrum(color[0], color[1], color[2]);
-        nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
+        mat->setImmediateValueAlbedo(spectrum);
     }
     else {
         RGBSpectrum spectrum(1.0f, 0.0f, 1.0f);
-        nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
+        mat->setImmediateValueAlbedo(spectrum);
     }
 
-    SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(nodeAlbedo);
-
-    return SurfaceAttributeTuple(mat, nullptr);
+    return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
 }
 
 static void construct(VLRCpp::Context &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut, 
@@ -315,17 +324,13 @@ static void construct(VLRCpp::Context &context, const std::string &filePath, boo
     std::string pathPrefix = filePath.substr(0, filePath.find_last_of("/") + 1);
 
     // create materials
-    std::vector<SurfaceMaterialRef> materials;
-    std::vector<Float4TextureRef> normalAlphaMaps;
+    std::vector<SurfaceAttributeTuple> attrTuples;
     for (int m = 0; m < scene->mNumMaterials; ++m) {
         const aiMaterial* aiMat = scene->mMaterials[m];
-
-        SurfaceAttributeTuple surfAttr = matFunc(context, aiMat, pathPrefix);
-        materials.push_back(surfAttr.material);
-        normalAlphaMaps.push_back(surfAttr.texNormalAlpha);
+        attrTuples.push_back(matFunc(context, aiMat, pathPrefix));
     }
 
-    recursiveConstruct(context, scene, scene->mRootNode, materials, normalAlphaMaps, flipV, nodeOut);
+    recursiveConstruct(context, scene, scene->mRootNode, attrTuples, flipV, nodeOut);
 
     debugPrintf("Constructing: %s done.\n", filePath.c_str());
 }
@@ -390,32 +395,32 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
 
         {
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
-            Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode(image, nullptr);
+            Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode();
+            nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
+            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            matMatte->setNodeAlbedo(nodeAlbedo, 0);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr, 0, nullptr, 0);
         }
 
         {
-            VLR::RGBSpectrum spectrum(0.75f, 0.75f, 0.75f);
-            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
+            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            matMatte->setImmediateValueAlbedo(sRGB_degamma(VLR::RGBSpectrum(0.75f, 0.75f, 0.75f)));
 
             std::vector<uint32_t> matGroup = {
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr, 0, nullptr, 0);
         }
 
         {
-            VLR::RGBSpectrum spectrum(0.75f, 0.25f, 0.25f);
-            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
+            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.75f, 0.25f, 0.25f)));
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
             //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
@@ -424,40 +429,37 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr, 0, nullptr, 0);
         }
 
         {
-            VLR::RGBSpectrum spectrum(0.25f, 0.25f, 0.75f);
-            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(sRGB_degamma(spectrum), 1.0f);
-            SurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial(nodeAlbedo);
+            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.25f, 0.25f, 0.75f)));
 
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nullptr, 0, nullptr, 0);
         }
 
         {
-            float value[3] = { 30.0f, 30.0f, 30.0f };
-            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance, nullptr);
+            DiffuseEmitterSurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial();
+            matLight->setImmediateValueEmittance(RGBSpectrum(30.0f, 30.0f, 30.0f));
 
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr, 0, nullptr, 0);
         }
 
         {
-            float value[3] = { 100.0f, 100.0f, 100.0f };
-            Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            SurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial(texEmittance, nullptr);
+            DiffuseEmitterSurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial();
+            matLight->setImmediateValueEmittance(RGBSpectrum(100.0f, 100.0f, 100.0f));
 
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, nullptr, 0, nullptr, 0);
         }
     }
     shot->scene->addChild(cornellBox);
@@ -469,51 +471,50 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         using namespace VLRCpp;
         using namespace VLR;
 
-        float coeff[] = { 0.999f, 0.999f, 0.999f };
-        Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-
         ////// Aluminum
-        ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
-        ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
+        ////RGBSpectrum eta(1.27579f, 0.940922f, 0.574879f);
+        ////RGBSpectrum k(7.30257f, 6.33458f, 5.16694f);
         ////// Copper
-        ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
-        ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
+        ////RGBSpectrum eta(0.237698f, 0.734847f, 1.37062f);
+        ////RGBSpectrum k(3.44233f, 2.55751f, 2.23429f);
         ////// Gold
-        ////float eta[] = { 0.12481f, 0.468228f, 1.44476f };
-        ////float k[] = { 3.32107f, 2.23761f, 1.69196f };
+        ////RGBSpectrum eta(0.12481f, 0.468228f, 1.44476f);
+        ////RGBSpectrum k(3.32107f, 2.23761f, 1.69196f);
         ////// Iron
-        ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
-        ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
+        ////RGBSpectrum eta(2.91705f, 2.92092f, 2.53253f);
+        ////RGBSpectrum k(3.06696f, 2.93804f, 2.7429f);
         ////// Lead
-        ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
-        ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
+        ////RGBSpectrum eta(1.9566f, 1.82777f, 1.46089f);
+        ////RGBSpectrum k(3.49593f, 3.38158f, 3.17737f);
         ////// Mercury
-        ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
-        ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
+        ////RGBSpectrum eta(1.99144f, 1.5186f, 1.00058f);
+        ////RGBSpectrum k(5.25161f, 4.6095f, 3.7646f);
         ////// Platinum
-        ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
-        ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
+        ////RGBSpectrum eta(2.32528f, 2.06722f, 1.81479f);
+        ////RGBSpectrum k(4.19238f, 3.67941f, 3.06551f);
         //// Silver
-        //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-        //float k[] = { 3.82431f, 3.1451f, 2.27711f };
+        //RGBSpectrum eta(0.157099f, 0.144013f, 0.134847f);
+        //RGBSpectrum k(3.82431f, 3.1451f, 2.27711f);
         ////// Titanium
-        ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
-        ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
-        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-        //SurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k, nullptr);
+        ////RGBSpectrum eta(2.71866f, 2.50954f, 2.22767f);
+        ////RGBSpectrum k(3.79521f, 3.40035f, 3.00114f);
+        //SpecularReflectionSurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial();
+        //mat->setImmediateValueCoeffR(RGBSpectrum(0.999f, 0.999f, 0.999f));
+        //mat->setImmediateValueEta(eta);
+        //mat->setImmediateValue_k(k);
 
         // Air
-        float etaExt[] = { 1.00036f, 1.00021f, 1.00071f };
+        RGBSpectrum etaExt(1.00036f, 1.00021f, 1.00071f);
         //// Water
-        //float etaInt[] = { 1.33161f, 1.33331f, 1.33799f };
+        //RGBSpectrum etaInt(1.33161f, 1.33331f, 1.33799f);
         //// Glass BK7
-        //float etaInt[] = { 1.51455f, 1.51816f, 1.52642f };
+        //RGBSpectrum etaInt(1.51455f, 1.51816f, 1.52642f);
         // Diamond
-        float etaInt[] = { 2.41174f, 2.42343f, 2.44936f };
-        Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
-        Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
-        SurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, nullptr);
+        RGBSpectrum etaInt(2.41174f, 2.42343f, 2.44936f);
+        SpecularScatteringSurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial();
+        mat->setImmediateValueCoeff(RGBSpectrum(0.999f, 0.999f, 0.999f));
+        mat->setImmediateValueEtaExt(etaExt);
+        mat->setImmediateValueEtaInt(etaInt);
 
         //float coeff[] = { 0.5f, 0.5f, 0.5f };
         //// Silver
@@ -531,7 +532,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         //SurfaceMaterialRef mats[] = { matA, matB };
         //SurfaceMaterialRef mat = context.createMultiSurfaceMaterial(mats, lengthof(mats));
 
-        return SurfaceAttributeTuple(mat, nullptr);
+        return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
     shot->scene->addChild(sphereNode);
     sphereNode->setTransform(context.createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
@@ -578,15 +579,22 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         using namespace VLRCpp;
         using namespace VLR;
 
-        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
-        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context.createOffsetAndScaleUVTextureMap2DShaderNode(offset, scale);
-        Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode(image, nodeTexCoord);
-        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-        SurfaceMaterialRef mat = context.createMatteSurfaceMaterial(nodeAlbedo);
+        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context.createOffsetAndScaleUVTextureMap2DShaderNode();
+        nodeTexCoord->setValues(offset, scale);
 
-        return SurfaceAttributeTuple(mat, nullptr);
+        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
+
+        Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode();
+        nodeAlbedo->setImage(image);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        nodeAlbedo->setNodeTexCoord(nodeTexCoord, 0);
+
+        MatteSurfaceMaterialRef mat = context.createMatteSurfaceMaterial();
+        mat->setNodeAlbedo(nodeAlbedo, 0);
+
+        return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
     shot->scene->addChild(modelNode);
 
@@ -604,52 +612,29 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         aiMat->Get(AI_MATKEY_NAME, strValue);
 
         SurfaceMaterialRef mat;
-        Float4TextureRef normalAlpha;
+        ShaderNodeSocket socketNormal;
+        ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
-            RGBSpectrum spectrum(0.18f, 0.18f, 0.18f);
-            ConstantTextureShaderNodeRef nodeAlbedo = context.createConstantTextureShaderNode(spectrum, 1.0f);
-            mat = context.createMatteSurfaceMaterial(nodeAlbedo);
+            MatteSurfaceMaterialRef matteMat = context.createMatteSurfaceMaterial();
+            matteMat->setImmediateValueAlbedo(RGBSpectrum(0.18f, 0.18f, 0.18f));
+
+            mat = matteMat;
         }
         else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
-            float baseColor[] = { sRGB_degamma_s(0.75f), sRGB_degamma_s(0.5f), sRGB_degamma_s(0.0025f) };
-            Float3TextureRef texBaseColor = context.createConstantFloat3Texture(baseColor);
-            float occlusionRoughnessMetallic[] = { 0.0f, 0.3f, 0.0f };
-            Float3TextureRef texOcclusionRoughnessMetallic = context.createConstantFloat3Texture(occlusionRoughnessMetallic);
-            mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
-            normalAlpha = context.createImageFloat4Texture(loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_normal_alpha.png", false));
+            UE4SurfaceMaterialRef ue4Mat = context.createUE4SurfaceMaterial();
+            ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
+            ue4Mat->setImmediateValueOcclusion(0.0f);
+            ue4Mat->setImmediateValueRoughness(0.3f);
+            ue4Mat->setImmediateValueMetallic(0.0f);
 
-            ////// Aluminum
-            ////float eta[] = { 1.27579f, 0.940922f, 0.574879f };
-            ////float k[] = { 7.30257f, 6.33458f, 5.16694f };
-            ////// Copper
-            ////float eta[] = { 0.237698f, 0.734847f, 1.37062f };
-            ////float k[] = { 3.44233f, 2.55751f, 2.23429f };
-            //// Gold
-            //float eta[] = { 0.12481f, 0.468228f, 1.44476f };
-            //float k[] = { 3.32107f, 2.23761f, 1.69196f };
-            ////// Iron
-            ////float eta[] = { 2.91705f, 2.92092f, 2.53253f };
-            ////float k[] = { 3.06696f, 2.93804f, 2.7429f };
-            ////// Lead
-            ////float eta[] = { 1.9566f, 1.82777f, 1.46089f };
-            ////float k[] = { 3.49593f, 3.38158f, 3.17737f };
-            ////// Mercury
-            ////float eta[] = { 1.99144f, 1.5186f, 1.00058f };
-            ////float k[] = { 5.25161f, 4.6095f, 3.7646f };
-            ////// Platinum
-            ////float eta[] = { 2.32528f, 2.06722f, 1.81479f };
-            ////float k[] = { 4.19238f, 3.67941f, 3.06551f };
-            ////// Silver
-            ////float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-            ////float k[] = { 3.82431f, 3.1451f, 2.27711f };
-            ////// Titanium
-            ////float eta[] = { 2.71866f, 2.50954f, 2.22767f };
-            ////float k[] = { 3.79521f, 3.40035f, 3.00114f };
-            //float roughness[] = { 0.2f, 0.2f };
-            //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-            //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-            //Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-            //mat = context.createMicrofacetReflectionSurfaceMaterial(texEta, tex_k, texRoughness, nullptr);
+            mat = ue4Mat;
+
+            //Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_normal_alpha.png", false);
+            //Image2DTextureShaderNodeRef nodeAlpha = context.createImage2DTextureShaderNode();
+            //nodeAlpha->setImage(imgNormalAlpha);
+
+            //socketAlpha.node = nodeAlpha;
+            //socketAlpha.socketIndex = 0;
         }
         //if (strcmp(strValue.C_Str(), "Base") == 0 || 
         //    strcmp(strValue.C_Str(), "Glossy") == 0) {
@@ -670,7 +655,7 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
         //}
 
-        return SurfaceAttributeTuple(mat, normalAlpha);
+        return SurfaceAttributeTuple(mat, socketNormal, socketAlpha);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
@@ -726,8 +711,10 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
 
 
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
-    Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
-    EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
+    EnvironmentTextureShaderNodeRef nodeEnvTex = context.createEnvironmentTextureShaderNode();
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial();
+    nodeEnvTex->setImage(imgEnv);
+    matEnv->setNodeEmittance(nodeEnvTex);
     shot->scene->setEnvironment(matEnv);
 
 
