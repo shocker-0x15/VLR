@@ -16,6 +16,19 @@ enum VLRDataFormat {
 
 
 
+enum VLRShaderNodeSocketType {
+    VLRShaderNodeSocketType_float = 0,
+    VLRShaderNodeSocketType_float2 = 0,
+    VLRShaderNodeSocketType_float3 = 0,
+    VLRShaderNodeSocketType_float4 = 0,
+    VLRShaderNodeSocketType_RGBSpectrum = 0,
+    VLRShaderNodeSocketType_TextureCoordinates = 0,
+    NumVLRShaderNodeSocketTypes,
+    VLRShaderNodeSocketType_Invalid
+};
+
+
+
 enum VLRTextureFilter {
     VLRTextureFilter_Nearest = 0,
     VLRTextureFilter_Linear,

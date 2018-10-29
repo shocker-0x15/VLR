@@ -118,6 +118,14 @@ namespace VLR {
 
 
 
+        m_maxNumNodeProcSet = 64;
+        m_optixNodeProcedureSetBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeProcSet);
+        m_optixNodeProcedureSetBuffer->setElementSize(sizeof(Shared::NodeProcedureSet));
+        m_bsdfProcSetSlotManager.initialize(m_maxNumNodeProcSet);
+        m_optixContext["VLR::pv_nodeProcedureSetBuffer"]->set(m_optixNodeProcedureSetBuffer);
+
+
+
         m_maxNumNodeDescriptors = 8192;
         m_optixNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeDescriptors);
         m_optixNodeDescriptorBuffer->setElementSize(sizeof(Shared::NodeDescriptor));
@@ -250,6 +258,9 @@ namespace VLR {
         m_nodeDescSlotManager.finalize();
         m_optixNodeDescriptorBuffer->destroy();
 
+        m_nodeProcSetSlotManager.finalize();
+        m_optixNodeProcedureSetBuffer->destroy();
+
         m_optixMaterialWithAlpha->destroy();
         m_optixMaterialDefault->destroy();
 
@@ -366,6 +377,28 @@ namespace VLR {
         optixContext->launch(0, imageSize.x, imageSize.y);
     }
 
+
+
+    uint32_t Context::allocateNodeProcedureSet() {
+        uint32_t index = m_nodeProcSetSlotManager.getFirstAvailableSlot();
+        m_nodeProcSetSlotManager.setInUse(index);
+        return index;
+    }
+
+    void Context::releaseNodeProcedureSet(uint32_t index) {
+        VLRAssert(m_nodeProcSetSlotManager.getUsage(index), "Invalid index.");
+        m_nodeProcSetSlotManager.setNotInUse(index);
+    }
+
+    void Context::updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet) {
+        VLRAssert(m_nodeProcSetSlotManager.getUsage(index), "Invalid index.");
+        auto procSets = (Shared::NodeProcedureSet*)m_optixNodeProcedureSetBuffer->map();
+        procSets[index] = procSet;
+        m_optixNodeProcedureSetBuffer->unmap();
+    }
+
+
+
     uint32_t Context::allocateNodeDescriptor() {
         uint32_t index = m_nodeDescSlotManager.getFirstAvailableSlot();
         m_nodeDescSlotManager.setInUse(index);
@@ -383,6 +416,8 @@ namespace VLR {
         nodeDescs[index] = nodeDesc;
         m_optixNodeDescriptorBuffer->unmap();
     }
+
+
 
     uint32_t Context::allocateBSDFProcedureSet() {
         uint32_t index = m_bsdfProcSetSlotManager.getFirstAvailableSlot();
@@ -402,6 +437,8 @@ namespace VLR {
         m_optixBSDFProcedureSetBuffer->unmap();
     }
 
+
+
     uint32_t Context::allocateEDFProcedureSet() {
         uint32_t index = m_edfProcSetSlotManager.getFirstAvailableSlot();
         m_edfProcSetSlotManager.setInUse(index);
@@ -419,6 +456,8 @@ namespace VLR {
         procSets[index] = procSet;
         m_optixEDFProcedureSetBuffer->unmap();
     }
+
+
 
     uint32_t Context::allocateSurfaceMaterialDescriptor() {
         uint32_t index = m_surfMatDescSlotManager.getFirstAvailableSlot();

@@ -416,6 +416,44 @@ namespace VLR {
 
 
 
+    Shared::ShaderNodeSocketID ShaderNodeSocketIdentifier::getSharedType() const {
+        if (node && socketType != VLRShaderNodeSocketType_Invalid) {
+            Shared::ShaderNodeSocketID ret;
+            ret.nodeDescIndex = node->getShaderNodeIndex();
+            ret.socketIndex = outputSocketIndex;
+            ret.option = option;
+        }
+        return Shared::ShaderNodeSocketID::Invalid();
+    }
+
+
+
+    // static 
+    void ShaderNode::commonInitializeProcedure(Context &context, const char** identifiers, uint32_t numIDs, OptiXProgramSet* programSet) {
+        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
+
+        optix::Context optixContext = context.getOptiXContext();
+
+        Shared::NodeProcedureSet nodeProcSet;
+        for (int i = 0; i < numIDs; ++i) {
+            programSet->callablePrograms[i] = optixContext->createProgramFromPTXString(ptx, identifiers[i]);
+            nodeProcSet.progs[i] = programSet->callablePrograms[i]->getId();
+        }
+
+        programSet->nodeProcedureSetIndex = context.allocateNodeProcedureSet();
+        context.updateNodeProcedureSet(programSet->nodeProcedureSetIndex, nodeProcSet);
+    }
+
+    // static 
+    void ShaderNode::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
+        context.releaseNodeProcedureSet(programSet.nodeProcedureSetIndex);
+
+        for (int i = lengthof(programSet.callablePrograms) - 1; i >= 0; --i) {
+            if (programSet.callablePrograms[i])
+                programSet.callablePrograms[i]->destroy();
+        }
+    }
+
     // static
     void ShaderNode::initialize(Context &context) {
         FloatShaderNode::initialize(context);
@@ -425,10 +463,12 @@ namespace VLR {
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
         ConstantTextureShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
+        EnvironmentTextureShaderNode::initialize(context);
     }
 
     // static
     void ShaderNode::finalize(Context &context) {
+        EnvironmentTextureShaderNode::finalize(context);
         Image2DTextureShaderNode::finalize(context);
         ConstantTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
@@ -450,16 +490,15 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, FloatShaderNode::OptiXProgramSet> FloatShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> FloatShaderNode::OptiXProgramSets;
 
     // static
     void FloatShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::FloatShaderNode_float",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramFloat = optixContext->createProgramFromPTXString(ptx, "VLR::FloatShaderNode_float");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -467,7 +506,7 @@ namespace VLR {
     // static
     void FloatShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramFloat->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     FloatShaderNode::FloatShaderNode(Context &context) :
@@ -482,16 +521,16 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::FloatShaderNode &nodeData = *(Shared::FloatShaderNode*)&nodeDesc.data;
-        nodeData.socketFloat = progSet.callableProgramFloat->getId();
-        nodeData.node0 = m_node0.getNodeIndex();
+        nodeData.node0 = m_node0.getSharedType();
         nodeData.imm0 = m_imm0;
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     bool FloatShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -505,16 +544,16 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, Float2ShaderNode::OptiXProgramSet> Float2ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::OptiXProgramSets;
 
     // static
     void Float2ShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::Float2ShaderNode_float",
+            "VLR::Float2ShaderNode_float2",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramFloat2 = optixContext->createProgramFromPTXString(ptx, "VLR::Float2ShaderNode_float2");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -522,7 +561,7 @@ namespace VLR {
     // static
     void Float2ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramFloat2->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     Float2ShaderNode::Float2ShaderNode(Context &context) :
@@ -538,10 +577,10 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::Float2ShaderNode &nodeData = *(Shared::Float2ShaderNode*)&nodeDesc.data;
-        nodeData.socketFloat2 = progSet.callableProgramFloat2->getId();
-        nodeData.node0 = m_node0.getNodeIndex();
-        nodeData.node1 = m_node1.getNodeIndex();
+        nodeData.node0 = m_node0.getSharedType();
+        nodeData.node1 = m_node1.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
 
@@ -549,7 +588,7 @@ namespace VLR {
     }
 
     bool Float2ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -562,7 +601,7 @@ namespace VLR {
     }
 
     bool Float2ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -576,16 +615,17 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, Float3ShaderNode::OptiXProgramSet> Float3ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::OptiXProgramSets;
 
     // static
     void Float3ShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::Float3ShaderNode_float",
+            "VLR::Float3ShaderNode_float2",
+            "VLR::Float3ShaderNode_float3",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramFloat3 = optixContext->createProgramFromPTXString(ptx, "VLR::Float3ShaderNode_float3");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -593,7 +633,7 @@ namespace VLR {
     // static
     void Float3ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramFloat3->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     Float3ShaderNode::Float3ShaderNode(Context &context) :
@@ -609,11 +649,11 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::Float3ShaderNode &nodeData = *(Shared::Float3ShaderNode*)&nodeDesc.data;
-        nodeData.socketFloat3 = progSet.callableProgramFloat3->getId();
-        nodeData.node0 = m_node0.getNodeIndex();
-        nodeData.node1 = m_node1.getNodeIndex();
-        nodeData.node2 = m_node2.getNodeIndex();
+        nodeData.node0 = m_node0.getSharedType();
+        nodeData.node1 = m_node1.getSharedType();
+        nodeData.node2 = m_node2.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
         nodeData.imm2 = m_imm2;
@@ -622,7 +662,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -635,7 +675,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -648,7 +688,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::setNode2(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node2 = outputSocket;
         setupNodeDescriptor();
@@ -662,16 +702,18 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, Float4ShaderNode::OptiXProgramSet> Float4ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::OptiXProgramSets;
 
     // static
     void Float4ShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::Float4ShaderNode_float",
+            "VLR::Float4ShaderNode_float2",
+            "VLR::Float4ShaderNode_float3",
+            "VLR::Float4ShaderNode_float4",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramFloat4 = optixContext->createProgramFromPTXString(ptx, "VLR::Float4ShaderNode_float4");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -679,7 +721,7 @@ namespace VLR {
     // static
     void Float4ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramFloat4->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     Float4ShaderNode::Float4ShaderNode(Context &context) :
@@ -694,12 +736,12 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::Float4ShaderNode &nodeData = *(Shared::Float4ShaderNode*)&nodeDesc.data;
-        nodeData.socketFloat4 = progSet.callableProgramFloat4->getId();
-        nodeData.node0 = m_node0.getNodeIndex();
-        nodeData.node1 = m_node1.getNodeIndex();
-        nodeData.node2 = m_node2.getNodeIndex();
-        nodeData.node3 = m_node3.getNodeIndex();
+        nodeData.node0 = m_node0.getSharedType();
+        nodeData.node1 = m_node1.getSharedType();
+        nodeData.node2 = m_node2.getSharedType();
+        nodeData.node3 = m_node3.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
         nodeData.imm2 = m_imm2;
@@ -709,7 +751,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -722,7 +764,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -735,7 +777,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::setNode2(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node2 = outputSocket;
         setupNodeDescriptor();
@@ -748,7 +790,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::setNode3(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_float)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
             return false;
         m_node3 = outputSocket;
         setupNodeDescriptor();
@@ -762,16 +804,15 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
 
     // static
     void OffsetAndScaleUVTextureMap2DShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::OffsetAndScaleUVTextureMap2DShaderNode_TexCoord",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramTexCoord = optixContext->createProgramFromPTXString(ptx, "VLR::OffsetAndScaleUVTextureMap2DShaderNode_TexCoord");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -779,7 +820,7 @@ namespace VLR {
     // static
     void OffsetAndScaleUVTextureMap2DShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramTexCoord->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     OffsetAndScaleUVTextureMap2DShaderNode::OffsetAndScaleUVTextureMap2DShaderNode(Context &context) :
@@ -794,8 +835,8 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::OffsetAndScaleUVTextureMap2DShaderNode &nodeData = *(Shared::OffsetAndScaleUVTextureMap2DShaderNode*)&nodeDesc.data;
-        nodeData.socketTexCoord = progSet.callableProgramTexCoord->getId();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
@@ -812,17 +853,16 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, ConstantTextureShaderNode::OptiXProgramSet> ConstantTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> ConstantTextureShaderNode::OptiXProgramSets;
 
     // static
     void ConstantTextureShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::ConstantTextureShaderNode_RGBSpectrum",
+            "VLR::ConstantTextureShaderNode_Alpha",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramRGBSpectrum = optixContext->createProgramFromPTXString(ptx, "VLR::ConstantTextureShaderNode_RGBSpectrum");
-        programSet.callableProgramAlpha = optixContext->createProgramFromPTXString(ptx, "VLR::ConstantTextureShaderNode_Alpha");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -830,8 +870,7 @@ namespace VLR {
     // static
     void ConstantTextureShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramAlpha->destroy();
-        programSet.callableProgramRGBSpectrum->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     ConstantTextureShaderNode::ConstantTextureShaderNode(Context &context) :
@@ -846,9 +885,8 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::ConstantTextureShaderNode &nodeData = *(Shared::ConstantTextureShaderNode*)&nodeDesc.data;
-        nodeData.socketRGBSpectrum = progSet.callableProgramRGBSpectrum->getId();
-        nodeData.socketAlpha = progSet.callableProgramAlpha->getId();
         nodeData.spectrum = m_spectrum;
         nodeData.alpha = m_alpha;
 
@@ -863,17 +901,19 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, Image2DTextureShaderNode::OptiXProgramSet> Image2DTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::OptiXProgramSets;
 
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::Image2DTextureShaderNode_RGBSpectrum",
+            "VLR::Image2DTextureShaderNode_float",
+            "VLR::Image2DTextureShaderNode_float2",
+            "VLR::Image2DTextureShaderNode_float3",
+            "VLR::Image2DTextureShaderNode_float4",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramRGBSpectrum = optixContext->createProgramFromPTXString(ptx, "VLR::Image2DTextureShaderNode_RGBSpectrum");
-        programSet.callableProgramAlpha = optixContext->createProgramFromPTXString(ptx, "VLR::Image2DTextureShaderNode_Alpha");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -881,8 +921,7 @@ namespace VLR {
     // static
     void Image2DTextureShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramAlpha->destroy();
-        programSet.callableProgramRGBSpectrum->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
@@ -907,11 +946,10 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::Image2DTextureShaderNode &nodeData = *(Shared::Image2DTextureShaderNode*)&nodeDesc.data;
-        nodeData.socketRGBSpectrum = progSet.callableProgramRGBSpectrum->getId();
-        nodeData.socketAlpha = progSet.callableProgramAlpha->getId();
         nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.nodeTexCoord = m_nodeTexCoord.getNodeIndex();
+        nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
@@ -927,7 +965,7 @@ namespace VLR {
     }
 
     bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_TextureCoordinates)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_TextureCoordinates)
             return false;
         m_nodeTexCoord = outputSocket;
         setupNodeDescriptor();
@@ -936,16 +974,15 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, EnvironmentTextureShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::OptiXProgramSets;
 
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {
-        optix::Context optixContext = context.getOptiXContext();
-
-        std::string ptx = readTxtFile("resources/ptxes/shader_nodes.ptx");
-
+        const char* identifiers[] = {
+            "VLR::EnvironmentTextureShaderNode_RGBSpectrum",
+        };
         OptiXProgramSet programSet;
-        programSet.callableProgramRGBSpectrum = optixContext->createProgramFromPTXString(ptx, "VLR::EnvironmentTextureShaderNode_RGBSpectrum");
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -953,7 +990,7 @@ namespace VLR {
     // static
     void EnvironmentTextureShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        programSet.callableProgramRGBSpectrum->destroy();
+        commonFinalizeProcedure(context, programSet);
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
@@ -978,10 +1015,10 @@ namespace VLR {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::EnvironmentTextureShaderNode &nodeData = *(Shared::EnvironmentTextureShaderNode*)&nodeDesc.data;
-        nodeData.socketRGBSpectrum = progSet.callableProgramRGBSpectrum->getId();
         nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.nodeTexCoord = m_nodeTexCoord.getNodeIndex();
+        nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
@@ -997,7 +1034,7 @@ namespace VLR {
     }
 
     bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (outputSocket.getType() != ShaderNodeSocketType_TextureCoordinates)
+        if (outputSocket.getType() != VLRShaderNodeSocketType_TextureCoordinates)
             return false;
         m_nodeTexCoord = outputSocket;
         setupNodeDescriptor();

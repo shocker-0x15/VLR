@@ -35,6 +35,10 @@ namespace VLR {
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
 
+        optix::Buffer m_optixNodeProcedureSetBuffer;
+        uint32_t m_maxNumNodeProcSet;
+        SlotManager m_nodeProcSetSlotManager;
+
         optix::Buffer m_optixNodeDescriptorBuffer;
         uint32_t m_maxNumNodeDescriptors;
         SlotManager m_nodeDescSlotManager;
@@ -97,6 +101,10 @@ namespace VLR {
         const optix::Material &getOptiXMaterialWithAlpha() const {
             return m_optixMaterialWithAlpha;
         }
+
+        uint32_t allocateNodeProcedureSet();
+        void releaseNodeProcedureSet(uint32_t index);
+        void updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet);
 
         uint32_t allocateNodeDescriptor();
         void releaseNodeDescriptor(uint32_t index);

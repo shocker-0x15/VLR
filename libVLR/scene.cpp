@@ -525,7 +525,7 @@ namespace VLR {
         bool nodeAlphaIsValid;
 
         m_materials.push_back(material);
-        if (nodeNormal.getType() == ShaderNodeSocketType_float3) {
+        if (nodeNormal.getType() == VLRShaderNodeSocketType_float3) {
             m_nodeNormals.push_back(nodeNormal);
             nodeNormalIsValid = true;
         }
@@ -533,7 +533,7 @@ namespace VLR {
             m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
             nodeNormalIsValid = false;
         }
-        if (nodeAlpha.getType() == ShaderNodeSocketType_float) {
+        if (nodeAlpha.getType() == VLRShaderNodeSocketType_float) {
             m_nodeAlphas.push_back(nodeAlpha);
             nodeAlphaIsValid = true;
         }
@@ -563,20 +563,20 @@ namespace VLR {
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
 
-            Shared::NodeIndex nodeIndexNormal = Shared::NodeIndex::Invalid();
+            Shared::ShaderNodeSocketID sNodeNormal = Shared::ShaderNodeSocketID::Invalid();
             if (nodeNormalIsValid)
-                nodeIndexNormal = nodeNormal.getNodeIndex();
-            optixGeomInst["VLR::pv_nodeIndexNormal"]->setUserData(sizeof(nodeIndexNormal), &nodeIndexNormal);
+                sNodeNormal = nodeNormal.getSharedType();
+            optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
 
-            Shared::NodeIndex nodeIndexAlpha = Shared::NodeIndex::Invalid();
+            Shared::ShaderNodeSocketID sNodeAlpha = Shared::ShaderNodeSocketID::Invalid();
             if (nodeAlphaIsValid) {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
-                nodeIndexAlpha = nodeAlpha.getNodeIndex();
+                sNodeAlpha = nodeAlpha.getSharedType();
             }
             else {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
             }
-            optixGeomInst["VLR::pv_nodeIndexAlpha"]->setUserData(sizeof(nodeIndexAlpha), &nodeIndexAlpha);
+            optixGeomInst["VLR::pv_nodeAlpha"]->setUserData(sizeof(sNodeAlpha), &sNodeAlpha);
 
             uint32_t matIndex = material->getMaterialIndex();
             optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);

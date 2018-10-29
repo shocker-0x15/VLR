@@ -217,8 +217,8 @@ namespace VLR {
     // per GeometryInstance
     rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(NodeIndex, pv_nodeIndexNormal, , );
-    rtDeclareVariable(NodeIndex, pv_nodeIndexAlpha, , );
+    rtDeclareVariable(ShaderNodeSocketID, pv_nodeNormal, , );
+    rtDeclareVariable(ShaderNodeSocketID, pv_nodeAlpha, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
 
@@ -234,7 +234,7 @@ namespace VLR {
         float hypAreaPDF;
         pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcFloat(pv_nodeIndexAlpha, 1.0f, surfPt);
+        float alpha = calcNode<float>(pv_nodeAlpha, 1.0f, surfPt);
 
         // Stochastic Alpha Test
         if (sm_payload.rng.getFloat0cTo1o() >= alpha)
@@ -248,7 +248,7 @@ namespace VLR {
         float hypAreaPDF;
         pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcFloat(pv_nodeIndexAlpha, 1.0f, surfPt);
+        float alpha = calcNode<float>(pv_nodeAlpha, 1.0f, surfPt);
 
         sm_shadowPayload.fractionalVisibility *= (1 - alpha);
         if (sm_shadowPayload.fractionalVisibility == 0.0f)
@@ -256,7 +256,7 @@ namespace VLR {
     }
 
     RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
-        optix::float3 value = calcFloat3(pv_nodeIndexNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt);
+        optix::float3 value = calcNode<optix::float3>(pv_nodeNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt);
         Normal3D normalLocal = 2 * Normal3D(value.x, value.y, value.z) - 1.0f;
         normalLocal.y *= -1; // for DirectX format normal map
         return normalLocal;
