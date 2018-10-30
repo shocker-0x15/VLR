@@ -125,7 +125,7 @@
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="slot_manager.cpp" />
-    <ClCompile Include="textures.cpp" />
+    <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -145,7 +145,7 @@
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
-    <ClInclude Include="textures.h" />
+    <ClInclude Include="shader_nodes.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">

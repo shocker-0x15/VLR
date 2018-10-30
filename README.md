@@ -15,6 +15,7 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
     * Fresnel-blended Lambertian BSDF
     * UE4- or Frostbite-like BRDF \[Karis2013, Lagarde2014\]
     * Mixed BSDF
+* Shader Node System
 * Bump Mapping (Normal Map)
 * Light Source Types
     * Area (Polygonal) Light

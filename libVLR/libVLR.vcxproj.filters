@@ -6,10 +6,10 @@
     <ClCompile Include="slot_manager.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="textures.cpp" />
     <ClCompile Include="VLR.cpp">
       <Filter>API</Filter>
     </ClCompile>
+    <ClCompile Include="shader_nodes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\VLR\common.h" />
@@ -32,7 +32,6 @@
     <ClInclude Include="ext\include\half.hpp">
       <Filter>ext</Filter>
     </ClInclude>
-    <ClInclude Include="textures.h" />
     <ClInclude Include="common_internal.h" />
     <ClInclude Include="include\VLR\VLR.h">
       <Filter>API</Filter>
@@ -41,6 +40,7 @@
       <Filter>API</Filter>
     </ClInclude>
     <ClInclude Include="include\VLR\public_types.h" />
+    <ClInclude Include="shader_nodes.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

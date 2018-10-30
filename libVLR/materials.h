@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "textures.h"
+#include "shader_nodes.h"
 
 namespace VLR {
     // ----------------------------------------------------------------
