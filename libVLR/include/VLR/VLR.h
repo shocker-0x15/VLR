@@ -57,6 +57,7 @@ extern "C" {
 
 
     VLR_API VLRResult vlrPrintDevices();
+    VLR_API VLRResult vlrGetDeviceName(uint32_t index, char* name, uint32_t bufferLength);
 
     VLR_API const char* vlrGetErrorMessage(VLRResult code);
 

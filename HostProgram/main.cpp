@@ -790,12 +790,18 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     VLRCpp::Context context(enableLogging, stackSize);
 
+    int32_t primaryDevice = 0;
     if (!devices.empty()) {
         std::vector<int32_t> deviceArray;
         for (auto it = devices.cbegin(); it != devices.cend(); ++it)
             deviceArray.push_back(*it);
         context.setDevices(deviceArray.data(), deviceArray.size());
+
+        primaryDevice = deviceArray.front();
     }
+
+    char deviceName[128];
+    vlrGetDeviceName(primaryDevice, deviceName, lengthof(deviceName));
 
     Shot shot;
     //createCornellBoxScene(context, &shot);
@@ -1099,6 +1105,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             {
                 ImGui_ImplGlfwGL3_NewFrame(g_renderTargetSizeX, g_renderTargetSizeY, UIScaling);
+
+                {
+                    ImGui::Begin("Misc", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+                    ImGui::Text("Device: %s", deviceName);
+
+                    ImGui::End();
+                }
 
                 bool cameraSettingsChanged = resized;
                 static bool g_forceLowResolution = false;

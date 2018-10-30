@@ -48,12 +48,14 @@ typedef VLR::EquirectangularCamera* VLREquirectangularCamera;
 
 
 
-VLR_API VLRResult vlrPrintDevices() {
-    const auto checkError = [](RTresult code) {
-        if (code != RT_SUCCESS && code != RT_TIMEOUT_CALLBACK)
-            throw optix::Exception::makeException(code, 0);
-    };
+static void checkError(RTresult code) {
+    if (code != RT_SUCCESS && code != RT_TIMEOUT_CALLBACK)
+        throw optix::Exception::makeException(code, 0);
+}
 
+
+
+VLR_API VLRResult vlrPrintDevices() {
     uint32_t numDevices;
     checkError(rtDeviceGetDeviceCount(&numDevices));
 
@@ -98,6 +100,12 @@ VLR_API VLRResult vlrPrintDevices() {
         VLRDebugPrintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
     }
     VLRDebugPrintf("----------------------------------------------------------------\n");
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrGetDeviceName(uint32_t index, char* name, uint32_t bufferLength) {
+    checkError(rtDeviceGetAttribute(index, RT_DEVICE_ATTRIBUTE_NAME, bufferLength, name));
 
     return VLR_ERROR_NO_ERROR;
 }
