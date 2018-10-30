@@ -18,13 +18,17 @@ enum VLRDataFormat {
 
 enum VLRShaderNodeSocketType {
     VLRShaderNodeSocketType_float = 0,
-    VLRShaderNodeSocketType_float2 = 0,
-    VLRShaderNodeSocketType_float3 = 0,
-    VLRShaderNodeSocketType_float4 = 0,
-    VLRShaderNodeSocketType_RGBSpectrum = 0,
-    VLRShaderNodeSocketType_TextureCoordinates = 0,
+    VLRShaderNodeSocketType_float2,
+    VLRShaderNodeSocketType_float3,
+    VLRShaderNodeSocketType_float4,
+    VLRShaderNodeSocketType_RGBSpectrum,
+    VLRShaderNodeSocketType_TextureCoordinates,
     NumVLRShaderNodeSocketTypes,
     VLRShaderNodeSocketType_Invalid
+};
+
+struct VLRShaderNodeSocketInfo {
+    uint32_t dummy;
 };
 
 

@@ -59,7 +59,7 @@ namespace VLRCpp {
 
 
 
-    class Object {
+    class Object : public std::enable_shared_from_this<Object> {
     protected:
         VLRContext m_rawContext;
 
@@ -112,6 +112,19 @@ namespace VLRCpp {
 
 
 
+    struct ShaderNodeSocket {
+        ShaderNodeRef node;
+        VLRShaderNodeSocketInfo socketInfo;
+
+        ShaderNodeSocket() {}
+        ShaderNodeSocket(const ShaderNodeRef &_node, const VLRShaderNodeSocketInfo &_socketInfo) :
+            node(_node), socketInfo(_socketInfo) {}
+
+        VLRShaderNode getNode() const;
+    };
+
+
+
     class ShaderNodeHolder : public Object {
     protected:
         VLRShaderNode m_raw;
@@ -119,13 +132,28 @@ namespace VLRCpp {
     public:
         ShaderNodeHolder(VLRContext context) : Object(context) {}
 
+        ShaderNodeSocket getSocket(VLRShaderNodeSocketType socketType, uint32_t index) {
+            VLRShaderNodeSocketInfo socketInfo;
+            errorCheck(vlrShaderNodeGetSocket(m_raw, socketType, index, &socketInfo));
+            return ShaderNodeSocket(std::dynamic_pointer_cast<ShaderNodeHolder>(shared_from_this()), socketInfo);
+        }
+
         VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
 
+    VLRShaderNode ShaderNodeSocket::getNode() const {
+        if (node)
+            return (VLRShaderNode)node->get();
+        else
+            return nullptr;
+    }
+
+
+
     class FloatShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeRef m_node0;
+        ShaderNodeSocket m_node0;
 
     public:
         FloatShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -135,9 +163,9 @@ namespace VLRCpp {
             errorCheck(vlrFloatShaderNodeDestroy(m_rawContext, (VLRFloatShaderNode)m_raw));
         }
 
-        void setNode0(const ShaderNodeRef &node0, uint32_t socketIndex) {
+        void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloatShaderNodeSetNode0((VLRFloatShaderNode)m_raw, (VLRShaderNode)m_node0->get(), socketIndex));
+            errorCheck(vlrFloatShaderNodeSetNode0((VLRFloatShaderNode)m_raw, m_node0.getNode(), m_node0.socketInfo));
         }
         void setImmediateValue0(float value) {
             errorCheck(vlrFloatShaderNodeSetImmediateValue0((VLRFloatShaderNode)m_raw, value));
@@ -147,8 +175,8 @@ namespace VLRCpp {
 
 
     class Float2ShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeRef m_node0;
-        ShaderNodeRef m_node1;
+        ShaderNodeSocket m_node0;
+        ShaderNodeSocket m_node1;
 
     public:
         Float2ShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -158,16 +186,16 @@ namespace VLRCpp {
             errorCheck(vlrFloat2ShaderNodeDestroy(m_rawContext, (VLRFloat2ShaderNode)m_raw));
         }
 
-        void setNode0(const ShaderNodeRef &node0, uint32_t socketIndex) {
+        void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat2ShaderNodeSetNode0((VLRFloat2ShaderNode)m_raw, (VLRShaderNode)m_node0->get(), socketIndex));
+            errorCheck(vlrFloat2ShaderNodeSetNode0((VLRFloat2ShaderNode)m_raw, m_node0.getNode(), m_node0.socketInfo));
         }
         void setImmediateValue0(float value) {
             errorCheck(vlrFloat2ShaderNodeSetImmediateValue0((VLRFloat2ShaderNode)m_raw, value));
         }
-        void setNode1(const ShaderNodeRef &node1, uint32_t socketIndex) {
+        void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat2ShaderNodeSetNode1((VLRFloat2ShaderNode)m_raw, (VLRShaderNode)m_node1->get(), socketIndex));
+            errorCheck(vlrFloat2ShaderNodeSetNode1((VLRFloat2ShaderNode)m_raw, m_node1.getNode(), m_node1.socketInfo));
         }
         void setImmediateValue1(float value) {
             errorCheck(vlrFloat2ShaderNodeSetImmediateValue1((VLRFloat2ShaderNode)m_raw, value));
@@ -177,9 +205,9 @@ namespace VLRCpp {
 
 
     class Float3ShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeRef m_node0;
-        ShaderNodeRef m_node1;
-        ShaderNodeRef m_node2;
+        ShaderNodeSocket m_node0;
+        ShaderNodeSocket m_node1;
+        ShaderNodeSocket m_node2;
 
     public:
         Float3ShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -189,23 +217,23 @@ namespace VLRCpp {
             errorCheck(vlrFloat3ShaderNodeDestroy(m_rawContext, (VLRFloat3ShaderNode)m_raw));
         }
 
-        void setNode0(const ShaderNodeRef &node0, uint32_t socketIndex) {
+        void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat3ShaderNodeSetNode0((VLRFloat3ShaderNode)m_raw, (VLRShaderNode)m_node0->get(), socketIndex));
+            errorCheck(vlrFloat3ShaderNodeSetNode0((VLRFloat3ShaderNode)m_raw, m_node0.getNode(), m_node0.socketInfo));
         }
         void setImmediateValue0(float value) {
             errorCheck(vlrFloat3ShaderNodeSetImmediateValue0((VLRFloat3ShaderNode)m_raw, value));
         }
-        void setNode1(const ShaderNodeRef &node1, uint32_t socketIndex) {
+        void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat3ShaderNodeSetNode1((VLRFloat3ShaderNode)m_raw, (VLRShaderNode)m_node1->get(), socketIndex));
+            errorCheck(vlrFloat3ShaderNodeSetNode1((VLRFloat3ShaderNode)m_raw, m_node1.getNode(), m_node1.socketInfo));
         }
         void setImmediateValue1(float value) {
             errorCheck(vlrFloat3ShaderNodeSetImmediateValue1((VLRFloat3ShaderNode)m_raw, value));
         }
-        void setNode2(const ShaderNodeRef &node2, uint32_t socketIndex) {
+        void setNode2(const ShaderNodeSocket &node2) {
             m_node2 = node2;
-            errorCheck(vlrFloat3ShaderNodeSetNode2((VLRFloat3ShaderNode)m_raw, (VLRShaderNode)m_node2->get(), socketIndex));
+            errorCheck(vlrFloat3ShaderNodeSetNode2((VLRFloat3ShaderNode)m_raw, m_node2.getNode(), m_node2.socketInfo));
         }
         void setImmediateValue2(float value) {
             errorCheck(vlrFloat3ShaderNodeSetImmediateValue2((VLRFloat3ShaderNode)m_raw, value));
@@ -215,10 +243,10 @@ namespace VLRCpp {
 
 
     class Float4ShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeRef m_node0;
-        ShaderNodeRef m_node1;
-        ShaderNodeRef m_node2;
-        ShaderNodeRef m_node3;
+        ShaderNodeSocket m_node0;
+        ShaderNodeSocket m_node1;
+        ShaderNodeSocket m_node2;
+        ShaderNodeSocket m_node3;
 
     public:
         Float4ShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -228,30 +256,30 @@ namespace VLRCpp {
             errorCheck(vlrFloat4ShaderNodeDestroy(m_rawContext, (VLRFloat4ShaderNode)m_raw));
         }
 
-        void setNode0(const ShaderNodeRef &node0, uint32_t socketIndex) {
+        void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat4ShaderNodeSetNode0((VLRFloat4ShaderNode)m_raw, (VLRShaderNode)m_node0->get(), socketIndex));
+            errorCheck(vlrFloat4ShaderNodeSetNode0((VLRFloat4ShaderNode)m_raw, m_node0.getNode(), m_node0.socketInfo));
         }
         void setImmediateValue0(float value) {
             errorCheck(vlrFloat4ShaderNodeSetImmediateValue0((VLRFloat4ShaderNode)m_raw, value));
         }
-        void setNode1(const ShaderNodeRef &node1, uint32_t socketIndex) {
+        void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat4ShaderNodeSetNode1((VLRFloat4ShaderNode)m_raw, (VLRShaderNode)m_node1->get(), socketIndex));
+            errorCheck(vlrFloat4ShaderNodeSetNode1((VLRFloat4ShaderNode)m_raw, m_node1.getNode(), m_node1.socketInfo));
         }
         void setImmediateValue1(float value) {
             errorCheck(vlrFloat4ShaderNodeSetImmediateValue1((VLRFloat4ShaderNode)m_raw, value));
         }
-        void setNode2(const ShaderNodeRef &node2, uint32_t socketIndex) {
+        void setNode2(const ShaderNodeSocket &node2) {
             m_node2 = node2;
-            errorCheck(vlrFloat4ShaderNodeSetNode2((VLRFloat4ShaderNode)m_raw, (VLRShaderNode)m_node2->get(), socketIndex));
+            errorCheck(vlrFloat4ShaderNodeSetNode2((VLRFloat4ShaderNode)m_raw, m_node2.getNode(), m_node2.socketInfo));
         }
         void setImmediateValue2(float value) {
             errorCheck(vlrFloat4ShaderNodeSetImmediateValue2((VLRFloat4ShaderNode)m_raw, value));
         }
-        void setNode3(const ShaderNodeRef &node3, uint32_t socketIndex) {
+        void setNode3(const ShaderNodeSocket &node3) {
             m_node3 = node3;
-            errorCheck(vlrFloat4ShaderNodeSetNode3((VLRFloat4ShaderNode)m_raw, (VLRShaderNode)m_node3->get(), socketIndex));
+            errorCheck(vlrFloat4ShaderNodeSetNode3((VLRFloat4ShaderNode)m_raw, m_node3.getNode(), m_node3.socketInfo));
         }
         void setImmediateValue3(float value) {
             errorCheck(vlrFloat4ShaderNodeSetImmediateValue3((VLRFloat4ShaderNode)m_raw, value));
@@ -294,7 +322,7 @@ namespace VLRCpp {
 
     class Image2DTextureShaderNodeHolder : public ShaderNodeHolder {
         Image2DRef m_image;
-        ShaderNodeRef m_nodeTexCoord;
+        ShaderNodeSocket m_nodeTexCoord;
 
     public:
         Image2DTextureShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -311,9 +339,9 @@ namespace VLRCpp {
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrImage2DTextureShaderNodeSetFilterMode((VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping));
         }
-        void setNodeTexCoord(const ShaderNodeRef &nodeTexCoord, uint32_t socketIndex) {
+        void setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;
-            errorCheck(vlrImage2DTextureShaderNodeSetNodeTexCoord((VLRImage2DTextureShaderNode)m_raw, (VLRShaderNode)m_nodeTexCoord->get(), socketIndex));
+            errorCheck(vlrImage2DTextureShaderNodeSetNodeTexCoord((VLRImage2DTextureShaderNode)m_raw, m_nodeTexCoord.getNode(), m_nodeTexCoord.socketInfo));
         }
     };
 
@@ -321,7 +349,7 @@ namespace VLRCpp {
 
     class EnvironmentTextureShaderNodeHolder : public ShaderNodeHolder {
         Image2DRef m_image;
-        ShaderNodeRef m_nodeTexCoord;
+        ShaderNodeSocket m_nodeTexCoord;
 
     public:
         EnvironmentTextureShaderNodeHolder(VLRContext context) : ShaderNodeHolder(context) {
@@ -338,9 +366,9 @@ namespace VLRCpp {
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));
         }
-        bool setNodeTexCoord(const ShaderNodeRef &nodeTexCoord, uint32_t socketIndex) {
+        bool setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetNodeTexCoord((VLREnvironmentTextureShaderNode)m_raw, (VLRShaderNode)m_nodeTexCoord->get(), socketIndex));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetNodeTexCoord((VLREnvironmentTextureShaderNode)m_raw, m_nodeTexCoord.getNode(), m_nodeTexCoord.socketInfo));
         }
     };
 
@@ -359,7 +387,7 @@ namespace VLRCpp {
 
 
     class MatteSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeAlbedo;
+        ShaderNodeSocket m_nodeAlbedo;
 
     public:
         MatteSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -369,9 +397,9 @@ namespace VLRCpp {
             errorCheck(vlrMatteSurfaceMaterialDestroy(m_rawContext, (VLRMatteSurfaceMaterial)m_raw));
         }
 
-        void setNodeAlbedo(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeAlbedo(const ShaderNodeSocket &node) {
             m_nodeAlbedo = node;
-            errorCheck(vlrMatteSurfaceMaterialSetNodeAlbedo((VLRMatteSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeAlbedo->get(), socketIndex));
+            errorCheck(vlrMatteSurfaceMaterialSetNodeAlbedo((VLRMatteSurfaceMaterial)m_raw, m_nodeAlbedo.getNode(), m_nodeAlbedo.socketInfo));
         }
         void setImmediateValueAlbedo(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMatteSurfaceMaterialSetImmediateValueAlbedo((VLRMatteSurfaceMaterial)m_raw, (float*)&value));
@@ -381,9 +409,9 @@ namespace VLRCpp {
 
 
     class SpecularReflectionSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeCoeffR;
-        ShaderNodeRef m_nodeEta;
-        ShaderNodeRef m_node_k;
+        ShaderNodeSocket m_nodeCoeffR;
+        ShaderNodeSocket m_nodeEta;
+        ShaderNodeSocket m_node_k;
 
     public:
         SpecularReflectionSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -393,23 +421,23 @@ namespace VLRCpp {
             errorCheck(vlrSpecularReflectionSurfaceMaterialDestroy(m_rawContext, (VLRSpecularReflectionSurfaceMaterial)m_raw));
         }
 
-        void setNodeCoeffR(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeCoeffR(const ShaderNodeSocket &node) {
             m_nodeCoeffR = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR((VLRSpecularReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeCoeffR->get(), socketIndex));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR((VLRSpecularReflectionSurfaceMaterial)m_raw, m_nodeCoeffR.getNode(), m_nodeCoeffR.socketInfo));
         }
         void setImmediateValueCoeffR(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR((VLRSpecularReflectionSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeEta(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEta(const ShaderNodeSocket &node) {
             m_nodeEta = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeEta((VLRSpecularReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEta->get(), socketIndex));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeEta((VLRSpecularReflectionSurfaceMaterial)m_raw, m_nodeEta.getNode(), m_nodeEta.socketInfo));
         }
         void setImmediateValueEta(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta((VLRSpecularReflectionSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNode_k(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNode_k(const ShaderNodeSocket &node) {
             m_node_k = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNode_k((VLRSpecularReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_node_k->get(), socketIndex));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNode_k((VLRSpecularReflectionSurfaceMaterial)m_raw, m_node_k.getNode(), m_node_k.socketInfo));
         }
         void setImmediateValue_k(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k((VLRSpecularReflectionSurfaceMaterial)m_raw, (float*)&value));
@@ -419,9 +447,9 @@ namespace VLRCpp {
 
 
     class SpecularScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeCoeff;
-        ShaderNodeRef m_nodeEtaExt;
-        ShaderNodeRef m_nodeEtaInt;
+        ShaderNodeSocket m_nodeCoeff;
+        ShaderNodeSocket m_nodeEtaExt;
+        ShaderNodeSocket m_nodeEtaInt;
 
     public:
         SpecularScatteringSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -431,23 +459,23 @@ namespace VLRCpp {
             errorCheck(vlrSpecularScatteringSurfaceMaterialDestroy(m_rawContext, (VLRSpecularScatteringSurfaceMaterial)m_raw));
         }
 
-        void setNodeCoeff(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeCoeff((VLRSpecularScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeCoeff->get(), socketIndex));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeCoeff((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeCoeff.getNode(), m_nodeCoeff.socketInfo));
         }
         void setImmediateValueCoeff(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff((VLRSpecularScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeEtaExt(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEtaExt(const ShaderNodeSocket &node) {
             m_nodeEtaExt = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt((VLRSpecularScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEtaExt->get(), socketIndex));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeEtaExt.getNode(), m_nodeEtaExt.socketInfo));
         }
         void setImmediateValueEtaExt(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt((VLRSpecularScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeEtaInt(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEtaInt(const ShaderNodeSocket &node) {
             m_nodeEtaInt = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt((VLRSpecularScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEtaInt->get(), socketIndex));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeEtaInt.getNode(), m_nodeEtaInt.socketInfo));
         }
         void setImmediateValueEtaInt(const VLR::RGBSpectrum &value) {
             errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt((VLRSpecularScatteringSurfaceMaterial)m_raw, (float*)&value));
@@ -457,9 +485,9 @@ namespace VLRCpp {
 
 
     class MicrofacetReflectionSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeEta;
-        ShaderNodeRef m_node_k;
-        ShaderNodeRef m_nodeRoughness;
+        ShaderNodeSocket m_nodeEta;
+        ShaderNodeSocket m_node_k;
+        ShaderNodeSocket m_nodeRoughness;
 
     public:
         MicrofacetReflectionSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -469,23 +497,23 @@ namespace VLRCpp {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetReflectionSurfaceMaterial)m_raw));
         }
 
-        void setNodeEta(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEta(const ShaderNodeSocket &node) {
             m_nodeEta = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeEta((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEta->get(), socketIndex));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeEta((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeEta.getNode(), m_nodeEta.socketInfo));
         }
         void setImmediateValueEta(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNode_k(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNode_k(const ShaderNodeSocket &node) {
             m_node_k = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNode_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_node_k->get(), socketIndex));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNode_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_node_k.getNode(), m_node_k.socketInfo));
         }
         void setImmediateValue_k(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeRoughness(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeRoughness(const ShaderNodeSocket &node) {
             m_nodeRoughness = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeRoughness->get(), socketIndex));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeRoughness.getNode(), m_nodeRoughness.socketInfo));
         }
         void setImmediateValueRoughness(const float value[2]) {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
@@ -495,10 +523,10 @@ namespace VLRCpp {
 
 
     class MicrofacetScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeCoeff;
-        ShaderNodeRef m_nodeEtaExt;
-        ShaderNodeRef m_nodeEtaInt;
-        ShaderNodeRef m_nodeRoughness;
+        ShaderNodeSocket m_nodeCoeff;
+        ShaderNodeSocket m_nodeEtaExt;
+        ShaderNodeSocket m_nodeEtaInt;
+        ShaderNodeSocket m_nodeRoughness;
 
     public:
         MicrofacetScatteringSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -508,30 +536,30 @@ namespace VLRCpp {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialDestroy(m_rawContext, (VLRMicrofacetScatteringSurfaceMaterial)m_raw));
         }
 
-        void setNodeCoeff(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeCoeff->get(), socketIndex));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeCoeff.getNode(), m_nodeCoeff.socketInfo));
         }
         void setImmediateValueCoeff(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeEtaExt(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEtaExt(const ShaderNodeSocket &node) {
             m_nodeEtaExt = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEtaExt->get(), socketIndex));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeEtaExt.getNode(), m_nodeEtaExt.socketInfo));
         }
         void setImmediateValueEtaExt(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeEtaInt(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEtaInt(const ShaderNodeSocket &node) {
             m_nodeEtaInt = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEtaInt->get(), socketIndex));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeEtaInt.getNode(), m_nodeEtaInt.socketInfo));
         }
         void setImmediateValueEtaInt(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeRoughness(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeRoughness(const ShaderNodeSocket &node) {
             m_nodeRoughness = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeRoughness->get(), socketIndex));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeRoughness.getNode(), m_nodeRoughness.socketInfo));
         }
         void setImmediateValueRoughness(const float value[2]) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
@@ -541,8 +569,8 @@ namespace VLRCpp {
 
 
     class LambertianScatteringSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeCoeff;
-        ShaderNodeRef m_nodeF0;
+        ShaderNodeSocket m_nodeCoeff;
+        ShaderNodeSocket m_nodeF0;
 
     public:
         LambertianScatteringSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -552,16 +580,16 @@ namespace VLRCpp {
             errorCheck(vlrLambertianScatteringSurfaceMaterialDestroy(m_rawContext, (VLRLambertianScatteringSurfaceMaterial)m_raw));
         }
 
-        void setNodeCoeff(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeCoeff((VLRLambertianScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeCoeff->get(), socketIndex));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeCoeff((VLRLambertianScatteringSurfaceMaterial)m_raw, m_nodeCoeff.getNode(), m_nodeCoeff.socketInfo));
         }
         void setImmediateValueCoeff(const VLR::RGBSpectrum &value) {
             errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff((VLRLambertianScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeF0(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeF0(const ShaderNodeSocket &node) {
             m_nodeF0 = node;
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeF0((VLRLambertianScatteringSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeF0->get(), socketIndex));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeF0((VLRLambertianScatteringSurfaceMaterial)m_raw, m_nodeF0.getNode(), m_nodeF0.socketInfo));
         }
         void setImmediateValueF0(float value) {
             errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueF0((VLRLambertianScatteringSurfaceMaterial)m_raw, value));
@@ -571,8 +599,8 @@ namespace VLRCpp {
 
 
     class UE4SurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeBaseColor;
-        ShaderNodeRef m_nodeOcclusionRoughnessMetallic;
+        ShaderNodeSocket m_nodeBaseColor;
+        ShaderNodeSocket m_nodeOcclusionRoughnessMetallic;
 
     public:
         UE4SurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -582,16 +610,16 @@ namespace VLRCpp {
             errorCheck(vlrUE4SurfaceMaterialDestroy(m_rawContext, (VLRUE4SurfaceMaterial)m_raw));
         }
 
-        void setNodeBaseColor(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeBaseColor(const ShaderNodeSocket &node) {
             m_nodeBaseColor = node;
-            errorCheck(vlrUE4SufaceMaterialSetNodeBaseColor((VLRUE4SurfaceMaterial)m_raw, (VLRShaderNode)m_nodeBaseColor->get(), socketIndex));
+            errorCheck(vlrUE4SufaceMaterialSetNodeBaseColor((VLRUE4SurfaceMaterial)m_raw, m_nodeBaseColor.getNode(), m_nodeBaseColor.socketInfo));
         }
         void setImmediateValueBaseColor(const VLR::RGBSpectrum &value) {
             errorCheck(vlrUE4SufaceMaterialSetImmediateValueBaseColor((VLRUE4SurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeOcclusionRoughnessMetallic(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeOcclusionRoughnessMetallic(const ShaderNodeSocket &node) {
             m_nodeOcclusionRoughnessMetallic = node;
-            errorCheck(vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic((VLRUE4SurfaceMaterial)m_raw, (VLRShaderNode)m_nodeOcclusionRoughnessMetallic->get(), socketIndex));
+            errorCheck(vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic((VLRUE4SurfaceMaterial)m_raw, m_nodeOcclusionRoughnessMetallic.getNode(), m_nodeOcclusionRoughnessMetallic.socketInfo));
         }
         void setImmediateValueOcclusion(float value) {
             errorCheck(vlrUE4SufaceMaterialSetImmediateValueOcclusion((VLRUE4SurfaceMaterial)m_raw, value));
@@ -607,7 +635,7 @@ namespace VLRCpp {
 
 
     class DiffuseEmitterSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeEmittance;
+        ShaderNodeSocket m_nodeEmittance;
 
     public:
         DiffuseEmitterSurfaceMaterialHolder(VLRContext context) : SurfaceMaterialHolder(context) {
@@ -617,9 +645,9 @@ namespace VLRCpp {
             errorCheck(vlrDiffuseEmitterSurfaceMaterialDestroy(m_rawContext, (VLRDiffuseEmitterSurfaceMaterial)m_raw));
         }
 
-        void setNodeEmittance(const ShaderNodeRef &node, uint32_t socketIndex) {
+        void setNodeEmittance(const ShaderNodeSocket &node) {
             m_nodeEmittance = node;
-            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEmittance->get(), socketIndex));
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, m_nodeEmittance.getNode(), m_nodeEmittance.socketInfo));
         }
         void setImmediateValueEmittance(const VLR::RGBSpectrum &value) {
             errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, (float*)&value));
@@ -647,7 +675,7 @@ namespace VLRCpp {
 
 
     class EnvironmentEmitterSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        ShaderNodeRef m_nodeEmittance;
+        ShaderNodeSocket m_nodeEmittance;
 
     public:
         EnvironmentEmitterSurfaceMaterialHolder(VLRContext context) :
@@ -659,8 +687,8 @@ namespace VLRCpp {
         }
 
         void setNodeEmittance(EnvironmentTextureShaderNodeRef node) {
-            m_nodeEmittance = node;
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance((VLREnvironmentEmitterSurfaceMaterial)m_raw, (VLREnvironmentTextureShaderNode)m_nodeEmittance->get()));
+            m_nodeEmittance = node->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0);
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance((VLREnvironmentEmitterSurfaceMaterial)m_raw, (VLREnvironmentTextureShaderNode)m_nodeEmittance.getNode()));
         }
         void setImmediateValueEmittance(const VLR::RGBSpectrum &value) {
             errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance((VLREnvironmentEmitterSurfaceMaterial)m_raw, (float*)&value));
@@ -723,8 +751,8 @@ namespace VLRCpp {
     class TriangleMeshSurfaceNodeHolder : public SurfaceNodeHolder {
         VLRTriangleMeshSurfaceNode m_raw;
         std::vector<SurfaceMaterialRef> m_materials;
-        std::vector<ShaderNodeRef> m_nodeNormals;
-        std::vector<ShaderNodeRef> m_nodeAlphas;
+        std::vector<ShaderNodeSocket> m_nodeNormals;
+        std::vector<ShaderNodeSocket> m_nodeAlphas;
 
     public:
         TriangleMeshSurfaceNodeHolder(VLRContext context, const char* name) :
@@ -752,15 +780,15 @@ namespace VLRCpp {
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material, 
-                              const ShaderNodeRef &nodeNormal, uint32_t nodeNormalSocketIndex,
-                              const ShaderNodeRef &nodeAlpha, uint32_t nodeAlphaSocketIndex) {
+                              const ShaderNodeSocket &nodeNormal,
+                              const ShaderNodeSocket &nodeAlpha) {
             m_materials.push_back(material);
             m_nodeNormals.push_back(nodeNormal);
             m_nodeAlphas.push_back(nodeAlpha);
             errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup((VLRTriangleMeshSurfaceNode)m_raw, indices, numIndices,
                                                                   (VLRSurfaceMaterial)material->get(),
-                                                                  (VLRShaderNode)nodeNormal->get(), nodeNormalSocketIndex,
-                                                                  (VLRShaderNode)nodeAlpha->get(), nodeAlphaSocketIndex));
+                                                                  nodeNormal.getNode(), nodeNormal.socketInfo,
+                                                                  nodeAlpha.getNode(), nodeAlpha.socketInfo));
         }
     };
 

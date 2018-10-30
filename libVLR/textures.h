@@ -83,18 +83,37 @@ namespace VLR {
     
     struct ShaderNodeSocketIdentifier {
         const ShaderNode* node;
-        struct {
-            unsigned int outputSocketIndex : 4;
-            unsigned int option : 2;
-            unsigned int socketType : 4;
+        union {
+            struct SocketInfo {
+                unsigned int outputIndex : 4;
+                unsigned int option : 2;
+                unsigned int type : 4;
+            } socketInfo;
+            uint32_t socketInfoAsUInt;
         };
 
-        ShaderNodeSocketIdentifier() : node(nullptr), outputSocketIndex(0), option(0), socketType(VLRShaderNodeSocketType_Invalid) {}
+        ShaderNodeSocketIdentifier() : node(nullptr), socketInfoAsUInt(0) {
+            socketInfo.type = VLRShaderNodeSocketType_Invalid;
+        }
+        // used in this file
         ShaderNodeSocketIdentifier(const ShaderNode* _node, uint32_t _outputSocketIndex, uint32_t _option, VLRShaderNodeSocketType _socketType) :
-            node(_node), outputSocketIndex(_outputSocketIndex), option(_option), socketType(_socketType) {}
+            node(_node) {
+            socketInfo.outputIndex = _outputSocketIndex;
+            socketInfo.option = _option;
+            socketInfo.type = _socketType;
+        }
+        // used in VLR.cpp
+        ShaderNodeSocketIdentifier(const ShaderNode* _node, const VLRShaderNodeSocketInfo &_socketInfo) :
+            node(_node), socketInfoAsUInt(_socketInfo.dummy) {}
+
+        VLRShaderNodeSocketInfo getSocketInfo() const {
+            VLRShaderNodeSocketInfo ret;
+            ret.dummy = socketInfoAsUInt;
+            return ret;
+        }
 
         VLRShaderNodeSocketType getType() const {
-            return (VLRShaderNodeSocketType)socketType;
+            return (VLRShaderNodeSocketType)socketInfo.type;
         }
 
         Shared::ShaderNodeSocketID getSharedType() const;
@@ -356,7 +375,7 @@ namespace VLR {
         ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
             if (stype == VLRShaderNodeSocketType_RGBSpectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, 0, index, stype);
-            else if (stype == VLRShaderNodeSocketType_float && index < 4)
+            else if (stype == VLRShaderNodeSocketType_float && index < 1)
                 return ShaderNodeSocketIdentifier(this, 1, index, stype);
             return ShaderNodeSocketIdentifier();
         }

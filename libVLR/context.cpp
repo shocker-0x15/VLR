@@ -121,7 +121,7 @@ namespace VLR {
         m_maxNumNodeProcSet = 64;
         m_optixNodeProcedureSetBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeProcSet);
         m_optixNodeProcedureSetBuffer->setElementSize(sizeof(Shared::NodeProcedureSet));
-        m_bsdfProcSetSlotManager.initialize(m_maxNumNodeProcSet);
+        m_nodeProcSetSlotManager.initialize(m_maxNumNodeProcSet);
         m_optixContext["VLR::pv_nodeProcedureSetBuffer"]->set(m_optixNodeProcedureSetBuffer);
 
 

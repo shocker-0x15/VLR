@@ -417,11 +417,12 @@ namespace VLR {
 
 
     Shared::ShaderNodeSocketID ShaderNodeSocketIdentifier::getSharedType() const {
-        if (node && socketType != VLRShaderNodeSocketType_Invalid) {
+        if (node && socketInfo.type != VLRShaderNodeSocketType_Invalid) {
             Shared::ShaderNodeSocketID ret;
             ret.nodeDescIndex = node->getShaderNodeIndex();
-            ret.socketIndex = outputSocketIndex;
-            ret.option = option;
+            ret.socketIndex = socketInfo.outputIndex;
+            ret.option = socketInfo.option;
+            return ret;
         }
         return Shared::ShaderNodeSocketID::Invalid();
     }
