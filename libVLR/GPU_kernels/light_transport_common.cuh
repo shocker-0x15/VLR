@@ -222,6 +222,8 @@ namespace VLR {
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
 
+
+
     RT_PROGRAM void shadowAnyHitDefault() {
         sm_shadowPayload.fractionalVisibility = 0.0f;
         rtTerminateRay();
@@ -254,6 +256,8 @@ namespace VLR {
         if (sm_shadowPayload.fractionalVisibility == 0.0f)
             rtTerminateRay();
     }
+
+
 
     RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
         optix::float3 value = calcNode<optix::float3>(pv_nodeNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt);

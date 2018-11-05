@@ -9,6 +9,8 @@ namespace VLR {
     rtBuffer<KernelRNG, 2> pv_rngBuffer;
     rtBuffer<RGBSpectrum, 2> pv_outputBuffer;
 
+
+
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void pathTracingIteration() {
         KernelRNG &rng = sm_payload.rng;
@@ -112,6 +114,8 @@ namespace VLR {
         sm_payload.terminate = false;
     }
 
+
+
     // JP: 本当は無限大の球のIntersection/Bounding Box Programを使用して環境光に関する処理もClosest Hit Programで統一的に行いたい。
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
@@ -163,6 +167,8 @@ namespace VLR {
             sm_payload.contribution += sm_payload.alpha * Le * MISWeight;
         }
     }
+
+
 
     // Common Ray Generation Program for All Camera Types
     RT_PROGRAM void pathTracing() {
@@ -219,6 +225,8 @@ namespace VLR {
         else
             contribution = (contribution * (pv_numAccumFrames - 1) + payload.contribution) / pv_numAccumFrames;
     }
+
+
 
     // Exception Program
     RT_PROGRAM void exception() {

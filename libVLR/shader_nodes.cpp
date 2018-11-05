@@ -903,6 +903,7 @@ namespace VLR {
 
 
     std::map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, LinearImage2D*> Image2DTextureShaderNode::NullImages;
 
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
@@ -916,11 +917,17 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
 
+        uint8_t nullData[] = { 255, 0, 255, 255 };
+        LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, VLRDataFormat_RGBA8x4, false);
+
         OptiXProgramSets[context.getID()] = programSet;
+        NullImages[context.getID()] = nullImage;
     }
 
     // static
     void Image2DTextureShaderNode::finalize(Context &context) {
+        delete NullImages.at(context.getID());
+
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
     }
@@ -957,7 +964,10 @@ namespace VLR {
 
     void Image2DTextureShaderNode::setImage(const Image2D* image) {
         m_image = image;
-        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+        if (m_image)
+            m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+        else
+            m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
         setupNodeDescriptor();
     }
 

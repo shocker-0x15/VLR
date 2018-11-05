@@ -568,8 +568,10 @@ namespace VLR {
 
     template <typename RealType>
     void RegularConstantContinuousDistribution1DTemplate<RealType>::finalize(Context &context) {
-        m_CDF->destroy();
-        m_PDF->destroy();
+        if (m_CDF && m_PDF) {
+            m_CDF->destroy();
+            m_PDF->destroy();
+        }
     }
 
     template <typename RealType>

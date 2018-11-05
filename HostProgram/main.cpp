@@ -3,7 +3,7 @@
 #include <set>
 #include <functional>
 
-#include <VLR/VLRpp.h>
+#include <VLR/VLRCpp.h>
 
 // only for catching an exception.
 #include <optix_world.h>
@@ -141,11 +141,41 @@ static void glfw_error_callback(int32_t error, const char* description) {
     debugPrintf("Error %d: %s\n", error, description);
 }
 
-static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::string &filepath, bool applyDegamma) {
+struct Image2DCacheKey {
+    std::string filepath;
+    bool applyDegamma;
+
+    bool operator<(const Image2DCacheKey &key) const {
+        if (filepath < key.filepath)
+            return true;
+        else if (filepath == key.filepath)
+            if (applyDegamma < key.applyDegamma)
+                return true;
+        return false;
+    }
+};
+
+std::map<Image2DCacheKey, VLRCpp::Image2DRef> g_image2DCache;
+
+static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, bool applyDegamma) {
     using namespace VLRCpp;
     using namespace VLR;
 
     Image2DRef ret;
+
+    Image2DCacheKey key{ filepath, applyDegamma };
+    if (g_image2DCache.count(key))
+        return g_image2DCache.at(key);
+
+    bool fileExists = false;
+    {
+        std::ifstream ifs(filepath);
+        fileExists = ifs.is_open();
+    }
+    if (!fileExists)
+        return ret;
+
+    debugPrintf("Read image: %s...", filepath.c_str());
 
     std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
     if (ext == "exr") {
@@ -169,16 +199,20 @@ static VLRCpp::Image2DRef loadImage2D(VLRCpp::Context &context, const std::strin
             curDataHead += width;
         }
 
-        ret = context.createLinearImage2D(width, height, VLRDataFormat_RGBA16Fx4, applyDegamma, (uint8_t*)linearImageData);
+        ret = context->createLinearImage2D(width, height, VLRDataFormat_RGBA16Fx4, applyDegamma, (uint8_t*)linearImageData);
 
         delete[] linearImageData;
     }
     else {
         int32_t width, height, n;
         uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
-        ret = context.createLinearImage2D(width, height, VLRDataFormat_RGBA8x4, applyDegamma, linearImageData);
+        ret = context->createLinearImage2D(width, height, VLRDataFormat_RGBA8x4, applyDegamma, linearImageData);
         stbi_image_free(linearImageData);
     }
+
+    debugPrintf("done.\n");
+
+    g_image2DCache[key] = ret;
 
     return ret;
 }
@@ -192,7 +226,7 @@ struct SurfaceAttributeTuple {
         material(_material), nodeNormal(_nodeNormal), nodeAlpha(_nodeAlpha) {}
 };
 
-static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, const aiNode* nodeSrc,
+static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
                                const std::vector<SurfaceAttributeTuple> &attrTuples, bool flipV,
                                VLRCpp::InternalNodeRef* nodeOut) {
     using namespace VLRCpp;
@@ -211,7 +245,7 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
         tf.d1, tf.d2, tf.d3, tf.d4,
     };
 
-    *nodeOut = context.createInternalNode(nodeSrc->mName.C_Str(), context.createStaticTransform(tfElems));
+    *nodeOut = context->createInternalNode(nodeSrc->mName.C_Str(), context->createStaticTransform(tfElems));
 
     std::vector<uint32_t> meshIndices;
     for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
@@ -221,7 +255,7 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
             continue;
         }
 
-        auto surfMesh = context.createTriangleMeshSurfaceNode(mesh->mName.C_Str());
+        auto surfMesh = context->createTriangleMeshSurfaceNode(mesh->mName.C_Str());
         const SurfaceAttributeTuple attrTuple = attrTuples[mesh->mMaterialIndex];
         const SurfaceMaterialRef &surfMat = attrTuple.material;
         const ShaderNodeSocket &nodeNormal = attrTuple.nodeNormal;
@@ -268,9 +302,9 @@ static void recursiveConstruct(VLRCpp::Context &context, const aiScene* objSrc, 
     }
 }
 
-typedef SurfaceAttributeTuple(*CreateMaterialFunction)(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &);
+typedef SurfaceAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
 
-static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+static SurfaceAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     using namespace VLRCpp;
     using namespace VLR;
 
@@ -282,9 +316,9 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     aiMat->Get(AI_MATKEY_NAME, strValue);
     VLRDebugPrintf("Material: %s\n", strValue.C_Str());
 
-    MatteSurfaceMaterialRef mat = context.createMatteSurfaceMaterial();
+    MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-        Image2DTextureShaderNodeRef tex = context.createImage2DTextureShaderNode();
+        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
         Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
         tex->setImage(image);
         mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
@@ -301,7 +335,7 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(VLRCpp::Context &cont
     return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
 }
 
-static void construct(VLRCpp::Context &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut, 
+static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut, 
                       CreateMaterialFunction matFunc = createMaterialDefaultFunction) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -338,13 +372,13 @@ struct Shot {
 };
 uint32_t g_renderTargetSizeX;
 uint32_t g_renderTargetSizeY;
-static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
+static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context.createScene(context.createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
-    TriangleMeshSurfaceNodeRef cornellBox = context.createTriangleMeshSurfaceNode("CornellBox");
+    TriangleMeshSurfaceNodeRef cornellBox = context->createTriangleMeshSurfaceNode("CornellBox");
     {
         std::vector<Vertex> vertices;
 
@@ -388,10 +422,10 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
 
         {
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
-            Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode();
+            Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
             nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
 
             std::vector<uint32_t> matGroup = {
@@ -401,7 +435,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setImmediateValueAlbedo(sRGB_degamma(VLR::RGBSpectrum(0.75f, 0.75f, 0.75f)));
 
             std::vector<uint32_t> matGroup = {
@@ -412,12 +446,12 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.75f, 0.25f, 0.25f)));
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
-            //Float3TextureRef texEmittance = context.createConstantFloat3Texture(value);
-            //SurfaceMaterialRef matMatte = context.createDiffuseEmitterSurfaceMaterial(texEmittance);
+            //Float3TextureRef texEmittance = context->createConstantFloat3Texture(value);
+            //SurfaceMaterialRef matMatte = context->createDiffuseEmitterSurfaceMaterial(texEmittance);
 
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
@@ -426,7 +460,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            MatteSurfaceMaterialRef matMatte = context.createMatteSurfaceMaterial();
+            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.25f, 0.25f, 0.75f)));
 
             std::vector<uint32_t> matGroup = {
@@ -436,7 +470,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            DiffuseEmitterSurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial();
+            DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
             matLight->setImmediateValueEmittance(RGBSpectrum(30.0f, 30.0f, 30.0f));
 
             std::vector<uint32_t> matGroup = {
@@ -446,7 +480,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         }
 
         {
-            DiffuseEmitterSurfaceMaterialRef matLight = context.createDiffuseEmitterSurfaceMaterial();
+            DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
             matLight->setImmediateValueEmittance(RGBSpectrum(100.0f, 100.0f, 100.0f));
 
             std::vector<uint32_t> matGroup = {
@@ -460,7 +494,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
 
 
     InternalNodeRef sphereNode;
-    construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -491,7 +525,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         ////// Titanium
         ////RGBSpectrum eta(2.71866f, 2.50954f, 2.22767f);
         ////RGBSpectrum k(3.79521f, 3.40035f, 3.00114f);
-        //SpecularReflectionSurfaceMaterialRef mat = context.createSpecularReflectionSurfaceMaterial();
+        //SpecularReflectionSurfaceMaterialRef mat = context->createSpecularReflectionSurfaceMaterial();
         //mat->setImmediateValueCoeffR(RGBSpectrum(0.999f, 0.999f, 0.999f));
         //mat->setImmediateValueEta(eta);
         //mat->setImmediateValue_k(k);
@@ -504,7 +538,7 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         //RGBSpectrum etaInt(1.51455f, 1.51816f, 1.52642f);
         // Diamond
         RGBSpectrum etaInt(2.41174f, 2.42343f, 2.44936f);
-        SpecularScatteringSurfaceMaterialRef mat = context.createSpecularScatteringSurfaceMaterial();
+        SpecularScatteringSurfaceMaterialRef mat = context->createSpecularScatteringSurfaceMaterial();
         mat->setImmediateValueCoeff(RGBSpectrum(0.999f, 0.999f, 0.999f));
         mat->setImmediateValueEtaExt(etaExt);
         mat->setImmediateValueEtaInt(etaInt);
@@ -513,28 +547,28 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
         //// Silver
         //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
         //float k[] = { 3.82431f, 3.1451f, 2.27711f };
-        //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        //Float3TextureRef texEta = context.createConstantFloat3Texture(eta);
-        //Float3TextureRef tex_k = context.createConstantFloat3Texture(k);
-        //SurfaceMaterialRef matA = context.createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
+        //Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
+        //Float3TextureRef texEta = context->createConstantFloat3Texture(eta);
+        //Float3TextureRef tex_k = context->createConstantFloat3Texture(k);
+        //SurfaceMaterialRef matA = context->createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
 
         //float albedoRoughness[] = { 0.75f, 0.25f, 0.0f, 0.0f };
-        //Float4TextureRef texAlbedoRoughness = context.createConstantFloat4Texture(albedoRoughness);
-        //SurfaceMaterialRef matB = context.createMatteSurfaceMaterial(texAlbedoRoughness);
+        //Float4TextureRef texAlbedoRoughness = context->createConstantFloat4Texture(albedoRoughness);
+        //SurfaceMaterialRef matB = context->createMatteSurfaceMaterial(texAlbedoRoughness);
 
         //SurfaceMaterialRef mats[] = { matA, matB };
-        //SurfaceMaterialRef mat = context.createMultiSurfaceMaterial(mats, lengthof(mats));
+        //SurfaceMaterialRef mat = context->createMultiSurfaceMaterial(mats, lengthof(mats));
 
         return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
     shot->scene->addChild(sphereNode);
-    sphereNode->setTransform(context.createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+    sphereNode->setTransform(context->createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
 
 
 
     //Image2DRef imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr");
-    //Float3TextureRef texEnv = context.createImageFloat3Texture(imgEnv);
-    //EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial(texEnv);
+    //Float3TextureRef texEnv = context->createImageFloat3Texture(imgEnv);
+    //EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial(texEnv);
     //scene->setEnvironment(matEnv);
 
     g_cameraPos = Point3D(0, 1.5f, 6.0f);
@@ -548,43 +582,43 @@ static void createCornellBoxScene(VLRCpp::Context &context, Shot* shot) {
     g_fovYInDeg = 40;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                              g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+    shot->perspectiveCamera = context->createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                               g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
     g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
     g_thetaAngle = g_phiAngle * g_renderTargetSizeY / g_renderTargetSizeX;
-    shot->equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
-                                                                      g_equiSensitivity, g_phiAngle, g_thetaAngle);
+    shot->equirectangularCamera = context->createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
+                                                                       g_equiSensitivity, g_phiAngle, g_thetaAngle);
 
     g_cameraType = 0;
     shot->camera = shot->perspectiveCamera;
 }
-static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
+static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context.createScene(context.createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
-        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context.createOffsetAndScaleUVTextureMap2DShaderNode();
+        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context->createOffsetAndScaleUVTextureMap2DShaderNode();
         nodeTexCoord->setValues(offset, scale);
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
 
-        Image2DTextureShaderNodeRef nodeAlbedo = context.createImage2DTextureShaderNode();
+        Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
-        MatteSurfaceMaterialRef mat = context.createMatteSurfaceMaterial();
+        MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
         mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
 
         return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
@@ -593,7 +627,7 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
 
 
 
-    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -608,17 +642,17 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         ShaderNodeSocket socketNormal;
         ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
-            MatteSurfaceMaterialRef matteMat = context.createMatteSurfaceMaterial();
+            MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
             matteMat->setImmediateValueAlbedo(RGBSpectrum(0.18f, 0.18f, 0.18f));
 
             mat = matteMat;
         }
         else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
             Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
-            Image2DTextureShaderNodeRef nodeBaseColorAlpha = context.createImage2DTextureShaderNode();
+            Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
             nodeBaseColorAlpha->setImage(imgNormalAlpha);
 
-            UE4SurfaceMaterialRef ue4Mat = context.createUE4SurfaceMaterial();
+            UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
             ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
             ue4Mat->setImmediateValueOcclusion(0.0f);
@@ -635,23 +669,23 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
         //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
         //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
         //    float roughness[] = { 0.1f, 0.1f };
-        //    Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        //    Float3TextureRef texEtaExt = context.createConstantFloat3Texture(etaExt);
-        //    Float3TextureRef texEtaInt = context.createConstantFloat3Texture(etaInt);
-        //    Float2TextureRef texRoughness = context.createConstantFloat2Texture(roughness);
-        //    mat = context.createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
+        //    Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
+        //    Float3TextureRef texEtaExt = context->createConstantFloat3Texture(etaExt);
+        //    Float3TextureRef texEtaInt = context->createConstantFloat3Texture(etaInt);
+        //    Float2TextureRef texRoughness = context->createConstantFloat2Texture(roughness);
+        //    mat = context->createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
 
         //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
         //    //float F0 = 0.2f;
-        //    //Float3TextureRef texCoeff = context.createConstantFloat3Texture(coeff);
-        //    //FloatTextureRef texF0 = context.createConstantFloatTexture(F0);
-        //    //mat = context.createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
+        //    //Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
+        //    //FloatTextureRef texF0 = context->createConstantFloatTexture(F0);
+        //    //mat = context->createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
         //}
 
         return SurfaceAttributeTuple(mat, socketNormal, socketAlpha);
     });
     shot->scene->addChild(modelNode);
-    modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.04089, 0)));
+    modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
 
 
 
@@ -669,43 +703,43 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
     //    SurfaceMaterialRef mat;
     //    Float4TextureRef texNormalAlpha;
     //    if (strcmp(strValue.C_Str(), "_Head1") == 0) {
-    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context.createImageFloat4Texture(
+    //        texNormalAlpha = context->createImageFloat4Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
-    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
     //    }
     //    else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
-    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context.createImageFloat4Texture(
+    //        texNormalAlpha = context->createImageFloat4Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
-    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
     //    }
     //    else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
-    //        Float3TextureRef texBaseColor = context.createImageFloat3Texture(
+    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context.createImageFloat3Texture(
+    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context.createImageFloat4Texture(
+    //        texNormalAlpha = context->createImageFloat4Texture(
     //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
-    //        mat = context.createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
     //    }
 
     //    return SurfaceAttributeTuple(mat, texNormalAlpha);
     //});
     //shot->scene->addChild(modelNode);
-    //modelNode->setTransform(context.createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
+    //modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
 
 
 
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
-    EnvironmentTextureShaderNodeRef nodeEnvTex = context.createEnvironmentTextureShaderNode();
-    EnvironmentEmitterSurfaceMaterialRef matEnv = context.createEnvironmentEmitterSurfaceMaterial();
+    EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     nodeEnvTex->setImage(imgEnv);
     matEnv->setNodeEmittance(nodeEnvTex);
     shot->scene->setEnvironment(matEnv);
@@ -723,14 +757,14 @@ static void createMaterialTestScene(VLRCpp::Context &context, Shot* shot) {
     g_fovYInDeg = 40;
     g_lensRadius = 0.0f;
     g_objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                              g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+    shot->perspectiveCamera = context->createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                               g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
     g_equiSensitivity = 1.0f / (g_phiAngle * (1 - std::cos(g_thetaAngle)));
     g_phiAngle = M_PI;
     g_thetaAngle = g_phiAngle * g_renderTargetSizeY / g_renderTargetSizeX;
-    shot->equirectangularCamera = context.createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
-                                                                      g_equiSensitivity, g_phiAngle, g_thetaAngle);
+    shot->equirectangularCamera = context->createEquirectangularCamera(g_cameraPos, g_cameraOrientation,
+                                                                       g_equiSensitivity, g_phiAngle, g_thetaAngle);
 
     g_cameraType = 0;
     shot->camera = shot->perspectiveCamera;
@@ -788,14 +822,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         }
     }
 
-    VLRCpp::Context context(enableLogging, stackSize);
+    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, stackSize);
 
     int32_t primaryDevice = 0;
     if (!devices.empty()) {
         std::vector<int32_t> deviceArray;
         for (auto it = devices.cbegin(); it != devices.cend(); ++it)
             deviceArray.push_back(*it);
-        context.setDevices(deviceArray.data(), deviceArray.size());
+        context->setDevices(deviceArray.data(), deviceArray.size());
 
         primaryDevice = deviceArray.front();
     }
@@ -874,7 +908,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         GLTK::Buffer outputBufferGL;
         outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
 
-        context.bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
+        context->bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
 
         GLTK::BufferTexture outputTexture;
         outputTexture.initialize(outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
@@ -992,14 +1026,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
 
-                context.bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
+                context->bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
 
                 outputTexture.initialize(outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
 
                 frameBuffer.initialize(g_renderTargetSizeX, g_renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
 
-                shot.perspectiveCamera = context.createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
-                                                                         g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
+                shot.perspectiveCamera = context->createPerspectiveCamera(g_cameraPos, g_cameraOrientation,
+                                                                          g_persSensitivity, (float)g_renderTargetSizeX / g_renderTargetSizeY, g_fovYInDeg * M_PI / 180, g_lensRadius, 1.0f, g_objPlaneDistance);
 
                 resized = true;
             }
@@ -1338,7 +1372,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     accumFrameTimes = 0;
                 else
                     sw.start();
-                context.render(shot.scene, shot.camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
+                context->render(shot.scene, shot.camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
                 if (!firstFrame)
                     accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
@@ -1348,7 +1382,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 //    debugPrintf("Position: %g, %g, %g\n", g_cameraPos.x, g_cameraPos.y, g_cameraPos.z);
                 //    debugPrintf("Orientation: %g, %g, %g, %g\n", g_cameraOrientation.x, g_cameraOrientation.y, g_cameraOrientation.z, g_cameraOrientation.w);
 
-                //    auto output = (const RGBSpectrum*)context.mapOutputBuffer();
+                //    auto output = (const RGBSpectrum*)context->mapOutputBuffer();
                 //    auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
                 //    for (int y = 0; y < renderTargetSizeY; ++y) {
                 //        for (int x = 0; x < renderTargetSizeX; ++x) {
@@ -1367,7 +1401,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 //    }
                 //    stbi_write_png("output.png", renderTargetSizeX, renderTargetSizeY, 4, data, sizeof(data[0]) * renderTargetSizeX);
                 //    delete[] data;
-                //    context.unmapOutputBuffer();
+                //    context->unmapOutputBuffer();
                 //}
 
                 g_operatedCameraOnPrevFrame = operatingCamera;
@@ -1460,7 +1494,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t renderTargetSizeX = renderImageSizeX;
         uint32_t renderTargetSizeY = renderImageSizeY;
 
-        context.bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, 0);
+        context->bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, 0);
 
         VLRDebugPrintf("Setup: %g[s]\n", swGlobal.elapsed(StopWatch::Milliseconds) * 1e-3f);
         swGlobal.start();
@@ -1472,12 +1506,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t finishTime = 123 * 1000 - 3000;
         auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
-            context.render(shot.scene, shot.camera, 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
+            context->render(shot.scene, shot.camera, 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
 
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;
             if (elapsed > nextTimeToOutput || finish) {
-                auto output = (const RGBSpectrum*)context.mapOutputBuffer();
+                auto output = (const RGBSpectrum*)context->mapOutputBuffer();
 
                 for (int y = 0; y < renderTargetSizeY; ++y) {
                     for (int x = 0; x < renderTargetSizeX; ++x) {
@@ -1502,7 +1536,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 stbi_write_bmp(filename, renderTargetSizeX, renderTargetSizeY, 4, data);
                 VLRDebugPrintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 
-                context.unmapOutputBuffer();
+                context->unmapOutputBuffer();
 
                 if (finish)
                     break;
