@@ -936,6 +936,7 @@ namespace VLR {
         ShaderNode(context), m_image(nullptr) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
+        m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
         m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
         m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
