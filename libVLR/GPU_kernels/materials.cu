@@ -489,8 +489,8 @@ namespace VLR {
         p.eta = calcNode<RGBSpectrum>(mat.nodeEta, mat.immEta, surfPt);
         p.k = calcNode<RGBSpectrum>(mat.node_k, mat.imm_k, surfPt);
         optix::float2 roughness = calcNode<optix::float2>(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
-        p.roughnessX = roughness.x;
-        p.roughnessY = roughness.y;
+        p.roughnessX = std::max(0.01f, roughness.x);
+        p.roughnessY = std::max(0.01f, roughness.y);
 
         return sizeof(MicrofacetBRDF) / 4;
     }
@@ -653,8 +653,8 @@ namespace VLR {
         p.etaExt = calcNode<RGBSpectrum>(mat.nodeEtaExt, mat.immEtaExt, surfPt);
         p.etaInt = calcNode<RGBSpectrum>(mat.nodeEtaInt, mat.immEtaInt, surfPt);
         optix::float2 roughness = calcNode<optix::float2>(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
-        p.roughnessX = roughness.x;
-        p.roughnessY = roughness.y;
+        p.roughnessX = std::max(0.01f, roughness.x);
+        p.roughnessY = std::max(0.01f, roughness.y);
 
         return sizeof(MicrofacetBSDF) / 4;
     }
@@ -1040,7 +1040,7 @@ namespace VLR {
                                                                            optix::make_float3(mat.immOcclusionRoughnessMetallic[0],
                                                                                               mat.immOcclusionRoughnessMetallic[1],
                                                                                               mat.immOcclusionRoughnessMetallic[2]), surfPt);
-        p.roughness = occlusionRoughnessMetallic.y;
+        p.roughness = std::max(0.01f, occlusionRoughnessMetallic.y);
         p.metallic = occlusionRoughnessMetallic.z;
 
         return sizeof(UE4BRDF) / 4;

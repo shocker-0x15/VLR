@@ -17,10 +17,7 @@ namespace VLR {
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
-
-        applyBumpMapping(fetchNormal(surfPt), &surfPt);
+        calcSurfacePoint(&surfPt, &hypAreaPDF);
 
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
         BSDF bsdf(matDesc, surfPt, sm_payload.wavelengthSelected);

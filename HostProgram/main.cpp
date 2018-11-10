@@ -627,7 +627,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
 
 
-    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/rounded_box.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -647,21 +647,33 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
             mat = matteMat;
         }
-        else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
-            Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
-            Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
-            nodeBaseColorAlpha->setImage(imgNormalAlpha);
+        else /*if (strcmp(strValue.C_Str(), "Glossy") == 0)*/ {
+            //Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
+            //Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
+            //nodeBaseColorAlpha->setImage(imgNormalAlpha);
 
-            UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-            ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
-            ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
-            ue4Mat->setImmediateValueOcclusion(0.0f);
-            ue4Mat->setImmediateValueRoughness(0.3f);
-            ue4Mat->setImmediateValueMetallic(0.0f);
+            //UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+            //ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
+            //ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
+            //ue4Mat->setImmediateValueOcclusion(0.0f);
+            //ue4Mat->setImmediateValueRoughness(0.3f);
+            //ue4Mat->setImmediateValueMetallic(0.0f);
 
-            mat = ue4Mat;
+            //mat = ue4Mat;
 
-            socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_float, 3);
+            //socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_float, 3);
+
+            MicrofacetReflectionSurfaceMaterialRef mfMat = context->createMicrofacetReflectionSurfaceMaterial();
+            // Aluminum
+            mfMat->setImmediateValueEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
+            mfMat->setImmediateValue_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
+            float roughness[] = { 0.1f, 0.3f };
+            mfMat->setImmediateValueRoughness(roughness);
+
+            mat = mfMat;
+
+            //MatteSurfaceMaterialRef mtMat = context->createMatteSurfaceMaterial();
+            //mat = mtMat;
         }
         //if (strcmp(strValue.C_Str(), "Base") == 0 || 
         //    strcmp(strValue.C_Str(), "Glossy") == 0) {
@@ -739,9 +751,10 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     nodeEnvTex->setImage(imgEnv);
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittance(nodeEnvTex);
+    //matEnv->setImmediateValueEmittance(RGBSpectrum(1, 1, 1));
     shot->scene->setEnvironment(matEnv);
 
 

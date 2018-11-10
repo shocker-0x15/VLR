@@ -294,7 +294,23 @@ namespace VLR {
                 NumTypes
             } value;
 
-            RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) { }
+            RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
+        };
+
+
+
+        struct TangentType {
+            enum Value {
+                VertexAttribute = 0,
+                RadialX,
+                RadialY,
+                RadialZ
+            } value;
+
+            RT_FUNCTION constexpr TangentType(Value v = VertexAttribute) : value(v) {}
+            RT_FUNCTION bool operator==(const TangentType &r) const {
+                return value == r.value;
+            }
         };
 
 

@@ -217,6 +217,7 @@ namespace VLR {
     // per GeometryInstance
     rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
+    rtDeclareVariable(TangentType, pv_tangentType, , ) = TangentType::VertexAttribute;
     rtDeclareVariable(ShaderNodeSocketID, pv_nodeNormal, , );
     rtDeclareVariable(ShaderNodeSocketID, pv_nodeAlpha, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
@@ -259,6 +260,36 @@ namespace VLR {
 
 
 
+    RT_FUNCTION void modifyTangent(SurfacePoint* surfPt) {
+        if (pv_tangentType == TangentType::VertexAttribute)
+            return;
+
+        Point3D localPosition = transform(RT_WORLD_TO_OBJECT, surfPt->position);
+
+        Vector3D localTangent;
+        if (pv_tangentType == TangentType::RadialX) {
+            localTangent = Vector3D(0, -localPosition.z, localPosition.y);
+        }
+        else if (pv_tangentType == TangentType::RadialY) {
+            localTangent = Vector3D(localPosition.z, 0, -localPosition.x);
+        }
+        else {
+            localTangent = Vector3D(-localPosition.y, localPosition.x, 0);
+        }
+
+        Vector3D newTangent = normalize(transform(RT_OBJECT_TO_WORLD, localTangent));
+
+        // JP: 法線と接線が直交することを保証する。
+        //     直交性の消失は重心座標補間によっておこる？
+        // EN: guarantee the orthogonality between the normal and tangent.
+        //     Orthogonality break might be caused by barycentric interpolation?
+        float dotNT = dot(surfPt->shadingFrame.z, newTangent);
+        surfPt->shadingFrame.x = normalize(newTangent - dotNT * surfPt->shadingFrame.z);
+        surfPt->shadingFrame.y = cross(surfPt->shadingFrame.z, surfPt->shadingFrame.x);
+    }
+
+
+
     RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
         optix::float3 value = calcNode<optix::float3>(pv_nodeNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt);
         Normal3D normalLocal = 2 * Normal3D(value.x, value.y, value.z) - 1.0f;
@@ -280,5 +311,15 @@ namespace VLR {
         ReferenceFrame bumpFrame(t, b, n);
 
         surfPt->shadingFrame = bumpFrame;
+    }
+
+
+
+    RT_FUNCTION void calcSurfacePoint(SurfacePoint* surfPt, float* hypAreaPDF) {
+        HitPointParameter hitPointParam = a_hitPointParam;
+        pv_progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+
+        modifyTangent(surfPt);
+        applyBumpMapping(fetchNormal(*surfPt), surfPt);
     }
 }
