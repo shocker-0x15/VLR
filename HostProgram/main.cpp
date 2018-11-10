@@ -634,6 +634,34 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
 
 
+    TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+    {
+        std::vector<Vertex> vertices;
+
+        // Light
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+        light->setVertices(vertices.data(), vertices.size());
+
+        {
+            DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+            matLight->setImmediateValueEmittance(RGBSpectrum(30.0f, 30.0f, 30.0f));
+
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3
+            };
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+        }
+    }
+    InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
+    lightNode->addChild(light);
+    shot->scene->addChild(lightNode);
+
+
+
     construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, 
               [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
@@ -770,7 +798,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
     nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittance(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(1, 1, 1));
+    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->scene->setEnvironment(matEnv);
 
 

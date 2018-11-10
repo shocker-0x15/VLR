@@ -952,34 +952,43 @@ namespace VLR {
 
     bool EnvironmentEmitterSurfaceMaterial::setNodeEmittance(const EnvironmentTextureShaderNode* node) {
         m_nodeEmittance = node;
+        setupMaterialDescriptor();
         if (m_importanceMap.isInitialized())
             m_importanceMap.finalize(m_context);
-        m_nodeEmittance->createImportanceMap(&m_importanceMap);
-        setupMaterialDescriptor();
         return true;
     }
 
     void EnvironmentEmitterSurfaceMaterial::setImmediateValueEmittance(const RGBSpectrum &value) {
         m_immEmittance = value;
+        setupMaterialDescriptor();
         if (m_importanceMap.isInitialized())
             m_importanceMap.finalize(m_context);
-        {
-            uint32_t mapWidth = 512;
-            uint32_t mapHeight = 256;
-            float* linearData = new float[mapWidth * mapHeight];
-            std::fill_n(linearData, mapWidth * mapHeight, 1.0f);
-            for (int y = 0; y < mapHeight; ++y) {
-                float theta = M_PI * (y + 0.5f) / mapHeight;
-                for (int x = 0; x < mapWidth; ++x) {
-                    linearData[y * mapWidth + x] *= std::sin(theta);
-                }
+    }
+
+    const RegularConstantContinuousDistribution2D &EnvironmentEmitterSurfaceMaterial::getImportanceMap() {
+        if (!m_importanceMap.isInitialized()) {
+            if (m_nodeEmittance) {
+                m_nodeEmittance->createImportanceMap(&m_importanceMap);
             }
+            else {
+                uint32_t mapWidth = 512;
+                uint32_t mapHeight = 256;
+                float* linearData = new float[mapWidth * mapHeight];
+                std::fill_n(linearData, mapWidth * mapHeight, 1.0f);
+                for (int y = 0; y < mapHeight; ++y) {
+                    float theta = M_PI * (y + 0.5f) / mapHeight;
+                    for (int x = 0; x < mapWidth; ++x) {
+                        linearData[y * mapWidth + x] *= std::sin(theta);
+                    }
+                }
 
-            m_importanceMap.initialize(m_context, linearData, mapWidth, mapHeight);
+                m_importanceMap.initialize(m_context, linearData, mapWidth, mapHeight);
 
-            delete[] linearData;
+                delete[] linearData;
+            }
         }
-        setupMaterialDescriptor();
+
+        return m_importanceMap;
     }
 
     // END: Material

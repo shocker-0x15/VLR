@@ -340,9 +340,7 @@ namespace VLR {
         bool setNodeEmittance(const EnvironmentTextureShaderNode* node);
         void setImmediateValueEmittance(const RGBSpectrum &value);
 
-        const RegularConstantContinuousDistribution2D &getImportanceMap() const {
-            return m_importanceMap;
-        }
+        const RegularConstantContinuousDistribution2D &getImportanceMap();
     };
 
     // END: Material
