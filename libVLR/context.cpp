@@ -32,10 +32,12 @@ namespace VLR {
     defineClassID(Image2D, LinearImage2D);
 
     defineClassID(Object, ShaderNode);
+    defineClassID(ShaderNode, GeometryShaderNode);
     defineClassID(ShaderNode, FloatShaderNode);
     defineClassID(ShaderNode, Float2ShaderNode);
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
+    defineClassID(ShaderNode, Vector3DToSpectrumShaderNode);
     defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, ConstantTextureShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);

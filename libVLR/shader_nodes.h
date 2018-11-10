@@ -150,6 +150,44 @@ namespace VLR {
 
 
 
+    class GeometryShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, GeometryShaderNode*> Instances;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        GeometryShaderNode(Context &context);
+        ~GeometryShaderNode();
+
+        // Out Socket   | option |
+        // 0 (Point3D)  |      0 | Position
+        // 1 (Normal3D) |   0, 1 | Geometric Normal, Shading Normal
+        // 2 (Vector3D) |   0, 1 | Shading Tangent, Shading Bitangent
+        // 3 (Point3D)  |      0 | Texture Coordinates
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_Point3D && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            else if (stype == VLRShaderNodeSocketType_Normal3D && index < 2)
+                return ShaderNodeSocketIdentifier(this, 1, index, stype);
+            else if (stype == VLRShaderNodeSocketType_Vector3D && index < 2)
+                return ShaderNodeSocketIdentifier(this, 2, index, stype);
+            else if (stype == VLRShaderNodeSocketType_TextureCoordinates && index < 1)
+                return ShaderNodeSocketIdentifier(this, 3, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        static GeometryShaderNode* getInstance(Context &context);
+    };
+
+
+
     class FloatShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -320,6 +358,38 @@ namespace VLR {
 
 
 
+    class Vector3DToSpectrumShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_nodeVector3D;
+        Vector3D m_immVector3D;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        Vector3DToSpectrumShaderNode(Context &context);
+        ~Vector3DToSpectrumShaderNode();
+
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        bool setNodeVector3D(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueVector3D(const Vector3D &value);
+    };
+
+
+
     class OffsetAndScaleUVTextureMap2DShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -369,11 +439,11 @@ namespace VLR {
         ConstantTextureShaderNode(Context &context);
         ~ConstantTextureShaderNode();
 
-        // Out Socket      | option |
-        // 0 (RGBSpectrum) |      0 | Spectrum
-        // 1 (float)       |      0 | Alpha
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        // 1 (float)    |      0 | Alpha
         ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
-            if (stype == VLRShaderNodeSocketType_RGBSpectrum && index < 1)
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, 0, index, stype);
             else if (stype == VLRShaderNodeSocketType_float && index < 1)
                 return ShaderNodeSocketIdentifier(this, 1, index, stype);
@@ -405,14 +475,14 @@ namespace VLR {
         Image2DTextureShaderNode(Context &context);
         ~Image2DTextureShaderNode();
 
-        // Out Socket      | option |
-        // 0 (RGBSpectrum) |      0 | Spectrum
-        // 1 (float)       |    0-3 | s0, s1, s2, s3(Alpha)
-        // 2 (float2)      |    0-2 | (s0, s1), (s1, s2), (s2, s3)
-        // 3 (float3)      |    0-1 | (s0, s1, s2), (s1, s2, s3)
-        // 4 (float4)      |      0 | (s0, s1, s2, s3)
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        // 1 (float)    |    0-3 | s0, s1, s2, s3(Alpha)
+        // 2 (float2)   |    0-2 | (s0, s1), (s1, s2), (s2, s3)
+        // 3 (float3)   |    0-1 | (s0, s1, s2), (s1, s2, s3)
+        // 4 (float4)   |      0 | (s0, s1, s2, s3)
         ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
-            if (stype == VLRShaderNodeSocketType_RGBSpectrum && index < 1)
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, 0, index, stype);
             else if (stype == VLRShaderNodeSocketType_float && index < 4)
                 return ShaderNodeSocketIdentifier(this, 1, index, stype);
@@ -451,10 +521,10 @@ namespace VLR {
         EnvironmentTextureShaderNode(Context &context);
         ~EnvironmentTextureShaderNode();
 
-        // Out Socket      | option |
-        // 0 (RGBSpectrum) |      0 | Spectrum
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
         ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
-            if (stype == VLRShaderNodeSocketType_RGBSpectrum && index < 1)
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, 0, index, stype);
             return ShaderNodeSocketIdentifier();
         }

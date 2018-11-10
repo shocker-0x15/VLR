@@ -16,10 +16,12 @@ namespace VLRCpp {
     VLR_DECLARE_HOLDER_AND_REFERENCE(LinearImage2D);
 
     VLR_DECLARE_HOLDER_AND_REFERENCE(ShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(GeometryShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(FloatShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float2ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float4ShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Vector3DToSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(OffsetAndScaleUVTextureMap2DShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantTextureShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
@@ -158,6 +160,18 @@ namespace VLRCpp {
 
 
 
+    class GeometryShaderNodeHolder : public ShaderNodeHolder {
+    public:
+        GeometryShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
+            errorCheck(vlrGeometryShaderNodeCreate(getRaw(m_context), (VLRGeometryShaderNode*)&m_raw));
+        }
+        ~GeometryShaderNodeHolder() {
+            errorCheck(vlrGeometryShaderNodeDestroy(getRaw(m_context), (VLRGeometryShaderNode)m_raw));
+        }
+    };
+
+
+
     class FloatShaderNodeHolder : public ShaderNodeHolder {
         ShaderNodeSocket m_node0;
 
@@ -289,6 +303,29 @@ namespace VLRCpp {
         }
         void setImmediateValue3(float value) {
             errorCheck(vlrFloat4ShaderNodeSetImmediateValue3((VLRFloat4ShaderNode)m_raw, value));
+        }
+    };
+
+
+
+    class Vector3DToSpectrumShaderNodeHolder : public ShaderNodeHolder {
+        ShaderNodeSocket m_nodeVector3D;
+
+    public:
+        Vector3DToSpectrumShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
+            errorCheck(vlrVector3DToSpectrumShaderNodeCreate(getRaw(m_context), (VLRVector3DToSpectrumShaderNode*)&m_raw));
+        }
+        ~Vector3DToSpectrumShaderNodeHolder() {
+            errorCheck(vlrVector3DToSpectrumShaderNodeDestroy(getRaw(m_context), (VLRVector3DToSpectrumShaderNode)m_raw));
+        }
+
+        void setNodeVector3D(const ShaderNodeSocket &nodeVector3D) {
+            m_nodeVector3D = nodeVector3D;
+            errorCheck(vlrVector3DToSpectrumShaderNodeSetNodeVector3D((VLRVector3DToSpectrumShaderNode)m_raw, m_nodeVector3D.getNode(), m_nodeVector3D.socketInfo));
+        }
+        void setImmediateValueVector3D(const VLR::Vector3D &value) {
+            VLRVector3D v{ value.x, value.y, value.z };
+            errorCheck(vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D((VLRVector3DToSpectrumShaderNode)m_raw, &v));
         }
     };
 
@@ -693,7 +730,7 @@ namespace VLRCpp {
         }
 
         void setNodeEmittance(EnvironmentTextureShaderNodeRef node) {
-            m_nodeEmittance = node->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0);
+            m_nodeEmittance = node->getSocket(VLRShaderNodeSocketType_Spectrum, 0);
             errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance((VLREnvironmentEmitterSurfaceMaterial)m_raw, (VLREnvironmentTextureShaderNode)m_nodeEmittance.getNode()));
         }
         void setImmediateValueEmittance(const VLR::RGBSpectrum &value) {
@@ -785,16 +822,17 @@ namespace VLRCpp {
             errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(m_raw, (VLRVertex*)vertices, numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
-                              const SurfaceMaterialRef &material, 
-                              const ShaderNodeSocket &nodeNormal,
-                              const ShaderNodeSocket &nodeAlpha) {
+                              const SurfaceMaterialRef &material,
+                              const ShaderNodeSocket &nodeNormal, const ShaderNodeSocket &nodeAlpha,
+                              VLRTangentType tangentType) {
             m_materials.push_back(material);
             m_nodeNormals.push_back(nodeNormal);
             m_nodeAlphas.push_back(nodeAlpha);
             errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup((VLRTriangleMeshSurfaceNode)m_raw, indices, numIndices,
                                                                   (VLRSurfaceMaterial)material->get(),
                                                                   nodeNormal.getNode(), nodeNormal.socketInfo,
-                                                                  nodeAlpha.getNode(), nodeAlpha.socketInfo));
+                                                                  nodeAlpha.getNode(), nodeAlpha.socketInfo,
+                                                                  tangentType));
         }
     };
 
@@ -996,11 +1034,13 @@ namespace VLRCpp {
 
     class Context : public std::enable_shared_from_this<Context> {
         VLRContext m_rawContext;
+        GeometryShaderNodeRef m_geomShaderNode;
 
         Context() {}
 
         void initialize(bool logging, uint32_t stackSize) {
             errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize));
+            m_geomShaderNode = std::make_shared<GeometryShaderNodeHolder>(shared_from_this());
         }
 
     public:
@@ -1048,6 +1088,10 @@ namespace VLRCpp {
 
 
 
+        GeometryShaderNodeRef createGeometryShaderNode() const {
+            return m_geomShaderNode;
+        }
+        
         FloatShaderNodeRef createFloatShaderNode() const {
             return std::make_shared<FloatShaderNodeHolder>(shared_from_this());
         }
@@ -1062,6 +1106,10 @@ namespace VLRCpp {
         
         Float4ShaderNodeRef createFloat4ShaderNode() const {
             return std::make_shared<Float4ShaderNodeHolder>(shared_from_this());
+        }
+
+        Vector3DToSpectrumShaderNodeRef createVector3DToSpectrumShaderNode() const {
+            return std::make_shared<Vector3DToSpectrumShaderNodeHolder>(shared_from_this());
         }
 
         OffsetAndScaleUVTextureMap2DShaderNodeRef createOffsetAndScaleUVTextureMap2DShaderNode() const {

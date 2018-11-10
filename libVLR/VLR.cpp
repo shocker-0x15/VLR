@@ -10,10 +10,12 @@ typedef VLR::Image2D* VLRImage2D;
 typedef VLR::LinearImage2D* VLRLinearImage2D;
 
 typedef VLR::ShaderNode* VLRShaderNode;
+typedef VLR::GeometryShaderNode* VLRGeometryShaderNode;
 typedef VLR::FloatShaderNode* VLRFloatShaderNode;
 typedef VLR::Float2ShaderNode* VLRFloat2ShaderNode;
 typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
 typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
+typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
 typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
 typedef VLR::ConstantTextureShaderNode* VLRConstantTextureShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
@@ -227,6 +229,22 @@ VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocket
         return VLR_ERROR_INVALID_TYPE;
     VLR::ShaderNodeSocketIdentifier socketID = node->getSocket(socketType, index);
     *socketInfo = socketID.getSocketInfo();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrGeometryShaderNodeCreate(VLRContext context, VLRGeometryShaderNode* node) {
+    *node = VLR::GeometryShaderNode::getInstance(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrGeometryShaderNodeDestroy(VLRContext context, VLRGeometryShaderNode node) {
+    if (!node->is<VLR::GeometryShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    //delete node;
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -461,6 +479,39 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setImmediateValue3(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrVector3DToSpectrumShaderNodeCreate(VLRContext context, VLRVector3DToSpectrumShaderNode* node) {
+    *node = new VLR::Vector3DToSpectrumShaderNode(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrVector3DToSpectrumShaderNodeDestroy(VLRContext context, VLRVector3DToSpectrumShaderNode node) {
+    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetNodeVector3D(VLRVector3DToSpectrumShaderNode node, VLRShaderNode nodeVector3D, VLRShaderNodeSocketInfo socketInfo) {
+    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!node->setNodeVector3D(VLR::ShaderNodeSocketIdentifier(nodeVector3D, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value) {
+    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueVector3D(VLR::Vector3D(value->x, value->y, value->z));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1188,7 +1239,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
                                                              VLRSurfaceMaterial material,
                                                              VLRShaderNode nodeNormal, VLRShaderNodeSocketInfo nodeNormalSocketInfo,
-                                                             VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo) {
+                                                             VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo,
+                                                             VLRTangentType tangentType) {
     if (!surfaceNode->is<VLR::TriangleMeshSurfaceNode>())
         return VLR_ERROR_INVALID_TYPE;
 
@@ -1201,7 +1253,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
     surfaceNode->addMaterialGroup(std::move(vecIndices), material, 
                                   VLR::ShaderNodeSocketIdentifier(nodeNormal, nodeNormalSocketInfo),
-                                  VLR::ShaderNodeSocketIdentifier(nodeAlpha, nodeAlphaSocketInfo));
+                                  VLR::ShaderNodeSocketIdentifier(nodeAlpha, nodeAlphaSocketInfo),
+                                  tangentType);
 
     return VLR_ERROR_NO_ERROR;
 }

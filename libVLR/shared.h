@@ -318,6 +318,10 @@ namespace VLR {
         // ----------------------------------------------------------------
         // Shader Nodes
 
+        struct GeometryShaderNode {
+
+        };
+
         struct FloatShaderNode {
             ShaderNodeSocketID node0;
             float imm0;
@@ -348,6 +352,11 @@ namespace VLR {
             float imm1;
             float imm2;
             float imm3;
+        };
+
+        struct Vector3DToSpectrumShaderNode {
+            ShaderNodeSocketID nodeVector3D;
+            Vector3D immVector3D;
         };
 
         struct OffsetAndScaleUVTextureMap2DShaderNode {

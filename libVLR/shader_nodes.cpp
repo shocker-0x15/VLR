@@ -457,10 +457,12 @@ namespace VLR {
 
     // static
     void ShaderNode::initialize(Context &context) {
+        GeometryShaderNode::initialize(context);
         FloatShaderNode::initialize(context);
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
+        Vector3DToSpectrumShaderNode::initialize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
         ConstantTextureShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
@@ -473,10 +475,12 @@ namespace VLR {
         Image2DTextureShaderNode::finalize(context);
         ConstantTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
+        Vector3DToSpectrumShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
         FloatShaderNode::finalize(context);
+        GeometryShaderNode::finalize(context);
     }
 
     ShaderNode::ShaderNode(Context &context) : Object(context) {
@@ -487,6 +491,57 @@ namespace VLR {
         if (m_nodeIndex != 0xFFFFFFFF)
             m_context.releaseNodeDescriptor(m_nodeIndex);
         m_nodeIndex = 0xFFFFFFFF;
+    }
+
+
+
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> GeometryShaderNode::OptiXProgramSets;
+    std::map<uint32_t, GeometryShaderNode*> GeometryShaderNode::Instances;
+
+    // static
+    void GeometryShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::GeometryShaderNode_Point3D",
+            "VLR::GeometryShaderNode_Normal3D",
+            "VLR::GeometryShaderNode_Vector3D",
+            "VLR::GeometryShaderNode_textureCoordinates",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+
+        Instances[context.getID()] = new GeometryShaderNode(context);
+    }
+
+    // static
+    void GeometryShaderNode::finalize(Context &context) {
+        delete Instances.at(context.getID());
+
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    GeometryShaderNode::GeometryShaderNode(Context &context) :
+        ShaderNode(context) {
+        setupNodeDescriptor();
+    }
+
+    GeometryShaderNode::~GeometryShaderNode() {
+    }
+
+    void GeometryShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        Shared::GeometryShaderNode &nodeData = *(Shared::GeometryShaderNode*)&nodeDesc.data;
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
+        return Instances.at(context.getID());
     }
 
 
@@ -805,12 +860,66 @@ namespace VLR {
 
 
 
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Vector3DToSpectrumShaderNode::OptiXProgramSets;
+
+    // static
+    void Vector3DToSpectrumShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::Vector3DToSpectrumShaderNode_spectrum",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void Vector3DToSpectrumShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    Vector3DToSpectrumShaderNode::Vector3DToSpectrumShaderNode(Context &context) :
+        ShaderNode(context), m_immVector3D(Vector3D(0, 0, 0)) {
+        setupNodeDescriptor();
+    }
+
+    Vector3DToSpectrumShaderNode::~Vector3DToSpectrumShaderNode() {
+    }
+
+    void Vector3DToSpectrumShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        Shared::Vector3DToSpectrumShaderNode &nodeData = *(Shared::Vector3DToSpectrumShaderNode*)&nodeDesc.data;
+        nodeData.nodeVector3D = m_nodeVector3D.getSharedType();
+        nodeData.immVector3D = m_immVector3D;
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    bool Vector3DToSpectrumShaderNode::setNodeVector3D(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_Vector3D)
+            return false;
+        m_nodeVector3D = outputSocket;
+        setupNodeDescriptor();
+        return true;
+    }
+
+    void Vector3DToSpectrumShaderNode::setImmediateValueVector3D(const Vector3D &value) {
+        m_immVector3D = value;
+        setupNodeDescriptor();
+    }
+
+
+
     std::map<uint32_t, ShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
 
     // static
     void OffsetAndScaleUVTextureMap2DShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::OffsetAndScaleUVTextureMap2DShaderNode_TexCoord",
+            "VLR::OffsetAndScaleUVTextureMap2DShaderNode_textureCoordinates",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
@@ -859,8 +968,8 @@ namespace VLR {
     // static
     void ConstantTextureShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::ConstantTextureShaderNode_RGBSpectrum",
-            "VLR::ConstantTextureShaderNode_Alpha",
+            "VLR::ConstantTextureShaderNode_spectrum",
+            "VLR::ConstantTextureShaderNode_alpha",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
@@ -908,7 +1017,7 @@ namespace VLR {
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::Image2DTextureShaderNode_RGBSpectrum",
+            "VLR::Image2DTextureShaderNode_spectrum",
             "VLR::Image2DTextureShaderNode_float",
             "VLR::Image2DTextureShaderNode_float2",
             "VLR::Image2DTextureShaderNode_float3",
@@ -991,7 +1100,7 @@ namespace VLR {
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::EnvironmentTextureShaderNode_RGBSpectrum",
+            "VLR::EnvironmentTextureShaderNode_spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);

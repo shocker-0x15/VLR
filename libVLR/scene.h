@@ -276,7 +276,7 @@ namespace VLR {
 
         void setVertices(std::vector<Vertex> &&vertices);
         void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                              const ShaderNodeSocketIdentifier &nodeNormal, const ShaderNodeSocketIdentifier &alpha);
+                              const ShaderNodeSocketIdentifier &nodeNormal, const ShaderNodeSocketIdentifier &alpha, VLRTangentType tangentType);
     };
 
 

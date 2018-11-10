@@ -36,9 +36,11 @@
     <ClInclude Include="include\VLR\VLR.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="shader_nodes.h" />
     <ClInclude Include="include\VLR\VLRCpp.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
   </ItemGroup>

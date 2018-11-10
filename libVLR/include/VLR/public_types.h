@@ -21,7 +21,10 @@ enum VLRShaderNodeSocketType {
     VLRShaderNodeSocketType_float2,
     VLRShaderNodeSocketType_float3,
     VLRShaderNodeSocketType_float4,
-    VLRShaderNodeSocketType_RGBSpectrum,
+    VLRShaderNodeSocketType_Point3D,
+    VLRShaderNodeSocketType_Vector3D,
+    VLRShaderNodeSocketType_Normal3D,
+    VLRShaderNodeSocketType_Spectrum,
     VLRShaderNodeSocketType_TextureCoordinates,
     NumVLRShaderNodeSocketTypes,
     VLRShaderNodeSocketType_Invalid
@@ -37,6 +40,15 @@ enum VLRTextureFilter {
     VLRTextureFilter_Nearest = 0,
     VLRTextureFilter_Linear,
     VLRTextureFilter_None
+};
+
+
+
+enum VLRTangentType {
+    VLRTangentType_VertexAttribute = 0,
+    VLRTangentType_RadialX,
+    VLRTangentType_RadialY,
+    VLRTangentType_RadialZ,
 };
 
 

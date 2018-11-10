@@ -18,11 +18,13 @@ extern "C" {
     typedef struct VLRImage2D_API* VLRImage2D;
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
 
+    typedef struct VLRGeometryShaderNode_API* VLRGeometryShaderNode;
     typedef struct VLRShaderNode_API* VLRShaderNode;
     typedef struct VLRFloatShaderNode_API* VLRFloatShaderNode;
     typedef struct VLRFloat2ShaderNode_API* VLRFloat2ShaderNode;
     typedef struct VLRFloat3ShaderNode_API* VLRFloat3ShaderNode;
     typedef struct VLRFloat4ShaderNode_API* VLRFloat4ShaderNode;
+    typedef struct VLRVector3DToSpectrumShaderNode_API* VLRVector3DToSpectrumShaderNode;
     typedef struct VLROffsetAndScaleUVTextureMap2DShaderNode_API* VLROffsetAndScaleUVTextureMap2DShaderNode;
     typedef struct VLRConstantTextureShaderNode_API* VLRConstantTextureShaderNode;
     typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
@@ -83,6 +85,9 @@ extern "C" {
 
     VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t index, 
                                              VLRShaderNodeSocketInfo* socketInfo);
+
+    VLR_API VLRResult vlrGeometryShaderNodeCreate(VLRContext context, VLRGeometryShaderNode* node);
+    VLR_API VLRResult vlrGeometryShaderNodeDestroy(VLRContext context, VLRGeometryShaderNode node);
     
     VLR_API VLRResult vlrFloatShaderNodeCreate(VLRContext context, VLRFloatShaderNode* node);
     VLR_API VLRResult vlrFloatShaderNodeDestroy(VLRContext context, VLRFloatShaderNode node);
@@ -115,6 +120,11 @@ extern "C" {
     VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue2(VLRFloat4ShaderNode node, float value);
     VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShaderNode node3, VLRShaderNodeSocketInfo socketInfo);
     VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node, float value);
+
+    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeCreate(VLRContext context, VLRVector3DToSpectrumShaderNode* node);
+    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeDestroy(VLRContext context, VLRVector3DToSpectrumShaderNode node);
+    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetNodeVector3D(VLRVector3DToSpectrumShaderNode node, VLRShaderNode nodeVector3D, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value);
     
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
@@ -228,7 +238,8 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
                                                                  VLRSurfaceMaterial material, 
                                                                  VLRShaderNode nodeNormal, VLRShaderNodeSocketInfo nodeNormalSocketInfo,
-                                                                 VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo);
+                                                                 VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo,
+                                                                 VLRTangentType tangentType);
 
 
 

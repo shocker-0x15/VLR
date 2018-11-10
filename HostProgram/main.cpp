@@ -226,8 +226,46 @@ struct SurfaceAttributeTuple {
         material(_material), nodeNormal(_nodeNormal), nodeAlpha(_nodeAlpha) {}
 };
 
+typedef SurfaceAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
+typedef VLRTangentType(*PerMeshFunction)(const aiMesh* mesh);
+
+static SurfaceAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    aiReturn ret;
+    (void)ret;
+    aiString strValue;
+    float color[3];
+
+    aiMat->Get(AI_MATKEY_NAME, strValue);
+    VLRDebugPrintf("Material: %s\n", strValue.C_Str());
+
+    MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
+    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
+        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+        tex->setImage(image);
+        mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+    }
+    else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
+        RGBSpectrum spectrum(color[0], color[1], color[2]);
+        mat->setImmediateValueAlbedo(spectrum);
+    }
+    else {
+        RGBSpectrum spectrum(1.0f, 0.0f, 1.0f);
+        mat->setImmediateValueAlbedo(spectrum);
+    }
+
+    return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+}
+
+static VLRTangentType perMeshDefaultFunction(const aiMesh* mesh) {
+    return VLRTangentType_VertexAttribute;
+}
+
 static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
-                               const std::vector<SurfaceAttributeTuple> &attrTuples, bool flipV,
+                               const std::vector<SurfaceAttributeTuple> &attrTuples, bool flipV, const PerMeshFunction &meshFunc,
                                VLRCpp::InternalNodeRef* nodeOut) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -280,6 +318,8 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
         }
         surfMesh->setVertices(vertices.data(), vertices.size());
 
+        VLRTangentType tangentType = meshFunc(mesh);
+
         meshIndices.clear();
         for (int f = 0; f < mesh->mNumFaces; ++f) {
             const aiFace &face = mesh->mFaces[f];
@@ -287,7 +327,7 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
             meshIndices.push_back(face.mIndices[1]);
             meshIndices.push_back(face.mIndices[2]);
         }
-        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeAlpha);
+        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeAlpha, tangentType);
 
         (*nodeOut)->addChild(surfMesh);
     }
@@ -295,48 +335,15 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
     if (nodeSrc->mNumChildren) {
         for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
             InternalNodeRef subNode;
-            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], attrTuples, flipV, &subNode);
+            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], attrTuples, flipV, meshFunc, &subNode);
             if (subNode != nullptr)
                 (*nodeOut)->addChild(subNode);
         }
     }
 }
 
-typedef SurfaceAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
-
-static SurfaceAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-    using namespace VLRCpp;
-    using namespace VLR;
-
-    aiReturn ret;
-    (void)ret;
-    aiString strValue;
-    float color[3];
-
-    aiMat->Get(AI_MATKEY_NAME, strValue);
-    VLRDebugPrintf("Material: %s\n", strValue.C_Str());
-
-    MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
-    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
-        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        tex->setImage(image);
-        mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
-    }
-    else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-        RGBSpectrum spectrum(color[0], color[1], color[2]);
-        mat->setImmediateValueAlbedo(spectrum);
-    }
-    else {
-        RGBSpectrum spectrum(1.0f, 0.0f, 1.0f);
-        mat->setImmediateValueAlbedo(spectrum);
-    }
-
-    return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
-}
-
 static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut, 
-                      CreateMaterialFunction matFunc = createMaterialDefaultFunction) {
+                      CreateMaterialFunction matFunc = createMaterialDefaultFunction, PerMeshFunction meshFunc = perMeshDefaultFunction) {
     using namespace VLRCpp;
     using namespace VLR;
 
@@ -357,7 +364,7 @@ static void construct(const VLRCpp::ContextRef &context, const std::string &file
         attrTuples.push_back(matFunc(context, aiMat, pathPrefix));
     }
 
-    recursiveConstruct(context, scene, scene->mRootNode, attrTuples, flipV, nodeOut);
+    recursiveConstruct(context, scene, scene->mRootNode, attrTuples, flipV, meshFunc, nodeOut);
 
     debugPrintf("Constructing: %s done.\n", filePath.c_str());
 }
@@ -426,12 +433,12 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
+            matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
 
         {
@@ -442,7 +449,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
 
         {
@@ -456,7 +463,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
 
         {
@@ -466,7 +473,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
 
         {
@@ -476,7 +483,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
 
         {
@@ -486,7 +493,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket());
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
         }
     }
     shot->scene->addChild(cornellBox);
@@ -619,7 +626,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
-        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
+        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
         return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
@@ -627,7 +634,8 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
 
 
-    construct(context, "resources/rounded_box.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, 
+              [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -647,32 +655,37 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
             mat = matteMat;
         }
-        else /*if (strcmp(strValue.C_Str(), "Glossy") == 0)*/ {
-            //Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
-            //Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
-            //nodeBaseColorAlpha->setImage(imgNormalAlpha);
+        else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
+            Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
+            Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
+            nodeBaseColorAlpha->setImage(imgNormalAlpha);
 
-            //UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-            //ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_RGBSpectrum, 0));
-            //ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
-            //ue4Mat->setImmediateValueOcclusion(0.0f);
-            //ue4Mat->setImmediateValueRoughness(0.3f);
-            //ue4Mat->setImmediateValueMetallic(0.0f);
+            UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+            ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
+            ue4Mat->setImmediateValueOcclusion(0.0f);
+            ue4Mat->setImmediateValueRoughness(0.3f);
+            ue4Mat->setImmediateValueMetallic(0.0f);
 
-            //mat = ue4Mat;
+            mat = ue4Mat;
 
-            //socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_float, 3);
+            socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_float, 3);
 
-            MicrofacetReflectionSurfaceMaterialRef mfMat = context->createMicrofacetReflectionSurfaceMaterial();
-            // Aluminum
-            mfMat->setImmediateValueEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
-            mfMat->setImmediateValue_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
-            float roughness[] = { 0.1f, 0.3f };
-            mfMat->setImmediateValueRoughness(roughness);
+            //MicrofacetReflectionSurfaceMaterialRef mfMat = context->createMicrofacetReflectionSurfaceMaterial();
+            //// Aluminum
+            //mfMat->setImmediateValueEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
+            //mfMat->setImmediateValue_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
+            //float roughness[] = { 0.1f, 0.3f };
+            //mfMat->setImmediateValueRoughness(roughness);
 
-            mat = mfMat;
+            //mat = mfMat;
 
+            //GeometryShaderNodeRef nodeGeom = context->createGeometryShaderNode();
+            //Vector3DToSpectrumShaderNodeRef nodeVec2Sp = context->createVector3DToSpectrumShaderNode();
+            //nodeVec2Sp->setNodeVector3D(nodeGeom->getSocket(VLRShaderNodeSocketType_Vector3D, 0));
             //MatteSurfaceMaterialRef mtMat = context->createMatteSurfaceMaterial();
+            //mtMat->setNodeAlbedo(nodeVec2Sp->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
             //mat = mtMat;
         }
         //if (strcmp(strValue.C_Str(), "Base") == 0 || 
@@ -695,6 +708,9 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         //}
 
         return SurfaceAttributeTuple(mat, socketNormal, socketAlpha);
+    },
+              [](const aiMesh* mesh) {
+        return VLRTangentType_RadialY;
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
