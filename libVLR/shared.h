@@ -420,21 +420,25 @@ namespace VLR {
         struct MicrofacetReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
-            ShaderNodeSocketID nodeRoughness;
+            ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
             RGBSpectrum immEta;
             RGBSpectrum imm_k;
-            float immRoughness[2];
+            float immRoughness;
+            float immAnisotropy;
+            float immRotation;
         };
 
         struct MicrofacetScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
-            ShaderNodeSocketID nodeRoughness;
+            ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
             RGBSpectrum immCoeff;
             RGBSpectrum immEtaExt;
             RGBSpectrum immEtaInt;
-            float immRoughness[2];
+            float immRoughness;
+            float immAnisotropy;
+            float immRotation;
         };
 
         struct LambertianScatteringSurfaceMaterial {

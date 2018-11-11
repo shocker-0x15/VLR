@@ -530,7 +530,7 @@ namespace VLRCpp {
     class MicrofacetReflectionSurfaceMaterialHolder : public SurfaceMaterialHolder {
         ShaderNodeSocket m_nodeEta;
         ShaderNodeSocket m_node_k;
-        ShaderNodeSocket m_nodeRoughness;
+        ShaderNodeSocket m_nodeRoughnessAnisotropyRotation;
 
     public:
         MicrofacetReflectionSurfaceMaterialHolder(const ContextConstRef &context) : SurfaceMaterialHolder(context) {
@@ -554,12 +554,18 @@ namespace VLRCpp {
         void setImmediateValue_k(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeRoughness(const ShaderNodeSocket &node) {
-            m_nodeRoughness = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeRoughness.getNode(), m_nodeRoughness.socketInfo));
+        void setNodeRoughnessAnisotropyRotation(const ShaderNodeSocket &node) {
+            m_nodeRoughnessAnisotropyRotation = node;
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeRoughnessAnisotropyRotation.getNode(), m_nodeRoughnessAnisotropyRotation.socketInfo));
         }
-        void setImmediateValueRoughness(const float value[2]) {
+        void setImmediateValueRoughness(float value) {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
+        }
+        void setImmediateValueAnisotropy(float value) {
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueAnisotropy((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
+        }
+        void setImmediateValueRotation(float value) {
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRotation((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
         }
     };
 
@@ -569,7 +575,7 @@ namespace VLRCpp {
         ShaderNodeSocket m_nodeCoeff;
         ShaderNodeSocket m_nodeEtaExt;
         ShaderNodeSocket m_nodeEtaInt;
-        ShaderNodeSocket m_nodeRoughness;
+        ShaderNodeSocket m_nodeRoughnessAnisotropyRotation;
 
     public:
         MicrofacetScatteringSurfaceMaterialHolder(const ContextConstRef &context) : SurfaceMaterialHolder(context) {
@@ -600,12 +606,18 @@ namespace VLRCpp {
         void setImmediateValueEtaInt(const VLR::RGBSpectrum &value) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, (float*)&value));
         }
-        void setNodeRoughness(const ShaderNodeSocket &node) {
-            m_nodeRoughness = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeRoughness.getNode(), m_nodeRoughness.socketInfo));
+        void setNodeRoughnessAnisotropyRotation(const ShaderNodeSocket &node) {
+            m_nodeRoughnessAnisotropyRotation = node;
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeRoughnessAnisotropyRotation.getNode(), m_nodeRoughnessAnisotropyRotation.socketInfo));
         }
-        void setImmediateValueRoughness(const float value[2]) {
+        void setImmediateValueRoughness(float value) {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
+        }
+        void setImmediateValueAnisotropy(float value) {
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueAnisotropy((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
+        }
+        void setImmediateValueRotation(float value) {
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRotation((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
         }
     };
 

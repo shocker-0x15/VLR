@@ -865,19 +865,35 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRM
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughness(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeRoughness(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetReflectionSurfaceMaterial material, const float value[2]) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetReflectionSurfaceMaterial material, float value) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     material->setImmediateValueRoughness(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueAnisotropy(VLRMicrofacetReflectionSurfaceMaterial material, float value) {
+    if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueAnisotropy(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRotation(VLRMicrofacetReflectionSurfaceMaterial material, float value) {
+    if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueRotation(value);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -949,19 +965,35 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughness(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeRoughness(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetScatteringSurfaceMaterial material, const float value[2]) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness(VLRMicrofacetScatteringSurfaceMaterial material, float value) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     material->setImmediateValueRoughness(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueAnisotropy(VLRMicrofacetScatteringSurfaceMaterial material, float value) {
+    if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueAnisotropy(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRotation(VLRMicrofacetScatteringSurfaceMaterial material, float value) {
+    if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueRotation(value);
 
     return VLR_ERROR_NO_ERROR;
 }

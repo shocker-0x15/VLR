@@ -418,7 +418,7 @@ namespace VLR {
 
     MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immEta(RGBSpectrum(1.0f)), m_imm_k(RGBSpectrum(0.0f)), m_immRoughness{ 0.1f, 0.1f } {
+        m_immEta(RGBSpectrum(1.0f)), m_imm_k(RGBSpectrum(0.0f)), m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
         setupMaterialDescriptor();
     }
 
@@ -433,11 +433,12 @@ namespace VLR {
         Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
         mat.nodeEta = m_nodeEta.getSharedType();
         mat.node_k = m_node_k.getSharedType();
-        mat.nodeRoughness = m_nodeRoughness.getSharedType();
+        mat.nodeRoughnessAnisotropyRotation = m_nodeRoughnessAnisotropyRotation.getSharedType();
         mat.immEta = m_immEta;
         mat.imm_k = m_imm_k;
-        mat.immRoughness[0] = m_immRoughness[0];
-        mat.immRoughness[1] = m_immRoughness[1];
+        mat.immRoughness = m_immRoughness;
+        mat.immAnisotropy = m_immAnisotropy;
+        mat.immRotation = m_immRotation;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
@@ -468,16 +469,26 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool MicrofacetReflectionSurfaceMaterial::setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket) {
         if (outputSocket.getType() != VLRShaderNodeSocketType_float2)
             return false;
-        m_nodeRoughness = outputSocket;
+        m_nodeRoughnessAnisotropyRotation = outputSocket;
         setupMaterialDescriptor();
         return true;
     }
 
-    void MicrofacetReflectionSurfaceMaterial::setImmediateValueRoughness(const float value[2]) {
-        std::copy_n(value, 2, m_immRoughness);
+    void MicrofacetReflectionSurfaceMaterial::setImmediateValueRoughness(float value) {
+        m_immRoughness = value;
+        setupMaterialDescriptor();
+    }
+
+    void MicrofacetReflectionSurfaceMaterial::setImmediateValueAnisotropy(float value) {
+        m_immAnisotropy = value;
+        setupMaterialDescriptor();
+    }
+
+    void MicrofacetReflectionSurfaceMaterial::setImmediateValueRotation(float value) {
+        m_immRotation = value;
         setupMaterialDescriptor();
     }
 
@@ -513,7 +524,7 @@ namespace VLR {
 
     MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immCoeff(RGBSpectrum(0.8f)), m_immEtaExt(RGBSpectrum(1.0f)), m_immEtaInt(RGBSpectrum(1.5f)), m_immRoughness{ 0.1f, 0.1f } {
+        m_immCoeff(RGBSpectrum(0.8f)), m_immEtaExt(RGBSpectrum(1.0f)), m_immEtaInt(RGBSpectrum(1.5f)), m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
         setupMaterialDescriptor();
     }
 
@@ -529,12 +540,13 @@ namespace VLR {
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeEtaExt = m_nodeEtaExt.getSharedType();
         mat.nodeEtaInt = m_nodeEtaInt.getSharedType();
-        mat.nodeRoughness = m_nodeRoughness.getSharedType();
+        mat.nodeRoughnessAnisotropyRotation = m_nodeRoughnessAnisotropyRotation.getSharedType();
         mat.immCoeff = m_immCoeff;
         mat.immEtaExt = m_immEtaExt;
         mat.immEtaInt = m_immEtaInt;
-        mat.immRoughness[0] = m_immRoughness[0];
-        mat.immRoughness[1] = m_immRoughness[1];
+        mat.immRoughness = m_immRoughness;
+        mat.immAnisotropy = m_immAnisotropy;
+        mat.immRotation = m_immRotation;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
@@ -578,16 +590,26 @@ namespace VLR {
         setupMaterialDescriptor();
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool MicrofacetScatteringSurfaceMaterial::setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket) {
         if (outputSocket.getType() != VLRShaderNodeSocketType_float2)
             return false;
-        m_nodeRoughness = outputSocket;
+        m_nodeRoughnessAnisotropyRotation = outputSocket;
         setupMaterialDescriptor();
         return true;
     }
 
-    void MicrofacetScatteringSurfaceMaterial::setImmediateValueRoughness(const float value[2]) {
-        std::copy_n(value, 2, m_immRoughness);
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueRoughness(float value) {
+        m_immRoughness = value;
+        setupMaterialDescriptor();
+    }
+
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueAnisotropy(float value) {
+        m_immAnisotropy = value;
+        setupMaterialDescriptor();
+    }
+
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueRotation(float value) {
+        m_immRotation = value;
         setupMaterialDescriptor();
     }
 

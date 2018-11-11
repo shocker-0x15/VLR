@@ -142,10 +142,12 @@ namespace VLR {
 
         ShaderNodeSocketIdentifier m_nodeEta;
         ShaderNodeSocketIdentifier m_node_k;
-        ShaderNodeSocketIdentifier m_nodeRoughness;
+        ShaderNodeSocketIdentifier m_nodeRoughnessAnisotropyRotation;
         RGBSpectrum m_immEta;
         RGBSpectrum m_imm_k;
-        float m_immRoughness[2];
+        float m_immRoughness;
+        float m_immAnisotropy;
+        float m_immRotation;
 
         void setupMaterialDescriptor() const;
 
@@ -163,8 +165,10 @@ namespace VLR {
         void setImmediateValueEta(const RGBSpectrum &value);
         bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValue_k(const RGBSpectrum &value);
-        bool setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueRoughness(const float value[2]);
+        bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueRoughness(float value);
+        void setImmediateValueAnisotropy(float value);
+        void setImmediateValueRotation(float value);
     };
 
 
@@ -175,11 +179,13 @@ namespace VLR {
         ShaderNodeSocketIdentifier m_nodeCoeff;
         ShaderNodeSocketIdentifier m_nodeEtaExt;
         ShaderNodeSocketIdentifier m_nodeEtaInt;
-        ShaderNodeSocketIdentifier m_nodeRoughness;
+        ShaderNodeSocketIdentifier m_nodeRoughnessAnisotropyRotation;
         RGBSpectrum m_immCoeff;
         RGBSpectrum m_immEtaExt;
         RGBSpectrum m_immEtaInt;
-        float m_immRoughness[2];
+        float m_immRoughness;
+        float m_immAnisotropy;
+        float m_immRotation;
 
         void setupMaterialDescriptor() const;
 
@@ -199,8 +205,10 @@ namespace VLR {
         void setImmediateValueEtaExt(const RGBSpectrum &value);
         bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEtaInt(const RGBSpectrum &value);
-        bool setNodeRoughness(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueRoughness(const float value[2]);
+        bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueRoughness(float value);
+        void setImmediateValueAnisotropy(float value);
+        void setImmediateValueRotation(float value);
     };
 
 

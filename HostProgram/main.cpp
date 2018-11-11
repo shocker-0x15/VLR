@@ -703,8 +703,9 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
             //// Aluminum
             //mfMat->setImmediateValueEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
             //mfMat->setImmediateValue_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
-            //float roughness[] = { 0.1f, 0.3f };
-            //mfMat->setImmediateValueRoughness(roughness);
+            //mfMat->setImmediateValueRoughness(0.2f);
+            //mfMat->setImmediateValueAnisotropy(0.9f);
+            //mfMat->setImmediateValueRotation(0.0f);
 
             //mat = mfMat;
 

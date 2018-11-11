@@ -130,28 +130,48 @@ namespace VLR {
     class GGXMicrofacetDistribution {
         float m_alpha_gx;
         float m_alpha_gy;
+        float m_cosRt;
+        float m_sinRt;
 
     public:
-        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy) :
-            m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {}
+        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
+            m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {
+            m_cosRt = std::cos(rotation);
+            m_sinRt = std::sin(rotation);
+        }
 
         RT_FUNCTION float evaluate(const Normal3D &m) {
-            if (m.z <= 0)
+            Normal3D mr = Normal3D(m_cosRt * m.x + m_sinRt * m.y,
+                                   -m_sinRt * m.x + m_cosRt * m.y,
+                                   m.z);
+
+            if (mr.z <= 0)
                 return 0.0f;
-            float temp = pow2(m.x / m_alpha_gx) + pow2(m.y / m_alpha_gy) + pow2(m.z);
+            float temp = pow2(mr.x / m_alpha_gx) + pow2(mr.y / m_alpha_gy) + pow2(mr.z);
             return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * pow2(temp));
         }
 
         RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
-            float alpha_g2_tanTheta2 = (pow2(v.x * m_alpha_gx) + pow2(v.y * m_alpha_gy)) / pow2(v.z);
+            Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
+                                   -m_sinRt * v.x + m_cosRt * v.y,
+                                   v.z);
+
+            float alpha_g2_tanTheta2 = (pow2(vr.x * m_alpha_gx) + pow2(vr.y * m_alpha_gy)) / pow2(vr.z);
             float Lambda = (-1 + std::sqrt(1 + alpha_g2_tanTheta2)) / 2;
             float chi = (dot(v, m) / v.z) > 0 ? 1 : 0;
             return chi / (1 + Lambda);
         }
 
         RT_FUNCTION float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
-            float alpha_g2_tanTheta2_1 = (pow2(v1.x * m_alpha_gx) + pow2(v1.y * m_alpha_gy)) / pow2(v1.z);
-            float alpha_g2_tanTheta2_2 = (pow2(v2.x * m_alpha_gx) + pow2(v2.y * m_alpha_gy)) / pow2(v2.z);
+            Vector3D v1r = Vector3D(m_cosRt * v1.x + m_sinRt * v1.y,
+                                    -m_sinRt * v1.x + m_cosRt * v1.y,
+                                    v1.z);
+            Vector3D v2r = Vector3D(m_cosRt * v2.x + m_sinRt * v2.y,
+                                    -m_sinRt * v2.x + m_cosRt * v2.y,
+                                    v2.z);
+
+            float alpha_g2_tanTheta2_1 = (pow2(v1r.x * m_alpha_gx) + pow2(v1r.y * m_alpha_gy)) / pow2(v1r.z);
+            float alpha_g2_tanTheta2_2 = (pow2(v2r.x * m_alpha_gx) + pow2(v2r.y * m_alpha_gy)) / pow2(v2r.z);
             float Lambda1 = (-1 + std::sqrt(1 + alpha_g2_tanTheta2_1)) / 2;
             float Lambda2 = (-1 + std::sqrt(1 + alpha_g2_tanTheta2_2)) / 2;
             float chi1 = (dot(v1, m) / v1.z) > 0 ? 1 : 0;
@@ -160,8 +180,12 @@ namespace VLR {
         }
 
         RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
+            Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
+                                   -m_sinRt * v.x + m_cosRt * v.y,
+                                   v.z);
+
             // stretch view
-            Vector3D sv = normalize(Vector3D(m_alpha_gx * v.x, m_alpha_gy * v.y, v.z));
+            Vector3D sv = normalize(Vector3D(m_alpha_gx * vr.x, m_alpha_gy * vr.y, vr.z));
 
             // orthonormal basis
             //        Vector3D T1 = (sv.z < 0.9999f) ? normalize(cross(sv, Vector3D::Ez)) : Vector3D::Ex;
@@ -179,13 +203,17 @@ namespace VLR {
             float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0 : sv.z);
 
             // compute normal
-            *m = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
+            Normal3D mr = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
 
             // unstretch
-            *m = normalize(Normal3D(m_alpha_gx * m->x, m_alpha_gy * m->y, m->z));
+            mr = normalize(Normal3D(m_alpha_gx * mr.x, m_alpha_gy * mr.y, mr.z));
 
-            float D = evaluate(*m);
-            *normalPDF = evaluateSmithG1(v, *m) * absDot(v, *m) * D / std::abs(v.z);
+            float D = evaluate(mr);
+            *normalPDF = evaluateSmithG1(vr, mr) * absDot(vr, mr) * D / std::abs(vr.z);
+
+            *m = Normal3D(m_cosRt * mr.x - m_sinRt * mr.y,
+                          m_sinRt * mr.x + m_cosRt * mr.y,
+                          mr.z);
 
             return D;
         }
@@ -478,8 +506,9 @@ namespace VLR {
     struct MicrofacetBRDF {
         RGBSpectrum eta;
         RGBSpectrum k;
-        float roughnessX;
-        float roughnessY;
+        float alphaX;
+        float alphaY;
+        float rotation;
     };
 
     RT_CALLABLE_PROGRAM uint32_t MicrofacetReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, bool wavelengthSelected, uint32_t* params) {
@@ -488,9 +517,13 @@ namespace VLR {
 
         p.eta = calcNode<RGBSpectrum>(mat.nodeEta, mat.immEta, surfPt);
         p.k = calcNode<RGBSpectrum>(mat.node_k, mat.imm_k, surfPt);
-        optix::float2 roughness = calcNode<optix::float2>(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
-        p.roughnessX = std::max(0.01f, roughness.x);
-        p.roughnessY = std::max(0.01f, roughness.y);
+        optix::float3 roughnessAnisotropyRotation = calcNode<optix::float3>(mat.nodeRoughnessAnisotropyRotation, 
+                                                                            optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), surfPt);
+        float alpha = pow2(roughnessAnisotropyRotation.x);
+        float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
+        p.alphaX = std::max(0.001f, alpha / aspect);
+        p.alphaY = std::max(0.001f, alpha * aspect);
+        p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBRDF) / 4;
     }
@@ -515,9 +548,7 @@ namespace VLR {
 
         FresnelDielectric fresnel(p.eta, p.k);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
@@ -560,9 +591,7 @@ namespace VLR {
 
         FresnelConductor fresnel(p.eta, p.k);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
         Vector3D dirL = entering ? dirLocal : -dirLocal;
@@ -592,9 +621,7 @@ namespace VLR {
 
         FresnelConductor fresnel(p.eta, p.k);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
         Vector3D dirL = entering ? dirLocal : -dirLocal;
@@ -641,8 +668,9 @@ namespace VLR {
         RGBSpectrum coeff;
         RGBSpectrum etaExt;
         RGBSpectrum etaInt;
-        float roughnessX;
-        float roughnessY;
+        float alphaX;
+        float alphaY;
+        float rotation;
     };
 
     RT_CALLABLE_PROGRAM uint32_t MicrofacetScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, bool wavelengthSelected, uint32_t* params) {
@@ -652,9 +680,13 @@ namespace VLR {
         p.coeff = calcNode<RGBSpectrum>(mat.nodeCoeff, mat.immCoeff, surfPt);
         p.etaExt = calcNode<RGBSpectrum>(mat.nodeEtaExt, mat.immEtaExt, surfPt);
         p.etaInt = calcNode<RGBSpectrum>(mat.nodeEtaInt, mat.immEtaInt, surfPt);
-        optix::float2 roughness = calcNode<optix::float2>(mat.nodeRoughness, optix::make_float2(mat.immRoughness[0], mat.immRoughness[1]), surfPt);
-        p.roughnessX = std::max(0.01f, roughness.x);
-        p.roughnessY = std::max(0.01f, roughness.y);
+        optix::float3 roughnessAnisotropyRotation = calcNode<optix::float3>(mat.nodeRoughnessAnisotropyRotation,
+                                                                            optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), surfPt);
+        float alpha = pow2(roughnessAnisotropyRotation.x);
+        float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
+        p.alphaX = std::max(0.001f, alpha / aspect);
+        p.alphaY = std::max(0.001f, alpha * aspect);
+        p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBSDF) / 4;
     }
@@ -679,9 +711,7 @@ namespace VLR {
         const RGBSpectrum &eExit = entering ? p.etaInt : p.etaExt;
         FresnelDielectric fresnel(eEnter, eExit);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
@@ -781,9 +811,7 @@ namespace VLR {
         const RGBSpectrum &eExit = entering ? p.etaInt : p.etaExt;
         FresnelDielectric fresnel(eEnter, eExit);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
         Vector3D dirL = entering ? dirLocal : -dirLocal;
@@ -839,9 +867,7 @@ namespace VLR {
         const RGBSpectrum &eExit = entering ? p.etaInt : p.etaExt;
         FresnelDielectric fresnel(eEnter, eExit);
 
-        float alphaX = p.roughnessX * p.roughnessX;
-        float alphaY = p.roughnessY * p.roughnessY;
-        GGXMicrofacetDistribution ggx(alphaX, alphaY);
+        GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
         Vector3D dirL = entering ? dirLocal : -dirLocal;
@@ -1062,7 +1088,7 @@ namespace VLR {
 
         const float specular = 0.5f;
         float alpha = p.roughness * p.roughness;
-        GGXMicrofacetDistribution ggx(alpha, alpha);
+        GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         bool entering = query.dirLocal.z >= 0.0f;
         Vector3D dirL;
@@ -1164,7 +1190,7 @@ namespace VLR {
 
         const float specular = 0.5f;
         float alpha = p.roughness * p.roughness;
-        GGXMicrofacetDistribution ggx(alpha, alpha);
+        GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         if (dirLocal.z * query.dirLocal.z <= 0) {
             return RGBSpectrum::Zero();
@@ -1210,7 +1236,7 @@ namespace VLR {
 
         const float specular = 0.5f;
         float alpha = p.roughness * p.roughness;
-        GGXMicrofacetDistribution ggx(alpha, alpha);
+        GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         bool entering = query.dirLocal.z >= 0.0f;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
