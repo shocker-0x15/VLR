@@ -740,9 +740,9 @@ namespace VLR {
         mat.nodeBaseColor = m_nodeBaseColor.getSharedType();
         mat.nodeOcclusionRoughnessMetallic = m_nodeOcclusionRoughnessMetallic.getSharedType();
         mat.immBaseColor = m_immBaseColor;
-        mat.immOcclusionRoughnessMetallic[0] = m_immOcculusion;
-        mat.immOcclusionRoughnessMetallic[1] = m_immRoughness;
-        mat.immOcclusionRoughnessMetallic[2] = m_immMetallic;
+        mat.immOcclusion = m_immOcculusion;
+        mat.immRoughness = m_immRoughness;
+        mat.immMetallic = m_immMetallic;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }

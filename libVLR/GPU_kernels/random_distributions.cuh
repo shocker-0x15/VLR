@@ -55,7 +55,7 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION uint32_t sampleDiscrete(const RealType* importances, uint32_t numImportances, RealType u,
-                            RealType* prob, RealType* sumImportances, RealType* remapped) {
+                                        RealType* prob, RealType* sumImportances, RealType* remapped) {
         RealType sum = 0;
         for (int i = 0; i < numImportances; ++i)
             sum += importances[i];

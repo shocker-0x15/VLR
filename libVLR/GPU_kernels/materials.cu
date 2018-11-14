@@ -273,7 +273,7 @@ namespace VLR {
         MatteBRDF &p = *(MatteBRDF*)params;
         const MatteSurfaceMaterial &mat = *(const MatteSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.albedo = calcNode<RGBSpectrum>(mat.nodeAlbedo, mat.immAlbedo, surfPt);
+        p.albedo = calcNode(mat.nodeAlbedo, mat.immAlbedo, surfPt);
         p.roughness = 0.0f;
 
         return sizeof(MatteBRDF) / 4;
@@ -344,9 +344,9 @@ namespace VLR {
         SpecularBRDF &p = *(SpecularBRDF*)params;
         const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeffR = calcNode<RGBSpectrum>(mat.nodeCoeffR, mat.immCoeffR, surfPt);
-        p.eta = calcNode<RGBSpectrum>(mat.nodeEta, mat.immEta, surfPt);
-        p.k = calcNode<RGBSpectrum>(mat.node_k, mat.imm_k, surfPt);
+        p.coeffR = calcNode(mat.nodeCoeffR, mat.immCoeffR, surfPt);
+        p.eta = calcNode(mat.nodeEta, mat.immEta, surfPt);
+        p.k = calcNode(mat.node_k, mat.imm_k, surfPt);
 
         return sizeof(SpecularBRDF) / 4;
     }
@@ -410,9 +410,9 @@ namespace VLR {
         SpecularBSDF &p = *(SpecularBSDF*)params;
         const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcNode<RGBSpectrum>(mat.nodeCoeff, mat.immCoeff, surfPt);
-        p.etaExt = calcNode<RGBSpectrum>(mat.nodeEtaExt, mat.immEtaExt, surfPt);
-        p.etaInt = calcNode<RGBSpectrum>(mat.nodeEtaInt, mat.immEtaInt, surfPt);
+        p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.etaExt = calcNode(mat.nodeEtaExt, mat.immEtaExt, surfPt);
+        p.etaInt = calcNode(mat.nodeEtaInt, mat.immEtaInt, surfPt);
         p.dispersive = !wavelengthSelected;
 
         return sizeof(SpecularBSDF) / 4;
@@ -515,10 +515,11 @@ namespace VLR {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
         const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.eta = calcNode<RGBSpectrum>(mat.nodeEta, mat.immEta, surfPt);
-        p.k = calcNode<RGBSpectrum>(mat.node_k, mat.imm_k, surfPt);
-        optix::float3 roughnessAnisotropyRotation = calcNode<optix::float3>(mat.nodeRoughnessAnisotropyRotation, 
-                                                                            optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), surfPt);
+        p.eta = calcNode(mat.nodeEta, mat.immEta, surfPt);
+        p.k = calcNode(mat.node_k, mat.imm_k, surfPt);
+        optix::float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation, 
+                                                             optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
+                                                             surfPt);
         float alpha = pow2(roughnessAnisotropyRotation.x);
         float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
         p.alphaX = std::max(0.001f, alpha / aspect);
@@ -677,11 +678,12 @@ namespace VLR {
         MicrofacetBSDF &p = *(MicrofacetBSDF*)params;
         const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcNode<RGBSpectrum>(mat.nodeCoeff, mat.immCoeff, surfPt);
-        p.etaExt = calcNode<RGBSpectrum>(mat.nodeEtaExt, mat.immEtaExt, surfPt);
-        p.etaInt = calcNode<RGBSpectrum>(mat.nodeEtaInt, mat.immEtaInt, surfPt);
-        optix::float3 roughnessAnisotropyRotation = calcNode<optix::float3>(mat.nodeRoughnessAnisotropyRotation,
-                                                                            optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), surfPt);
+        p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.etaExt = calcNode(mat.nodeEtaExt, mat.immEtaExt, surfPt);
+        p.etaInt = calcNode(mat.nodeEtaInt, mat.immEtaInt, surfPt);
+        optix::float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation,
+                                                             optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
+                                                             surfPt);
         float alpha = pow2(roughnessAnisotropyRotation.x);
         float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
         p.alphaX = std::max(0.001f, alpha / aspect);
@@ -934,8 +936,8 @@ namespace VLR {
         LambertianBSDF &p = *(LambertianBSDF*)params;
         const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.coeff = calcNode<RGBSpectrum>(mat.nodeCoeff, mat.immCoeff, surfPt);
-        p.F0 = calcNode<float>(mat.nodeF0, mat.immF0, surfPt);
+        p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt);
+        p.F0 = calcNode(mat.nodeF0, mat.immF0, surfPt);
 
         return sizeof(LambertianBSDF) / 4;
     }
@@ -1061,11 +1063,10 @@ namespace VLR {
         UE4BRDF &p = *(UE4BRDF*)params;
         const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.baseColor = calcNode<RGBSpectrum>(mat.nodeBaseColor, mat.immBaseColor, surfPt);
-        optix::float3 occlusionRoughnessMetallic = calcNode<optix::float3>(mat.nodeOcclusionRoughnessMetallic, 
-                                                                           optix::make_float3(mat.immOcclusionRoughnessMetallic[0],
-                                                                                              mat.immOcclusionRoughnessMetallic[1],
-                                                                                              mat.immOcclusionRoughnessMetallic[2]), surfPt);
+        p.baseColor = calcNode(mat.nodeBaseColor, mat.immBaseColor, surfPt);
+        optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic, 
+                                                            optix::make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic), 
+                                                            surfPt);
         p.roughness = std::max(0.01f, occlusionRoughnessMetallic.y);
         p.metallic = occlusionRoughnessMetallic.z;
 
@@ -1327,7 +1328,7 @@ namespace VLR {
         DiffuseEDF &p = *(DiffuseEDF*)params;
         const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.emittance = calcNode<RGBSpectrum>(mat.nodeEmittance, mat.immEmittance, surfPt);
+        p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt);
 
         return sizeof(DiffuseEDF) / 4;
     }
@@ -1676,7 +1677,7 @@ namespace VLR {
         EnvironmentEDF &p = *(EnvironmentEDF*)params;
         const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
 
-        p.emittance = calcNode<RGBSpectrum>(mat.nodeEmittance, mat.immEmittance, surfPt);
+        p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt);
 
         return sizeof(EnvironmentEDF) / 4;
     }

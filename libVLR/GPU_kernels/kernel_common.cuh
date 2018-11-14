@@ -288,7 +288,7 @@ namespace VLR {
 
 
     template <typename T>
-    RT_FUNCTION T calcNode(ShaderNodeSocketID socket, T defaultValue, const SurfacePoint &surfPt) {
+    RT_FUNCTION T calcNode(ShaderNodeSocketID socket, const T &defaultValue, const SurfacePoint &surfPt) {
         if (socket.isValid()) {
             using ProgSigT = rtCallableProgramId<T(const uint32_t*, uint32_t, const SurfacePoint &)>;
 

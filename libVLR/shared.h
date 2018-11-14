@@ -452,7 +452,9 @@ namespace VLR {
             ShaderNodeSocketID nodeBaseColor;
             ShaderNodeSocketID nodeOcclusionRoughnessMetallic;
             RGBSpectrum immBaseColor;
-            float immOcclusionRoughnessMetallic[3];
+            float immOcclusion;
+            float immRoughness;
+            float immMetallic;
         };
 
         struct DiffuseEmitterSurfaceMaterial {
