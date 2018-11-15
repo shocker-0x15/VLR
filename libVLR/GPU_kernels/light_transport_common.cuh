@@ -299,18 +299,33 @@ namespace VLR {
 
     // JP: 法線マップに従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the normal map.
-    RT_FUNCTION void applyBumpMapping(const Normal3D &normalLocal, SurfacePoint* surfPt) {
+    RT_FUNCTION void applyBumpMapping(const Normal3D &normalInTF, SurfacePoint* surfPt) {
         const ReferenceFrame &originalFrame = surfPt->shadingFrame;
 
-        Vector3D nLocal = normalLocal;
-        Vector3D tLocal = Vector3D::Ex() - dot(nLocal, Vector3D::Ex()) * nLocal;
-        Vector3D bLocal = Vector3D::Ey() - dot(nLocal, Vector3D::Ey()) * nLocal;
-        Vector3D t = normalize(originalFrame.fromLocal(tLocal));
-        Vector3D b = normalize(originalFrame.fromLocal(bLocal));
-        Vector3D n = normalize(originalFrame.fromLocal(nLocal));
-        ReferenceFrame bumpFrame(t, b, n);
+        // JP: テクスチャーフレームもシェーディングフレームもz軸は共通。
+        //     後者に対する前者の角度を求める。
+        // EN: 
+        Vector3D tc0Direction = surfPt->tc0Direction;
+        Vector3D tc1Direction = cross(originalFrame.z, tc0Direction);
+        float tlx = dot(originalFrame.x, tc0Direction);
+        float tly = dot(originalFrame.x, tc1Direction);
+        float angleFromTexFrame = std::atan2(tly, tlx);
 
-        surfPt->shadingFrame = bumpFrame;
+        // JP: 法線マップはテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
+        // EN: 
+        float cosTheta = std::cos(angleFromTexFrame);
+        float sinTheta = std::sin(angleFromTexFrame);
+        Normal3D normalInSF = Normal3D(cosTheta * normalInTF.x + sinTheta * normalInTF.y,
+                                       -sinTheta * normalInTF.x + cosTheta * normalInTF.y,
+                                       normalInTF.z);
+        Vector3D tangentInSF = Vector3D::Ex() - dot(normalInSF, Vector3D::Ex()) * normalInSF;
+        Vector3D bitangentInSF = Vector3D::Ey() - dot(normalInSF, Vector3D::Ey()) * normalInSF;
+        Vector3D t = normalize(originalFrame.fromLocal(tangentInSF));
+        Vector3D b = normalize(originalFrame.fromLocal(bitangentInSF));
+        Vector3D n = normalize(originalFrame.fromLocal(normalInSF));
+        ReferenceFrame bumpShadingFrame(t, b, n);
+
+        surfPt->shadingFrame = bumpShadingFrame;
     }
 
 

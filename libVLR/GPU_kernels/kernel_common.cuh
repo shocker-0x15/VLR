@@ -53,7 +53,7 @@ namespace VLR {
         ReferenceFrame shadingFrame;
         float u, v; // Parameters used to identify the point on a surface, not texture coordinates.
         TexCoord2D texCoord;
-        //Vector3D tc0Direction;
+        Vector3D tc0Direction;
         struct {
             bool isPoint : 1;
             bool atInfinity : 1;

@@ -64,41 +64,54 @@ namespace VLR {
         float area = geometricNormal.length() / 2;
         geometricNormal /= 2 * area;
 
+        geometricNormal = normalize(transform(RT_OBJECT_TO_WORLD, geometricNormal));
+
+        // JP: プログラムがこの点を光源としてサンプルする場合の面積に関する(仮想的な)PDFを求める。
+        // EN: calculate a hypothetical area PDF value in the case where the program sample this point as light.
+        float probLightPrim = area / pv_sumImportances;
+        *hypAreaPDF = probLightPrim / area;
+
         float b0 = param.b0, b1 = param.b1, b2 = 1.0f - param.b0 - param.b1;
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
         Normal3D shadingNormal = normalize(b0 * v0.normal + b1 * v1.normal + b2 * v2.normal);
         Vector3D shadingTangent = normalize(b0 * v0.tangent + b1 * v1.tangent + b2 * v2.tangent);
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
-        //TexCoord2D dUV0m2 = v0.texCoord - v2.texCoord;
-        //TexCoord2D dUV1m2 = v1.texCoord - v2.texCoord;
-        //Vector3D dP0m2 = v0.position - v2.position;
-        //Vector3D dP1m2 = v1.position - v2.position;
-
-        //float invDetUV = 1.0f / (dUV0m2.u * dUV1m2.v - dUV0m2.v * dUV1m2.u);
-        //Vector3D uDirection = invDetUV * Vector3D(dUV1m2.v * dP0m2.x - dUV0m2.v * dP1m2.x,
-        //                                          dUV1m2.v * dP0m2.y - dUV0m2.v * dP1m2.y,
-        //                                          dUV1m2.v * dP0m2.z - dUV0m2.v * dP1m2.z);
-        //uDirection = normalize(cross(cross(shadingNormal, uDirection), shadingNormal));
-
         position = transform(RT_OBJECT_TO_WORLD, position);
         shadingNormal = normalize(transform(RT_OBJECT_TO_WORLD, shadingNormal));
         shadingTangent = normalize(transform(RT_OBJECT_TO_WORLD, shadingTangent));
+
+        // ----------------------------------------------------------------
+        // JP: 法線マップが定義されるテクスチャーフレームのx軸(tc0Direction)を求める。
+        // EN: calculate the x axis (tc0Direction) of a texture frame in which normal map is defined.
+
+        TexCoord2D dUV0m2 = v0.texCoord - v2.texCoord;
+        TexCoord2D dUV1m2 = v1.texCoord - v2.texCoord;
+        Vector3D dP0m2 = v0.position - v2.position;
+        Vector3D dP1m2 = v1.position - v2.position;
+
+        float invDetUV = 1.0f / (dUV0m2.u * dUV1m2.v - dUV0m2.v * dUV1m2.u);
+        Vector3D tc0Direction = invDetUV * Vector3D(dUV1m2.v * dP0m2.x - dUV0m2.v * dP1m2.x,
+                                                    dUV1m2.v * dP0m2.y - dUV0m2.v * dP1m2.y,
+                                                    dUV1m2.v * dP0m2.z - dUV0m2.v * dP1m2.z);
+
+        tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, tc0Direction));
+
+        // JP: tc0Directionをシェーディングノーマルに垂直な面に投影する。
+        // EN: project tc0Direction onto a surface perpendicular to the shading normal.
+        tc0Direction = normalize(tc0Direction - dot(shadingNormal, tc0Direction) * shadingNormal);
+
+        // ----------------------------------------------------------------
 
         surfPt->position = position;
         surfPt->shadingFrame = ReferenceFrame(shadingTangent, shadingNormal);
         surfPt->isPoint = false;
         surfPt->atInfinity = false;
-
-        surfPt->geometricNormal = normalize(transform(RT_OBJECT_TO_WORLD, geometricNormal));
+        surfPt->geometricNormal = geometricNormal;
         surfPt->u = b0;
         surfPt->v = b1;
         surfPt->texCoord = texCoord;
-        //surfPt->tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, uDirection));
-
-        // calculate a hypothetical area PDF value in the case where the program sample this point as light.
-        float probLightPrim = area / pv_sumImportances;
-        *hypAreaPDF = probLightPrim / area;
+        surfPt->tc0Direction = tc0Direction;
     }
 
     // bound
