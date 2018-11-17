@@ -67,7 +67,9 @@ namespace VLR {
             }
             RGBSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
             VLRAssert((result->dirPDF > 0 && fs_sn.allPositiveFinite()) || result->dirPDF == 0,
-                      "Invalid BSDF value.\ndirPDF: %g", result->dirPDF);
+                      "Invalid BSDF value.\ndirV: (%g, %g, %g), sample: (%g, %g, %g), fs: (%g, %g, %g), dirPDF: %g", 
+                      query.dirLocal.x, query.dirLocal.y, query.dirLocal.z, sample.uComponent, sample.uDir[0], sample.uDir[1],
+                      fs_sn.r, fs_sn.g, fs_sn.b, result->dirPDF);
             float snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
             return fs_sn * snCorrection;
         }

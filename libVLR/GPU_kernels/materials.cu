@@ -532,7 +532,7 @@ namespace VLR {
     RT_CALLABLE_PROGRAM RGBSpectrum MicrofacetBRDF_getBaseColor(const uint32_t* params) {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
 
-        FresnelDielectric fresnel(p.eta, p.k);
+        FresnelConductor fresnel(p.eta, p.k);
 
         return fresnel.evaluate(1.0f);
     }
@@ -547,7 +547,7 @@ namespace VLR {
 
         bool entering = query.dirLocal.z >= 0.0f;
 
-        FresnelDielectric fresnel(p.eta, p.k);
+        FresnelConductor fresnel(p.eta, p.k);
 
         GGXMicrofacetDistribution ggx(p.alphaX, p.alphaY, p.rotation);
 
@@ -650,7 +650,7 @@ namespace VLR {
     RT_CALLABLE_PROGRAM float MicrofacetBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
 
-        FresnelDielectric fresnel(p.eta, p.k);
+        FresnelConductor fresnel(p.eta, p.k);
 
         float expectedDotHV = query.dirLocal.z;
 
