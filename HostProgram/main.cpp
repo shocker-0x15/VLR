@@ -167,15 +167,17 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
     if (g_image2DCache.count(key))
         return g_image2DCache.at(key);
 
+    debugPrintf("Read image: %s...", filepath.c_str());
+
     bool fileExists = false;
     {
         std::ifstream ifs(filepath);
         fileExists = ifs.is_open();
     }
-    if (!fileExists)
+    if (!fileExists) {
+        debugPrintf("Not found.\n");
         return ret;
-
-    debugPrintf("Read image: %s...", filepath.c_str());
+    }
 
     std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
     if (ext == "exr") {
@@ -217,19 +219,26 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
     return ret;
 }
 
-struct SurfaceAttributeTuple {
+struct SurfaceMaterialAttributeTuple {
     VLRCpp::SurfaceMaterialRef material;
     VLRCpp::ShaderNodeSocket nodeNormal;
     VLRCpp::ShaderNodeSocket nodeAlpha;
 
-    SurfaceAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const VLRCpp::ShaderNodeSocket &_nodeNormal, const VLRCpp::ShaderNodeSocket &_nodeAlpha) :
+    SurfaceMaterialAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const VLRCpp::ShaderNodeSocket &_nodeNormal, const VLRCpp::ShaderNodeSocket &_nodeAlpha) :
         material(_material), nodeNormal(_nodeNormal), nodeAlpha(_nodeAlpha) {}
 };
 
-typedef SurfaceAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
-typedef VLRTangentType(*PerMeshFunction)(const aiMesh* mesh);
+struct MeshAttributeTuple {
+    bool visible;
+    VLRTangentType tangentType;
 
-static SurfaceAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    MeshAttributeTuple(bool _visible, VLRTangentType _tangentType) : visible(_visible), tangentType(_tangentType) {}
+};
+
+typedef SurfaceMaterialAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
+typedef MeshAttributeTuple(*PerMeshFunction)(const aiMesh* mesh);
+
+static SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     using namespace VLRCpp;
     using namespace VLR;
 
@@ -257,15 +266,15 @@ static SurfaceAttributeTuple createMaterialDefaultFunction(const VLRCpp::Context
         mat->setImmediateValueAlbedo(spectrum);
     }
 
-    return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+    return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
 }
 
-static VLRTangentType perMeshDefaultFunction(const aiMesh* mesh) {
-    return VLRTangentType_VertexAttribute;
+static MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
+    return MeshAttributeTuple(true, VLRTangentType_RadialY);
 }
 
 static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
-                               const std::vector<SurfaceAttributeTuple> &attrTuples, bool flipV, const PerMeshFunction &meshFunc,
+                               const std::vector<SurfaceMaterialAttributeTuple> &matAttrTuples, bool flipV, const PerMeshFunction &meshFunc,
                                VLRCpp::InternalNodeRef* nodeOut) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -293,8 +302,12 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
             continue;
         }
 
+        MeshAttributeTuple meshAttr = meshFunc(mesh);
+        if (!meshAttr.visible)
+            continue;
+
         auto surfMesh = context->createTriangleMeshSurfaceNode(mesh->mName.C_Str());
-        const SurfaceAttributeTuple attrTuple = attrTuples[mesh->mMaterialIndex];
+        const SurfaceMaterialAttributeTuple attrTuple = matAttrTuples[mesh->mMaterialIndex];
         const SurfaceMaterialRef &surfMat = attrTuple.material;
         const ShaderNodeSocket &nodeNormal = attrTuple.nodeNormal;
         const ShaderNodeSocket &nodeAlpha = attrTuple.nodeAlpha;
@@ -313,12 +326,10 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
             float dotNT = dot(outVtx.normal, outVtx.tangent);
             if (std::fabs(dotNT) >= 0.01f)
                 outVtx.tangent = normalize(outVtx.tangent - dotNT * outVtx.normal);
-            //SLRAssert(absDot(outVtx.normal, outVtx.tangent) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
+            //VLRAssert(absDot(outVtx.normal, outVtx.tangent) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
             vertices.push_back(outVtx);
         }
         surfMesh->setVertices(vertices.data(), vertices.size());
-
-        VLRTangentType tangentType = meshFunc(mesh);
 
         meshIndices.clear();
         for (int f = 0; f < mesh->mNumFaces; ++f) {
@@ -327,7 +338,7 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
             meshIndices.push_back(face.mIndices[1]);
             meshIndices.push_back(face.mIndices[2]);
         }
-        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeAlpha, tangentType);
+        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeAlpha, meshAttr.tangentType);
 
         (*nodeOut)->addChild(surfMesh);
     }
@@ -335,7 +346,7 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
     if (nodeSrc->mNumChildren) {
         for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
             InternalNodeRef subNode;
-            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], attrTuples, flipV, meshFunc, &subNode);
+            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], matAttrTuples, flipV, meshFunc, &subNode);
             if (subNode != nullptr)
                 (*nodeOut)->addChild(subNode);
         }
@@ -358,7 +369,7 @@ static void construct(const VLRCpp::ContextRef &context, const std::string &file
     std::string pathPrefix = filePath.substr(0, filePath.find_last_of("/") + 1);
 
     // create materials
-    std::vector<SurfaceAttributeTuple> attrTuples;
+    std::vector<SurfaceMaterialAttributeTuple> attrTuples;
     for (int m = 0; m < scene->mNumMaterials; ++m) {
         const aiMaterial* aiMat = scene->mMaterials[m];
         attrTuples.push_back(matFunc(context, aiMat, pathPrefix));
@@ -566,7 +577,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
         //SurfaceMaterialRef mats[] = { matA, matB };
         //SurfaceMaterialRef mat = context->createMultiSurfaceMaterial(mats, lengthof(mats));
 
-        return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
     shot->scene->addChild(sphereNode);
     sphereNode->setTransform(context->createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
@@ -628,7 +639,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
         mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
-        return SurfaceAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
     shot->scene->addChild(modelNode);
 
@@ -648,7 +659,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(RGBSpectrum(30.0f, 30.0f, 30.0f));
+            matLight->setImmediateValueEmittance(RGBSpectrum(50.0f, 50.0f, 50.0f));
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -717,36 +728,18 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
             //mat = mtMat;
         }
-        //if (strcmp(strValue.C_Str(), "Base") == 0 || 
-        //    strcmp(strValue.C_Str(), "Glossy") == 0) {
-        //    float coeff[] = { 0.99f, 0.99f, 0.99f };
-        //    float etaExt[] = { 1.0f, 1.0f, 1.0f };
-        //    float etaInt[] = { 1.4f, 1.4f, 1.4f };
-        //    float roughness[] = { 0.1f, 0.1f };
-        //    Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
-        //    Float3TextureRef texEtaExt = context->createConstantFloat3Texture(etaExt);
-        //    Float3TextureRef texEtaInt = context->createConstantFloat3Texture(etaInt);
-        //    Float2TextureRef texRoughness = context->createConstantFloat2Texture(roughness);
-        //    mat = context->createMicrofacetScatteringSurfaceMaterial(texCoeff, texEtaExt, texEtaInt, texRoughness, nullptr);
 
-        //    //float coeff[] = { 0.99f, 0.99f, 0.99f };
-        //    //float F0 = 0.2f;
-        //    //Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
-        //    //FloatTextureRef texF0 = context->createConstantFloatTexture(F0);
-        //    //mat = context->createLambertianScatteringSurfaceMaterial(texCoeff, texF0, nullptr);
-        //}
-
-        return SurfaceAttributeTuple(mat, socketNormal, socketAlpha);
+        return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     },
               [](const aiMesh* mesh) {
-        return VLRTangentType_RadialY;
+        return MeshAttributeTuple(true, VLRTangentType_RadialY);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
 
 
 
-    //construct(context, "../../assets/spman/spman.obj", true, &modelNode, [](VLRCpp::Context &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    //construct(context, "../../assets/spman2/spman2.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     //    using namespace VLRCpp;
     //    using namespace VLR;
 
@@ -758,36 +751,55 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
     //    aiMat->Get(AI_MATKEY_NAME, strValue);
 
     //    SurfaceMaterialRef mat;
-    //    Float4TextureRef texNormalAlpha;
+    //    ShaderNodeSocket socketNormal;
+    //    ShaderNodeSocket socketAlpha;
     //    if (strcmp(strValue.C_Str(), "_Head1") == 0) {
-    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context->createImageFloat4Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
-    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
+    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
+    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
+
+    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+
+    //        mat = ue4Mat;
+    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
     //    }
     //    else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
-    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context->createImageFloat4Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
-    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
+    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
+    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+
+    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+
+    //        mat = ue4Mat;
+    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
     //    }
     //    else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
-    //        Float3TextureRef texBaseColor = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
-    //        Float3TextureRef texOcclusionRoughnessMetallic = context->createImageFloat3Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
-    //        texNormalAlpha = context->createImageFloat4Texture(
-    //            loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
-    //        mat = context->createUE4SurfaceMaterial(texBaseColor, texOcclusionRoughnessMetallic, nullptr);
+    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
+    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
+    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
+
+    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+
+    //        mat = ue4Mat;
+    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
     //    }
 
-    //    return SurfaceAttributeTuple(mat, texNormalAlpha);
+    //    return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     //});
     //shot->scene->addChild(modelNode);
     //modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));

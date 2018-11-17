@@ -299,31 +299,43 @@ namespace VLR {
 
     // JP: 法線マップに従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the normal map.
-    RT_FUNCTION void applyBumpMapping(const Normal3D &normalInTF, SurfacePoint* surfPt) {
+    RT_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
+        if (modNormalInTF.x == 0.0f && modNormalInTF.y == 0.0f)
+            return;
+
         const ReferenceFrame &originalFrame = surfPt->shadingFrame;
 
-        // JP: テクスチャーフレームもシェーディングフレームもz軸は共通。
+        // JP: テクスチャーフレームもシェーディングフレームもこの時点ではz軸は共通。
         //     後者に対する前者の角度を求める。
-        // EN: 
+        // EN: z axes of the texture frame and the shading frame are the same at this moment.
+        //     calculate the angle of the latter to the former.
         Vector3D tc0Direction = surfPt->tc0Direction;
         Vector3D tc1Direction = cross(originalFrame.z, tc0Direction);
         float tlx = dot(originalFrame.x, tc0Direction);
         float tly = dot(originalFrame.x, tc1Direction);
         float angleFromTexFrame = std::atan2(tly, tlx);
 
-        // JP: 法線マップはテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
-        // EN: 
-        float cosTheta = std::cos(angleFromTexFrame);
-        float sinTheta = std::sin(angleFromTexFrame);
-        Normal3D normalInSF = Normal3D(cosTheta * normalInTF.x + sinTheta * normalInTF.y,
-                                       -sinTheta * normalInTF.x + cosTheta * normalInTF.y,
-                                       normalInTF.z);
-        Vector3D tangentInSF = Vector3D::Ex() - dot(normalInSF, Vector3D::Ex()) * normalInSF;
-        Vector3D bitangentInSF = Vector3D::Ey() - dot(normalInSF, Vector3D::Ey()) * normalInSF;
-        Vector3D t = normalize(originalFrame.fromLocal(tangentInSF));
-        Vector3D b = normalize(originalFrame.fromLocal(bitangentInSF));
-        Vector3D n = normalize(originalFrame.fromLocal(normalInSF));
-        ReferenceFrame bumpShadingFrame(t, b, n);
+        // JP: 法線マップの値はテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
+        // EN: convert a normal map value to that in the shading frame because the value is defined in the texture frame.
+        float cosTFtoSF = std::cos(angleFromTexFrame);
+        float sinTFtoSF = std::sin(angleFromTexFrame);
+        Normal3D modNormalInSF = Normal3D(cosTFtoSF * modNormalInTF.x + sinTFtoSF * modNormalInTF.y,
+                                          -sinTFtoSF * modNormalInTF.x + cosTFtoSF * modNormalInTF.y,
+                                          modNormalInTF.z);
+        
+        // JP: 法線から回転軸と回転角(、Quaternion)を求めて対応する接平面ベクトルを求める。
+        // EN: calculate a rotating axis and an angle (and quaternion) from the normal then calculate corresponding tangential vectors.
+        float projLength = std::sqrt(modNormalInSF.x * modNormalInSF.x + modNormalInSF.y * modNormalInSF.y);
+        float tiltAngle = std::atan(projLength / modNormalInSF.z);
+        float qSin = std::sin(tiltAngle / 2);
+        float qX = (-modNormalInSF.y / projLength) * qSin;
+        float qY = (modNormalInSF.x / projLength) * qSin;
+        float qW = std::cos(tiltAngle / 2);
+        Vector3D modTangentInSF = Vector3D(1 - 2 * qY * qY, 2 * qX * qY, -2 * qY * qW);
+        Vector3D modBitangentInSF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
+
+        Matrix3x3 matSFtoW = Matrix3x3(originalFrame.x, originalFrame.y, originalFrame.z);
+        ReferenceFrame bumpShadingFrame(matSFtoW * modTangentInSF, matSFtoW * modBitangentInSF, matSFtoW * modNormalInSF);
 
         surfPt->shadingFrame = bumpShadingFrame;
     }
