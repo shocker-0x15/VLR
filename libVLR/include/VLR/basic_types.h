@@ -63,10 +63,18 @@ namespace VLR {
             *vy = Vector3DTemplate<RealType>(b, sign + y * y * a, -y);
         }
         RT_FUNCTION static Vector3DTemplate fromPolarZUp(RealType phi, RealType theta) {
-            return Vector3DTemplate(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+            RealType sinPhi, cosPhi;
+            RealType sinTheta, cosTheta;
+            VLR::sincos(phi, &sinPhi, &cosPhi);
+            VLR::sincos(theta, &sinTheta, &cosTheta);
+            return Vector3DTemplate(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
         }
         RT_FUNCTION static Vector3DTemplate fromPolarYUp(RealType phi, RealType theta) {
-            return Vector3DTemplate(-std::sin(phi) * std::sin(theta), std::cos(theta), std::cos(phi) * std::sin(theta));
+            RealType sinPhi, cosPhi;
+            RealType sinTheta, cosTheta;
+            VLR::sincos(phi, &sinPhi, &cosPhi);
+            VLR::sincos(theta, &sinTheta, &cosTheta);
+            return Vector3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         RT_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
             *theta = std::acos(clamp(z, (RealType)-1, (RealType)1));
@@ -262,10 +270,18 @@ namespace VLR {
             *bitangent = Vector3DTemplate<RealType>(b, sign + y * y * a, -y);
         }
         RT_FUNCTION static Normal3DTemplate fromPolarZUp(RealType phi, RealType theta) {
-            return Normal3DTemplate(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+            RealType sinPhi, cosPhi;
+            RealType sinTheta, cosTheta;
+            VLR::sincos(phi, &sinPhi, &cosPhi);
+            VLR::sincos(theta, &sinTheta, &cosTheta);
+            return Normal3DTemplate(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
         }
         RT_FUNCTION static Normal3DTemplate fromPolarYUp(RealType phi, RealType theta) {
-            return Normal3DTemplate(-std::sin(phi) * std::sin(theta), std::cos(theta), std::cos(phi) * std::sin(theta));
+            RealType sinPhi, cosPhi;
+            RealType sinTheta, cosTheta;
+            VLR::sincos(phi, &sinPhi, &cosPhi);
+            VLR::sincos(theta, &sinTheta, &cosTheta);
+            return Normal3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         RT_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
             *theta = std::acos(clamp(z, (RealType)-1, (RealType)1));
@@ -794,8 +810,8 @@ namespace VLR {
     RT_FUNCTION inline Matrix3x3Template<RealType> rotate3x3(RealType angle, const Vector3DTemplate<RealType> &axis) {
         Matrix3x3Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
-        RealType c = std::cos(angle);
-        RealType s = std::sin(angle);
+        RealType s, c;
+        VLR::sincos(angle, &s, &c);
         RealType oneMinusC = 1 - c;
 
         matrix.m00 = nAxis.x * nAxis.x * oneMinusC + c;
@@ -1123,8 +1139,8 @@ namespace VLR {
     RT_FUNCTION inline Matrix4x4Template<RealType> rotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
         Matrix4x4Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
-        RealType c = std::cos(angle);
-        RealType s = std::sin(angle);
+        RealType s, c;
+        VLR::sincos(angle, &s, &c);
         RealType oneMinusC = 1 - c;
 
         matrix.m00 = nAxis.x * nAxis.x * oneMinusC + c;
@@ -1262,8 +1278,8 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION inline QuaternionTemplate<RealType> qRotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
-        RealType s = std::sin(angle / 2);
-        RealType c = std::cos(angle / 2);
+        RealType s, c;
+        VLR::sincos(angle / 2, &s, &c);
         return QuaternionTemplate<RealType>(s * normalize(axis), c);
     }
     template <typename RealType>
@@ -1286,7 +1302,9 @@ namespace VLR {
             RealType theta = std::acos(clamp(cosTheta, (RealType)-1, (RealType)1));
             RealType thetap = theta * t;
             QuaternionTemplate<RealType> qPerp = normalize(q1 - q0 * cosTheta);
-            return q0 * std::cos(thetap) + qPerp * std::sin(thetap);
+            RealType sinThetaP, cosThetaP;
+            VLR::sincos(thetap, &sinThetaP, &cosThetaP);
+            return q0 * cosThetaP + qPerp * sinThetaP;
         }
     }
 

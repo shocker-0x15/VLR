@@ -32,7 +32,9 @@ namespace VLR {
         float phi = param.b0;
         float theta = param.b1;
         Vector3D direction = transform(RT_OBJECT_TO_WORLD, Vector3D::fromPolarYUp(phi, theta));
-        Vector3D texCoord0Dir = transform(RT_OBJECT_TO_WORLD, Vector3D(-std::cos(phi), 0.0f, -std::sin(phi)));
+        float sinPhi, cosPhi;
+        VLR::sincos(phi, &sinPhi, &cosPhi);
+        Vector3D texCoord0Dir = transform(RT_OBJECT_TO_WORLD, Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         surfPt->position = Point3D(direction.x, direction.y, direction.z);
         surfPt->shadingFrame = ReferenceFrame(texCoord0Dir, -direction);
@@ -70,7 +72,9 @@ namespace VLR {
         Vector3D direction = Vector3D::fromPolarYUp(phi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
 
-        Vector3D texCoord0Dir = normalize(Vector3D(-std::cos(phi), 0.0f, -std::sin(phi)));
+        float sinPhi, cosPhi;
+        VLR::sincos(phi, &sinPhi, &cosPhi);
+        Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         Normal3D geometricNormal = -(Vector3D)position;
 

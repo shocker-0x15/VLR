@@ -111,7 +111,9 @@ namespace std {
     RT_FUNCTION constexpr bool isnan(float x) {
         return ::isnan(x);
     }
+}
 
+namespace VLR {
     template <typename T>
     RT_FUNCTION constexpr void sincos(T angle, T* s, T* c);
 
@@ -122,6 +124,14 @@ namespace std {
     template <>
     RT_FUNCTION constexpr void sincos<double>(double angle, double* s, double* c) {
         ::sincos(angle, s, c);
+    }
+}
+#else
+namespace VLR {
+    template <typename T>
+    RT_FUNCTION constexpr void sincos(T angle, T* s, T* c) {
+        *s = std::sin(angle);
+        *c = std::cos(angle);
     }
 }
 #endif

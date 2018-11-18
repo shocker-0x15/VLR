@@ -136,8 +136,7 @@ namespace VLR {
     public:
         RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
             m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {
-            m_cosRt = std::cos(rotation);
-            m_sinRt = std::sin(rotation);
+            VLR::sincos(rotation, &m_sinRt, &m_cosRt);
         }
 
         RT_FUNCTION float evaluate(const Normal3D &m) {
@@ -199,8 +198,10 @@ namespace VLR {
             float a = 1.0f / (1.0f + sv.z);
             float r = std::sqrt(u0);
             float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
-            float P1 = r * std::cos(phi);
-            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0f : sv.z);
+            float sinPhi, cosPhi;
+            VLR::sincos(phi, &sinPhi, &cosPhi);
+            float P1 = r * cosPhi;
+            float P2 = r * sinPhi * ((u1 < a) ? 1.0f : sv.z);
 
             // compute normal
             Normal3D mr = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;

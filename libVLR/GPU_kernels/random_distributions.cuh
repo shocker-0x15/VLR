@@ -129,28 +129,28 @@ namespace VLR {
     RT_FUNCTION inline Vector3DTemplate<RealType> cosNSampleHemisphere(RealType u0, RealType u1) {
         RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(std::pow(u0, 1.0 / (1 + N)));
-        return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+        return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleHemisphere(RealType u0, RealType u1) {
         RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - u0);
-        return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+        return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleSphere(RealType u0, RealType u1) {
         RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - 2 * u0);
-        return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+        return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     RT_FUNCTION inline Vector3DTemplate<RealType> uniformSampleCone(RealType u0, RealType u1, RealType cosThetaMax) {
         RealType phi = 2 * M_PIf * u1;
         RealType theta = std::acos(1 - (1 - cosThetaMax) * u0);
-        return Vector3DTemplate<RealType>(std::cos(phi) * std::sin(theta), std::sin(phi) * std::sin(theta), std::cos(theta));
+        return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>

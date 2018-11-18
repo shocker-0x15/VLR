@@ -320,7 +320,7 @@ namespace VLR {
         // JP: 法線マップの値はテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
         // EN: convert a normal map value to that in the shading frame because the value is defined in the texture frame.
         float cosTFtoSF, sinTFtoSF;
-        std::sincos(angleFromTexFrame, &cosTFtoSF, &sinTFtoSF);
+        VLR::sincos(angleFromTexFrame, &sinTFtoSF, &cosTFtoSF);
         Normal3D modNormalInSF = Normal3D(cosTFtoSF * modNormalInTF.x + sinTFtoSF * modNormalInTF.y,
                                           -sinTFtoSF * modNormalInTF.x + cosTFtoSF * modNormalInTF.y,
                                           modNormalInTF.z);
@@ -330,7 +330,7 @@ namespace VLR {
         float projLength = std::sqrt(modNormalInSF.x * modNormalInSF.x + modNormalInSF.y * modNormalInSF.y);
         float tiltAngle = std::atan(projLength / modNormalInSF.z);
         float qSin, qCos;
-        std::sincos(tiltAngle / 2, &qSin, &qCos);
+        VLR::sincos(tiltAngle / 2, &qSin, &qCos);
         float qX = (-modNormalInSF.y / projLength) * qSin;
         float qY = (modNormalInSF.x / projLength) * qSin;
         float qW = qCos;
