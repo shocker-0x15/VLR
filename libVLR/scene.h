@@ -389,11 +389,6 @@ namespace VLR {
         DiscreteDistribution1D m_surfaceLightImpDist;
         bool m_surfaceLightsAreSetup;
 
-        // DELETE ME
-        //Float4Texture* m_envTex;
-        //SurfaceMaterial* m_envMat;
-        //InfiniteSphereSurfaceNode* m_envSphere;
-
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
         void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 

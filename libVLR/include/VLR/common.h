@@ -129,7 +129,7 @@ namespace VLR {
 #else
 namespace VLR {
     template <typename T>
-    RT_FUNCTION constexpr void sincos(T angle, T* s, T* c) {
+    RT_FUNCTION HOST_INLINE constexpr void sincos(T angle, T* s, T* c) {
         *s = std::sin(angle);
         *c = std::cos(angle);
     }

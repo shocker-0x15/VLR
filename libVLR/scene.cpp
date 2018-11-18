@@ -1238,14 +1238,6 @@ namespace VLR {
         ParentNode(context, "Root", localToWorld), m_shGroup(context), m_surfaceLightsAreSetup(false) {
         SHTransform* shtr = m_shTransforms[0];
         m_shGroup.addChild(shtr);
-
-        // DELETE ME
-        //float value[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        //m_envTex = new ConstantFloat4Texture(context, value);
-        //m_envMat = new MatteSurfaceMaterial(context, m_envTex);
-        //m_envSphere = new InfiniteSphereSurfaceNode(context, "Env", m_envMat);
-
-        //addChild(m_envSphere);
     }
 
     RootNode::~RootNode() {
@@ -1256,13 +1248,6 @@ namespace VLR {
 
             m_surfaceLightsAreSetup = false;
         }
-
-        // DELETE ME
-        //removeChild(m_envSphere);
-
-        //delete m_envSphere;
-        //delete m_envMat;
-        //delete m_envTex;
     }
 
     void RootNode::set() {

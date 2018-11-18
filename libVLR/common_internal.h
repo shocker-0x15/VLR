@@ -87,8 +87,8 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION HOST_INLINE constexpr RealType remap(RealType orgValue, RealType orgMin, RealType orgMax, RealType newMin, RealType newMax) {
-        RealType percenrage = (orgValue - orgMin) / (orgMax - orgMin);
-        return newMin + percenrage * (newMax - newMin);
+        RealType percentage = (orgValue - orgMin) / (orgMax - orgMin);
+        return newMin + percentage * (newMax - newMin);
     }
 
     RT_FUNCTION HOST_INLINE constexpr uint32_t prevPowerOf2(uint32_t x) {
