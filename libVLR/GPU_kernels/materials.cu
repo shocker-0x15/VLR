@@ -200,7 +200,7 @@ namespace VLR {
             float r = std::sqrt(u0);
             float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
             float P1 = r * std::cos(phi);
-            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0 : sv.z);
+            float P2 = r * std::sin(phi) * ((u1 < a) ? 1.0f : sv.z);
 
             // compute normal
             Normal3D mr = P1 * T1 + P2 * T2 + std::sqrt(1.0f - P1 * P1 - P2 * P2) * sv;
@@ -209,7 +209,7 @@ namespace VLR {
             mr = normalize(Normal3D(m_alpha_gx * mr.x, m_alpha_gy * mr.y, mr.z));
 
             float D = evaluate(mr);
-            *normalPDF = evaluateSmithG1(vr, mr) * absDot(vr, mr) * D / std::abs(vr.z);
+            *normalPDF = evaluateSmithG1(vr, mr) * absDot(vr, mr) * D / std::fabs(vr.z);
 
             *m = Normal3D(m_cosRt * mr.x - m_sinRt * mr.y,
                           m_sinRt * mr.x + m_cosRt * mr.y,
@@ -219,7 +219,7 @@ namespace VLR {
         }
 
         RT_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
-            return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::abs(v.z);
+            return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::fabs(v.z);
         }
     };
 
@@ -318,7 +318,7 @@ namespace VLR {
             return 0.0f;
         }
 
-        return std::abs(dirLocal.z) / M_PIf;
+        return std::fabs(dirLocal.z) / M_PIf;
     }
 
     RT_CALLABLE_PROGRAM float MatteBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
@@ -521,9 +521,9 @@ namespace VLR {
                                                              optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
                                                              surfPt);
         float alpha = pow2(roughnessAnisotropyRotation.x);
-        float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
-        p.alphaX = std::max(0.001f, alpha / aspect);
-        p.alphaY = std::max(0.001f, alpha * aspect);
+        float aspect = std::sqrt(1.0f - 0.9f * roughnessAnisotropyRotation.y);
+        p.alphaX = std::fmax(0.001f, alpha / aspect);
+        p.alphaY = std::fmax(0.001f, alpha * aspect);
         p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBRDF) / 4;
@@ -685,9 +685,9 @@ namespace VLR {
                                                              optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
                                                              surfPt);
         float alpha = pow2(roughnessAnisotropyRotation.x);
-        float aspect = std::sqrt(1 - 0.9 * roughnessAnisotropyRotation.y);
-        p.alphaX = std::max(0.001f, alpha / aspect);
-        p.alphaY = std::max(0.001f, alpha * aspect);
+        float aspect = std::sqrt(1 - 0.9f * roughnessAnisotropyRotation.y);
+        p.alphaX = std::fmax(0.001f, alpha / aspect);
+        p.alphaY = std::fmax(0.001f, alpha * aspect);
         p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBSDF) / 4;
@@ -1067,7 +1067,7 @@ namespace VLR {
         optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic, 
                                                             optix::make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic), 
                                                             surfPt);
-        p.roughness = std::max(0.01f, occlusionRoughnessMetallic.y);
+        p.roughness = std::fmax(0.01f, occlusionRoughnessMetallic.y);
         p.metallic = occlusionRoughnessMetallic.z;
 
         return sizeof(UE4BRDF) / 4;

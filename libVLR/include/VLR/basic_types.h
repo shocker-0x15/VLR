@@ -110,7 +110,7 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION inline RealType absDot(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
-        return std::abs(vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z);
+        return std::fabs(vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z);
     }
 
     template <typename RealType>
@@ -323,17 +323,17 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION inline RealType absDot(const Normal3DTemplate<RealType> &norm1, const Normal3DTemplate<RealType> &norm2) {
-        return std::abs(norm1.x * norm2.x + norm1.y * norm2.y + norm1.z * norm2.z);
+        return std::fabs(norm1.x * norm2.x + norm1.y * norm2.y + norm1.z * norm2.z);
     }
 
     template <typename RealType>
     RT_FUNCTION inline RealType absDot(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
-        return std::abs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
+        return std::fabs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
     }
 
     template <typename RealType>
     RT_FUNCTION inline RealType absDot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
-        return std::abs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
+        return std::fabs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
     }
 
     template <typename RealType>
@@ -408,7 +408,7 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION inline RealType absDot(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
-        return std::abs(p1.x * p2.x + p1.y * p2.y + p1.z * p2.z);
+        return std::fabs(p1.x * p2.x + p1.y * p2.y + p1.z * p2.z);
     }
 
     template <typename RealType>
@@ -1310,9 +1310,9 @@ namespace VLR {
 
             norm = 0;
             for (int i = 0; i < 3; ++i) {
-                using std::abs;
-                RealType n = abs(curR[0][i] - nextR[0][i]) + abs(curR[1][i] - nextR[1][i]) + abs(curR[2][i] - nextR[2][i]);
-                norm = std::max(norm, n);
+                using std::fabs;
+                RealType n = fabs(curR[0][i] - nextR[0][i]) + abs(curR[1][i] - nextR[1][i]) + abs(curR[2][i] - nextR[2][i]);
+                norm = std::fmax(norm, n);
             }
             curR = nextR;
         } while (++count < 100 && norm > 0.0001);

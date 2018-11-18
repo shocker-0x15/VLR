@@ -34,7 +34,7 @@ namespace VLR {
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
                 float bsdfPDF = sm_payload.prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                float lightPDF = pv_importance / getSumLightImportances() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
+                float lightPDF = pv_importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
@@ -44,7 +44,7 @@ namespace VLR {
             return;
 
         // Russian roulette
-        float continueProb = std::min(sm_payload.alpha.importance(sm_payload.wlHint) / sm_payload.initImportance, 1.0f);
+        float continueProb = std::fmin(sm_payload.alpha.importance(sm_payload.wlHint) / sm_payload.initImportance, 1.0f);
         if (rng.getFloat0cTo1o() >= continueProb)
             return;
         sm_payload.alpha /= continueProb;
@@ -157,7 +157,7 @@ namespace VLR {
             if (!sm_payload.prevSampledType.isDelta() && sm_ray.ray_type != RayType::Primary) {
                 float bsdfPDF = sm_payload.prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(sm_ray.origin));
-                float lightPDF = pv_envLightDescriptor.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::abs(dirOutLocal.z);
+                float lightPDF = pv_envLightDescriptor.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 

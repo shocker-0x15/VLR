@@ -319,8 +319,8 @@ namespace VLR {
 
         // JP: 法線マップの値はテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
         // EN: convert a normal map value to that in the shading frame because the value is defined in the texture frame.
-        float cosTFtoSF = std::cos(angleFromTexFrame);
-        float sinTFtoSF = std::sin(angleFromTexFrame);
+        float cosTFtoSF, sinTFtoSF;
+        std::sincos(angleFromTexFrame, &cosTFtoSF, &sinTFtoSF);
         Normal3D modNormalInSF = Normal3D(cosTFtoSF * modNormalInTF.x + sinTFtoSF * modNormalInTF.y,
                                           -sinTFtoSF * modNormalInTF.x + cosTFtoSF * modNormalInTF.y,
                                           modNormalInTF.z);
@@ -329,10 +329,11 @@ namespace VLR {
         // EN: calculate a rotating axis and an angle (and quaternion) from the normal then calculate corresponding tangential vectors.
         float projLength = std::sqrt(modNormalInSF.x * modNormalInSF.x + modNormalInSF.y * modNormalInSF.y);
         float tiltAngle = std::atan(projLength / modNormalInSF.z);
-        float qSin = std::sin(tiltAngle / 2);
+        float qSin, qCos;
+        std::sincos(tiltAngle / 2, &qSin, &qCos);
         float qX = (-modNormalInSF.y / projLength) * qSin;
         float qY = (modNormalInSF.x / projLength) * qSin;
-        float qW = std::cos(tiltAngle / 2);
+        float qW = qCos;
         Vector3D modTangentInSF = Vector3D(1 - 2 * qY * qY, 2 * qX * qY, -2 * qY * qW);
         Vector3D modBitangentInSF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
 

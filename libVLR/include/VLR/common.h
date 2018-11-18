@@ -111,13 +111,25 @@ namespace std {
     RT_FUNCTION constexpr bool isnan(float x) {
         return ::isnan(x);
     }
+
+    template <typename T>
+    RT_FUNCTION constexpr void sincos(T angle, T* s, T* c);
+
+    template <>
+    RT_FUNCTION constexpr void sincos<float>(float angle, float* s, float* c) {
+        ::sincosf(angle, s, c);
+    }
+    template <>
+    RT_FUNCTION constexpr void sincos<double>(double angle, double* s, double* c) {
+        ::sincos(angle, s, c);
+    }
 }
 #endif
 
 namespace VLR {
     template <typename T>
     RT_FUNCTION HOST_INLINE constexpr T clamp(const T &v, const T &minv, const T &maxv) {
-        return std::min(maxv, std::max(minv, v));
+        return std::min<T>(maxv, std::max<T>(minv, v));
     }
 
     template <typename RealType>

@@ -510,7 +510,7 @@ namespace VLR {
                     dstTriangles[i] = Shared::Triangle{ i0, i1, i2 };
 
                     const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
-                    areas[i] = std::max<float>(0.0f, 0.5f * cross(v[1].position - v[0].position, v[2].position - v[0].position).length());
+                    areas[i] = std::fmax(0.0f, 0.5f * cross(v[1].position - v[0].position, v[2].position - v[0].position).length());
                     sumImportances += areas[i];
                 }
                 geom.optixIndexBuffer->unmap();
