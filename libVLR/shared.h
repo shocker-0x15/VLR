@@ -301,13 +301,13 @@ namespace VLR {
 
         struct TangentType {
             enum Value {
-                VertexAttribute = 0,
+                TC0Direction = 0,
                 RadialX,
                 RadialY,
                 RadialZ
             } value;
 
-            RT_FUNCTION constexpr TangentType(Value v = VertexAttribute) : value(v) {}
+            RT_FUNCTION constexpr TangentType(Value v = TC0Direction) : value(v) {}
             RT_FUNCTION bool operator==(const TangentType &r) const {
                 return value == r.value;
             }

@@ -43,6 +43,10 @@ It requires the following libraries.
 * OpenEXR 2.2
 * assimp 4.1
 
+### Q&A
+Q. How to fix stack overflow error?  
+A. Try to increase the stack size by specifying command line arguments (e.g. --stacksize 1536). You can see the stack size actually specified at the early phase of standard output.
+
 ## 注意 / Note
 モデルデータやテクスチャーを読み込むシーンファイルがありますが、それらアセットはリポジトリには含まれていません。
 

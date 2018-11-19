@@ -74,5 +74,8 @@
     <CudaCompile Include="GPU_kernels\shader_nodes.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
+    <CudaCompile Include="GPU_kernels\debug_rendering.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -270,7 +270,7 @@ static SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp:
 }
 
 static MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
-    return MeshAttributeTuple(true, VLRTangentType_RadialY);
+    return MeshAttributeTuple(true, VLRTangentType_TC0Direction);
 }
 
 static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
@@ -323,10 +323,10 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
             const aiVector3D &uv = mesh->mNumUVComponents[0] > 0 ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
 
             Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, flipV ? (1 - uv.y) : uv.y) };
-            float dotNT = dot(outVtx.normal, outVtx.tangent);
+            float dotNT = dot(outVtx.normal, outVtx.tc0Direction);
             if (std::fabs(dotNT) >= 0.01f)
-                outVtx.tangent = normalize(outVtx.tangent - dotNT * outVtx.normal);
-            //VLRAssert(absDot(outVtx.normal, outVtx.tangent) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
+                outVtx.tc0Direction = normalize(outVtx.tc0Direction - dotNT * outVtx.normal);
+            //VLRAssert(absDot(outVtx.normal, outVtx.tc0Direction) < 0.01f, "shading normal and tangent must be orthogonal: %g", absDot(outVtx.normal, outVtx.tangent));
             vertices.push_back(outVtx);
         }
         surfMesh->setVertices(vertices.data(), vertices.size());
@@ -359,7 +359,7 @@ static void construct(const VLRCpp::ContextRef &context, const std::string &file
     using namespace VLR;
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
     if (!scene) {
         debugPrintf("Failed to load %s.\n", filePath.c_str());
         return;
@@ -449,7 +449,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
 
         {
@@ -460,7 +460,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
 
         {
@@ -474,7 +474,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
 
         {
@@ -484,7 +484,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
 
         {
@@ -494,7 +494,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
 
         {
@@ -504,7 +504,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
     }
     shot->scene->addChild(cornellBox);
@@ -664,7 +664,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_VertexAttribute);
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         }
     }
     InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
@@ -800,6 +800,10 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
     //    }
 
     //    return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+    //}, [](const aiMesh* mesh) {
+    //    if (std::strcmp(mesh->mName.C_Str(), "base_base") == 0)
+    //        return MeshAttributeTuple(true, VLRTangentType_RadialY);
+    //    return MeshAttributeTuple(true, VLRTangentType_TC0Direction);
     //});
     //shot->scene->addChild(modelNode);
     //modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));

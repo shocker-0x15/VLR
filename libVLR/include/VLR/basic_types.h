@@ -1593,7 +1593,7 @@ namespace VLR {
     struct Vertex {
         Point3D position;
         Normal3D normal;
-        Vector3D tangent;
+        Vector3D tc0Direction;
         TexCoord2D texCoord;
     };
 }

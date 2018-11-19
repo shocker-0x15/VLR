@@ -73,38 +73,24 @@ namespace VLR {
 
         float b0 = param.b0, b1 = param.b1, b2 = 1.0f - param.b0 - param.b1;
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
-        Normal3D shadingNormal = normalize(b0 * v0.normal + b1 * v1.normal + b2 * v2.normal);
-        Vector3D shadingTangent = normalize(b0 * v0.tangent + b1 * v1.tangent + b2 * v2.tangent);
+        Normal3D shadingNormal = b0 * v0.normal + b1 * v1.normal + b2 * v2.normal;
+        Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
         position = transform(RT_OBJECT_TO_WORLD, position);
         shadingNormal = normalize(transform(RT_OBJECT_TO_WORLD, shadingNormal));
-        shadingTangent = normalize(transform(RT_OBJECT_TO_WORLD, shadingTangent));
-
-        // ----------------------------------------------------------------
-        // JP: 法線マップが定義されるテクスチャーフレームのx軸(tc0Direction)を求める。
-        // EN: calculate the x axis (tc0Direction) of a texture frame in which normal map is defined.
-
-        TexCoord2D dUV0m2 = v0.texCoord - v2.texCoord;
-        TexCoord2D dUV1m2 = v1.texCoord - v2.texCoord;
-        Vector3D dP0m2 = v0.position - v2.position;
-        Vector3D dP1m2 = v1.position - v2.position;
-
-        float invDetUV = 1.0f / (dUV0m2.u * dUV1m2.v - dUV0m2.v * dUV1m2.u);
-        Vector3D tc0Direction = invDetUV * Vector3D(dUV1m2.v * dP0m2.x - dUV0m2.v * dP1m2.x,
-                                                    dUV1m2.v * dP0m2.y - dUV0m2.v * dP1m2.y,
-                                                    dUV1m2.v * dP0m2.z - dUV0m2.v * dP1m2.z);
-
         tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, tc0Direction));
 
-        // JP: tc0Directionをシェーディングノーマルに垂直な面に投影する。
-        // EN: project tc0Direction onto a surface perpendicular to the shading normal.
-        tc0Direction = normalize(tc0Direction - dot(shadingNormal, tc0Direction) * shadingNormal);
-
-        // ----------------------------------------------------------------
+        // JP: 法線と接線が直交することを保証する。
+        //     直交性の消失は重心座標補間によっておこる？
+        // EN: guarantee the orthogonality between the normal and tangent.
+        //     Orthogonality break might be caused by barycentric interpolation?
+        float dotNT = dot(shadingNormal, tc0Direction);
+        if (std::fabs(dotNT) >= 0.01f)
+            tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
 
         surfPt->position = position;
-        surfPt->shadingFrame = ReferenceFrame(shadingTangent, shadingNormal);
+        surfPt->shadingFrame = ReferenceFrame(tc0Direction, shadingNormal);
         surfPt->isPoint = false;
         surfPt->atInfinity = false;
         surfPt->geometricNormal = geometricNormal;
@@ -144,54 +130,42 @@ namespace VLR {
         float area = geometricNormal.length() / 2;
         geometricNormal /= 2 * area;
 
+        geometricNormal = normalize(desc.asMeshLight.transform * geometricNormal);
+
+        result->areaPDF = primProb / area;
+        result->posType = DirectionType::Emission() | DirectionType::LowFreq();
+
         float b0, b1, b2;
         uniformSampleTriangle(sample.uPos[0], sample.uPos[1], &b0, &b1);
         b2 = 1.0f - b0 - b1;
 
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
         Normal3D shadingNormal = b0 * v0.normal + b1 * v1.normal + b2 * v2.normal;
-        Vector3D shadingTangent = b0 * v0.tangent + b1 * v1.tangent + b2 * v2.tangent;
+        Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
-        ReferenceFrame shadingFrame;
-        shadingFrame.z = normalize(desc.asMeshLight.transform * shadingNormal);
-        shadingFrame.x = normalize(desc.asMeshLight.transform * shadingTangent);
+        position = desc.asMeshLight.transform * position;
+        shadingNormal = normalize(desc.asMeshLight.transform * shadingNormal);
+        tc0Direction = normalize(desc.asMeshLight.transform * tc0Direction);
+
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
         // EN: guarantee the orthogonality between the normal and tangent.
         //     Orthogonality break might be caused by barycentric interpolation?
-        float dotNT = dot(shadingFrame.z, shadingFrame.x);
+        float dotNT = dot(shadingNormal, tc0Direction);
         if (std::fabs(dotNT) >= 0.01f)
-            shadingFrame.x = normalize(shadingFrame.x - dotNT * shadingFrame.z);
-        shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+            tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
 
         SurfacePoint &surfPt = result->surfPt;
 
-        surfPt.position = desc.asMeshLight.transform * position;
-        surfPt.shadingFrame = shadingFrame;
+        surfPt.position = position;
+        surfPt.shadingFrame = ReferenceFrame(tc0Direction, shadingNormal);
         surfPt.isPoint = false;
         surfPt.atInfinity = false;
-
-        surfPt.geometricNormal = normalize(desc.asMeshLight.transform * geometricNormal);
+        surfPt.geometricNormal = geometricNormal;
         surfPt.u = b0;
         surfPt.v = b1;
         surfPt.texCoord = texCoord;
-
-        result->areaPDF = primProb / area;
-        result->posType = DirectionType::Emission() | DirectionType::LowFreq();
-
-
-
-        //result->surfPt.isPoint = false;
-        //result->surfPt.atInfinity = false;
-        //result->surfPt.geometricNormal = Normal3D(0, -1, 0);
-        //result->surfPt.shadingFrame = ReferenceFrame(Vector3D(1, 0, 0), Vector3D(0, 0, 1), Normal3D(0, -1, 0));
-        //result->surfPt.u = sample.uPos[0];
-        //result->surfPt.v = sample.uPos[1];
-        //result->surfPt.position = Point3D(-0.5f, 2.899f, -0.5f) + result->surfPt.u * Vector3D(1, 0, 0) + result->surfPt.v * Vector3D(0, 0, 1);
-        //result->surfPt.texCoord = TexCoord2D(result->surfPt.u, result->surfPt.v);
-        //result->areaPDF = 1.0f / 1.0f;
-        //result->posType = DirectionType::Emission() | DirectionType::LowFreq();
-        //result->materialIndex = 5;
+        surfPt.tc0Direction = tc0Direction;
     }
 }

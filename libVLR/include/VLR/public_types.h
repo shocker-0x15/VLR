@@ -45,7 +45,7 @@ enum VLRTextureFilter {
 
 
 enum VLRTangentType {
-    VLRTangentType_VertexAttribute = 0,
+    VLRTangentType_TC0Direction = 0,
     VLRTangentType_RadialX,
     VLRTangentType_RadialY,
     VLRTangentType_RadialZ,
@@ -78,6 +78,6 @@ struct VLRQuaternion {
 struct VLRVertex {
     VLRPoint3D position;
     VLRNormal3D normal;
-    VLRVector3D tangent;
+    VLRVector3D tc0Direction;
     VLRTexCoord2D texCoord;
 };

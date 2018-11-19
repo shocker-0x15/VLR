@@ -219,7 +219,7 @@ namespace VLR {
     // per GeometryInstance
     rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(TangentType, pv_tangentType, , ) = TangentType::VertexAttribute;
+    rtDeclareVariable(TangentType, pv_tangentType, , ) = TangentType::TC0Direction;
     rtDeclareVariable(ShaderNodeSocketID, pv_nodeNormal, , );
     rtDeclareVariable(ShaderNodeSocketID, pv_nodeAlpha, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
@@ -263,7 +263,7 @@ namespace VLR {
 
 
     RT_FUNCTION void modifyTangent(SurfacePoint* surfPt) {
-        if (pv_tangentType == TangentType::VertexAttribute)
+        if (pv_tangentType == TangentType::TC0Direction)
             return;
 
         Point3D localPosition = transform(RT_WORLD_TO_OBJECT, surfPt->position);
@@ -281,10 +281,6 @@ namespace VLR {
 
         Vector3D newTangent = normalize(transform(RT_OBJECT_TO_WORLD, localTangent));
 
-        // JP: 法線と接線が直交することを保証する。
-        //     直交性の消失は重心座標補間によっておこる？
-        // EN: guarantee the orthogonality between the normal and tangent.
-        //     Orthogonality break might be caused by barycentric interpolation?
         float dotNT = dot(surfPt->shadingFrame.z, newTangent);
         surfPt->shadingFrame.x = normalize(newTangent - dotNT * surfPt->shadingFrame.z);
         surfPt->shadingFrame.y = cross(surfPt->shadingFrame.z, surfPt->shadingFrame.x);
