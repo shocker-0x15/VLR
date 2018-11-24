@@ -59,8 +59,8 @@ There are some scene files loading model data and textures, but those assets are
 [Veach1996] "Non-symmetric Scattering in Light Transport Algorithms"  
 
 ## ギャラリー / Gallery
-![UE4LikeBRDF](UE4LikeBRDF.png)  
-Object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter)  
+<img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png">
+An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.  
 Model: Substance Painter  
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)  
 
