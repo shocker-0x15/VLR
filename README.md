@@ -44,8 +44,8 @@ It requires the following libraries.
 * assimp 4.1
 
 ### Q&A
-Q. How to fix stack overflow error?  
-A. Try to increase the stack size by specifying command line arguments (e.g. --stacksize 1536). You can see the stack size actually specified at the early phase of standard output.
+Q. Program crashes or produces a wierd image. What's going on?  
+A. First try to launch the program with --logging option and check if it reports stack overflow error. If it does, try the --stacksize option (e.g. --stacksize 3072). You will see the stack size actually used at the early phase of standard output.
 
 ## 注意 / Note
 モデルデータやテクスチャーを読み込むシーンファイルがありますが、それらアセットはリポジトリには含まれていません。

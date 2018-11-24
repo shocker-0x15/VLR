@@ -204,6 +204,8 @@ namespace VLR {
         RTsize defaultStackSize = m_optixContext->getStackSize();
         VLRDebugPrintf("Default Stack Size: %u\n", defaultStackSize);
 
+        VLRDebugPrintf("Requested Stack Size: %u\n", stackSize);
+
         if (logging) {
             m_optixContext->setPrintEnabled(true);
             m_optixContext->setPrintBufferSize(4096);
@@ -218,8 +220,15 @@ namespace VLR {
             if (stackSize == 0)
                 stackSize = 640;
         }
+
+        // Dirty hack for OptiX stack size management where the relation between set/getStackSize() is inconsistent
+        // depending on a device or a version of OptiX.
+        m_optixContext->setStackSize(defaultStackSize);
+        stackSize = stackSize * defaultStackSize / m_optixContext->getStackSize();
+
         m_optixContext->setStackSize(stackSize);
-        VLRDebugPrintf("Stack Size: %u\n", stackSize);
+        RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
+        VLRDebugPrintf("Stack Size: %u\n", actuallyUsedStackSize);
     }
 
     Context::~Context() {
