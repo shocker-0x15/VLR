@@ -70,6 +70,7 @@ extern "C" {
     VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);
     VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, void** ptr);
     VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context);
+    VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height);
     VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
 

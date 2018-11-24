@@ -1088,6 +1088,10 @@ namespace VLRCpp {
             errorCheck(vlrContextUnmapOutputBuffer(m_rawContext));
         }
 
+        void getOutputBufferSize(uint32_t* width, uint32_t* height) const {
+            errorCheck(vlrContextGetOutputBufferSize(m_rawContext, width, height));
+        }
+
         void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
             errorCheck(vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), shrinkCoeff, firstFrame, numAccumFrames));
         }

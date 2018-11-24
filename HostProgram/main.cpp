@@ -137,9 +137,46 @@ static std::string readTxtFile(const std::string& filepath) {
     return std::string(sstream.str());
 };
 
+
+
+static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename) {
+    using namespace VLR;
+    using namespace VLRCpp;
+
+    auto output = (const RGBSpectrum*)context->mapOutputBuffer();
+    uint32_t width, height;
+    context->getOutputBufferSize(&width, &height);
+    auto data = new uint32_t[width * height];
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            RGBSpectrum srcPix = output[y * width + x];
+            uint32_t &pix = data[y * width + x];
+
+            srcPix *= g_brightnessCoeff;
+            srcPix = RGBSpectrum::One() - exp(-srcPix);
+            srcPix = sRGB_gamma(srcPix);
+
+            pix = ((std::min<uint8_t>(srcPix.r * 256, 255) << 0) |
+                   (std::min<uint8_t>(srcPix.g * 256, 255) << 8) |
+                   (std::min<uint8_t>(srcPix.b * 256, 255) << 16) |
+                   (0xFF << 24));
+        }
+    }
+
+    stbi_write_bmp(filename.c_str(), width, height, 4, data);
+    delete[] data;
+
+    context->unmapOutputBuffer();
+}
+
+
+
 static void glfw_error_callback(int32_t error, const char* description) {
     debugPrintf("Error %d: %s\n", error, description);
 }
+
+
 
 struct Image2DCacheKey {
     std::string filepath;
@@ -1083,6 +1120,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             bool operatingCamera = false;
             bool cameraIsActuallyMoving = false;
 
+            static bool g_resizeRequested = false;
+            static int32_t g_requestedSize[2] = { g_renderTargetSizeX, g_renderTargetSizeY };
+            if (g_resizeRequested) {
+                glfwSetWindowSize(window, 
+                                  std::max<int32_t>(360, g_requestedSize[0]) * UIScaling, 
+                                  std::max<int32_t>(360, g_requestedSize[1]) * UIScaling);
+                g_resizeRequested = false;
+            }
             bool resized = false;
             int32_t newFBWidth;
             int32_t newFBHeight;
@@ -1093,6 +1138,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 g_renderTargetSizeX = curFBWidth / UIScaling;
                 g_renderTargetSizeY = curFBHeight / UIScaling;
+                g_requestedSize[0] = g_renderTargetSizeX;
+                g_requestedSize[1] = g_renderTargetSizeY;
 
                 frameBuffer.finalize();
                 outputTexture.finalize();
@@ -1214,23 +1261,30 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             {
                 ImGui_ImplGlfwGL3_NewFrame(g_renderTargetSizeX, g_renderTargetSizeY, UIScaling);
 
+                bool outputBufferSizeChanged = resized;
+                static bool g_forceLowResolution = false;
                 {
                     ImGui::Begin("Misc", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
                     ImGui::Text("Device: %s", deviceName);
 
+                    if (ImGui::InputInt2("Render Size", g_requestedSize, ImGuiInputTextFlags_EnterReturnsTrue))
+                        g_resizeRequested = true;
+                    outputBufferSizeChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
+
+                    if (ImGui::Button("Save Output"))
+                        saveOutputBufferAsImageFile(context, "output.bmp");
+
                     ImGui::End();
                 }
 
-                bool cameraSettingsChanged = resized;
-                static bool g_forceLowResolution = false;
+                bool cameraSettingsChanged = false;
                 static uint32_t g_numAccumFrames = 1;
                 {
                     ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
                     cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&g_cameraPos);
                     ImGui::SliderFloat("Brightness", &g_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
-                    cameraSettingsChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
 
                     const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
                     cameraSettingsChanged |= ImGui::Combo("Camera Type", &g_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
@@ -1441,7 +1495,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 static bool g_operatedCameraOnPrevFrame = false;
                 uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
 
-                bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || cameraSettingsChanged;
+                bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || outputBufferSizeChanged || cameraSettingsChanged;
                 if (firstFrame)
                     accumFrameTimes = 0;
                 else

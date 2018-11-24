@@ -360,6 +360,11 @@ namespace VLR {
         m_outputBuffer->unmap();
     }
 
+    void Context::getOutputBufferSize(uint32_t* width, uint32_t* height) {
+        *width = m_width;
+        *height = m_height;
+    }
+
     void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         optix::Context optixContext = getOptiXContext();
 

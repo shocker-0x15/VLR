@@ -88,6 +88,7 @@ namespace VLR {
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID);
         void* mapOutputBuffer();
         void unmapOutputBuffer();
+        void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
         void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
