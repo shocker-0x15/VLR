@@ -65,14 +65,14 @@ namespace VLR {
                                 0.0f);
             break;
         case SurfacePointAttribute::ShadingFrameLengths:
-            value = RGBSpectrum(std::fmax(0.0f, 0.5f * surfPt.shadingFrame.x.length()),
-                                std::fmax(0.0f, 0.5f * surfPt.shadingFrame.y.length()),
-                                std::fmax(0.0f, 0.5f * surfPt.shadingFrame.z.length()));
+            value = RGBSpectrum(clamp(0.5f + 100 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
+                                clamp(0.5f + 100 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
+                                clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
             break;
         case SurfacePointAttribute::ShadingFrameOrthogonality:
-            value = RGBSpectrum(std::fmax(0.0f, 0.5f + 0.5f * dot(surfPt.shadingFrame.x, surfPt.shadingFrame.y)),
-                                std::fmax(0.0f, 0.5f + 0.5f * dot(surfPt.shadingFrame.y, surfPt.shadingFrame.z)),
-                                std::fmax(0.0f, 0.5f + 0.5f * dot(surfPt.shadingFrame.z, surfPt.shadingFrame.x)));
+            value = RGBSpectrum(clamp(0.5f + 100 * dot(surfPt.shadingFrame.x, surfPt.shadingFrame.y), 0.0f, 1.0f),
+                                clamp(0.5f + 100 * dot(surfPt.shadingFrame.y, surfPt.shadingFrame.z), 0.0f, 1.0f),
+                                clamp(0.5f + 100 * dot(surfPt.shadingFrame.z, surfPt.shadingFrame.x), 0.0f, 1.0f));
             break;
         default:
             break;

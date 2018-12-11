@@ -86,8 +86,7 @@ namespace VLR {
         // EN: guarantee the orthogonality between the normal and tangent.
         //     Orthogonality break might be caused by barycentric interpolation?
         float dotNT = dot(shadingNormal, tc0Direction);
-        if (std::fabs(dotNT) >= 0.01f)
-            tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
+        tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
 
         surfPt->position = position;
         surfPt->shadingFrame = ReferenceFrame(tc0Direction, shadingNormal);
@@ -146,15 +145,14 @@ namespace VLR {
 
         position = desc.asMeshLight.transform * position;
         shadingNormal = normalize(desc.asMeshLight.transform * shadingNormal);
-        tc0Direction = normalize(desc.asMeshLight.transform * tc0Direction);
+        tc0Direction = desc.asMeshLight.transform * tc0Direction;
 
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
         // EN: guarantee the orthogonality between the normal and tangent.
         //     Orthogonality break might be caused by barycentric interpolation?
         float dotNT = dot(shadingNormal, tc0Direction);
-        if (std::fabs(dotNT) >= 0.01f)
-            tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
+        tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
 
         SurfacePoint &surfPt = result->surfPt;
 
