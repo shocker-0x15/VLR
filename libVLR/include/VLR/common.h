@@ -41,7 +41,7 @@
 //#define VLR_INFINITY
 //#define VLR_NAN
 
-#define VLR_USE_OUTPUTSTRING
+#define VLR_USE_DEVPRINTF
 
 #if defined(VLR_Host)
 
@@ -58,26 +58,33 @@
 #   define ENABLE_ASSERT
 #endif
 
+// vlrDevPrintf
 #if defined(VLR_Host)
 #   if defined(VLR_Platform_Windows_MSVC)
-VLR_API void VLROutputDebugString(const char* fmt, ...);
-#       if defined(VLR_USE_OUTPUTSTRING)
-#           define VLRDebugPrintf VLROutputDebugString
-#       else
-#           define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#       endif
+VLR_API void vlrDevPrintf(const char* fmt, ...);
 #   else
-#       define VLRDebugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#       define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
 #else
-#   define VLRDebugPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#   define vlrDevPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#endif
+
+// vlrprintf
+#if defined(VLR_Host)
+#   if defined(VLR_USE_DEVPRINTF)
+#       define vlrprintf vlrDevPrintf
+#   else
+#       define vlrprintf(fmt, ...) vlrDevPrintf(fmt, ##__VA_ARGS__)
+#   endif
+#else
+#   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
 #endif
 
 #if defined(ENABLE_ASSERT)
 #   if defined(VLR_Host)
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); abort(); }
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); abort(); }
 #   else
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { VLRDebugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); VLRDebugPrintf(fmt"\n", ##__VA_ARGS__); }
+#       define VLRAssert(expr, fmt, ...) if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); }
 #   endif
 #else
 #   define VLRAssert(expr, fmt, ...)

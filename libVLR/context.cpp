@@ -202,9 +202,9 @@ namespace VLR {
         Camera::initialize(*this);
 
         RTsize defaultStackSize = m_optixContext->getStackSize();
-        VLRDebugPrintf("Default Stack Size: %u\n", defaultStackSize);
+        vlrprintf("Default Stack Size: %u\n", defaultStackSize);
 
-        VLRDebugPrintf("Requested Stack Size: %u\n", stackSize);
+        vlrprintf("Requested Stack Size: %u\n", stackSize);
 
         if (logging) {
             m_optixContext->setPrintEnabled(true);
@@ -228,7 +228,7 @@ namespace VLR {
 
         m_optixContext->setStackSize(stackSize);
         RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
-        VLRDebugPrintf("Stack Size: %u\n", actuallyUsedStackSize);
+        vlrprintf("Stack Size: %u\n", actuallyUsedStackSize);
     }
 
     Context::~Context() {

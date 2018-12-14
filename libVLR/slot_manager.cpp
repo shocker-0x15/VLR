@@ -292,78 +292,78 @@ namespace VLR {
 
     void SlotManager::debugPrint() const {
         uint32_t numLowestFlagBins = nextMultiplierForPowOf2(m_numFlagsInLayerList[0], 32);
-        printf("----");
+        vlrprintf("----");
         for (int binIdx = 0; binIdx < numLowestFlagBins; ++binIdx) {
-            printf("------------------------------------");
+            vlrprintf("------------------------------------");
         }
-        printf("\n");
+        vlrprintf("\n");
         for (int layer = m_numLayers - 1; layer > 0; --layer) {
-            printf("layer %u (%u):\n", layer, m_numFlagsInLayerList[layer]);
+            vlrprintf("layer %u (%u):\n", layer, m_numFlagsInLayerList[layer]);
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[layer], 32);
-            printf(" OR:");
+            vlrprintf(" OR:");
             for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
                 uint32_t ORFlagBin = m_flagBins[m_offsetsToOR_AND[2 * (layer - 1) + 0] + binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
-                        printf(" ");
+                        vlrprintf(" ");
 
                     bool valid = binIdx * 32 + i < m_numFlagsInLayerList[layer];
                     if (!valid)
                         continue;
 
                     bool b = (ORFlagBin >> i) & 0x1;
-                    printf("%c", b ? '|' : '_');
+                    vlrprintf("%c", b ? '|' : '_');
                 }
             }
-            printf("\n");
-            printf("AND:");
+            vlrprintf("\n");
+            vlrprintf("AND:");
             for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
                 uint32_t ANDFlagBin = m_flagBins[m_offsetsToOR_AND[2 * (layer - 1) + 1] + binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
-                        printf(" ");
+                        vlrprintf(" ");
 
                     bool valid = binIdx * 32 + i < m_numFlagsInLayerList[layer];
                     if (!valid)
                         continue;
 
                     bool b = (ANDFlagBin >> i) & 0x1;
-                    printf("%c", b ? '|' : '_');
+                    vlrprintf("%c", b ? '|' : '_');
                 }
             }
-            printf("\n");
-            printf("    ");
+            vlrprintf("\n");
+            vlrprintf("    ");
             for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
                 uint32_t numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[m_offsetsToNumUsedFlags[layer - 1] + binIdx];
-                printf("                            %8u", numUsedFlagsUnderBin);
+                vlrprintf("                            %8u", numUsedFlagsUnderBin);
             }
-            printf("\n");
+            vlrprintf("\n");
         }
         {
-            printf("layer 0 (%u):\n", m_numFlagsInLayerList[0]);
+            vlrprintf("layer 0 (%u):\n", m_numFlagsInLayerList[0]);
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[0], 32);
-            printf("   :");
+            vlrprintf("   :");
             for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
                 uint32_t ORFlagBin = m_flagBins[binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
-                        printf(" ");
+                        vlrprintf(" ");
 
                     bool valid = binIdx * 32 + i < m_numFlagsInLayerList[0];
                     if (!valid)
                         continue;
 
                     bool b = (ORFlagBin >> i) & 0x1;
-                    printf("%c", b ? '|' : '_');
+                    vlrprintf("%c", b ? '|' : '_');
                 }
             }
-            printf("\n");
-            printf("    ");
+            vlrprintf("\n");
+            vlrprintf("    ");
             for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
                 uint32_t numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[binIdx];
-                printf("                            %8u", numUsedFlagsUnderBin);
+                vlrprintf("                            %8u", numUsedFlagsUnderBin);
             }
-            printf("\n");
+            vlrprintf("\n");
         }
     }
 }

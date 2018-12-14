@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="debugPrintf.cpp" />
+    <ClCompile Include="vlrDevPrintf.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="slot_manager.cpp" />

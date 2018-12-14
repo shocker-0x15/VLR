@@ -112,12 +112,12 @@ namespace VLR {
             stackRTObjects.pop();
             stackRTObjectTypes.pop();
 
-            VLRDebugPrintf("0x%p: ", object);
+            vlrprintf("0x%p: ", object);
 
             switch (objType) {
             case RT_OBJECTTYPE_GROUP: {
                 auto group = (RTgroup)object;
-                VLRDebugPrintf("Group\n");
+                vlrprintf("Group\n");
 
                 groupList.insert(group);
 
@@ -129,7 +129,7 @@ namespace VLR {
                     rtGroupGetChild(group, i, &childObject);
                     rtGroupGetChildType(group, i, &childObjType);
 
-                    VLRDebugPrintf("- %u: 0x%p\n", i, childObject);
+                    vlrprintf("- %u: 0x%p\n", i, childObject);
 
                     stackRTObjects.push(childObject);
                     stackRTObjectTypes.push(childObjType);
@@ -139,7 +139,7 @@ namespace VLR {
             }
             case RT_OBJECTTYPE_TRANSFORM: {
                 auto transform = (RTtransform)object;
-                VLRDebugPrintf("Transform\n");
+                vlrprintf("Transform\n");
 
                 transformList.insert(transform);
 
@@ -148,7 +148,7 @@ namespace VLR {
                 rtTransformGetChild(transform, &childObject);
                 rtTransformGetChildType(transform, &childObjType);
 
-                VLRDebugPrintf("- 0x%p\n", childObject);
+                vlrprintf("- 0x%p\n", childObject);
 
                 stackRTObjects.push(childObject);
                 stackRTObjectTypes.push(childObjType);
@@ -161,7 +161,7 @@ namespace VLR {
             }
             case RT_OBJECTTYPE_GEOMETRY_GROUP: {
                 auto geometryGroup = (RTgeometrygroup)object;
-                VLRDebugPrintf("GeometryGroup\n");
+                vlrprintf("GeometryGroup\n");
 
                 geometryGroupList.insert(geometryGroup);
 
@@ -171,7 +171,7 @@ namespace VLR {
                     RTgeometryinstance childObject = nullptr;
                     rtGeometryGroupGetChild(geometryGroup, i, &childObject);
 
-                    VLRDebugPrintf("- %u: 0x%p\n", i, childObject);
+                    vlrprintf("- %u: 0x%p\n", i, childObject);
 
                     stackRTObjects.push(childObject);
                     stackRTObjectTypes.push(RT_OBJECTTYPE_GEOMETRY_INSTANCE);
@@ -181,84 +181,84 @@ namespace VLR {
             }
             case RT_OBJECTTYPE_GEOMETRY_INSTANCE: {
                 auto geometryInstance = (RTgeometryinstance)object;
-                VLRDebugPrintf("GeometryInstance\n");
+                vlrprintf("GeometryInstance\n");
 
                 geometryInstanceList.insert(geometryInstance);
 
                 break;
             }
             default:
-                VLRDebugPrintf("\n");
+                vlrprintf("\n");
                 VLRAssert_ShouldNotBeCalled();
                 break;
             }
 
-            VLRDebugPrintf("\n");
+            vlrprintf("\n");
         }
 
 
 
-        VLRDebugPrintf("Groups:\n");
+        vlrprintf("Groups:\n");
         for (auto group : groupList) {
-            VLRDebugPrintf("  0x%p:\n", group);
+            vlrprintf("  0x%p:\n", group);
             uint32_t numChildren;
             rtGroupGetChildCount(group, &numChildren);
             RTacceleration acceleration;
             rtGroupGetAcceleration(group, &acceleration);
             int32_t isDirty = 0;
             rtAccelerationIsDirty(acceleration, &isDirty);
-            VLRDebugPrintf("  Status: %s\n", isDirty ? "dirty" : "");
+            vlrprintf("  Status: %s\n", isDirty ? "dirty" : "");
             for (int i = 0; i < numChildren; ++i) {
                 RTobject childObject = nullptr;
                 rtGroupGetChild(group, i, &childObject);
 
-                VLRDebugPrintf("  - %u: 0x%p\n", i, childObject);
+                vlrprintf("  - %u: 0x%p\n", i, childObject);
             }
         }
 
-        VLRDebugPrintf("Transforms:\n");
+        vlrprintf("Transforms:\n");
         for (auto transform : transformList) {
-            VLRDebugPrintf("  0x%p:\n", transform);
+            vlrprintf("  0x%p:\n", transform);
             RTobject childObject = nullptr;
             rtTransformGetChild(transform, &childObject);
             float mat[16];
             float invMat[16];
             rtTransformGetMatrix(transform, true, mat, invMat);
-            VLRDebugPrintf("    Matrix\n");
-            VLRDebugPrintf("      %g, %g, %g, %g\n", mat[0], mat[4], mat[8], mat[12]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", mat[1], mat[5], mat[9], mat[13]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", mat[2], mat[6], mat[10], mat[14]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", mat[3], mat[7], mat[11], mat[15]);
-            VLRDebugPrintf("    Inverse Matrix\n");
-            VLRDebugPrintf("      %g, %g, %g, %g\n", invMat[0], invMat[4], invMat[8], invMat[12]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", invMat[1], invMat[5], invMat[9], invMat[13]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", invMat[2], invMat[6], invMat[10], invMat[14]);
-            VLRDebugPrintf("      %g, %g, %g, %g\n", invMat[3], invMat[7], invMat[11], invMat[15]);
+            vlrprintf("    Matrix\n");
+            vlrprintf("      %g, %g, %g, %g\n", mat[0], mat[4], mat[8], mat[12]);
+            vlrprintf("      %g, %g, %g, %g\n", mat[1], mat[5], mat[9], mat[13]);
+            vlrprintf("      %g, %g, %g, %g\n", mat[2], mat[6], mat[10], mat[14]);
+            vlrprintf("      %g, %g, %g, %g\n", mat[3], mat[7], mat[11], mat[15]);
+            vlrprintf("    Inverse Matrix\n");
+            vlrprintf("      %g, %g, %g, %g\n", invMat[0], invMat[4], invMat[8], invMat[12]);
+            vlrprintf("      %g, %g, %g, %g\n", invMat[1], invMat[5], invMat[9], invMat[13]);
+            vlrprintf("      %g, %g, %g, %g\n", invMat[2], invMat[6], invMat[10], invMat[14]);
+            vlrprintf("      %g, %g, %g, %g\n", invMat[3], invMat[7], invMat[11], invMat[15]);
 
-            VLRDebugPrintf("  - 0x%p\n", childObject);
+            vlrprintf("  - 0x%p\n", childObject);
         }
 
-        VLRDebugPrintf("GeometryGroups:\n");
+        vlrprintf("GeometryGroups:\n");
         for (auto geometryGroup : geometryGroupList) {
-            VLRDebugPrintf("  0x%p:\n", geometryGroup);
+            vlrprintf("  0x%p:\n", geometryGroup);
             uint32_t numChildren;
             rtGeometryGroupGetChildCount(geometryGroup, &numChildren);
             RTacceleration acceleration;
             rtGeometryGroupGetAcceleration(geometryGroup, &acceleration);
             int32_t isDirty = 0;
             rtAccelerationIsDirty(acceleration, &isDirty);
-            VLRDebugPrintf("  Status: %s\n", isDirty ? "dirty" : "");
+            vlrprintf("  Status: %s\n", isDirty ? "dirty" : "");
             for (int i = 0; i < numChildren; ++i) {
                 RTgeometryinstance childObject = nullptr;
                 rtGeometryGroupGetChild(geometryGroup, i, &childObject);
 
-                VLRDebugPrintf("  - %u: 0x%p\n", i, childObject);
+                vlrprintf("  - %u: 0x%p\n", i, childObject);
             }
         }
 
-        VLRDebugPrintf("GeometryInstances:\n");
+        vlrprintf("GeometryInstances:\n");
         for (auto geometryInstance : geometryInstanceList) {
-            VLRDebugPrintf("  0x%p:\n", geometryInstance);
+            vlrprintf("  0x%p:\n", geometryInstance);
         }
     }
 
@@ -290,12 +290,12 @@ namespace VLR {
         m_optixTransform->setMatrix(true, mat, invMat);
 
         //if (true/*m_parent*/) {
-        //    VLRDebugPrintf("%s:\n", concatenatedName.c_str());
-        //    VLRDebugPrintf("%g, %g, %g, %g\n", mat[0], mat[4], mat[8], mat[12]);
-        //    VLRDebugPrintf("%g, %g, %g, %g\n", mat[1], mat[5], mat[9], mat[13]);
-        //    VLRDebugPrintf("%g, %g, %g, %g\n", mat[2], mat[6], mat[10], mat[14]);
-        //    VLRDebugPrintf("%g, %g, %g, %g\n", mat[3], mat[7], mat[11], mat[15]);
-        //    VLRDebugPrintf("\n");
+        //    vlrDevPrintf("%s:\n", concatenatedName.c_str());
+        //    vlrDevPrintf("%g, %g, %g, %g\n", mat[0], mat[4], mat[8], mat[12]);
+        //    vlrDevPrintf("%g, %g, %g, %g\n", mat[1], mat[5], mat[9], mat[13]);
+        //    vlrDevPrintf("%g, %g, %g, %g\n", mat[2], mat[6], mat[10], mat[14]);
+        //    vlrDevPrintf("%g, %g, %g, %g\n", mat[3], mat[7], mat[11], mat[15]);
+        //    vlrDevPrintf("\n");
         //}
     }
 
@@ -1011,7 +1011,7 @@ namespace VLR {
             // JP: SurfaceLightDescriptorのマップを構築する。
             for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
                 if (m_surfaceLights.count(it->geomInstance)) {
-                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    vlrprintf("Surface light cannot be instanced.");
                     VLRAssert_ShouldNotBeCalled();
                 }
                 else {
@@ -1120,7 +1120,7 @@ namespace VLR {
             // JP: SurfaceLightDescriptorのマップを構築する。
             for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
                 if (m_surfaceLights.count(it->geomInstance)) {
-                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    vlrprintf("Surface light cannot be instanced.");
                     VLRAssert_ShouldNotBeCalled();
                 }
                 else {
@@ -1183,7 +1183,7 @@ namespace VLR {
             // JP: SurfaceLightDescriptorのマップを構築する。
             for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
                 if (m_surfaceLights.count(*it)) {
-                    VLRDebugPrintf("Surface light cannot be instanced.");
+                    vlrprintf("Surface light cannot be instanced.");
                     VLRAssert_ShouldNotBeCalled();
                 }
                 else {

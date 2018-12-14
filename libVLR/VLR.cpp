@@ -62,46 +62,46 @@ VLR_API VLRResult vlrPrintDevices() {
     checkError(rtDeviceGetDeviceCount(&numDevices));
 
     for (int dev = 0; dev < numDevices; ++dev) {
-        VLRDebugPrintf("----------------------------------------------------------------\n");
+        vlrprintf("----------------------------------------------------------------\n");
 
         char strBuffer[256];
         int32_t intBuffer[2];
         RTsize sizeValue;
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_NAME, sizeof(strBuffer), strBuffer);
-        VLRDebugPrintf("%d: %s\n", dev, strBuffer);
+        vlrprintf("%d: %s\n", dev, strBuffer);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    CUDA Device Ordinal: %d\n", intBuffer[0]);
+        vlrprintf("    CUDA Device Ordinal: %d\n", intBuffer[0]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(strBuffer), strBuffer);
-        VLRDebugPrintf("    PCI Bus ID: %s\n", strBuffer);
+        vlrprintf("    PCI Bus ID: %s\n", strBuffer);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(intBuffer), intBuffer);
-        VLRDebugPrintf("    Compute Capability: %d, %d\n", intBuffer[0], intBuffer[1]);
+        vlrprintf("    Compute Capability: %d, %d\n", intBuffer[0], intBuffer[1]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    TCC (Tesla Compute Cluster) Driver: %s\n", intBuffer[0] ? "Yes" : "No");
+        vlrprintf("    TCC (Tesla Compute Cluster) Driver: %s\n", intBuffer[0] ? "Yes" : "No");
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(sizeValue), &sizeValue);
-        VLRDebugPrintf("    Total Memory: %llu [Byte]\n", sizeValue);
+        vlrprintf("    Total Memory: %llu [Byte]\n", sizeValue);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    Clock Rate: %d [kHz]\n", intBuffer[0]);
+        vlrprintf("    Clock Rate: %d [kHz]\n", intBuffer[0]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    Max Threads per Block: %d\n", intBuffer[0]);
+        vlrprintf("    Max Threads per Block: %d\n", intBuffer[0]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    Multi Processor Count: %d\n", intBuffer[0]);
+        vlrprintf("    Multi Processor Count: %d\n", intBuffer[0]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    Max Hardware Texture Count: %d\n", intBuffer[0]);
+        vlrprintf("    Max Hardware Texture Count: %d\n", intBuffer[0]);
 
         rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(intBuffer[0]), &intBuffer[0]);
-        VLRDebugPrintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
+        vlrprintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
     }
-    VLRDebugPrintf("----------------------------------------------------------------\n");
+    vlrprintf("----------------------------------------------------------------\n");
 
     return VLR_ERROR_NO_ERROR;
 }

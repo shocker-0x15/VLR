@@ -1380,7 +1380,7 @@ namespace VLR {
 
             const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
             const SurfaceMaterialHead &subMatHead = *(const SurfaceMaterialHead*)subMatDesc.data;
-            //rtPrintf("%d: %u, %u, %u, %u\n", i, matHead.progSetupBSDF, matHead.bsdfProcedureSetIndex, matHead.progSetupEDF, matHead.edfProcedureSetIndex);
+            //vlrDevPrintf("%d: %u, %u, %u, %u\n", i, matHead.progSetupBSDF, matHead.bsdfProcedureSetIndex, matHead.progSetupEDF, matHead.edfProcedureSetIndex);
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)subMatHead.progSetupBSDF;
             *(uint32_t*)(params + baseIndex++) = subMatHead.bsdfProcedureSetIndex;
             baseIndex += setupBSDF((const uint32_t*)&subMatHead, surfPt, wavelengthSelected, params + baseIndex);
@@ -1392,7 +1392,7 @@ namespace VLR {
         p.bsdf3 = bsdfOffsets[3];
         p.numBSDFs = mat.numSubMaterials;
 
-        //rtPrintf("%u, %u, %u, %u, %u mats\n", p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3, p.numBSDFs);
+        //vlrDevPrintf("%u, %u, %u, %u, %u mats\n", p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3, p.numBSDFs);
 
         return baseIndex;
     }

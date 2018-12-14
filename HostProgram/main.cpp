@@ -38,7 +38,7 @@
 #endif
 
 #ifdef VLR_Platform_Windows_MSVC
-static void debugPrintf(const char* fmt, ...) {
+static void devPrintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char str[1024];
@@ -47,11 +47,17 @@ static void debugPrintf(const char* fmt, ...) {
     OutputDebugString(str);
 }
 #else
-#   define debugPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#   define devPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#endif
+
+#if 1
+#   define hpprintf devPrintf
+#else
+#   define hpprintf printf
 #endif
 
 #ifdef ENABLE_ASSERT
-#   define Assert(expr, fmt, ...) if (!(expr)) { debugPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); debugPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
+#   define Assert(expr, fmt, ...) if (!(expr)) { devPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); devPrintf(fmt"\n", ##__VA_ARGS__); abort(); } 0
 #else
 #   define Assert(expr, fmt, ...)
 #endif
@@ -173,7 +179,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
 
 
 static void glfw_error_callback(int32_t error, const char* description) {
-    debugPrintf("Error %d: %s\n", error, description);
+    hpprintf("Error %d: %s\n", error, description);
 }
 
 
@@ -204,7 +210,7 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
     if (g_image2DCache.count(key))
         return g_image2DCache.at(key);
 
-    debugPrintf("Read image: %s...", filepath.c_str());
+    hpprintf("Read image: %s...", filepath.c_str());
 
     bool fileExists = false;
     {
@@ -212,7 +218,7 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
         fileExists = ifs.is_open();
     }
     if (!fileExists) {
-        debugPrintf("Not found.\n");
+        hpprintf("Not found.\n");
         return ret;
     }
 
@@ -249,7 +255,7 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
         stbi_image_free(linearImageData);
     }
 
-    debugPrintf("done.\n");
+    hpprintf("done.\n");
 
     g_image2DCache[key] = ret;
 
@@ -285,7 +291,7 @@ static SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp:
     float color[3];
 
     aiMat->Get(AI_MATKEY_NAME, strValue);
-    VLRDebugPrintf("Material: %s\n", strValue.C_Str());
+    hpprintf("Material: %s\n", strValue.C_Str());
 
     MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
@@ -335,7 +341,7 @@ static void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene*
     for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
         const aiMesh* mesh = objSrc->mMeshes[nodeSrc->mMeshes[m]];
         if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
-            debugPrintf("ignored non triangle mesh.\n");
+            hpprintf("ignored non triangle mesh.\n");
             continue;
         }
 
@@ -398,10 +404,10 @@ static void construct(const VLRCpp::ContextRef &context, const std::string &file
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
     if (!scene) {
-        debugPrintf("Failed to load %s.\n", filePath.c_str());
+        hpprintf("Failed to load %s.\n", filePath.c_str());
         return;
     }
-    debugPrintf("Reading: %s done.\n", filePath.c_str());
+    hpprintf("Reading: %s done.\n", filePath.c_str());
 
     std::string pathPrefix = filePath.substr(0, filePath.find_last_of("/") + 1);
 
@@ -414,7 +420,7 @@ static void construct(const VLRCpp::ContextRef &context, const std::string &file
 
     recursiveConstruct(context, scene, scene->mRootNode, attrTuples, flipV, meshFunc, nodeOut);
 
-    debugPrintf("Constructing: %s done.\n", filePath.c_str());
+    hpprintf("Constructing: %s done.\n", filePath.c_str());
 }
 
 
@@ -994,7 +1000,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         int32_t gl3wRet = gl3wInit();
         if (!gl3wIsSupported(OpenGLMajorVersion, OpenGLMinorVersion)) {
             glfwTerminate();
-            debugPrintf("gl3w doesn't support OpenGL %u.%u\n", OpenGLMajorVersion, OpenGLMinorVersion);
+            hpprintf("gl3w doesn't support OpenGL %u.%u\n", OpenGLMajorVersion, OpenGLMinorVersion);
             return -1;
         }
 
@@ -1050,7 +1056,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             switch (button) {
             case GLFW_MOUSE_BUTTON_MIDDLE: {
-                debugPrintf("Mouse Middle\n");
+                devPrintf("Mouse Middle\n");
                 g_buttonRotate.recordStateChange(action == GLFW_PRESS, g_frameIndex);
                 break;
             }
@@ -1067,42 +1073,42 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             switch (key) {
             case GLFW_KEY_W: {
-                debugPrintf("W: %d\n", action);
+                devPrintf("W: %d\n", action);
                 g_keyForward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_S: {
-                debugPrintf("S: %d\n", action);
+                devPrintf("S: %d\n", action);
                 g_keyBackward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_A: {
-                debugPrintf("A: %d\n", action);
+                devPrintf("A: %d\n", action);
                 g_keyLeftward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_D: {
-                debugPrintf("D: %d\n", action);
+                devPrintf("D: %d\n", action);
                 g_keyRightward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_R: {
-                debugPrintf("R: %d\n", action);
+                devPrintf("R: %d\n", action);
                 g_keyUpward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_F: {
-                debugPrintf("F: %d\n", action);
+                devPrintf("F: %d\n", action);
                 g_keyDownward.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_Q: {
-                debugPrintf("Q: %d\n", action);
+                devPrintf("Q: %d\n", action);
                 g_keyTiltLeft.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             case GLFW_KEY_E: {
-                debugPrintf("E: %d\n", action);
+                devPrintf("E: %d\n", action);
                 g_keyTiltRight.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
@@ -1506,9 +1512,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 //// DELETE ME
                 //if (g_numAccumFrames == 32) {
-                //    debugPrintf("Camera:\n");
-                //    debugPrintf("Position: %g, %g, %g\n", g_cameraPos.x, g_cameraPos.y, g_cameraPos.z);
-                //    debugPrintf("Orientation: %g, %g, %g, %g\n", g_cameraOrientation.x, g_cameraOrientation.y, g_cameraOrientation.z, g_cameraOrientation.w);
+                //    devPrintf("Camera:\n");
+                //    devPrintf("Position: %g, %g, %g\n", g_cameraPos.x, g_cameraPos.y, g_cameraPos.z);
+                //    devPrintf("Orientation: %g, %g, %g, %g\n", g_cameraOrientation.x, g_cameraOrientation.y, g_cameraOrientation.z, g_cameraOrientation.w);
 
                 //    auto output = (const RGBSpectrum*)context->mapOutputBuffer();
                 //    auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
@@ -1624,7 +1630,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         context->bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, 0);
 
-        VLRDebugPrintf("Setup: %g[s]\n", swGlobal.elapsed(StopWatch::Milliseconds) * 1e-3f);
+        vlrprintf("Setup: %g[s]\n", swGlobal.elapsed(StopWatch::Milliseconds) * 1e-3f);
         swGlobal.start();
 
         uint32_t numAccumFrames = 0;
@@ -1662,7 +1668,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 //stbi_write_png(filename, renderTargetSizeX, renderTargetSizeY, 4, data, sizeof(data[0]) * renderTargetSizeX);
                 sprintf(filename, "%03u.bmp", imgIndex++);
                 stbi_write_bmp(filename, renderTargetSizeX, renderTargetSizeY, 4, data);
-                VLRDebugPrintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
+                vlrprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 
                 context->unmapOutputBuffer();
 
@@ -1677,7 +1683,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         swGlobal.stop();
 
-        VLRDebugPrintf("Finish!!: %g[s]\n", swGlobal.stop(StopWatch::Milliseconds) * 1e-3f);
+        vlrprintf("Finish!!: %g[s]\n", swGlobal.stop(StopWatch::Milliseconds) * 1e-3f);
     }
 
     return 0;
@@ -1688,7 +1694,7 @@ int32_t main(int32_t argc, const char* argv[]) {
         mainFunc(argc, argv);
     }
     catch (optix::Exception ex) {
-        VLRDebugPrintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
+        vlrprintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
     }
 
     return 0;

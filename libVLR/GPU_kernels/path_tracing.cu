@@ -214,7 +214,7 @@ namespace VLR {
         }
         pv_rngBuffer[sm_launchIndex] = payload.rng;
         if (!payload.contribution.allFinite()) {
-            rtPrintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
+            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
             return;
         }
 
