@@ -23,7 +23,6 @@ namespace VLRCpp {
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float4ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Vector3DToSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(OffsetAndScaleUVTextureMap2DShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(ConstantTextureShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentTextureShaderNode);
 
@@ -342,22 +341,6 @@ namespace VLRCpp {
 
         void setValues(const float offset[2], const float scale[2]) {
             errorCheck(vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues((VLROffsetAndScaleUVTextureMap2DShaderNode)m_raw, offset, scale));
-        }
-    };
-
-
-
-    class ConstantTextureShaderNodeHolder : public ShaderNodeHolder {
-    public:
-        ConstantTextureShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
-            errorCheck(vlrConstantTextureShaderNodeCreate(getRaw(m_context), (VLRConstantTextureShaderNode*)&m_raw));
-        }
-        ~ConstantTextureShaderNodeHolder() {
-            errorCheck(vlrConstantTextureShaderNodeDestroy(getRaw(m_context), (VLRConstantTextureShaderNode)m_raw));
-        }
-
-        void setValues(const VLR::RGBSpectrum &spectrum, float alpha) {
-            errorCheck(vlrConstantTextureShaderNodeSetValues((VLRConstantTextureShaderNode)m_raw, (float*)&spectrum, alpha));
         }
     };
 
@@ -1130,10 +1113,6 @@ namespace VLRCpp {
 
         OffsetAndScaleUVTextureMap2DShaderNodeRef createOffsetAndScaleUVTextureMap2DShaderNode() const {
             return std::make_shared<OffsetAndScaleUVTextureMap2DShaderNodeHolder>(shared_from_this());
-        }
-
-        ConstantTextureShaderNodeRef createConstantTextureShaderNode() const {
-            return std::make_shared<ConstantTextureShaderNodeHolder>(shared_from_this());
         }
 
         Image2DTextureShaderNodeRef createImage2DTextureShaderNode() const {

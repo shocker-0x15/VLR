@@ -6,6 +6,8 @@ typedef VLR::Object* VLRObject;
 
 typedef VLR::Context* VLRContext;
 
+typedef VLR::Spectrum* VLRSpectrum;
+
 typedef VLR::Image2D* VLRImage2D;
 typedef VLR::LinearImage2D* VLRLinearImage2D;
 
@@ -17,7 +19,6 @@ typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
 typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
 typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
 typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
-typedef VLR::ConstantTextureShaderNode* VLRConstantTextureShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
 typedef VLR::EnvironmentTextureShaderNode* VLREnvironmentTextureShaderNode;
 
@@ -183,6 +184,26 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
         return VLR_ERROR_INVALID_TYPE;
     context->render(*scene, camera, shrinkCoeff, firstFrame, numAccumFrames);
 
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrSpectrumCreateFromTriplet(VLRContext context, VLRSpectrum* spectrum,
+                                               VLRSpectrumType type, VLRColorSpace colorSpace, const float values[3]) {
+    VLRAssert_NotImplemented();
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrSpectrumCreateFromRegularSamples(VLRContext context, VLRSpectrum* spectrum,
+                                                      VLRSpectrumType type, VLRColorSpace colorSpace, const float* values, uint32_t numSamples) {
+    VLRAssert_NotImplemented();
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrSpectrumCreateFromIrregularSamples(VLRContext context, VLRSpectrum* spectrum,
+                                                        VLRSpectrumType type, VLRColorSpace colorSpace, const float* lambdas, const float* values, uint32_t numSamples) {
+    VLRAssert_NotImplemented();
     return VLR_ERROR_NO_ERROR;
 }
 
@@ -542,30 +563,6 @@ VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues(VLROffsetAn
     if (!node->is<VLR::OffsetAndScaleUVTextureMap2DShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setValues(offset, scale);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-
-
-VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node) {
-    *node = new VLR::ConstantTextureShaderNode(*context);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrConstantTextureShaderNodeDestroy(VLRContext context, VLRConstantTextureShaderNode node) {
-    if (!node->is<VLR::ConstantTextureShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    delete node;
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrConstantTextureShaderNodeSetValues(VLRConstantTextureShaderNode node, const float spectrum[3], float alpha) {
-    if (!node->is<VLR::ConstantTextureShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    node->setValues(VLR::RGBSpectrum(spectrum[0], spectrum[1], spectrum[2]), alpha);
 
     return VLR_ERROR_NO_ERROR;
 }

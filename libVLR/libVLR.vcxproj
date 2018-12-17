@@ -142,10 +142,12 @@
     <ClInclude Include="include\VLR\VLRCpp.h" />
     <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
+    <ClInclude Include="rgb_spectrum_types.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
     <ClInclude Include="shader_nodes.h" />
+    <ClInclude Include="spectrum_base.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">

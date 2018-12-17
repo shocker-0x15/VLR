@@ -43,6 +43,8 @@
     <ClInclude Include="include\VLR\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
+    <ClInclude Include="spectrum_base.h" />
+    <ClInclude Include="rgb_spectrum_types.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

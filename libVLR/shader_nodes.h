@@ -2,6 +2,7 @@
 
 #include "context.h"
 #include "ext/include/half.hpp"
+#include "spectrum_base.h"
 
 using half_float::half;
 
@@ -417,40 +418,6 @@ namespace VLR {
         }
 
         void setValues(const float offset[2], const float scale[2]);
-    };
-
-
-
-    class ConstantTextureShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        RGBSpectrum m_spectrum;
-        float m_alpha;
-
-        void setupNodeDescriptor() const;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        ConstantTextureShaderNode(Context &context);
-        ~ConstantTextureShaderNode();
-
-        // Out Socket   | option |
-        // 0 (Spectrum) |      0 | Spectrum
-        // 1 (float)    |      0 | Alpha
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
-            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
-                return ShaderNodeSocketIdentifier(this, 0, index, stype);
-            else if (stype == VLRShaderNodeSocketType_float && index < 1)
-                return ShaderNodeSocketIdentifier(this, 1, index, stype);
-            return ShaderNodeSocketIdentifier();
-        }
-
-        void setValues(const RGBSpectrum &spectrum, float alpha);
     };
 
 

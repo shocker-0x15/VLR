@@ -354,6 +354,28 @@ namespace VLR {
             float imm3;
         };
 
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        struct UpsampledSpectrumNode {
+            float s, t, scale;
+            uint32_t adjIndices;
+        };
+
+        struct RegularSampledSpectrumNode {
+            half values[2 * (VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+            uint32_t numSamples;
+        };
+
+        struct IrregularSampledSpectrumNode {
+            half lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+            half values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+            uint32_t numSamples;
+        };
+#else
+        struct RGBSpectrumNode {
+            float r, g, b;
+        };
+#endif
+
         struct Vector3DToSpectrumShaderNode {
             ShaderNodeSocketID nodeVector3D;
             Vector3D immVector3D;
@@ -362,11 +384,6 @@ namespace VLR {
         struct OffsetAndScaleUVTextureMap2DShaderNode {
             float offset[2];
             float scale[2];
-        };
-
-        struct ConstantTextureShaderNode {
-            RGBSpectrum spectrum;
-            float alpha;
         };
 
         struct Image2DTextureShaderNode {
@@ -396,33 +413,24 @@ namespace VLR {
 
         struct MatteSurfaceMaterial {
             ShaderNodeSocketID nodeAlbedo;
-            RGBSpectrum immAlbedo;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeCoeffR;
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
-            RGBSpectrum immCoeffR;
-            RGBSpectrum immEta;
-            RGBSpectrum imm_k;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
-            RGBSpectrum immCoeff;
-            RGBSpectrum immEtaExt;
-            RGBSpectrum immEtaInt;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
-            RGBSpectrum immEta;
-            RGBSpectrum imm_k;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -433,9 +441,6 @@ namespace VLR {
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
-            RGBSpectrum immCoeff;
-            RGBSpectrum immEtaExt;
-            RGBSpectrum immEtaInt;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -444,14 +449,12 @@ namespace VLR {
         struct LambertianScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeF0;
-            RGBSpectrum immCoeff;
             float immF0;
         };
 
         struct UE4SurfaceMaterial {
             ShaderNodeSocketID nodeBaseColor;
             ShaderNodeSocketID nodeOcclusionRoughnessMetallic;
-            RGBSpectrum immBaseColor;
             float immOcclusion;
             float immRoughness;
             float immMetallic;
@@ -459,7 +462,6 @@ namespace VLR {
 
         struct DiffuseEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
-            RGBSpectrum immEmittance;
         };
 
         struct MultiSurfaceMaterial {
@@ -469,7 +471,6 @@ namespace VLR {
 
         struct EnvironmentEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
-            RGBSpectrum immEmittance;
         };
 
         // END: Surface Materials

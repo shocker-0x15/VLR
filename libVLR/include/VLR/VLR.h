@@ -15,6 +15,8 @@ extern "C" {
 
     typedef struct VLRContext_API* VLRContext;
 
+    typedef struct VLRSpectrum_API* VLRSpectrum;
+
     typedef struct VLRImage2D_API* VLRImage2D;
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
 
@@ -26,7 +28,6 @@ extern "C" {
     typedef struct VLRFloat4ShaderNode_API* VLRFloat4ShaderNode;
     typedef struct VLRVector3DToSpectrumShaderNode_API* VLRVector3DToSpectrumShaderNode;
     typedef struct VLROffsetAndScaleUVTextureMap2DShaderNode_API* VLROffsetAndScaleUVTextureMap2DShaderNode;
-    typedef struct VLRConstantTextureShaderNode_API* VLRConstantTextureShaderNode;
     typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
     typedef struct VLREnvironmentTextureShaderNode_API* VLREnvironmentTextureShaderNode;
 
@@ -72,6 +73,15 @@ extern "C" {
     VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context);
     VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height);
     VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+
+
+
+    VLR_API VLRResult vlrSpectrumCreateFromTriplet(VLRContext context, VLRSpectrum* spectrum,
+                                                   VLRSpectrumType type, VLRColorSpace colorSpace, const float values[3]);
+    VLR_API VLRResult vlrSpectrumCreateFromRegularSamples(VLRContext context, VLRSpectrum* spectrum,
+                                                          VLRSpectrumType type, VLRColorSpace colorSpace, const float* values, uint32_t numSamples);
+    VLR_API VLRResult vlrSpectrumCreateFromIrregularSamples(VLRContext context, VLRSpectrum* spectrum,
+                                                            VLRSpectrumType type, VLRColorSpace colorSpace, const float* lambdas, const float* values, uint32_t numSamples);
 
 
 
@@ -130,10 +140,6 @@ extern "C" {
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues(VLROffsetAndScaleUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]);
-
-    VLR_API VLRResult vlrConstantTextureShaderNodeCreate(VLRContext context, VLRConstantTextureShaderNode* node);
-    VLR_API VLRResult vlrConstantTextureShaderNodeDestroy(VLRContext context, VLRConstantTextureShaderNode node);
-    VLR_API VLRResult vlrConstantTextureShaderNodeSetValues(VLRConstantTextureShaderNode node, const float spectrum[3], float alpha);
 
     VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node);
     VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImage2DTextureShaderNode node);

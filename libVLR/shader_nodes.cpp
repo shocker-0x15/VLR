@@ -464,7 +464,6 @@ namespace VLR {
         Float4ShaderNode::initialize(context);
         Vector3DToSpectrumShaderNode::initialize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
-        ConstantTextureShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
         EnvironmentTextureShaderNode::initialize(context);
     }
@@ -473,7 +472,6 @@ namespace VLR {
     void ShaderNode::finalize(Context &context) {
         EnvironmentTextureShaderNode::finalize(context);
         Image2DTextureShaderNode::finalize(context);
-        ConstantTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
         Vector3DToSpectrumShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
@@ -958,54 +956,6 @@ namespace VLR {
     void OffsetAndScaleUVTextureMap2DShaderNode::setValues(const float offset[2], const float scale[2]) {
         std::copy_n(offset, 2, m_offset);
         std::copy_n(scale, 2, m_scale);
-        setupNodeDescriptor();
-    }
-
-
-
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> ConstantTextureShaderNode::OptiXProgramSets;
-
-    // static
-    void ConstantTextureShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::ConstantTextureShaderNode_spectrum",
-            "VLR::ConstantTextureShaderNode_alpha",
-        };
-        OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
-
-        OptiXProgramSets[context.getID()] = programSet;
-    }
-
-    // static
-    void ConstantTextureShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        commonFinalizeProcedure(context, programSet);
-    }
-
-    ConstantTextureShaderNode::ConstantTextureShaderNode(Context &context) :
-        ShaderNode(context), m_spectrum(RGBSpectrum(0.18f)), m_alpha(1.0f) {
-        setupNodeDescriptor();
-    }
-
-    ConstantTextureShaderNode::~ConstantTextureShaderNode() {
-    }
-
-    void ConstantTextureShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
-        Shared::NodeDescriptor nodeDesc;
-        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::ConstantTextureShaderNode &nodeData = *(Shared::ConstantTextureShaderNode*)&nodeDesc.data;
-        nodeData.spectrum = m_spectrum;
-        nodeData.alpha = m_alpha;
-
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
-    }
-
-    void ConstantTextureShaderNode::setValues(const RGBSpectrum &spectrum, float alpha) {
-        m_spectrum = spectrum;
-        m_alpha = alpha;
         setupNodeDescriptor();
     }
 

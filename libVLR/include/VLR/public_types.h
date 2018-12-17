@@ -2,6 +2,22 @@
 
 #include "common.h"
 
+enum VLRSpectrumType {
+    VLRSpectrumType_Reflectance = 0,
+    VLRSpectrumType_Transmittance = VLRSpectrumType_Reflectance,
+    VLRSpectrumType_LightSource,
+    VLRSpectrumType_IndexOfRefraction,
+};
+
+enum VLRColorSpace {
+    VLRColorSpace_Rec709 = 0,
+    VLRColorSpace_Rec709_NonLinear,
+    VLRColorSpace_XYZ,
+    VLRColorSpace_xyY,
+};
+
+
+
 enum VLRDataFormat {
     VLRDataFormat_RGB8x3 = 0,
     VLRDataFormat_RGB_8x4,

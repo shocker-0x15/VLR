@@ -5,6 +5,8 @@
 #define VLR_ENABLE_VALIDATION
 #define VLR_ENABLE_TIMEOUT_CALLBACK
 
+#define VLR_USE_SPECTRAL_RENDERING
+
 #if defined(VLR_Host)
 
 #include <iostream>

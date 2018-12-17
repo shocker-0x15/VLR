@@ -135,12 +135,15 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM RGBSpectrum Vector3DToSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
+    RT_CALLABLE_PROGRAM SampledSpectrum Vector3DToSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
         const Vector3DToSpectrumShaderNode &nodeData = *(const Vector3DToSpectrumShaderNode*)rawNodeData;
         Vector3D vector = calcNode(nodeData.nodeVector3D, nodeData.immVector3D, surfPt);
-        return RGBSpectrum(clamp(0.5f * vector.x + 0.5f, 0.0f, 1.0f),
-                           clamp(0.5f * vector.y + 0.5f, 0.0f, 1.0f),
-                           clamp(0.5f * vector.z + 0.5f, 0.0f, 1.0f));
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+#else
+        return SampledSpectrum(clamp(0.5f * vector.x + 0.5f, 0.0f, 1.0f),
+                               clamp(0.5f * vector.y + 0.5f, 0.0f, 1.0f),
+                               clamp(0.5f * vector.z + 0.5f, 0.0f, 1.0f));
+#endif
     }
 
 
@@ -154,25 +157,17 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM RGBSpectrum ConstantTextureShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
-        const ConstantTextureShaderNode &nodeData = *(const ConstantTextureShaderNode*)rawNodeData;
-        return nodeData.spectrum;
-    }
-
-    RT_CALLABLE_PROGRAM float ConstantTextureShaderNode_alpha(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
-        const ConstantTextureShaderNode &nodeData = *(const ConstantTextureShaderNode*)rawNodeData;
-        return nodeData.alpha;
-    }
-
-
-
-    RT_CALLABLE_PROGRAM RGBSpectrum Image2DTextureShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
+    RT_CALLABLE_PROGRAM SampledSpectrum Image2DTextureShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
         const Image2DTextureShaderNode &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt);
         optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
 
-        return RGBSpectrum(texValue.x, texValue.y, texValue.z);
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        return UpsampledSpectrum(texValue.x, texValue.y, texValue.z / UPSAMPLED_CONTINOUS_SPECTRUM_SCALE_FACTOR).evaluate(wls);
+#else
+        return SampledSpectrum(texValue.x, texValue.y, texValue.z);
+#endif
     }
 
     RT_CALLABLE_PROGRAM float Image2DTextureShaderNode_float(const uint32_t* rawNodeData, uint32_t option, const SurfacePoint &surfPt) {
