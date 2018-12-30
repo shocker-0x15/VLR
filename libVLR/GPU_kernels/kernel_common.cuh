@@ -168,35 +168,16 @@ namespace VLR {
 
 
 
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-    struct WavelengthSamples {
-    };
-
-    struct SampledSpectrum {
-    };
-#else
-    struct WavelengthSamples {
-    };
-
-    struct SampledSpectrum {
-        float r, g, b;
-
-        RT_FUNCTION SampledSpectrum(float rr, float gg, float bb) : r(rr), g(gg), b(bb) {}
-    };
-#endif
-
-
-
     struct BSDFQuery {
         Vector3D dirLocal;
         Normal3D geometricNormalLocal;
         DirectionType dirTypeFilter;
         struct {
-            unsigned int wlHint : 4;
+            unsigned int wlHint : 6;
         };
 
-        RT_FUNCTION BSDFQuery(const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, uint32_t wl) : 
-            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter), wlHint(wl) {}
+        RT_FUNCTION BSDFQuery(const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, const WavelengthSamples &wls) : 
+            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter), wlHint(wls.selectedLambdaIndex()) {}
     };
 
     struct BSDFSample {
@@ -281,8 +262,8 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, bool, uint32_t*)> ProgSigSetupBSDF;
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, uint32_t*)> ProgSigSetupEDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
 
     typedef rtCallableProgramId<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
     typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
@@ -309,16 +290,29 @@ namespace VLR {
 
 
     template <typename T>
-    RT_FUNCTION T calcNode(ShaderNodeSocketID socket, const T &defaultValue, const SurfacePoint &surfPt) {
+    RT_FUNCTION T calcNode(ShaderNodeSocketID socket, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
-            using ProgSigT = rtCallableProgramId<T(const uint32_t*, uint32_t, const SurfacePoint &)>;
+            using ProgSigT = rtCallableProgramId<T(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
 
             const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
             ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
-            return program(nodeDesc.data, socket.option, surfPt);
+            return program(nodeDesc.data, socket.option, surfPt, wls);
         }
         else {
             return defaultValue;
+        }
+    }
+
+    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocketID socket, const UpsampledSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        if (socket.isValid()) {
+            using ProgSigT = rtCallableProgramId<SampledSpectrum(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
+
+            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
+            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
+            return program(nodeDesc.data, socket.option, surfPt, wls);
+        }
+        else {
+            return defaultValue.evaluate(wls);
         }
     }
 }

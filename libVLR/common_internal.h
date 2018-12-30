@@ -5,7 +5,33 @@
 #define VLR_ENABLE_VALIDATION
 #define VLR_ENABLE_TIMEOUT_CALLBACK
 
+#define VLR_Color_System_CIE_1931_2deg  0
+#define VLR_Color_System_CIE_1964_10deg 1
+#define VLR_Color_System_CIE_2012_2deg  2
+#define VLR_Color_System_CIE_2012_10deg 3
+
 #define VLR_USE_SPECTRAL_RENDERING
+#define VLR_Color_System_is_based_on VLR_Color_System_CIE_1931_2deg
+static constexpr uint32_t NumSpectralSamples = 4;
+static constexpr uint32_t NumStrataForStorage = 16;
+
+#if VLR_Color_System_is_based_on == VLR_Color_System_CIE_1931_2deg
+#   define xbarReferenceValues xbar_CIE1931_2deg
+#   define ybarReferenceValues ybar_CIE1931_2deg
+#   define zbarReferenceValues zbar_CIE1931_2deg
+#elif VLR_Color_System_is_based_on == VLR_Color_System_CIE_1964_10deg
+#   define xbarReferenceValues xbar_CIE1964_10deg
+#   define ybarReferenceValues ybar_CIE1964_10deg
+#   define zbarReferenceValues zbar_CIE1964_10deg
+#elif VLR_Color_System_is_based_on == VLR_Color_System_CIE_2012_2deg
+#   define xbarReferenceValues xbar_CIE2012_2deg
+#   define ybarReferenceValues ybar_CIE2012_2deg
+#   define zbarReferenceValues zbar_CIE2012_2deg
+#elif VLR_Color_System_is_based_on == VLR_Color_System_CIE_2012_10deg
+#   define xbarReferenceValues xbar_CIE2012_10deg
+#   define ybarReferenceValues ybar_CIE2012_10deg
+#   define zbarReferenceValues zbar_CIE2012_10deg
+#endif
 
 #if defined(VLR_Host)
 

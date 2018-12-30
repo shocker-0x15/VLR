@@ -61,10 +61,4 @@ namespace VLR {
         ret.setCol(2, asOptiXType(mat.c2));
         return ret;
     }
-    RT_FUNCTION constexpr RGBSpectrum asRGBSpectrum(const optix::float3 &v) {
-        return RGBSpectrum(v.x, v.y, v.z);
-    }
-    RT_FUNCTION inline optix::float3 asOptiXType(const RGBSpectrum &s) {
-        return optix::make_float3(s.r, s.g, s.b);
-    }
 }

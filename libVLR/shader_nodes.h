@@ -1,10 +1,6 @@
 #pragma once
 
 #include "context.h"
-#include "ext/include/half.hpp"
-#include "spectrum_base.h"
-
-using half_float::half;
 
 namespace VLR {
     struct RGB8x3 { uint8_t r, g, b; };
@@ -359,6 +355,89 @@ namespace VLR {
 
 
 
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+    class UpsampledSpectrumShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        VLRSpectrumType m_spectrumType;
+        VLRColorSpace m_colorSpace;
+        float m_immE0, m_immE1, m_immE2;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        UpsampledSpectrumShaderNode(Context &context);
+        ~UpsampledSpectrumShaderNode();
+
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        void setSpectrumType(VLRSpectrumType spectrumType);
+        void setColorSpace(VLRColorSpace colorSpace);
+        void setImmediateValueTriplet(float e0, float e1, float e2);
+    };
+
+
+
+    //class RegularSampledSpectrumShaderNode : public ShaderNode {
+    //    static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+    //    half values[2 * (VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+    //    uint32_t numSamples;
+
+    //    void setupNodeDescriptor() const;
+
+    //public:
+    //    static const ClassIdentifier ClassID;
+    //    virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+    //    static void initialize(Context &context);
+    //    static void finalize(Context &context);
+
+    //    RegularSampledSpectrumShaderNode(Context &context);
+    //    ~RegularSampledSpectrumShaderNode();
+    //};
+
+
+
+    //class IrregularSampledSpectrumShaderNode : public ShaderNode {
+    //    static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+    //    half lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+    //    half values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
+    //    uint32_t numSamples;
+
+    //    void setupNodeDescriptor() const;
+
+    //public:
+    //    static const ClassIdentifier ClassID;
+    //    virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+    //    static void initialize(Context &context);
+    //    static void finalize(Context &context);
+
+    //    IrregularSampledSpectrumShaderNode(Context &context);
+    //    ~IrregularSampledSpectrumShaderNode();
+    //};
+#else
+    class RGBSpectrumNode {
+        float r, g, b;
+    };
+#endif
+
+
+
     class Vector3DToSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -428,6 +507,8 @@ namespace VLR {
 
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
+        VLRSpectrumType m_spectrumType;
+        VLRColorSpace m_colorSpace;
         ShaderNodeSocketIdentifier m_nodeTexCoord;
 
         void setupNodeDescriptor() const;
@@ -464,6 +545,8 @@ namespace VLR {
 
         void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        void setSpectrumType(VLRSpectrumType spectrumType);
+        void setColorSpace(VLRColorSpace colorSpace);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
     };
 
@@ -474,6 +557,7 @@ namespace VLR {
 
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
+        VLRColorSpace m_colorSpace;
         ShaderNodeSocketIdentifier m_nodeTexCoord;
 
         void setupNodeDescriptor() const;
@@ -498,6 +582,7 @@ namespace VLR {
 
         void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        void setColorSpace(VLRColorSpace colorSpace);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
 
         void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;

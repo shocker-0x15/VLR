@@ -10,18 +10,20 @@
     </ClCompile>
     <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="vlrDevPrintf.cpp" />
+    <ClCompile Include="spectrum_types.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="spectrum_base.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\VLR\common.h" />
-    <ClInclude Include="include\VLR\basic_types.h" />
-    <ClInclude Include="basic_types_internal.h" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
       <Filter>GPU Kernels</Filter>
     </ClInclude>
     <ClInclude Include="GPU_kernels\random_distributions.cuh">
       <Filter>GPU Kernels</Filter>
     </ClInclude>
-    <ClInclude Include="shared.h" />
     <ClInclude Include="slot_manager.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="materials.h" />
@@ -32,7 +34,6 @@
     <ClInclude Include="ext\include\half.hpp">
       <Filter>ext</Filter>
     </ClInclude>
-    <ClInclude Include="common_internal.h" />
     <ClInclude Include="include\VLR\VLR.h">
       <Filter>API</Filter>
     </ClInclude>
@@ -43,8 +44,30 @@
     <ClInclude Include="include\VLR\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="spectrum_base.h" />
-    <ClInclude Include="rgb_spectrum_types.h" />
+    <ClInclude Include="rgb_spectrum_types.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="basic_types_internal.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\basic_types.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\common.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="common_internal.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="spectrum_base.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="spectrum_types.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
@@ -55,6 +78,9 @@
     </Filter>
     <Filter Include="API">
       <UniqueIdentifier>{5b29098c-54b2-455f-a988-5afcf02f08ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{626b6b12-ff56-4992-a1bc-68f887ae2bc8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -77,6 +103,9 @@
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
   </ItemGroup>

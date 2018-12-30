@@ -102,9 +102,9 @@ namespace VLR {
                 for (int x = 0; x < width; ++x) {
                     const RGB8x3 &src = *(srcLineHead + x);
                     RGBA8x4 &dst = *(dstLineHead + x);
-                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.r / 255.0f)) : src.r;
-                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.g / 255.0f)) : src.g;
-                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.b / 255.0f)) : src.b;
+                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f)) : src.r;
+                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f)) : src.g;
+                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f)) : src.b;
                     dst.a = 255;
                 }
             }
@@ -119,9 +119,9 @@ namespace VLR {
                 for (int x = 0; x < width; ++x) {
                     const RGB_8x4 &src = *(srcLineHead + x);
                     RGBA8x4 &dst = *(dstLineHead + x);
-                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.r / 255.0f)) : src.r;
-                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.g / 255.0f)) : src.g;
-                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.b / 255.0f)) : src.b;
+                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f)) : src.r;
+                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f)) : src.g;
+                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f)) : src.b;
                     dst.a = 255;
                 }
             }
@@ -137,9 +137,9 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const RGBA8x4 &src = *(srcLineHead + x);
                         RGBA8x4 &dst = *(dstLineHead + x);
-                        dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.r / 255.0f));
-                        dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.g / 255.0f));
-                        dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.b / 255.0f));
+                        dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
+                        dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
+                        dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
                         dst.a = src.a;
                     }
                 }
@@ -159,9 +159,9 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const RGBA16Fx4 &src = *(srcLineHead + x);
                         RGBA16Fx4 &dst = *(dstLineHead + x);
-                        dst.r = (half)sRGB_degamma_s((float)src.r);
-                        dst.g = (half)sRGB_degamma_s((float)src.g);
-                        dst.b = (half)sRGB_degamma_s((float)src.b);
+                        dst.r = (half)sRGB_degamma((float)src.r);
+                        dst.g = (half)sRGB_degamma((float)src.g);
+                        dst.b = (half)sRGB_degamma((float)src.b);
                         dst.a = src.a;
                     }
                 }
@@ -181,9 +181,9 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const RGBA32Fx4 &src = *(srcLineHead + x);
                         RGBA32Fx4 &dst = *(dstLineHead + x);
-                        dst.r = sRGB_degamma_s(src.r);
-                        dst.g = sRGB_degamma_s(src.g);
-                        dst.b = sRGB_degamma_s(src.b);
+                        dst.r = sRGB_degamma(src.r);
+                        dst.g = sRGB_degamma(src.g);
+                        dst.b = sRGB_degamma(src.b);
                         dst.a = src.a;
                     }
                 }
@@ -203,8 +203,8 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const RG32Fx2 &src = *(srcLineHead + x);
                         RG32Fx2 &dst = *(dstLineHead + x);
-                        dst.r = sRGB_degamma_s(src.r);
-                        dst.g = sRGB_degamma_s(src.g);
+                        dst.r = sRGB_degamma(src.r);
+                        dst.g = sRGB_degamma(src.g);
                     }
                 }
             }
@@ -223,7 +223,7 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const Gray32F &src = *(srcLineHead + x);
                         Gray32F &dst = *(dstLineHead + x);
-                        dst.v = sRGB_degamma_s(src.v);
+                        dst.v = sRGB_degamma(src.v);
                     }
                 }
             }
@@ -242,7 +242,7 @@ namespace VLR {
                     for (int x = 0; x < width; ++x) {
                         const Gray8 &src = *(srcLineHead + x);
                         Gray8 &dst = *(dstLineHead + x);
-                        dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma_s(src.v / 255.0f));
+                        dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
                     }
                 }
             }
@@ -383,7 +383,7 @@ namespace VLR {
                 switch (getDataFormat()) {
                 case VLRDataFormat_RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
-                    float Y = RGBSpectrum(pix.r, pix.g, pix.b).luminance(RGBColorSpace::sRGB);
+                    float Y = mat_sRGB_D65_to_XYZ[3] * pix.r + mat_sRGB_D65_to_XYZ[4] * pix.g + mat_sRGB_D65_to_XYZ[5] * pix.b;
                     *(float*)&data[(y * width + x) * stride] = Y;
                     break;
                 }
@@ -462,6 +462,7 @@ namespace VLR {
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
+        UpsampledSpectrumShaderNode::initialize(context);
         Vector3DToSpectrumShaderNode::initialize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
@@ -474,6 +475,7 @@ namespace VLR {
         Image2DTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
         Vector3DToSpectrumShaderNode::finalize(context);
+        UpsampledSpectrumShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
@@ -858,6 +860,64 @@ namespace VLR {
 
 
 
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> UpsampledSpectrumShaderNode::OptiXProgramSets;
+
+    // static
+    void UpsampledSpectrumShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::UpsampledSpectrumShaderNode_spectrum",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void UpsampledSpectrumShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    UpsampledSpectrumShaderNode::UpsampledSpectrumShaderNode(Context &context) :
+        ShaderNode(context), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709),
+        m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
+        setupNodeDescriptor();
+    }
+
+    UpsampledSpectrumShaderNode::~UpsampledSpectrumShaderNode() {
+    }
+
+    void UpsampledSpectrumShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        Shared::UpsampledSpectrumShaderNode &nodeData = *(Shared::UpsampledSpectrumShaderNode*)&nodeDesc.data;
+        nodeData.value = UpsampledSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    void UpsampledSpectrumShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
+        m_spectrumType = spectrumType;
+        setupNodeDescriptor();
+    }
+
+    void UpsampledSpectrumShaderNode::setColorSpace(VLRColorSpace colorSpace) {
+        m_colorSpace = colorSpace;
+        setupNodeDescriptor();
+    }
+
+    void UpsampledSpectrumShaderNode::setImmediateValueTriplet(float e0, float e1, float e2) {
+        m_immE0 = e0;
+        m_immE1 = e1;
+        m_immE2 = e2;
+        setupNodeDescriptor();
+    }
+
+
+
     std::map<uint32_t, ShaderNode::OptiXProgramSet> Vector3DToSpectrumShaderNode::OptiXProgramSets;
 
     // static
@@ -992,7 +1052,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr) {
+        ShaderNode(context), m_image(nullptr), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -1017,6 +1077,8 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::Image2DTextureShaderNode &nodeData = *(Shared::Image2DTextureShaderNode*)&nodeDesc.data;
         nodeData.textureID = m_optixTextureSampler->getId();
+        nodeData.spectrumType = m_spectrumType;
+        nodeData.colorSpace = m_colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
@@ -1033,6 +1095,16 @@ namespace VLR {
 
     void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
+    void Image2DTextureShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
+        m_spectrumType = spectrumType;
+        setupNodeDescriptor();
+    }
+
+    void Image2DTextureShaderNode::setColorSpace(VLRColorSpace colorSpace) {
+        m_colorSpace = colorSpace;
+        setupNodeDescriptor();
     }
 
     bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -1065,7 +1137,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr) {
+        ShaderNode(context), m_image(nullptr), m_colorSpace(VLRColorSpace_Rec709) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
@@ -1089,6 +1161,7 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         Shared::EnvironmentTextureShaderNode &nodeData = *(Shared::EnvironmentTextureShaderNode*)&nodeDesc.data;
         nodeData.textureID = m_optixTextureSampler->getId();
+        nodeData.colorSpace = m_colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
@@ -1102,6 +1175,11 @@ namespace VLR {
 
     void EnvironmentTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
+    void EnvironmentTextureShaderNode::setColorSpace(VLRColorSpace colorSpace) {
+        m_colorSpace = colorSpace;
+        setupNodeDescriptor();
     }
 
     bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {

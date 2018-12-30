@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <public_types.h>
-#include "basic_types_internal.h"
 #include "shared.h"
 
 #include "slot_manager.h"
@@ -31,6 +30,11 @@ namespace VLR {
         optix::Program m_optixProgramPathTracing; // ------------ Ray Generation Program
         optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramException; // -------------- Exception Program
+
+        optix::Program m_optixProgramConvertToRGB; // ----------- Ray Generation Program (TODO: port to pure CUDA code)
+
+        optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_grid;
+        optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_data_points;
 
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
@@ -69,6 +73,7 @@ namespace VLR {
         uint32_t m_maxNumSurfaceMaterialDescriptors;
         SlotManager m_surfMatDescSlotManager;
 
+        optix::Buffer m_rawOutputBuffer;
         optix::Buffer m_outputBuffer;
         optix::Buffer m_rngBuffer;
         uint32_t m_width;

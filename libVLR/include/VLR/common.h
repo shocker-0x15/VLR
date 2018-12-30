@@ -3,11 +3,15 @@
 #if defined(__CUDACC__)
 #   define VLR_Device
 #   define RT_FUNCTION __forceinline__ __device__
+#   define RT_VARIABLE __device__ const
 #   define HOST_INLINE
+#   define HOST_CONSTEXPR
 #else
 #   define VLR_Host
 #   define RT_FUNCTION
+#   define RT_VARIABLE
 #   define HOST_INLINE inline
+#   define HOST_CONSTEXPR constexpr
 #endif
 
 // Platform defines
@@ -33,13 +37,17 @@
 #   include <Windows.h>
 #   undef near
 #   undef far
+#   undef RGB
 #else
 #   define VLR_API
 #endif
 
 #define VLR_M_PI 3.14159265358979323846f
-//#define VLR_INFINITY
-//#define VLR_NAN
+#ifndef VLR_HUGE_ENUF
+#   define VLR_HUGE_ENUF  1e+300  // VLR_HUGE_ENUF*VLR_HUGE_ENUF must overflow
+#endif
+#define VLR_INFINITY   ((float)(VLR_HUGE_ENUF * VLR_HUGE_ENUF))
+#define VLR_NAN        ((float)(VLR_INFINITY * 0.0f))
 
 #define VLR_USE_DEVPRINTF
 
@@ -117,6 +125,10 @@ namespace std {
 
     RT_FUNCTION constexpr bool isnan(float x) {
         return ::isnan(x);
+    }
+
+    RT_FUNCTION constexpr bool isfinite(float x) {
+        return ::isfinite(x);
     }
 }
 

@@ -7,11 +7,12 @@ enum VLRSpectrumType {
     VLRSpectrumType_Transmittance = VLRSpectrumType_Reflectance,
     VLRSpectrumType_LightSource,
     VLRSpectrumType_IndexOfRefraction,
+    VLRSpectrumType_NA
 };
 
 enum VLRColorSpace {
-    VLRColorSpace_Rec709 = 0,
-    VLRColorSpace_Rec709_NonLinear,
+    VLRColorSpace_Rec709_sRGBGamma = 0,
+    VLRColorSpace_Rec709,
     VLRColorSpace_XYZ,
     VLRColorSpace_xyY,
 };

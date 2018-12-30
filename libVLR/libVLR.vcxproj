@@ -121,6 +121,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="spectrum_base.cpp" />
+    <ClCompile Include="spectrum_types.cpp" />
     <ClCompile Include="vlrDevPrintf.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
@@ -148,6 +150,7 @@
     <ClInclude Include="slot_manager.h" />
     <ClInclude Include="shader_nodes.h" />
     <ClInclude Include="spectrum_base.h" />
+    <ClInclude Include="spectrum_types.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">
@@ -156,6 +159,9 @@
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
+    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu">
+      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>

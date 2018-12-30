@@ -37,6 +37,7 @@ namespace VLR {
     defineClassID(ShaderNode, Float2ShaderNode);
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
+    defineClassID(ShaderNode, UpsampledSpectrumShaderNode);
     defineClassID(ShaderNode, Vector3DToSpectrumShaderNode);
     defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);
@@ -77,11 +78,13 @@ namespace VLR {
     uint32_t Context::NextID = 0;
 
     Context::Context(bool logging, uint32_t stackSize) {
+        initializeColorSystem();
+
         m_ID = getInstanceID();
 
         m_optixContext = optix::Context::create();
 
-        m_optixContext->setEntryPointCount(1);
+        m_optixContext->setEntryPointCount(2);
         m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
 
         {
@@ -96,12 +99,45 @@ namespace VLR {
             m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
             m_optixProgramException = m_optixContext->createProgramFromPTXString(ptx, "VLR::exception");
         }
-
         m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
         m_optixContext->setExceptionProgram(0, m_optixProgramException);
 
+        {
+            std::string ptx = readTxtFile("resources/ptxes/convert_to_rgb.ptx");
+            m_optixProgramConvertToRGB = m_optixContext->createProgramFromPTXString(ptx, "VLR::convertToRGB");
+        }
+        m_optixContext->setRayGenerationProgram(1, m_optixProgramConvertToRGB);
+
         m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
         m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
+
+
+
+        m_optixContext["VLR::DiscretizedSpectrum_xbar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::xbar);
+        m_optixContext["VLR::DiscretizedSpectrum_ybar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::ybar);
+        m_optixContext["VLR::DiscretizedSpectrum_zbar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::zbar);
+        m_optixContext["VLR::DiscretizedSpectrum_integralCMF"]->setFloat(DiscretizedSpectrum::integralCMF);
+
+        const uint32_t NumSpectrumGridCells = 168;
+        const uint32_t NumSpectrumDataPoints = 186;
+        m_optixBufferUpsampledSpectrum_spectrum_grid = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, NumSpectrumGridCells);
+        m_optixBufferUpsampledSpectrum_spectrum_grid->setElementSize(sizeof(UpsampledSpectrum::spectrum_grid_cell_t));
+        {
+            auto values = (UpsampledSpectrum::spectrum_grid_cell_t*)m_optixBufferUpsampledSpectrum_spectrum_grid->map();
+            std::copy_n(UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells, values);
+            m_optixBufferUpsampledSpectrum_spectrum_grid->unmap();
+        }
+        m_optixBufferUpsampledSpectrum_spectrum_data_points = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, NumSpectrumDataPoints);
+        m_optixBufferUpsampledSpectrum_spectrum_data_points->setElementSize(sizeof(UpsampledSpectrum::spectrum_data_point_t));
+        {
+            auto values = (UpsampledSpectrum::spectrum_data_point_t*)m_optixBufferUpsampledSpectrum_spectrum_data_points->map();
+            std::copy_n(UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints, values);
+            m_optixBufferUpsampledSpectrum_spectrum_data_points->unmap();
+        }
+        m_optixContext["VLR::UpsampledSpectrum_spectrum_grid"]->set(m_optixBufferUpsampledSpectrum_spectrum_grid);
+        m_optixContext["VLR::UpsampledSpectrum_spectrum_data_points"]->set(m_optixBufferUpsampledSpectrum_spectrum_data_points);
+
+
 
         m_optixMaterialDefault = m_optixContext->createMaterial();
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
@@ -200,6 +236,8 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         Camera::initialize(*this);
 
+
+
         RTsize defaultStackSize = m_optixContext->getStackSize();
         vlrprintf("Default Stack Size: %u\n", defaultStackSize);
 
@@ -211,6 +249,7 @@ namespace VLR {
             //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
             //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
             //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
+            //m_optixContext->setPrintLaunchIndex(0, 0, 0);
             if (stackSize == 0)
                 stackSize = 1280;
         }
@@ -233,6 +272,9 @@ namespace VLR {
     Context::~Context() {
         if (m_rngBuffer)
             m_rngBuffer->destroy();
+
+        if (m_rawOutputBuffer)
+            m_rawOutputBuffer->destroy();
 
         if (m_outputBuffer)
             m_outputBuffer->destroy();
@@ -274,6 +316,11 @@ namespace VLR {
         m_optixMaterialWithAlpha->destroy();
         m_optixMaterialDefault->destroy();
 
+        m_optixBufferUpsampledSpectrum_spectrum_data_points->destroy();
+        m_optixBufferUpsampledSpectrum_spectrum_grid->destroy();
+
+        m_optixProgramConvertToRGB->destroy();
+
         m_optixProgramException->destroy();
         m_optixProgramPathTracingMiss->destroy();
         m_optixProgramPathTracing->destroy();
@@ -293,6 +340,8 @@ namespace VLR {
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {
         if (m_outputBuffer)
             m_outputBuffer->destroy();
+        if (m_rawOutputBuffer)
+            m_rawOutputBuffer->destroy();
         if (m_rngBuffer)
             m_rngBuffer->destroy();
 
@@ -308,12 +357,12 @@ namespace VLR {
             m_outputBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
         }
         m_outputBuffer->setElementSize(sizeof(RGBSpectrum));
-        {
-            auto dstData = (RGBSpectrum*)m_outputBuffer->map();
-            std::fill_n(dstData, m_width * m_height, RGBSpectrum::Zero());
-            m_outputBuffer->unmap();
-        }
-        m_optixContext["VLR::pv_outputBuffer"]->set(m_outputBuffer);
+        m_optixContext["VLR::pv_RGBBuffer"]->set(m_outputBuffer);
+
+        m_rawOutputBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
+        m_rawOutputBuffer->setElementSize(sizeof(SpectrumStorage));
+        m_optixContext["VLR::pv_spectrumBuffer"]->set(m_rawOutputBuffer);
+        m_optixContext["VLR::pv_outputBuffer"]->set(m_rawOutputBuffer);
 
         m_rngBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_USER, m_width, m_height);
         m_rngBuffer->setElementSize(sizeof(uint64_t));
@@ -390,6 +439,7 @@ namespace VLR {
 #endif
 
         optixContext->launch(0, imageSize.x, imageSize.y);
+        optixContext->launch(1, imageSize.x, imageSize.y);
     }
 
 

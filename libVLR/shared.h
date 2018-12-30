@@ -1,8 +1,38 @@
-#pragma once
+﻿#pragma once
 
 #include "basic_types_internal.h"
+#include "rgb_spectrum_types.h"
+#include "spectrum_types.h"
+#if defined(VLR_Host)
+#include "ext/include/half.hpp"
+#endif
 
 namespace VLR {
+#if defined(VLR_Host)
+    using half_float::half;
+#else
+    struct half {
+        uint16_t raw;
+
+        operator float() const {
+			uint32_t bits = (uint32_t)(raw & 0x8000) << 16;
+            uint32_t abs = raw & 0x7FFF;
+            if (abs) {
+                // JP: halfの指数部が   無限大 or NaN       を表す(11111)       場合: floatビット: (* 11100000 00000000000000000000000)
+                //                    正規化数 or 非正規化数を表す(00000-11110) 場合:              (* 01110000 00000000000000000000000)
+                bits |= 0x38000000 << (uint32_t)(abs >= 0x7C00);
+                // JP: halfの指数部が非正規化数を表す(00000) 場合: 0x0001-0x03FF (* 00000 **********)
+                //     正規化数になるまでhalfをビットシフト、floatの指数部を1ずつ減算。
+                for (; abs < 0x400; abs <<= 1, bits -= 0x800000);
+                // JP: halfの指数部が 無限大 or NaN を表す場合 0x7C00-0x7FFF (0       11111 **********): (0          00011111 **********0000000000000) を加算 => floatの指数ビットは0xFFになる。
+                //                    正規化数      を表す場合 0x0400-0x7BFF (0 00001-11110 **********): (0 00000001-00011110 **********0000000000000) を加算 => floatの指数ビットは0x71-0x8Eになる。
+                bits += (uint32_t)(abs) << 13;
+            }
+            return *(float*)&bits;
+        }
+    };
+#endif
+
     namespace Shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
@@ -355,20 +385,16 @@ namespace VLR {
         };
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        struct UpsampledSpectrumNode {
-            float s, t, scale;
-            uint32_t adjIndices;
+        struct UpsampledSpectrumShaderNode {
+            UpsampledSpectrum value;
         };
 
-        struct RegularSampledSpectrumNode {
-            half values[2 * (VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-            uint32_t numSamples;
+        struct RegularSampledSpectrumShaderNode {
+            
         };
 
-        struct IrregularSampledSpectrumNode {
-            half lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-            half values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-            uint32_t numSamples;
+        struct IrregularSampledSpectrumShaderNode {
+            
         };
 #else
         struct RGBSpectrumNode {
@@ -388,11 +414,14 @@ namespace VLR {
 
         struct Image2DTextureShaderNode {
             int32_t textureID;
+            VLRSpectrumType spectrumType;
+            VLRColorSpace colorSpace;
             ShaderNodeSocketID nodeTexCoord;
         };
 
         struct EnvironmentTextureShaderNode {
             int32_t textureID;
+            VLRColorSpace colorSpace;
             ShaderNodeSocketID nodeTexCoord;
         };
 
@@ -413,24 +442,33 @@ namespace VLR {
 
         struct MatteSurfaceMaterial {
             ShaderNodeSocketID nodeAlbedo;
+            UpsampledSpectrum immAlbedo;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeCoeffR;
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
+            UpsampledSpectrum immCoeffR;
+            UpsampledSpectrum immEta;
+            UpsampledSpectrum imm_k;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
+            UpsampledSpectrum immCoeff;
+            UpsampledSpectrum immEtaExt;
+            UpsampledSpectrum immEtaInt;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
+            UpsampledSpectrum immEta;
+            UpsampledSpectrum imm_k;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -441,6 +479,9 @@ namespace VLR {
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
+            UpsampledSpectrum immCoeff;
+            UpsampledSpectrum immEtaExt;
+            UpsampledSpectrum immEtaInt;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -449,12 +490,14 @@ namespace VLR {
         struct LambertianScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeF0;
+            UpsampledSpectrum immCoeff;
             float immF0;
         };
 
         struct UE4SurfaceMaterial {
             ShaderNodeSocketID nodeBaseColor;
             ShaderNodeSocketID nodeOcclusionRoughnessMetallic;
+            UpsampledSpectrum immBaseColor;
             float immOcclusion;
             float immRoughness;
             float immMetallic;
@@ -462,6 +505,7 @@ namespace VLR {
 
         struct DiffuseEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
+            UpsampledSpectrum immEmittance;
         };
 
         struct MultiSurfaceMaterial {
@@ -471,6 +515,7 @@ namespace VLR {
 
         struct EnvironmentEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
+            UpsampledSpectrum immEmittance;
         };
 
         // END: Surface Materials

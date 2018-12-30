@@ -53,7 +53,7 @@ namespace VLR {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         ShaderNodeSocketIdentifier m_nodeAlbedo;
-        RGBSpectrum m_immAlbedo;
+        UpsampledSpectrum m_immAlbedo;
 
         void setupMaterialDescriptor() const;
 
@@ -68,7 +68,7 @@ namespace VLR {
         ~MatteSurfaceMaterial();
 
         bool setNodeAlbedo(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueAlbedo(const RGBSpectrum &value);
+        void setImmediateValueAlbedo(const UpsampledSpectrum &value);
     };
 
 
@@ -79,9 +79,9 @@ namespace VLR {
         ShaderNodeSocketIdentifier m_nodeCoeffR;
         ShaderNodeSocketIdentifier m_nodeEta;
         ShaderNodeSocketIdentifier m_node_k;
-        RGBSpectrum m_immCoeffR;
-        RGBSpectrum m_immEta;
-        RGBSpectrum m_imm_k;
+        UpsampledSpectrum m_immCoeffR;
+        UpsampledSpectrum m_immEta;
+        UpsampledSpectrum m_imm_k;
 
         void setupMaterialDescriptor() const;
 
@@ -96,11 +96,11 @@ namespace VLR {
         ~SpecularReflectionSurfaceMaterial();
 
         bool setNodeCoeffR(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeffR(const RGBSpectrum &value);
+        void setImmediateValueCoeffR(const UpsampledSpectrum &value);
         bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEta(const RGBSpectrum &value);
+        void setImmediateValueEta(const UpsampledSpectrum &value);
         bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValue_k(const RGBSpectrum &value);
+        void setImmediateValue_k(const UpsampledSpectrum &value);
     };
 
 
@@ -111,9 +111,9 @@ namespace VLR {
         ShaderNodeSocketIdentifier m_nodeCoeff;
         ShaderNodeSocketIdentifier m_nodeEtaExt;
         ShaderNodeSocketIdentifier m_nodeEtaInt;
-        RGBSpectrum m_immCoeff;
-        RGBSpectrum m_immEtaExt;
-        RGBSpectrum m_immEtaInt;
+        UpsampledSpectrum m_immCoeff;
+        UpsampledSpectrum m_immEtaExt;
+        UpsampledSpectrum m_immEtaInt;
 
         void setupMaterialDescriptor() const;
 
@@ -128,11 +128,11 @@ namespace VLR {
         ~SpecularScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(const RGBSpectrum &value);
+        void setImmediateValueCoeff(const UpsampledSpectrum &value);
         bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaExt(const RGBSpectrum &value);
+        void setImmediateValueEtaExt(const UpsampledSpectrum &value);
         bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaInt(const RGBSpectrum &value);
+        void setImmediateValueEtaInt(const UpsampledSpectrum &value);
     };
 
 
@@ -143,8 +143,8 @@ namespace VLR {
         ShaderNodeSocketIdentifier m_nodeEta;
         ShaderNodeSocketIdentifier m_node_k;
         ShaderNodeSocketIdentifier m_nodeRoughnessAnisotropyRotation;
-        RGBSpectrum m_immEta;
-        RGBSpectrum m_imm_k;
+        UpsampledSpectrum m_immEta;
+        UpsampledSpectrum m_imm_k;
         float m_immRoughness;
         float m_immAnisotropy;
         float m_immRotation;
@@ -162,9 +162,9 @@ namespace VLR {
         ~MicrofacetReflectionSurfaceMaterial();
 
         bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEta(const RGBSpectrum &value);
+        void setImmediateValueEta(const UpsampledSpectrum &value);
         bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValue_k(const RGBSpectrum &value);
+        void setImmediateValue_k(const UpsampledSpectrum &value);
         bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(float value);
         void setImmediateValueAnisotropy(float value);
@@ -180,9 +180,9 @@ namespace VLR {
         ShaderNodeSocketIdentifier m_nodeEtaExt;
         ShaderNodeSocketIdentifier m_nodeEtaInt;
         ShaderNodeSocketIdentifier m_nodeRoughnessAnisotropyRotation;
-        RGBSpectrum m_immCoeff;
-        RGBSpectrum m_immEtaExt;
-        RGBSpectrum m_immEtaInt;
+        UpsampledSpectrum m_immCoeff;
+        UpsampledSpectrum m_immEtaExt;
+        UpsampledSpectrum m_immEtaInt;
         float m_immRoughness;
         float m_immAnisotropy;
         float m_immRotation;
@@ -200,11 +200,11 @@ namespace VLR {
         ~MicrofacetScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(const RGBSpectrum &value);
+        void setImmediateValueCoeff(const UpsampledSpectrum &value);
         bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaExt(const RGBSpectrum &value);
+        void setImmediateValueEtaExt(const UpsampledSpectrum &value);
         bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaInt(const RGBSpectrum &value);
+        void setImmediateValueEtaInt(const UpsampledSpectrum &value);
         bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(float value);
         void setImmediateValueAnisotropy(float value);
@@ -218,7 +218,7 @@ namespace VLR {
 
         ShaderNodeSocketIdentifier m_nodeCoeff;
         ShaderNodeSocketIdentifier m_nodeF0;
-        RGBSpectrum m_immCoeff;
+        UpsampledSpectrum m_immCoeff;
         float m_immF0;
 
         void setupMaterialDescriptor() const;
@@ -234,7 +234,7 @@ namespace VLR {
         ~LambertianScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(const RGBSpectrum &value);
+        void setImmediateValueCoeff(const UpsampledSpectrum &value);
         bool setNodeF0(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueF0(float value);
     };
@@ -246,7 +246,7 @@ namespace VLR {
 
         ShaderNodeSocketIdentifier m_nodeBaseColor;
         ShaderNodeSocketIdentifier m_nodeOcclusionRoughnessMetallic;
-        RGBSpectrum m_immBaseColor;
+        UpsampledSpectrum m_immBaseColor;
         float m_immOcculusion;
         float m_immRoughness;
         float m_immMetallic;
@@ -264,7 +264,7 @@ namespace VLR {
         ~UE4SurfaceMaterial();
 
         bool setNodeBaseColor(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueBaseColor(const RGBSpectrum &value);
+        void setImmediateValueBaseColor(const UpsampledSpectrum &value);
         bool setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueOcclusion(float value);
         void setImmediateValueRoughness(float value);
@@ -277,7 +277,7 @@ namespace VLR {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         ShaderNodeSocketIdentifier m_nodeEmittance;
-        RGBSpectrum m_immEmittance;
+        UpsampledSpectrum m_immEmittance;
 
         void setupMaterialDescriptor() const;
 
@@ -294,7 +294,7 @@ namespace VLR {
         bool isEmitting() const override { return true; }
 
         bool setNodeEmittance(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEmittance(const RGBSpectrum &value);
+        void setImmediateValueEmittance(const UpsampledSpectrum &value);
     };
 
 
@@ -328,7 +328,7 @@ namespace VLR {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         const EnvironmentTextureShaderNode* m_nodeEmittance;
-        RGBSpectrum m_immEmittance;
+        UpsampledSpectrum m_immEmittance;
         RegularConstantContinuousDistribution2D m_importanceMap;
 
         void setupMaterialDescriptor() const;
@@ -346,7 +346,7 @@ namespace VLR {
         bool isEmitting() const override { return true; }
 
         bool setNodeEmittance(const EnvironmentTextureShaderNode* node);
-        void setImmediateValueEmittance(const RGBSpectrum &value);
+        void setImmediateValueEmittance(const UpsampledSpectrum &value);
 
         const RegularConstantContinuousDistribution2D &getImportanceMap();
     };

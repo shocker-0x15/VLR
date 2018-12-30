@@ -6,8 +6,6 @@ typedef VLR::Object* VLRObject;
 
 typedef VLR::Context* VLRContext;
 
-typedef VLR::Spectrum* VLRSpectrum;
-
 typedef VLR::Image2D* VLRImage2D;
 typedef VLR::LinearImage2D* VLRLinearImage2D;
 
@@ -17,6 +15,7 @@ typedef VLR::FloatShaderNode* VLRFloatShaderNode;
 typedef VLR::Float2ShaderNode* VLRFloat2ShaderNode;
 typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
 typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
+typedef VLR::UpsampledSpectrumShaderNode* VLRUpsampledSpectrumShaderNode;
 typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
 typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
@@ -184,26 +183,6 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
         return VLR_ERROR_INVALID_TYPE;
     context->render(*scene, camera, shrinkCoeff, firstFrame, numAccumFrames);
 
-    return VLR_ERROR_NO_ERROR;
-}
-
-
-
-VLR_API VLRResult vlrSpectrumCreateFromTriplet(VLRContext context, VLRSpectrum* spectrum,
-                                               VLRSpectrumType type, VLRColorSpace colorSpace, const float values[3]) {
-    VLRAssert_NotImplemented();
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrSpectrumCreateFromRegularSamples(VLRContext context, VLRSpectrum* spectrum,
-                                                      VLRSpectrumType type, VLRColorSpace colorSpace, const float* values, uint32_t numSamples) {
-    VLRAssert_NotImplemented();
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrSpectrumCreateFromIrregularSamples(VLRContext context, VLRSpectrum* spectrum,
-                                                        VLRSpectrumType type, VLRColorSpace colorSpace, const float* lambdas, const float* values, uint32_t numSamples) {
-    VLRAssert_NotImplemented();
     return VLR_ERROR_NO_ERROR;
 }
 
@@ -591,6 +570,22 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNod
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetSpectrumType(VLRImage2DTextureShaderNode node, VLRSpectrumType spectrumType) {
+    if (!node->is<VLR::Image2DTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setSpectrumType(spectrumType);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetColorSpace(VLRImage2DTextureShaderNode node, VLRColorSpace colorSpace) {
+    if (!node->is<VLR::Image2DTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setColorSpace(colorSpace);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
@@ -628,6 +623,14 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureS
     if (!node->is<VLR::EnvironmentTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setImage(image);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetColorSpace(VLREnvironmentTextureShaderNode node, VLRColorSpace colorSpace) {
+    if (!node->is<VLR::EnvironmentTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setColorSpace(colorSpace);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -674,10 +677,10 @@ VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial m
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMatteSurfaceMaterialSetImmediateValueAlbedo(VLRMatteSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMatteSurfaceMaterialSetImmediateValueAlbedo(VLRMatteSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MatteSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueAlbedo(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueAlbedo(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -707,10 +710,10 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(VLRSpecularR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(VLRSpecularReflectionSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(VLRSpecularReflectionSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueCoeffR(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueCoeffR(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -724,10 +727,10 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeEta(VLRSpecularRefl
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(VLRSpecularReflectionSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(VLRSpecularReflectionSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEta(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEta(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -742,10 +745,10 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNode_k(VLRSpecularRefle
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k(VLRSpecularReflectionSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k(VLRSpecularReflectionSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValue_k(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValue_k(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -776,10 +779,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(VLRSpecularSc
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(VLRSpecularScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(VLRSpecularScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueCoeff(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueCoeff(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -793,10 +796,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(VLRSpecularS
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRSpecularScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRSpecularScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEtaExt(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEtaExt(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -810,10 +813,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(VLRSpecularS
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRSpecularScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRSpecularScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEtaInt(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEtaInt(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -843,10 +846,10 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(VLRMicrofacet
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(VLRMicrofacetReflectionSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(VLRMicrofacetReflectionSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEta(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEta(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -860,10 +863,10 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNode_k(VLRMicrofacetR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRMicrofacetReflectionSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRMicrofacetReflectionSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValue_k(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValue_k(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -926,10 +929,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(VLRMicrofac
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(VLRMicrofacetScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueCoeff(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueCoeff(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -943,10 +946,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(VLRMicrofa
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEtaExt(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEtaExt(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -960,10 +963,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(VLRMicrofa
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEtaInt(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEtaInt(VLR::UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1026,10 +1029,10 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(VLRLamberti
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(VLRLambertianScatteringSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(VLRLambertianScatteringSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::LambertianScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueCoeff(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueCoeff(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1076,10 +1079,10 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetNodeBaseColor(VLRUE4SurfaceMaterial mat
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueBaseColor(VLRUE4SurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueBaseColor(VLRUE4SurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::UE4SurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueBaseColor(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueBaseColor(VLR::UpsampledSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1142,10 +1145,10 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(VLRDiffuseEmi
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(VLRDiffuseEmitterSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(VLRDiffuseEmitterSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::DiffuseEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEmittance(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEmittance(VLR::UpsampledSpectrum(VLRSpectrumType_LightSource, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1199,10 +1202,10 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance(VLREnviro
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance(VLREnvironmentEmitterSurfaceMaterial material, const float value[3]) {
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance(VLREnvironmentEmitterSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
     if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    material->setImmediateValueEmittance(VLR::RGBSpectrum(value[0], value[1], value[2]));
+    material->setImmediateValueEmittance(VLR::UpsampledSpectrum(VLRSpectrumType_LightSource, colorSpace, e0, e1, e2));
 
     return VLR_ERROR_NO_ERROR;
 }

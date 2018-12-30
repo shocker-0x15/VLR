@@ -7,7 +7,7 @@ namespace VLR {
     // per Context
     rtDeclareVariable(PerspectiveCamera, pv_perspectiveCamera, , );
 
-    RT_CALLABLE_PROGRAM RGBSpectrum PerspectiveCamera_sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum PerspectiveCamera_sampleLensPosition(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
         Matrix3x3 rotMat = pv_perspectiveCamera.orientation.toMatrix3x3();
 
         float lensRadius = pv_perspectiveCamera.lensRadius;
@@ -38,10 +38,10 @@ namespace VLR {
         result->areaPDF = lensRadius > 0.0f ? 1.0f / (M_PIf * lensRadius * lensRadius) : 1.0f;
         result->posType = lensRadius > 0.0f ? DirectionType::LowFreq() : DirectionType::Delta0D();
 
-        return RGBSpectrum(pv_perspectiveCamera.sensitivity);
+        return SampledSpectrum(pv_perspectiveCamera.sensitivity);
     }
 
-    RT_CALLABLE_PROGRAM RGBSpectrum PerspectiveCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum PerspectiveCamera_sampleIDF(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
         Point3D orgLocal = Point3D(pv_perspectiveCamera.lensRadius * surfPt.u,
                                    pv_perspectiveCamera.lensRadius * surfPt.v,
                                    0.0f);
@@ -55,7 +55,7 @@ namespace VLR {
         result->dirPDF = pv_perspectiveCamera.imgPlaneDistance * pv_perspectiveCamera.imgPlaneDistance / ((dirLocal.z * dirLocal.z * dirLocal.z) * pv_perspectiveCamera.imgPlaneArea);
         result->sampledType = DirectionType::Acquisition() | DirectionType::LowFreq();
 
-        return RGBSpectrum::One();
+        return SampledSpectrum::One();
     }
 
     // END: PerspectiveCamera
@@ -69,7 +69,7 @@ namespace VLR {
     // per Context
     rtDeclareVariable(EquirectangularCamera, pv_equirectangularCamera, , );
 
-    RT_CALLABLE_PROGRAM RGBSpectrum EquirectangularCamera_sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
         Matrix3x3 rotMat = pv_equirectangularCamera.orientation.toMatrix3x3();
 
         Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
@@ -95,10 +95,10 @@ namespace VLR {
         result->areaPDF = 1.0f;
         result->posType = DirectionType::Delta0D();
 
-        return RGBSpectrum(pv_equirectangularCamera.sensitivity);
+        return SampledSpectrum(pv_equirectangularCamera.sensitivity);
     }
 
-    RT_CALLABLE_PROGRAM RGBSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {
         float phi = pv_equirectangularCamera.phiAngle * (sample.uDir[0] - 0.5f);
         float theta = 0.5f * M_PIf + pv_equirectangularCamera.thetaAngle * (sample.uDir[1] - 0.5f);
         result->dirLocal = Vector3D::fromPolarYUp(phi, theta);
@@ -106,7 +106,7 @@ namespace VLR {
         result->dirPDF = 1.0f / (pv_equirectangularCamera.phiAngle * pv_equirectangularCamera.thetaAngle * sinTheta);
         result->sampledType = DirectionType::Acquisition() | DirectionType::LowFreq();
 
-        return RGBSpectrum::One();
+        return SampledSpectrum::One();
     }
 
     // END: EquirectangularCamera

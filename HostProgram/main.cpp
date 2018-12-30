@@ -145,22 +145,61 @@ static std::string readTxtFile(const std::string& filepath) {
 
 
 
+float sRGB_gamma_s(float value) {
+    VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
+    if (value <= 0.0031308f)
+        return 12.92f * value;
+    return 1.055f * std::pow(value, 1.0f / 2.4f) - 0.055f;
+};
+
+struct RGB {
+    float r, g, b;
+
+    constexpr RGB(float rr, float gg, float bb) : r(rr), g(gg), b(bb) {}
+
+    RGB operator-() const {
+        return RGB(-r, -g, -b);
+    }
+    RGB operator+(const RGB &v) const {
+        return RGB(r + v.r, g + v.g, b + v.b);
+    }
+    RGB operator-(const RGB &v) const {
+        return RGB(r - v.r, g - v.g, b - v.b);
+    }
+    RGB &operator*=(float s) {
+        r *= s;
+        g *= s;
+        b *= s;
+        return *this;
+    }
+
+    static constexpr RGB One() { return RGB(1.0f, 1.0f, 1.0f); }
+};
+
+RGB exp(const RGB &v) {
+    return RGB(std::exp(v.r), std::exp(v.g), std::exp(v.b));
+}
+
+RGB sRGB_gamma(const RGB &v) {
+    return RGB(sRGB_gamma_s(v.r), sRGB_gamma_s(v.g), sRGB_gamma_s(v.b));
+}
+
 static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename) {
     using namespace VLR;
     using namespace VLRCpp;
 
-    auto output = (const RGBSpectrum*)context->mapOutputBuffer();
+    auto output = (const RGB*)context->mapOutputBuffer();
     uint32_t width, height;
     context->getOutputBufferSize(&width, &height);
     auto data = new uint32_t[width * height];
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            RGBSpectrum srcPix = output[y * width + x];
+            RGB srcPix = output[y * width + x];
             uint32_t &pix = data[y * width + x];
 
             srcPix *= g_brightnessCoeff;
-            srcPix = RGBSpectrum::One() - exp(-srcPix);
+            srcPix = RGB::One() - exp(-srcPix);
             srcPix = sRGB_gamma(srcPix);
 
             pix = ((std::min<uint8_t>(srcPix.r * 256, 255) << 0) |
@@ -301,12 +340,10 @@ static SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp:
         mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-        RGBSpectrum spectrum(color[0], color[1], color[2]);
-        mat->setImmediateValueAlbedo(spectrum);
+        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709, color[0], color[1], color[2]);
     }
     else {
-        RGBSpectrum spectrum(1.0f, 0.0f, 1.0f);
-        mat->setImmediateValueAlbedo(spectrum);
+        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709, 1.0f, 0.0f, 1.0f);
     }
 
     return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
@@ -485,6 +522,8 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
             Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
             nodeAlbedo->setImage(image);
+            nodeAlbedo->setSpectrumType(VLRSpectrumType_Reflectance);
+            nodeAlbedo->setColorSpace(VLRColorSpace_Rec709);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
@@ -497,7 +536,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(sRGB_degamma(VLR::RGBSpectrum(0.75f, 0.75f, 0.75f)));
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.75f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 4, 5, 6, 4, 6, 7,
@@ -508,7 +547,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.75f, 0.25f, 0.25f)));
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.25f, 0.25f);
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
             //Float3TextureRef texEmittance = context->createConstantFloat3Texture(value);
@@ -522,7 +561,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(sRGB_degamma(RGBSpectrum(0.25f, 0.25f, 0.75f)));
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.25f, 0.25f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
@@ -532,7 +571,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(RGBSpectrum(30.0f, 30.0f, 30.0f));
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 30.0f, 30.0f, 30.0f);
 
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
@@ -542,7 +581,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(RGBSpectrum(100.0f, 100.0f, 100.0f));
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 100.0f, 100.0f, 100.0f);
 
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
@@ -559,63 +598,33 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
         using namespace VLRCpp;
         using namespace VLR;
 
-        ////// Aluminum
-        ////RGBSpectrum eta(1.27579f, 0.940922f, 0.574879f);
-        ////RGBSpectrum k(7.30257f, 6.33458f, 5.16694f);
-        ////// Copper
-        ////RGBSpectrum eta(0.237698f, 0.734847f, 1.37062f);
-        ////RGBSpectrum k(3.44233f, 2.55751f, 2.23429f);
-        ////// Gold
-        ////RGBSpectrum eta(0.12481f, 0.468228f, 1.44476f);
-        ////RGBSpectrum k(3.32107f, 2.23761f, 1.69196f);
-        ////// Iron
-        ////RGBSpectrum eta(2.91705f, 2.92092f, 2.53253f);
-        ////RGBSpectrum k(3.06696f, 2.93804f, 2.7429f);
-        ////// Lead
-        ////RGBSpectrum eta(1.9566f, 1.82777f, 1.46089f);
-        ////RGBSpectrum k(3.49593f, 3.38158f, 3.17737f);
-        ////// Mercury
-        ////RGBSpectrum eta(1.99144f, 1.5186f, 1.00058f);
-        ////RGBSpectrum k(5.25161f, 4.6095f, 3.7646f);
-        ////// Platinum
-        ////RGBSpectrum eta(2.32528f, 2.06722f, 1.81479f);
-        ////RGBSpectrum k(4.19238f, 3.67941f, 3.06551f);
-        //// Silver
-        //RGBSpectrum eta(0.157099f, 0.144013f, 0.134847f);
-        //RGBSpectrum k(3.82431f, 3.1451f, 2.27711f);
-        ////// Titanium
-        ////RGBSpectrum eta(2.71866f, 2.50954f, 2.22767f);
-        ////RGBSpectrum k(3.79521f, 3.40035f, 3.00114f);
         //SpecularReflectionSurfaceMaterialRef mat = context->createSpecularReflectionSurfaceMaterial();
-        //mat->setImmediateValueCoeffR(RGBSpectrum(0.999f, 0.999f, 0.999f));
-        //mat->setImmediateValueEta(eta);
-        //mat->setImmediateValue_k(k);
+        //mat->setImmediateValueCoeffR(VLRColorSpace_Rec709, 0.999f, 0.999f, 0.999f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.27579f, 0.940922f, 0.574879f); // Aluminum
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 7.30257f, 6.33458f, 5.16694f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 0.237698f, 0.734847f, 1.37062f); // Copper
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.44233f, 2.55751f, 2.23429f);
+        //mat->setImmediateValueEta(VLRColorSpace_Rec709, 0.12481f, 0.468228f, 1.44476f); // Gold
+        //mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.32107f, 2.23761f, 1.69196f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.91705f, 2.92092f, 2.53253f); // Iron
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.06696f, 2.93804f, 2.7429f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.9566f, 1.82777f, 1.46089f); // Lead
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.49593f, 3.38158f, 3.17737f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.99144f, 1.5186f, 1.00058f); // Mercury
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 5.25161f, 4.6095f, 3.7646f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.32528f, 2.06722f, 1.81479f); // Platinum
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 4.19238f, 3.67941f, 3.06551f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 0.157099f, 0.144013f, 0.134847f); // Silver
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.82431f, 3.1451f, 2.27711f);
+        ////mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.71866f, 2.50954f, 2.22767f); // Titanium
+        ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.79521f, 3.40035f, 3.00114f);
 
-        // Air
-        RGBSpectrum etaExt(1.00036f, 1.00021f, 1.00071f);
-        //// Water
-        //RGBSpectrum etaInt(1.33161f, 1.33331f, 1.33799f);
-        //// Glass BK7
-        //RGBSpectrum etaInt(1.51455f, 1.51816f, 1.52642f);
-        // Diamond
-        RGBSpectrum etaInt(2.41174f, 2.42343f, 2.44936f);
         SpecularScatteringSurfaceMaterialRef mat = context->createSpecularScatteringSurfaceMaterial();
-        mat->setImmediateValueCoeff(RGBSpectrum(0.999f, 0.999f, 0.999f));
-        mat->setImmediateValueEtaExt(etaExt);
-        mat->setImmediateValueEtaInt(etaInt);
-
-        //float coeff[] = { 0.5f, 0.5f, 0.5f };
-        //// Silver
-        //float eta[] = { 0.157099f, 0.144013f, 0.134847f };
-        //float k[] = { 3.82431f, 3.1451f, 2.27711f };
-        //Float3TextureRef texCoeff = context->createConstantFloat3Texture(coeff);
-        //Float3TextureRef texEta = context->createConstantFloat3Texture(eta);
-        //Float3TextureRef tex_k = context->createConstantFloat3Texture(k);
-        //SurfaceMaterialRef matA = context->createSpecularReflectionSurfaceMaterial(texCoeff, texEta, tex_k);
-
-        //float albedoRoughness[] = { 0.75f, 0.25f, 0.0f, 0.0f };
-        //Float4TextureRef texAlbedoRoughness = context->createConstantFloat4Texture(albedoRoughness);
-        //SurfaceMaterialRef matB = context->createMatteSurfaceMaterial(texAlbedoRoughness);
+        mat->setImmediateValueCoeff(VLRColorSpace_Rec709, 0.999f, 0.999f, 0.999f);
+        mat->setImmediateValueEtaExt(VLRColorSpace_Rec709, 1.00036f, 1.00021f, 1.00071f); // Air
+        mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 2.41174f, 2.42343f, 2.44936f); // Diamond
+        //mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.33161f, 1.33331f, 1.33799f); // Water
+        //mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
 
         //SurfaceMaterialRef mats[] = { matA, matB };
         //SurfaceMaterialRef mat = context->createMultiSurfaceMaterial(mats, lengthof(mats));
@@ -676,6 +685,8 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
+        nodeAlbedo->setSpectrumType(VLRSpectrumType_Reflectance);
+        nodeAlbedo->setColorSpace(VLRColorSpace_Rec709);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
@@ -702,7 +713,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(RGBSpectrum(50.0f, 50.0f, 50.0f));
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -733,7 +744,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
             MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(RGBSpectrum(0.18f, 0.18f, 0.18f));
+            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f);
 
             mat = matteMat;
         }
@@ -741,10 +752,12 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
             Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
             Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
             nodeBaseColorAlpha->setImage(imgNormalAlpha);
+            nodeBaseColorAlpha->setSpectrumType(VLRSpectrumType_Reflectance);
+            nodeBaseColorAlpha->setColorSpace(VLRColorSpace_Rec709);
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setImmediateValueBaseColor(sRGB_degamma(RGBSpectrum(0.75f, 0.5f, 0.0025f)));
+            ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.5f, 0.0025f);
             ue4Mat->setImmediateValueOcclusion(0.0f);
             ue4Mat->setImmediateValueRoughness(0.3f);
             ue4Mat->setImmediateValueMetallic(0.0f);
@@ -856,6 +869,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
+    nodeEnvTex->setColorSpace(VLRColorSpace_Rec709);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittance(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
@@ -1023,7 +1037,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         vertexArrayForFullScreen.initialize();
 
         GLTK::Buffer outputBufferGL;
-        outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+        outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(RGB), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
 
         context->bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
 
@@ -1151,7 +1165,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 outputTexture.finalize();
                 outputBufferGL.finalize();
 
-                outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(VLR::RGBSpectrum), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+                outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(RGB), g_renderTargetSizeX * g_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
 
                 context->bindOutputBuffer(g_renderTargetSizeX, g_renderTargetSizeY, outputBufferGL.getRawHandle());
 
@@ -1645,15 +1659,15 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;
             if (elapsed > nextTimeToOutput || finish) {
-                auto output = (const RGBSpectrum*)context->mapOutputBuffer();
+                auto output = (const RGB*)context->mapOutputBuffer();
 
                 for (int y = 0; y < renderTargetSizeY; ++y) {
                     for (int x = 0; x < renderTargetSizeX; ++x) {
-                        RGBSpectrum srcPix = output[y * renderTargetSizeX + x];
+                        RGB srcPix = output[y * renderTargetSizeX + x];
                         uint32_t &pix = data[y * renderTargetSizeX + x];
 
                         srcPix *= g_brightnessCoeff;
-                        srcPix = RGBSpectrum::One() - exp(-srcPix);
+                        srcPix = RGB::One() - exp(-srcPix);
                         srcPix = sRGB_gamma(srcPix);
 
                         pix = ((std::min<uint8_t>(srcPix.r * 256, 255) << 0) |
