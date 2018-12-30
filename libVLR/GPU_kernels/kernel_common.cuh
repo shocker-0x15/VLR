@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../shared.h"
+#include "../shared/shared.h"
 #include "random_distributions.cuh"
 
 namespace VLR {

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <public_types.h>
-#include "shared.h"
+#include "shared/shared.h"
 
 #include "slot_manager.h"
 

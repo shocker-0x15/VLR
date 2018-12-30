@@ -10,10 +10,10 @@
     </ClCompile>
     <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="vlrDevPrintf.cpp" />
-    <ClCompile Include="spectrum_types.cpp">
+    <ClCompile Include="shared\spectrum_base.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="spectrum_base.cpp">
+    <ClCompile Include="shared\spectrum_types.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,28 +44,28 @@
     <ClInclude Include="include\VLR\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="rgb_spectrum_types.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="shared.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="basic_types_internal.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
     <ClInclude Include="include\VLR\basic_types.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="include\VLR\common.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="common_internal.h">
+    <ClInclude Include="shared\common_internal.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="spectrum_base.h">
+    <ClInclude Include="shared\rgb_spectrum_types.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="spectrum_types.h">
+    <ClInclude Include="shared\shared.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\spectrum_base.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\spectrum_types.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\basic_types_internal.h">
       <Filter>Shared</Filter>
     </ClInclude>
   </ItemGroup>

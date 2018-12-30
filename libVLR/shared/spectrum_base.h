@@ -1,6 +1,6 @@
 #pragma once
 
-#include "include/VLR/public_types.h"
+#include "../include/VLR/public_types.h"
 #include "common_internal.h"
 
 namespace VLR {

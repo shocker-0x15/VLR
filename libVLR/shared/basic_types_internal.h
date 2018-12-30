@@ -2,7 +2,7 @@
 
 #include <optix_world.h>
 #include "common_internal.h"
-#include "include/VLR/basic_types.h"
+#include "../include/VLR/basic_types.h"
 
 namespace VLR {
     //template struct VLR_API Vector3DTemplate<float>;

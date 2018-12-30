@@ -121,8 +121,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="spectrum_base.cpp" />
-    <ClCompile Include="spectrum_types.cpp" />
+    <ClCompile Include="shared\spectrum_base.cpp" />
+    <ClCompile Include="shared\spectrum_types.cpp" />
     <ClCompile Include="vlrDevPrintf.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
@@ -131,8 +131,6 @@
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="basic_types_internal.h" />
-    <ClInclude Include="common_internal.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
@@ -144,13 +142,15 @@
     <ClInclude Include="include\VLR\VLRCpp.h" />
     <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
-    <ClInclude Include="rgb_spectrum_types.h" />
     <ClInclude Include="scene.h" />
-    <ClInclude Include="shared.h" />
+    <ClInclude Include="shared\basic_types_internal.h" />
+    <ClInclude Include="shared\common_internal.h" />
+    <ClInclude Include="shared\rgb_spectrum_types.h" />
+    <ClInclude Include="shared\shared.h" />
+    <ClInclude Include="shared\spectrum_base.h" />
+    <ClInclude Include="shared\spectrum_types.h" />
     <ClInclude Include="slot_manager.h" />
     <ClInclude Include="shader_nodes.h" />
-    <ClInclude Include="spectrum_base.h" />
-    <ClInclude Include="spectrum_types.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">
