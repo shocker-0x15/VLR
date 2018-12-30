@@ -535,7 +535,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::GeometryShaderNode &nodeData = *(Shared::GeometryShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::GeometryShaderNode>();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
@@ -578,7 +578,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::FloatShaderNode &nodeData = *(Shared::FloatShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::FloatShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.imm0 = m_imm0;
 
@@ -634,7 +634,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::Float2ShaderNode &nodeData = *(Shared::Float2ShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.imm0 = m_imm0;
@@ -706,7 +706,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::Float3ShaderNode &nodeData = *(Shared::Float3ShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -793,7 +793,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::Float4ShaderNode &nodeData = *(Shared::Float4ShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -893,7 +893,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::TripletSpectrumShaderNode &nodeData = *(Shared::TripletSpectrumShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
@@ -950,7 +950,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::Vector3DToSpectrumShaderNode &nodeData = *(Shared::Vector3DToSpectrumShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::Vector3DToSpectrumShaderNode>();
         nodeData.nodeVector3D = m_nodeVector3D.getSharedType();
         nodeData.immVector3D = m_immVector3D;
 
@@ -1004,7 +1004,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::OffsetAndScaleUVTextureMap2DShaderNode &nodeData = *(Shared::OffsetAndScaleUVTextureMap2DShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::OffsetAndScaleUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
@@ -1075,7 +1075,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::Image2DTextureShaderNode &nodeData = *(Shared::Image2DTextureShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.spectrumType = m_spectrumType;
         nodeData.colorSpace = m_colorSpace;
@@ -1159,7 +1159,7 @@ namespace VLR {
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::EnvironmentTextureShaderNode &nodeData = *(Shared::EnvironmentTextureShaderNode*)&nodeDesc.data;
+        auto &nodeData = *nodeDesc.getData<Shared::EnvironmentTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.colorSpace = m_colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();

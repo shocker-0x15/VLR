@@ -1,9 +1,6 @@
 ﻿#include "materials.h"
 
 namespace VLR {
-    // ----------------------------------------------------------------
-    // Material
-
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
         std::string ptx = readTxtFile("resources/ptxes/materials.ptx");
@@ -76,24 +73,22 @@ namespace VLR {
 
     // static
     void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc) {
-        Shared::SurfaceMaterialHead &head = *(Shared::SurfaceMaterialHead*)&matDesc->data[0];
-
         if (progSet.callableProgramSetupBSDF) {
-            head.progSetupBSDF = progSet.callableProgramSetupBSDF->getId();
-            head.bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
+            matDesc->progSetupBSDF = progSet.callableProgramSetupBSDF->getId();
+            matDesc->bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
         }
         else {
-            head.progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF()->getId();
-            head.bsdfProcedureSetIndex = context.getNullBSDFProcedureSetIndex();
+            matDesc->progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF()->getId();
+            matDesc->bsdfProcedureSetIndex = context.getNullBSDFProcedureSetIndex();
         }
 
         if (progSet.callableProgramSetupEDF) {
-            head.progSetupEDF = progSet.callableProgramSetupEDF->getId();
-            head.edfProcedureSetIndex = progSet.edfProcedureSetIndex;
+            matDesc->progSetupEDF = progSet.callableProgramSetupEDF->getId();
+            matDesc->edfProcedureSetIndex = progSet.edfProcedureSetIndex;
         }
         else {
-            head.progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF()->getId();
-            head.edfProcedureSetIndex = context.getNullEDFProcedureSetIndex();
+            matDesc->progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF()->getId();
+            matDesc->edfProcedureSetIndex = context.getNullEDFProcedureSetIndex();
         }
     }
 
@@ -178,7 +173,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::MatteSurfaceMaterial &mat = *(Shared::MatteSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::MatteSurfaceMaterial>();
         mat.nodeAlbedo = m_nodeAlbedo.getSharedType();
         mat.immAlbedo = m_immAlbedo;
 
@@ -244,7 +239,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::SpecularReflectionSurfaceMaterial &mat = *(Shared::SpecularReflectionSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::SpecularReflectionSurfaceMaterial>();
         mat.nodeCoeffR = m_nodeCoeffR.getSharedType();
         mat.nodeEta = m_nodeEta.getSharedType();
         mat.node_k = m_node_k.getSharedType();
@@ -340,7 +335,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::SpecularScatteringSurfaceMaterial &mat = *(Shared::SpecularScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::SpecularScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeEtaExt = m_nodeEtaExt.getSharedType();
         mat.nodeEtaInt = m_nodeEtaInt.getSharedType();
@@ -436,7 +431,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::MicrofacetReflectionSurfaceMaterial &mat = *(Shared::MicrofacetReflectionSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::MicrofacetReflectionSurfaceMaterial>();
         mat.nodeEta = m_nodeEta.getSharedType();
         mat.node_k = m_node_k.getSharedType();
         mat.nodeRoughnessAnisotropyRotation = m_nodeRoughnessAnisotropyRotation.getSharedType();
@@ -545,7 +540,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::MicrofacetScatteringSurfaceMaterial &mat = *(Shared::MicrofacetScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::MicrofacetScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeEtaExt = m_nodeEtaExt.getSharedType();
         mat.nodeEtaInt = m_nodeEtaInt.getSharedType();
@@ -666,7 +661,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::LambertianScatteringSurfaceMaterial &mat = *(Shared::LambertianScatteringSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::LambertianScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeF0 = m_nodeF0.getSharedType();
         mat.immCoeff = m_immCoeff;
@@ -745,7 +740,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::UE4SurfaceMaterial &mat = *(Shared::UE4SurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::UE4SurfaceMaterial>();
         mat.nodeBaseColor = m_nodeBaseColor.getSharedType();
         mat.nodeOcclusionRoughnessMetallic = m_nodeOcclusionRoughnessMetallic.getSharedType();
         mat.immBaseColor = m_immBaseColor;
@@ -835,7 +830,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::DiffuseEmitterSurfaceMaterial &mat = *(Shared::DiffuseEmitterSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::DiffuseEmitterSurfaceMaterial>();
         mat.nodeEmittance = m_nodeEmittance.getSharedType();
         mat.immEmittance = m_immEmittance;
 
@@ -898,7 +893,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::MultiSurfaceMaterial &mat = *(Shared::MultiSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::MultiSurfaceMaterial>();
 
         for (int i = 0; i < lengthof(m_subMaterials); ++i)
             mat.subMatIndices[i] = m_subMaterials[i]->getMaterialIndex();
@@ -968,7 +963,7 @@ namespace VLR {
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        Shared::EnvironmentEmitterSurfaceMaterial &mat = *(Shared::EnvironmentEmitterSurfaceMaterial*)&matDesc.data[sizeof(Shared::SurfaceMaterialHead) / 4];
+        auto &mat = *matDesc.getData<Shared::EnvironmentEmitterSurfaceMaterial>();
         Shared::ShaderNodeSocketID nodeIndexEmittance = Shared::ShaderNodeSocketID::Invalid();
         if (m_nodeEmittance) {
             nodeIndexEmittance.nodeDescIndex = m_nodeEmittance->getShaderNodeIndex();
@@ -1021,7 +1016,4 @@ namespace VLR {
 
         return m_importanceMap;
     }
-
-    // END: Material
-    // ----------------------------------------------------------------
 }

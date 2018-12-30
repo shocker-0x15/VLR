@@ -355,7 +355,9 @@ namespace VLR {
 
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    class RegularSampledSpectrumTemplate {};
+    class RegularSampledSpectrumTemplate {
+        //VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS
+    };
 
 
 

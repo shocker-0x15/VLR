@@ -272,7 +272,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t MatteSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MatteBRDF &p = *(MatteBRDF*)params;
-        const MatteSurfaceMaterial &mat = *(const MatteSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const MatteSurfaceMaterial &mat = *(const MatteSurfaceMaterial*)matDesc;
 
         p.albedo = calcNode(mat.nodeAlbedo, mat.immAlbedo, surfPt, wls);
         p.roughness = 0.0f;
@@ -343,7 +343,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t SpecularReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         SpecularBRDF &p = *(SpecularBRDF*)params;
-        const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const SpecularReflectionSurfaceMaterial &mat = *(const SpecularReflectionSurfaceMaterial*)matDesc;
 
         p.coeffR = calcNode(mat.nodeCoeffR, mat.immCoeffR, surfPt, wls);
         p.eta = calcNode(mat.nodeEta, mat.immEta, surfPt, wls);
@@ -409,7 +409,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t SpecularScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         SpecularBSDF &p = *(SpecularBSDF*)params;
-        const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const SpecularScatteringSurfaceMaterial &mat = *(const SpecularScatteringSurfaceMaterial*)matDesc;
 
         p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt, wls);
         p.etaExt = calcNode(mat.nodeEtaExt, mat.immEtaExt, surfPt, wls);
@@ -514,7 +514,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t MicrofacetReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MicrofacetBRDF &p = *(MicrofacetBRDF*)params;
-        const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const MicrofacetReflectionSurfaceMaterial &mat = *(const MicrofacetReflectionSurfaceMaterial*)matDesc;
 
         p.eta = calcNode(mat.nodeEta, mat.immEta, surfPt, wls);
         p.k = calcNode(mat.node_k, mat.imm_k, surfPt, wls);
@@ -677,7 +677,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t MicrofacetScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MicrofacetBSDF &p = *(MicrofacetBSDF*)params;
-        const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const MicrofacetScatteringSurfaceMaterial &mat = *(const MicrofacetScatteringSurfaceMaterial*)matDesc;
 
         p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt, wls);
         p.etaExt = calcNode(mat.nodeEtaExt, mat.immEtaExt, surfPt, wls);
@@ -935,7 +935,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t LambertianScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         LambertianBSDF &p = *(LambertianBSDF*)params;
-        const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const LambertianScatteringSurfaceMaterial &mat = *(const LambertianScatteringSurfaceMaterial*)matDesc;
 
         p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt, wls);
         p.F0 = calcNode(mat.nodeF0, mat.immF0, surfPt, wls);
@@ -1062,7 +1062,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t UE4SurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         UE4BRDF &p = *(UE4BRDF*)params;
-        const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const UE4SurfaceMaterial &mat = *(const UE4SurfaceMaterial*)matDesc;
 
         p.baseColor = calcNode(mat.nodeBaseColor, mat.immBaseColor, surfPt, wls);
         optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic, 
@@ -1327,7 +1327,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t DiffuseEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         DiffuseEDF &p = *(DiffuseEDF*)params;
-        const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const DiffuseEmitterSurfaceMaterial &mat = *(const DiffuseEmitterSurfaceMaterial*)matDesc;
 
         p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls);
 
@@ -1371,7 +1371,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t MultiSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MultiBSDF &p = *(MultiBSDF*)params;
-        const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)matDesc;
 
         uint32_t baseIndex = sizeof(MultiBSDF) / 4;
         uint32_t bsdfOffsets[4] = { 0, 0, 0, 0 };
@@ -1379,11 +1379,9 @@ namespace VLR {
             bsdfOffsets[i] = baseIndex;
 
             const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
-            const SurfaceMaterialHead &subMatHead = *(const SurfaceMaterialHead*)subMatDesc.data;
-            //vlrDevPrintf("%d: %u, %u, %u, %u\n", i, matHead.progSetupBSDF, matHead.bsdfProcedureSetIndex, matHead.progSetupEDF, matHead.edfProcedureSetIndex);
-            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)subMatHead.progSetupBSDF;
-            *(uint32_t*)(params + baseIndex++) = subMatHead.bsdfProcedureSetIndex;
-            baseIndex += setupBSDF((const uint32_t*)&subMatHead, surfPt, wls, params + baseIndex);
+            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)subMatDesc.progSetupBSDF;
+            *(params + baseIndex++) = subMatDesc.bsdfProcedureSetIndex;
+            baseIndex += setupBSDF(subMatDesc.data, surfPt, wls, params + baseIndex);
         }
 
         p.bsdf0 = bsdfOffsets[0];
@@ -1598,7 +1596,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t MultiSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MultiEDF &p = *(MultiEDF*)params;
-        const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const MultiSurfaceMaterial &mat = *(const MultiSurfaceMaterial*)matDesc;
 
         uint32_t baseIndex = sizeof(MultiEDF) / 4;
         uint32_t edfOffsets[4] = { 0, 0, 0, 0 };
@@ -1606,10 +1604,9 @@ namespace VLR {
             edfOffsets[i] = baseIndex;
 
             const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
-            const SurfaceMaterialHead &subMatHead = *(const SurfaceMaterialHead*)subMatDesc.data;
-            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)subMatHead.progSetupEDF;
-            *(uint32_t*)(params + baseIndex++) = subMatHead.edfProcedureSetIndex;
-            baseIndex += setupEDF((const uint32_t*)&subMatHead, surfPt, wls, params + baseIndex);
+            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)subMatDesc.progSetupEDF;
+            *(params + baseIndex++) = subMatDesc.edfProcedureSetIndex;
+            baseIndex += setupEDF(subMatDesc.data, surfPt, wls, params + baseIndex);
         }
 
         p.edf0 = edfOffsets[0];
@@ -1676,7 +1673,7 @@ namespace VLR {
 
     RT_CALLABLE_PROGRAM uint32_t EnvironmentEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         EnvironmentEDF &p = *(EnvironmentEDF*)params;
-        const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)(matDesc + sizeof(SurfaceMaterialHead) / 4);
+        const EnvironmentEmitterSurfaceMaterial &mat = *(const EnvironmentEmitterSurfaceMaterial*)matDesc;
 
         p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls);
 

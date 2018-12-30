@@ -240,6 +240,12 @@ namespace VLR {
             uint32_t procSetIndex;
 #define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (31)
             uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
+
+            template <typename T>
+            T* getData() const {
+                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return (T*)data;
+            }
         };
         
         
@@ -261,8 +267,18 @@ namespace VLR {
 
 
         struct SurfaceMaterialDescriptor {
-#define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (32)
+            int32_t progSetupBSDF;
+            uint32_t bsdfProcedureSetIndex;
+            int32_t progSetupEDF;
+            uint32_t edfProcedureSetIndex;
+#define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (28)
             uint32_t data[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
+
+            template <typename T>
+            T* getData() const {
+                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return (T*)data;
+            }
         };
 
 
@@ -467,13 +483,6 @@ namespace VLR {
 
         // ----------------------------------------------------------------
         // Surface Materials
-
-        struct SurfaceMaterialHead {
-            int32_t progSetupBSDF;
-            uint32_t bsdfProcedureSetIndex;
-            int32_t progSetupEDF;
-            uint32_t edfProcedureSetIndex;
-        };
 
         struct MatteSurfaceMaterial {
             ShaderNodeSocketID nodeAlbedo;

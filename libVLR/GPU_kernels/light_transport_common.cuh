@@ -37,12 +37,10 @@ namespace VLR {
 
     public:
         RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-            const SurfaceMaterialHead &head = *(const SurfaceMaterialHead*)matDesc.data;
+            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matDesc.progSetupBSDF;
+            setupBSDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)head.progSetupBSDF;
-            setupBSDF((const uint32_t*)&matDesc, surfPt, wls, (uint32_t*)this);
-
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[head.bsdfProcedureSetIndex];
+            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
             //progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
             progMatches = (ProgSigBSDFmatches)procSet.progMatches;
@@ -107,12 +105,10 @@ namespace VLR {
 
     public:
         RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-            const SurfaceMaterialHead &head = *(const SurfaceMaterialHead*)matDesc.data;
+            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matDesc.progSetupEDF;
+            setupEDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)head.progSetupEDF;
-            setupEDF((const uint32_t*)&matDesc, surfPt, wls, (uint32_t*)this);
-
-            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[head.edfProcedureSetIndex];
+            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
             progEvaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
             progEvaluateInternal = (ProgSigEDFEvaluateInternal)procSet.progEvaluateInternal;
