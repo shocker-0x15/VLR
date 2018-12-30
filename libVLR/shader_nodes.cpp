@@ -462,7 +462,7 @@ namespace VLR {
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
-        UpsampledSpectrumShaderNode::initialize(context);
+        TripletSpectrumShaderNode::initialize(context);
         Vector3DToSpectrumShaderNode::initialize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
@@ -475,7 +475,7 @@ namespace VLR {
         Image2DTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
         Vector3DToSpectrumShaderNode::finalize(context);
-        UpsampledSpectrumShaderNode::finalize(context);
+        TripletSpectrumShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
@@ -860,12 +860,12 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> UpsampledSpectrumShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::OptiXProgramSets;
 
     // static
-    void UpsampledSpectrumShaderNode::initialize(Context &context) {
+    void TripletSpectrumShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::UpsampledSpectrumShaderNode_spectrum",
+            "VLR::TripletSpectrumShaderNode_spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
@@ -874,42 +874,42 @@ namespace VLR {
     }
 
     // static
-    void UpsampledSpectrumShaderNode::finalize(Context &context) {
+    void TripletSpectrumShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
     }
 
-    UpsampledSpectrumShaderNode::UpsampledSpectrumShaderNode(Context &context) :
+    TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
         ShaderNode(context), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
 
-    UpsampledSpectrumShaderNode::~UpsampledSpectrumShaderNode() {
+    TripletSpectrumShaderNode::~TripletSpectrumShaderNode() {
     }
 
-    void UpsampledSpectrumShaderNode::setupNodeDescriptor() const {
+    void TripletSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        Shared::UpsampledSpectrumShaderNode &nodeData = *(Shared::UpsampledSpectrumShaderNode*)&nodeDesc.data;
-        nodeData.value = UpsampledSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
+        Shared::TripletSpectrumShaderNode &nodeData = *(Shared::TripletSpectrumShaderNode*)&nodeDesc.data;
+        nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void UpsampledSpectrumShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
+    void TripletSpectrumShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
         m_spectrumType = spectrumType;
         setupNodeDescriptor();
     }
 
-    void UpsampledSpectrumShaderNode::setColorSpace(VLRColorSpace colorSpace) {
+    void TripletSpectrumShaderNode::setColorSpace(VLRColorSpace colorSpace) {
         m_colorSpace = colorSpace;
         setupNodeDescriptor();
     }
 
-    void UpsampledSpectrumShaderNode::setImmediateValueTriplet(float e0, float e1, float e2) {
+    void TripletSpectrumShaderNode::setImmediateValueTriplet(float e0, float e1, float e2) {
         m_immE0 = e0;
         m_immE1 = e1;
         m_immE2 = e2;

@@ -4,7 +4,7 @@
 #include "rgb_spectrum_types.h"
 #include "spectrum_types.h"
 #if defined(VLR_Host)
-#include "ext/include/half.hpp"
+#include "../ext/include/half.hpp"
 #endif
 
 namespace VLR {
@@ -31,6 +31,33 @@ namespace VLR {
             return *(float*)&bits;
         }
     };
+#endif
+
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+    using WavelengthSamples = WavelengthSamplesTemplate<float, NumSpectralSamples>;
+    using SampledSpectrum = SampledSpectrumTemplate<float, NumSpectralSamples>;
+    using DiscretizedSpectrum = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
+    using SpectrumStorage = SpectrumStorageTemplate<float, NumStrataForStorage>;
+    using TripletSpectrum = UpsampledSpectrum;
+#else
+    using WavelengthSamples = RGBWavelengthSamplesTemplate<float>;
+    using SampledSpectrum = RGBSpectrumTemplate<float>;
+    using DiscretizedSpectrum = RGBSpectrumTemplate<float>;
+    using SpectrumStorage = RGBStorageTemplate<float>;
+    using TripletSpectrum = RGBSpectrum;
+#endif
+
+    using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
+
+#if defined(VLR_Device)
+    rtBuffer<UpsampledSpectrum::spectrum_grid_cell_t, 1> UpsampledSpectrum_spectrum_grid;
+    rtBuffer<UpsampledSpectrum::spectrum_data_point_t, 1> UpsampledSpectrum_spectrum_data_points;
+
+
+    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_xbar, , );
+    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_ybar, , );
+    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_zbar, , );
+    rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
 #endif
 
     namespace Shared {
@@ -385,20 +412,28 @@ namespace VLR {
         };
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        struct UpsampledSpectrumShaderNode {
+        struct TripletSpectrumShaderNode {
             UpsampledSpectrum value;
         };
 
         struct RegularSampledSpectrumShaderNode {
-            
+            RegularSampledSpectrum value;
         };
 
         struct IrregularSampledSpectrumShaderNode {
-            
+            IrregularSampledSpectrum value;
         };
 #else
-        struct RGBSpectrumNode {
-            float r, g, b;
+        struct TripletSpectrumShaderNode {
+            RGBSpectrum value;
+        };
+
+        struct RegularSampledSpectrumShaderNode {
+            RGBSpectrum value;
+        };
+
+        struct IrregularSampledSpectrumShaderNode {
+            RGBSpectrum value;
         };
 #endif
 
@@ -442,33 +477,33 @@ namespace VLR {
 
         struct MatteSurfaceMaterial {
             ShaderNodeSocketID nodeAlbedo;
-            UpsampledSpectrum immAlbedo;
+            TripletSpectrum immAlbedo;
         };
 
         struct SpecularReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeCoeffR;
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
-            UpsampledSpectrum immCoeffR;
-            UpsampledSpectrum immEta;
-            UpsampledSpectrum imm_k;
+            TripletSpectrum immCoeffR;
+            TripletSpectrum immEta;
+            TripletSpectrum imm_k;
         };
 
         struct SpecularScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
-            UpsampledSpectrum immCoeff;
-            UpsampledSpectrum immEtaExt;
-            UpsampledSpectrum immEtaInt;
+            TripletSpectrum immCoeff;
+            TripletSpectrum immEtaExt;
+            TripletSpectrum immEtaInt;
         };
 
         struct MicrofacetReflectionSurfaceMaterial {
             ShaderNodeSocketID nodeEta;
             ShaderNodeSocketID node_k;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
-            UpsampledSpectrum immEta;
-            UpsampledSpectrum imm_k;
+            TripletSpectrum immEta;
+            TripletSpectrum imm_k;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -479,9 +514,9 @@ namespace VLR {
             ShaderNodeSocketID nodeEtaExt;
             ShaderNodeSocketID nodeEtaInt;
             ShaderNodeSocketID nodeRoughnessAnisotropyRotation;
-            UpsampledSpectrum immCoeff;
-            UpsampledSpectrum immEtaExt;
-            UpsampledSpectrum immEtaInt;
+            TripletSpectrum immCoeff;
+            TripletSpectrum immEtaExt;
+            TripletSpectrum immEtaInt;
             float immRoughness;
             float immAnisotropy;
             float immRotation;
@@ -490,14 +525,14 @@ namespace VLR {
         struct LambertianScatteringSurfaceMaterial {
             ShaderNodeSocketID nodeCoeff;
             ShaderNodeSocketID nodeF0;
-            UpsampledSpectrum immCoeff;
+            TripletSpectrum immCoeff;
             float immF0;
         };
 
         struct UE4SurfaceMaterial {
             ShaderNodeSocketID nodeBaseColor;
             ShaderNodeSocketID nodeOcclusionRoughnessMetallic;
-            UpsampledSpectrum immBaseColor;
+            TripletSpectrum immBaseColor;
             float immOcclusion;
             float immRoughness;
             float immMetallic;
@@ -505,7 +540,7 @@ namespace VLR {
 
         struct DiffuseEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
-            UpsampledSpectrum immEmittance;
+            TripletSpectrum immEmittance;
         };
 
         struct MultiSurfaceMaterial {
@@ -515,7 +550,7 @@ namespace VLR {
 
         struct EnvironmentEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
-            UpsampledSpectrum immEmittance;
+            TripletSpectrum immEmittance;
         };
 
         // END: Surface Materials

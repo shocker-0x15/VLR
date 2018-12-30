@@ -240,15 +240,8 @@ namespace VLR {
             return allFinite() && !hasNegative();
         }
 
-        //RT_FUNCTION RealType luminance(RGBColorSpace space = RGBColorSpace::sRGB) const {
-        //    RealType sum = 0;
-        //    for (int i = 0; i < NumSpectralSamples; ++i)
-        //        sum += values[i];
-        //    return sum / NumSpectralSamples;
-        //}
-
         // setting "primary" to 1.0 might introduce bias.
-        RT_FUNCTION RealType importance(uint32_t wlHint) const {
+        RT_FUNCTION RealType importance(uint32_t selectedLambda) const {
             // I hope a compiler to optimize away this if statement...
             // What I want to do is just only member function specialization of a template class while reusing other function definitions.
             if (NumSpectralSamples > 1) {
@@ -257,34 +250,12 @@ namespace VLR {
                     sum += values[i];
                 const RealType primary = 0.9f;
                 const RealType marginal = (1 - primary) / (NumSpectralSamples - 1);
-                return sum * marginal + values[wlHint] * (primary - marginal);
+                return sum * marginal + values[selectedLambda] * (primary - marginal);
             }
             else {
                 return values[0];
             }
         }
-
-        //std::string toString() const {
-        //    std::string ret = "(";
-        //    char str[256];
-        //    for (int i = 0; i < NumSpectralSamples - 1; ++i) {
-        //        sprintf(str, "%g, ", values[i]);
-        //        ret += str;
-        //    }
-        //    sprintf(str, "%g)", values[NumSpectralSamples - 1]);
-        //    ret += str;
-        //    return ret;
-        //}
-
-        //std::string toString(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
-        //    std::string ret = "";
-        //    char str[256];
-        //    for (int i = 0; i < NumSpectralSamples; ++i) {
-        //        sprintf(str, "%g, %g\n", wls[i], values[i]);
-        //        ret += str;
-        //    }
-        //    return ret;
-        //}
 
         RT_FUNCTION static constexpr uint32_t NumComponents() { return NumSpectralSamples; }
         RT_FUNCTION static constexpr SampledSpectrumTemplate Zero() { return SampledSpectrumTemplate(0.0); }
@@ -380,6 +351,16 @@ namespace VLR {
             xy[1] = 0.022853819546830627 * uv[0] + 0.05077639329371236 * uv[1] - 0.006895157122499944;
         }
     };
+
+
+
+    template <typename RealType, uint32_t NumSpectralSamples>
+    class RegularSampledSpectrumTemplate {};
+
+
+
+    template <typename RealType, uint32_t NumSpectralSamples>
+    class IrregularSampledSpectrumTemplate {};
 
 
 
@@ -570,21 +551,9 @@ namespace VLR {
 
 
 
-    using WavelengthSamples = WavelengthSamplesTemplate<float, NumSpectralSamples>;
-    using SampledSpectrum = SampledSpectrumTemplate<float, NumSpectralSamples>;
     using UpsampledSpectrum = UpsampledSpectrumTemplate<float, NumSpectralSamples>;
-    using DiscretizedSpectrum = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
-    using SpectrumStorage = SpectrumStorageTemplate<float, NumStrataForStorage>;
-
-#if defined(VLR_Device)
-    rtBuffer<UpsampledSpectrum::spectrum_grid_cell_t, 1> UpsampledSpectrum_spectrum_grid;
-    rtBuffer<UpsampledSpectrum::spectrum_data_point_t, 1> UpsampledSpectrum_spectrum_data_points;
-
-    rtDeclareVariable(DiscretizedSpectrum::CMF, DiscretizedSpectrum_xbar, , );
-    rtDeclareVariable(DiscretizedSpectrum::CMF, DiscretizedSpectrum_ybar, , );
-    rtDeclareVariable(DiscretizedSpectrum::CMF, DiscretizedSpectrum_zbar, , );
-    rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
-#endif
+    using RegularSampledSpectrum = RegularSampledSpectrumTemplate<float, NumSpectralSamples>;
+    using IrregularSampledSpectrum = IrregularSampledSpectrumTemplate<float, NumSpectralSamples>;
 }
 
 #if defined(VLR_Device)

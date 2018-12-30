@@ -3,6 +3,44 @@
 #include "context.h"
 
 namespace VLR {
+    inline TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
+#else
+        switch (colorSpace) {
+        case VLRColorSpace_Rec709_sRGBGamma: {
+            return RGBSpectrum(sRGB_degamma(e0), sRGB_degamma(e1), sRGB_degamma(e2));
+        }
+        case VLRColorSpace_xyY: {
+            VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f, 
+                      "xy should be in [0, 1], Y should not be negative.");
+            if (e1 == 0)
+                return RGBSpectrum::Zero();
+            float z = 1 - e0 - e1;
+            float b = e2 / e1;
+            e0 = e0 * b;
+            e1 = e2;
+            e2 = z * b;
+            // pass to XYZ
+        }
+        case VLRColorSpace_XYZ: {
+            float XYZ[3] = { e0, e1, e2 };
+            float RGB[3];
+            transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
+            return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
+        }
+        case VLRColorSpace_Rec709: {
+            return RGBSpectrum(e0, e1, e2);
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+
+        return RGBSpectrum::Zero();
+#endif
+    }
+
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };
@@ -355,8 +393,7 @@ namespace VLR {
 
 
 
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-    class UpsampledSpectrumShaderNode : public ShaderNode {
+    class TripletSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         VLRSpectrumType m_spectrumType;
@@ -372,8 +409,8 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        UpsampledSpectrumShaderNode(Context &context);
-        ~UpsampledSpectrumShaderNode();
+        TripletSpectrumShaderNode(Context &context);
+        ~TripletSpectrumShaderNode();
 
         // Out Socket   | option |
         // 0 (Spectrum) |      0 | Spectrum
@@ -430,11 +467,6 @@ namespace VLR {
     //    IrregularSampledSpectrumShaderNode(Context &context);
     //    ~IrregularSampledSpectrumShaderNode();
     //};
-#else
-    class RGBSpectrumNode {
-        float r, g, b;
-    };
-#endif
 
 
 

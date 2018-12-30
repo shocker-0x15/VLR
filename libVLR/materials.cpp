@@ -166,7 +166,7 @@ namespace VLR {
     }
 
     MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_immAlbedo(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f)) {
+        SurfaceMaterial(context), m_immAlbedo(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f)) {
         setupMaterialDescriptor();
     }
 
@@ -193,8 +193,8 @@ namespace VLR {
         return true;
     }
 
-    void MatteSurfaceMaterial::setImmediateValueAlbedo(const UpsampledSpectrum &value) {
-        m_immAlbedo = value;
+    void MatteSurfaceMaterial::setImmediateValueAlbedo(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immAlbedo = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -230,9 +230,9 @@ namespace VLR {
 
     SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immCoeffR(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
-        m_immEta(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
-        m_imm_k(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 0.0f, 0.0f, 0.0f)) {
+        m_immCoeffR(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
+        m_immEta(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
+        m_imm_k(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 0.0f, 0.0f, 0.0f)) {
         setupMaterialDescriptor();
     }
 
@@ -263,8 +263,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularReflectionSurfaceMaterial::setImmediateValueCoeffR(const UpsampledSpectrum &value) {
-        m_immCoeffR = value;
+    void SpecularReflectionSurfaceMaterial::setImmediateValueCoeffR(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immCoeffR = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);;
         setupMaterialDescriptor();
     }
 
@@ -276,8 +276,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularReflectionSurfaceMaterial::setImmediateValueEta(const UpsampledSpectrum &value) {
-        m_immEta = value;
+    void SpecularReflectionSurfaceMaterial::setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEta = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -289,8 +289,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularReflectionSurfaceMaterial::setImmediateValue_k(const UpsampledSpectrum &value) {
-        m_imm_k = value;
+    void SpecularReflectionSurfaceMaterial::setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_imm_k = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -326,9 +326,9 @@ namespace VLR {
 
     SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immCoeff(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
-        m_immEtaExt(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
-        m_immEtaInt(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.5f, 1.5f, 1.5f)) {
+        m_immCoeff(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
+        m_immEtaExt(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
+        m_immEtaInt(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.5f, 1.5f, 1.5f)) {
         setupMaterialDescriptor();
     }
 
@@ -359,8 +359,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularScatteringSurfaceMaterial::setImmediateValueCoeff(const UpsampledSpectrum &value) {
-        m_immCoeff = value;
+    void SpecularScatteringSurfaceMaterial::setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immCoeff = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -372,8 +372,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularScatteringSurfaceMaterial::setImmediateValueEtaExt(const UpsampledSpectrum &value) {
-        m_immEtaExt = value;
+    void SpecularScatteringSurfaceMaterial::setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEtaExt = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -385,8 +385,8 @@ namespace VLR {
         return true;
     }
 
-    void SpecularScatteringSurfaceMaterial::setImmediateValueEtaInt(const UpsampledSpectrum &value) {
-        m_immEtaInt = value;
+    void SpecularScatteringSurfaceMaterial::setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEtaInt = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -422,8 +422,8 @@ namespace VLR {
 
     MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immEta(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
-        m_imm_k(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 0.0f, 0.0f, 0.0f)),
+        m_immEta(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
+        m_imm_k(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 0.0f, 0.0f, 0.0f)),
         m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
         setupMaterialDescriptor();
     }
@@ -457,8 +457,8 @@ namespace VLR {
         return true;
     }
 
-    void MicrofacetReflectionSurfaceMaterial::setImmediateValueEta(const UpsampledSpectrum &value) {
-        m_immEta = value;
+    void MicrofacetReflectionSurfaceMaterial::setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEta = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -470,8 +470,8 @@ namespace VLR {
         return true;
     }
 
-    void MicrofacetReflectionSurfaceMaterial::setImmediateValue_k(const UpsampledSpectrum &value) {
-        m_imm_k = value;
+    void MicrofacetReflectionSurfaceMaterial::setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_imm_k = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -530,9 +530,9 @@ namespace VLR {
 
     MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immCoeff(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
-        m_immEtaExt(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
-        m_immEtaInt(UpsampledSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.5f, 1.5f, 1.5f)),
+        m_immCoeff(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)),
+        m_immEtaExt(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.0f, 1.0f, 1.0f)),
+        m_immEtaInt(createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, VLRColorSpace_Rec709, 1.5f, 1.5f, 1.5f)),
         m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
         setupMaterialDescriptor();
     }
@@ -568,8 +568,8 @@ namespace VLR {
         return true;
     }
 
-    void MicrofacetScatteringSurfaceMaterial::setImmediateValueCoeff(const UpsampledSpectrum &value) {
-        m_immCoeff = value;
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immCoeff = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -581,8 +581,8 @@ namespace VLR {
         return true;
     }
 
-    void MicrofacetScatteringSurfaceMaterial::setImmediateValueEtaExt(const UpsampledSpectrum &value) {
-        m_immEtaExt = value;
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEtaExt = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -594,8 +594,8 @@ namespace VLR {
         return true;
     }
 
-    void MicrofacetScatteringSurfaceMaterial::setImmediateValueEtaInt(const UpsampledSpectrum &value) {
-        m_immEtaInt = value;
+    void MicrofacetScatteringSurfaceMaterial::setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEtaInt = createTripletSpectrum(VLRSpectrumType_IndexOfRefraction, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -654,7 +654,7 @@ namespace VLR {
 
     LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immCoeff(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)), m_immF0(0.04f) {
+        m_immCoeff(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.8f, 0.8f, 0.8f)), m_immF0(0.04f) {
         setupMaterialDescriptor();
     }
 
@@ -683,8 +683,8 @@ namespace VLR {
         return true;
     }
 
-    void LambertianScatteringSurfaceMaterial::setImmediateValueCoeff(const UpsampledSpectrum &value) {
-        m_immCoeff = value;
+    void LambertianScatteringSurfaceMaterial::setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immCoeff = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -733,7 +733,7 @@ namespace VLR {
 
     UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
-        m_immBaseColor(UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f)), m_immOcculusion(0.0f), m_immRoughness(0.1f), m_immMetallic(0.0f) {
+        m_immBaseColor(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f)), m_immOcculusion(0.0f), m_immRoughness(0.1f), m_immMetallic(0.0f) {
         setupMaterialDescriptor();
     }
 
@@ -764,8 +764,8 @@ namespace VLR {
         return true;
     }
 
-    void UE4SurfaceMaterial::setImmediateValueBaseColor(const UpsampledSpectrum &value) {
-        m_immBaseColor = value;
+    void UE4SurfaceMaterial::setImmediateValueBaseColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immBaseColor = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -823,7 +823,7 @@ namespace VLR {
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_immEmittance(UpsampledSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)) {
+        SurfaceMaterial(context), m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)) {
         setupMaterialDescriptor();
     }
 
@@ -850,8 +850,8 @@ namespace VLR {
         return true;
     }
 
-    void DiffuseEmitterSurfaceMaterial::setImmediateValueEmittance(const UpsampledSpectrum &value) {
-        m_immEmittance = value;
+    void DiffuseEmitterSurfaceMaterial::setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEmittance = createTripletSpectrum(VLRSpectrumType_LightSource, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
     }
 
@@ -955,7 +955,7 @@ namespace VLR {
     }
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_nodeEmittance(nullptr), m_immEmittance(UpsampledSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)) {
+        SurfaceMaterial(context), m_nodeEmittance(nullptr), m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)) {
         setupMaterialDescriptor();
     }
 
@@ -989,8 +989,8 @@ namespace VLR {
         return true;
     }
 
-    void EnvironmentEmitterSurfaceMaterial::setImmediateValueEmittance(const UpsampledSpectrum &value) {
-        m_immEmittance = value;
+    void EnvironmentEmitterSurfaceMaterial::setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immEmittance = createTripletSpectrum(VLRSpectrumType_LightSource, colorSpace, e0, e1, e2);
         setupMaterialDescriptor();
         if (m_importanceMap.isInitialized())
             m_importanceMap.finalize(m_context);

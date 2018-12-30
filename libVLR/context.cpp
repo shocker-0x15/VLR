@@ -37,7 +37,7 @@ namespace VLR {
     defineClassID(ShaderNode, Float2ShaderNode);
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
-    defineClassID(ShaderNode, UpsampledSpectrumShaderNode);
+    defineClassID(ShaderNode, TripletSpectrumShaderNode);
     defineClassID(ShaderNode, Vector3DToSpectrumShaderNode);
     defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);
@@ -113,10 +113,10 @@ namespace VLR {
 
 
 
-        m_optixContext["VLR::DiscretizedSpectrum_xbar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::xbar);
-        m_optixContext["VLR::DiscretizedSpectrum_ybar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::ybar);
-        m_optixContext["VLR::DiscretizedSpectrum_zbar"]->setUserData(sizeof(DiscretizedSpectrum::CMF), &DiscretizedSpectrum::zbar);
-        m_optixContext["VLR::DiscretizedSpectrum_integralCMF"]->setFloat(DiscretizedSpectrum::integralCMF);
+        m_optixContext["VLR::DiscretizedSpectrum_xbar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::xbar);
+        m_optixContext["VLR::DiscretizedSpectrum_ybar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::ybar);
+        m_optixContext["VLR::DiscretizedSpectrum_zbar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::zbar);
+        m_optixContext["VLR::DiscretizedSpectrum_integralCMF"]->setFloat(DiscretizedSpectrumAlwaysSpectral::integralCMF);
 
         const uint32_t NumSpectrumGridCells = 168;
         const uint32_t NumSpectrumDataPoints = 186;

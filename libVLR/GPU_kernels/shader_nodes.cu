@@ -151,8 +151,8 @@ namespace VLR {
 
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-    RT_CALLABLE_PROGRAM SampledSpectrum UpsampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         VLRAssert_NotImplemented();
         return SampledSpectrum::Zero();
     }
@@ -169,8 +169,20 @@ namespace VLR {
         return SampledSpectrum::Zero();
     }
 #else
-    RT_CALLABLE_PROGRAM SampledSpectrum RGBSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        VLRAssert_NotImplemented();
+        return SampledSpectrum::Zero();
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                                  const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        VLRAssert_NotImplemented();
+        return SampledSpectrum::Zero();
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                                    const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         VLRAssert_NotImplemented();
         return SampledSpectrum::Zero();
     }

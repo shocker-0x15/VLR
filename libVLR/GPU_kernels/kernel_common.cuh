@@ -303,7 +303,7 @@ namespace VLR {
         }
     }
 
-    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocketID socket, const UpsampledSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocketID socket, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
             using ProgSigT = rtCallableProgramId<SampledSpectrum(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
 

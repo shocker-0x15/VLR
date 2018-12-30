@@ -8,6 +8,9 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
 
 ## 特徴 / Features
 * GPU Renderer using NVIDIA OptiX
+* Full Spectral Rendering (Monte Carlo Spectral Sampling)  
+  (For RGB resources, RGB->Spectrum conversion is performed using Meng-Simon's method \[Meng2015\])
+* RGB Rendering (built by default)
 * BSDFs
     * Ideal Diffuse (Lambert) BRDF
     * Ideal Specular BRDF/BSDF

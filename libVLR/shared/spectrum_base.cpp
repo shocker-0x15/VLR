@@ -1,4 +1,5 @@
 #include "spectrum_base.h"
+#include "rgb_spectrum_types.h"
 #include "spectrum_types.h"
 
 namespace VLR {
@@ -194,7 +195,7 @@ namespace VLR {
 
     void initializeColorSystem() {
         if (!s_initialized) {
-            DiscretizedSpectrum::initialize();
+            DiscretizedSpectrumTemplate<float, NumStrataForStorage>::initialize();
 
             CompensatedSum<float> cum(0);
             for (int i = 1; i < NumCMFSamples; ++i)

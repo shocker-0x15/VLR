@@ -184,6 +184,10 @@ RGB sRGB_gamma(const RGB &v) {
     return RGB(sRGB_gamma_s(v.r), sRGB_gamma_s(v.g), sRGB_gamma_s(v.b));
 }
 
+RGB max(const RGB &v, float maxValue) {
+    return RGB(std::fmax(v.r, maxValue), std::fmax(v.g, maxValue), std::fmax(v.b, maxValue));
+}
+
 static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename) {
     using namespace VLR;
     using namespace VLRCpp;
@@ -199,6 +203,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
             uint32_t &pix = data[y * width + x];
 
             srcPix *= g_brightnessCoeff;
+            srcPix = max(srcPix, 0.0f);
             srcPix = RGB::One() - exp(-srcPix);
             srcPix = sRGB_gamma(srcPix);
 
