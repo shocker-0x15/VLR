@@ -10,7 +10,7 @@
 #define VLR_Color_System_CIE_2012_2deg  2
 #define VLR_Color_System_CIE_2012_10deg 3
 
-#define VLR_USE_SPECTRAL_RENDERING
+//#define VLR_USE_SPECTRAL_RENDERING
 #define VLR_Color_System_is_based_on VLR_Color_System_CIE_1931_2deg
 static constexpr uint32_t NumSpectralSamples = 4;
 static constexpr uint32_t NumStrataForStorage = 16;
