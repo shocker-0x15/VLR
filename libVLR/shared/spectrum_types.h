@@ -299,13 +299,13 @@ namespace VLR {
     class UpsampledSpectrumTemplate {
         uint32_t m_adjIndices;
         uint16_t m_s, m_t;
-        float m_scale;
+        RealType m_scale;
 
         RT_FUNCTION void computeAdjacents(RealType u, RealType v);
 
     public:
-        RT_FUNCTION constexpr UpsampledSpectrumTemplate(uint32_t adjIndices, uint16_t s, uint16_t t, float scale) :
-        m_adjIndices(adjIndices), m_s((float)s / (UINT16_MAX - 1)), m_t((float)t / (UINT16_MAX - 1)), m_scale(scale) {}
+        RT_FUNCTION constexpr UpsampledSpectrumTemplate(uint32_t adjIndices, uint16_t s, uint16_t t, RealType scale) :
+        m_adjIndices(adjIndices), m_s((RealType)s / (UINT16_MAX - 1)), m_t((RealType)t / (UINT16_MAX - 1)), m_scale(scale) {}
         RT_FUNCTION constexpr UpsampledSpectrumTemplate(VLRSpectrumType spType, VLRColorSpace space, RealType e0, RealType e1, RealType e2);
 
         RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
@@ -356,13 +356,40 @@ namespace VLR {
 
     template <typename RealType, uint32_t NumSpectralSamples>
     class RegularSampledSpectrumTemplate {
-        //VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS
+        float m_minLambda;
+        float m_maxLambda;
+        const RealType* m_values;
+        uint32_t m_numSamples;
+
+    public:
+        RT_FUNCTION RegularSampledSpectrumTemplate(RealType minLambda, RealType maxLambda, const RealType* values, uint32_t numSamples) :
+            m_minLambda(minLambda), m_maxLambda(maxLambda), m_values(values), m_numSamples(numSamples) {}
+
+        RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
+
+#if defined(VLR_Host)
+        void toXYZ(RealType XYZ[3]) const;
+#endif
     };
 
 
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    class IrregularSampledSpectrumTemplate {};
+    class IrregularSampledSpectrumTemplate {
+        const RealType* m_lambdas;
+        const RealType* m_values;
+        uint32_t m_numSamples;
+
+    public:
+        RT_FUNCTION IrregularSampledSpectrumTemplate(const RealType* lambdas, const RealType* values, uint32_t numSamples) :
+            m_lambdas(lambdas), m_values(values), m_numSamples(numSamples) {}
+
+        RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
+
+#if defined(VLR_Host)
+        void toXYZ(RealType XYZ[3]) const;
+#endif
+    };
 
 
 

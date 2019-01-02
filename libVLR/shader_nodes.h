@@ -115,7 +115,7 @@ namespace VLR {
 
 
     class ShaderNode;
-    
+
     struct ShaderNodeSocketIdentifier {
         const ShaderNode* node;
         union {
@@ -420,53 +420,77 @@ namespace VLR {
             return ShaderNodeSocketIdentifier();
         }
 
-        void setSpectrumType(VLRSpectrumType spectrumType);
-        void setColorSpace(VLRColorSpace colorSpace);
+        void setImmediateValueSpectrumType(VLRSpectrumType spectrumType);
+        void setImmediateValueColorSpace(VLRColorSpace colorSpace);
         void setImmediateValueTriplet(float e0, float e1, float e2);
     };
 
 
 
-    //class RegularSampledSpectrumShaderNode : public ShaderNode {
-    //    static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+    class RegularSampledSpectrumShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-    //    half values[2 * (VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-    //    uint32_t numSamples;
+        VLRSpectrumType m_spectrumType;
+        float m_minLambda;
+        float m_maxLambda;
+        float* m_values;
+        uint32_t m_numSamples;
 
-    //    void setupNodeDescriptor() const;
+        void setupNodeDescriptor() const;
 
-    //public:
-    //    static const ClassIdentifier ClassID;
-    //    virtual const ClassIdentifier &getClass() const { return ClassID; }
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
 
-    //    static void initialize(Context &context);
-    //    static void finalize(Context &context);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
-    //    RegularSampledSpectrumShaderNode(Context &context);
-    //    ~RegularSampledSpectrumShaderNode();
-    //};
+        RegularSampledSpectrumShaderNode(Context &context);
+        ~RegularSampledSpectrumShaderNode();
+
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        void setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
+    };
 
 
 
-    //class IrregularSampledSpectrumShaderNode : public ShaderNode {
-    //    static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+    class IrregularSampledSpectrumShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-    //    half lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-    //    half values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1)];
-    //    uint32_t numSamples;
+        VLRSpectrumType m_spectrumType;
+        float* m_lambdas;
+        float* m_values;
+        uint32_t m_numSamples;
 
-    //    void setupNodeDescriptor() const;
+        void setupNodeDescriptor() const;
 
-    //public:
-    //    static const ClassIdentifier ClassID;
-    //    virtual const ClassIdentifier &getClass() const { return ClassID; }
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
 
-    //    static void initialize(Context &context);
-    //    static void finalize(Context &context);
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
-    //    IrregularSampledSpectrumShaderNode(Context &context);
-    //    ~IrregularSampledSpectrumShaderNode();
-    //};
+        IrregularSampledSpectrumShaderNode(Context &context);
+        ~IrregularSampledSpectrumShaderNode();
+
+        // Out Socket   | option |
+        // 0 (Spectrum) |      0 | Spectrum
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        void setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
+    };
 
 
 

@@ -317,7 +317,7 @@ namespace VLR {
         Normal3D modNormalInSF = Normal3D(cosTFtoSF * modNormalInTF.x + sinTFtoSF * modNormalInTF.y,
                                           -sinTFtoSF * modNormalInTF.x + cosTFtoSF * modNormalInTF.y,
                                           modNormalInTF.z);
-        
+
         // JP: 法線から回転軸と回転角(、Quaternion)を求めて対応する接平面ベクトルを求める。
         // EN: calculate a rotating axis and an angle (and quaternion) from the normal then calculate corresponding tangential vectors.
         float projLength = std::sqrt(modNormalInSF.x * modNormalInSF.x + modNormalInSF.y * modNormalInSF.y);

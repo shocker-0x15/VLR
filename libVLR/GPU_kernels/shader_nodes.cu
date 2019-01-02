@@ -52,7 +52,7 @@ namespace VLR {
             return calcNode(nodeData.node1, nodeData.imm1, surfPt, wls);
         return 0.0f;
     }
-    
+
     RT_CALLABLE_PROGRAM optix::float2 Float2ShaderNode_float2(const uint32_t* rawNodeData, uint32_t option,
                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const Float2ShaderNode*)rawNodeData;
@@ -150,25 +150,6 @@ namespace VLR {
 
 
 
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-    RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        VLRAssert_NotImplemented();
-        return SampledSpectrum::Zero();
-    }
-
-    RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                                  const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        VLRAssert_NotImplemented();
-        return SampledSpectrum::Zero();
-    }
-
-    RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                                    const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        VLRAssert_NotImplemented();
-        return SampledSpectrum::Zero();
-    }
-#else
     RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                            const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const TripletSpectrumShaderNode*)rawNodeData;
@@ -178,15 +159,22 @@ namespace VLR {
     RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                                   const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const RegularSampledSpectrumShaderNode*)rawNodeData;
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        return RegularSampledSpectrum(nodeData.minLambda, nodeData.maxLambda, nodeData.values, nodeData.numSamples).evaluate(wls);
+#else
         return nodeData.value.evaluate(wls);
+#endif
     }
 
     RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const IrregularSampledSpectrumShaderNode*)rawNodeData;
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        return IrregularSampledSpectrum(nodeData.lambdas, nodeData.values, nodeData.numSamples).evaluate(wls);
+#else
         return nodeData.value.evaluate(wls);
-    }
 #endif
+    }
 
 
 

@@ -16,6 +16,8 @@ typedef VLR::Float2ShaderNode* VLRFloat2ShaderNode;
 typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
 typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
 typedef VLR::TripletSpectrumShaderNode* VLRTripletSpectrumShaderNode;
+typedef VLR::RegularSampledSpectrumShaderNode* VLRRegularSampledSpectrumShaderNode;
+typedef VLR::IrregularSampledSpectrumShaderNode* VLRIrregularSampledSpectrumShaderNode;
 typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
 typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
@@ -485,6 +487,94 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setImmediateValue3(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrTripletSpectrumShaderNodeCreate(VLRContext context, VLRTripletSpectrumShaderNode* node) {
+    *node = new VLR::TripletSpectrumShaderNode(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrTripletSpectrumShaderNodeDestroy(VLRContext context, VLRTripletSpectrumShaderNode node) {
+    if (!node->is<VLR::TripletSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueSpectrumType(VLRTripletSpectrumShaderNode node, VLRSpectrumType spectrumType) {
+    if (!node->is<VLR::TripletSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueSpectrumType(spectrumType);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueColorSpace(VLRTripletSpectrumShaderNode node, VLRColorSpace colorSpace) {
+    if (!node->is<VLR::TripletSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueColorSpace(colorSpace);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueTriplet(VLRTripletSpectrumShaderNode node, float e0, float e1, float e2) {
+    if (!node->is<VLR::TripletSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueTriplet(e0, e1, e2);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrRegularSampledSpectrumShaderNodeCreate(VLRContext context, VLRRegularSampledSpectrumShaderNode* node) {
+    *node = new VLR::RegularSampledSpectrumShaderNode(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrRegularSampledSpectrumShaderNodeDestroy(VLRContext context, VLRRegularSampledSpectrumShaderNode node) {
+    if (!node->is<VLR::RegularSampledSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrRegularSampledSpectrumShaderNodeSetImmediateValueSpectrum(VLRRegularSampledSpectrumShaderNode node, VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
+    if (!node->is<VLR::RegularSampledSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueSpectrum(spectrumType, minLambda, maxLambda, values, numSamples);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeCreate(VLRContext context, VLRIrregularSampledSpectrumShaderNode* node) {
+    *node = new VLR::IrregularSampledSpectrumShaderNode(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeDestroy(VLRContext context, VLRIrregularSampledSpectrumShaderNode node) {
+    if (!node->is<VLR::IrregularSampledSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum(VLRIrregularSampledSpectrumShaderNode node, VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
+    if (!node->is<VLR::IrregularSampledSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueSpectrum(spectrumType, lambdas, values, numSamples);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1193,10 +1283,19 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittance(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNode node) {
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNode node) {
     if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEmittance(node))
+    if (!material->setNodeEmittanceTextured(node))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNode node) {
+    if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!material->setNodeEmittanceConstant(node))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1206,6 +1305,14 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance
     if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     material->setImmediateValueEmittance(colorSpace, e0, e1, e2);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(VLREnvironmentEmitterSurfaceMaterial material, float value) {
+    if (!material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueScale(value);
 
     return VLR_ERROR_NO_ERROR;
 }

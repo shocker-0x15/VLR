@@ -324,9 +324,11 @@ namespace VLR {
     class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        const EnvironmentTextureShaderNode* m_nodeEmittance;
+        const EnvironmentTextureShaderNode* m_nodeEmittanceTextured;
+        const ShaderNode* m_nodeEmittanceConstant;
         TripletSpectrum m_immEmittance;
         RegularConstantContinuousDistribution2D m_importanceMap;
+        float m_immScale;
 
         void setupMaterialDescriptor() const;
 
@@ -342,8 +344,10 @@ namespace VLR {
 
         bool isEmitting() const override { return true; }
 
-        bool setNodeEmittance(const EnvironmentTextureShaderNode* node);
+        bool setNodeEmittanceTextured(const EnvironmentTextureShaderNode* node);
+        bool setNodeEmittanceConstant(const ShaderNode* spectrumNode);
         void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueScale(float value);
 
         const RegularConstantContinuousDistribution2D &getImportanceMap();
     };

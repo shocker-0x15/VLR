@@ -463,6 +463,8 @@ namespace VLR {
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
         TripletSpectrumShaderNode::initialize(context);
+        RegularSampledSpectrumShaderNode::initialize(context);
+        IrregularSampledSpectrumShaderNode::initialize(context);
         Vector3DToSpectrumShaderNode::initialize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
@@ -475,6 +477,8 @@ namespace VLR {
         Image2DTextureShaderNode::finalize(context);
         OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
         Vector3DToSpectrumShaderNode::finalize(context);
+        IrregularSampledSpectrumShaderNode::finalize(context);
+        RegularSampledSpectrumShaderNode::finalize(context);
         TripletSpectrumShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
@@ -899,12 +903,12 @@ namespace VLR {
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void TripletSpectrumShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
+    void TripletSpectrumShaderNode::setImmediateValueSpectrumType(VLRSpectrumType spectrumType) {
         m_spectrumType = spectrumType;
         setupNodeDescriptor();
     }
 
-    void TripletSpectrumShaderNode::setColorSpace(VLRColorSpace colorSpace) {
+    void TripletSpectrumShaderNode::setImmediateValueColorSpace(VLRColorSpace colorSpace) {
         m_colorSpace = colorSpace;
         setupNodeDescriptor();
     }
@@ -913,6 +917,158 @@ namespace VLR {
         m_immE0 = e0;
         m_immE1 = e1;
         m_immE2 = e2;
+        setupNodeDescriptor();
+    }
+
+
+
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::OptiXProgramSets;
+
+    // static
+    void RegularSampledSpectrumShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::RegularSampledSpectrumShaderNode_spectrum",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void RegularSampledSpectrumShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
+        ShaderNode(context), m_spectrumType(VLRSpectrumType_NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
+        m_values = new float[2];
+        m_values[0] = m_values[1] = 1.0f;
+        setupNodeDescriptor();
+    }
+
+    RegularSampledSpectrumShaderNode::~RegularSampledSpectrumShaderNode() {
+        if (m_values)
+            delete[] m_values;
+    }
+
+    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        auto &nodeData = *nodeDesc.getData<Shared::RegularSampledSpectrumShaderNode>();
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
+        nodeData.minLambda = m_minLambda;
+        nodeData.maxLambda = m_maxLambda;
+        std::copy_n(m_values, m_numSamples, nodeData.values);
+        nodeData.numSamples = m_numSamples;
+#else
+        RegularSampledSpectrum spectrum(m_minLambda, m_maxLambda, m_values, m_numSamples);
+        float XYZ[3];
+        spectrum.toXYZ(XYZ);
+        float RGB[3];
+        transformToRenderingRGB(m_spectrumType, XYZ, RGB);
+        nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
+#endif
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    void RegularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
+        if (m_values)
+            delete[] m_values;
+        m_spectrumType = spectrumType;
+        m_minLambda = minLambda;
+        m_maxLambda = maxLambda;
+        m_values = new float[numSamples];
+        std::copy_n(values, numSamples, m_values);
+        m_numSamples = numSamples;
+        setupNodeDescriptor();
+        // DELETE ME
+        //RegularSampledSpectrum spectrum(m_minLambda, m_maxLambda, m_values, m_numSamples);
+        //float XYZ[3];
+        //spectrum.toXYZ(XYZ);
+        //float RGB[3];
+        //transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
+        //vlrprintf("(%.3f, %.3f, %.3f), (%.3f, %.3f, %.3f), (%u, %u, %u)\n",
+        //          XYZ[0], XYZ[1], XYZ[2], RGB[0], RGB[1], RGB[2], uint32_t(RGB[0] * 255), uint32_t(RGB[1] * 255), uint32_t(RGB[2] * 255));
+    }
+
+
+
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::OptiXProgramSets;
+
+    // static
+    void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::IrregularSampledSpectrumShaderNode_spectrum",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void IrregularSampledSpectrumShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
+        ShaderNode(context), m_spectrumType(VLRSpectrumType_NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
+        m_lambdas = new float[2];
+        m_values = new float[2];
+        m_lambdas[0] = 0.0f;
+        m_lambdas[1] = 1000.0f;
+        m_values[0] = m_values[1] = 1.0f;
+        setupNodeDescriptor();
+    }
+
+    IrregularSampledSpectrumShaderNode::~IrregularSampledSpectrumShaderNode() {
+        if (m_values) {
+            delete[] m_lambdas;
+            delete[] m_values;
+        }
+    }
+
+    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        auto &nodeData = *nodeDesc.getData<Shared::IrregularSampledSpectrumShaderNode>();
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
+        std::copy_n(m_lambdas, m_numSamples, nodeData.lambdas);
+        std::copy_n(m_values, m_numSamples, nodeData.values);
+        nodeData.numSamples = m_numSamples;
+#else
+        IrregularSampledSpectrum spectrum(m_lambdas, m_values, m_numSamples);
+        float XYZ[3];
+        spectrum.toXYZ(XYZ);
+        float RGB[3];
+        transformToRenderingRGB(m_spectrumType, XYZ, RGB);
+        nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
+#endif
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    void IrregularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
+        if (m_values) {
+            delete[] m_lambdas;
+            delete[] m_values;
+        }
+        m_spectrumType = spectrumType;
+        m_lambdas = new float[numSamples];
+        m_values = new float[numSamples];
+        std::copy_n(lambdas, numSamples, m_lambdas);
+        std::copy_n(values, numSamples, m_values);
+        m_numSamples = numSamples;
         setupNodeDescriptor();
     }
 

@@ -71,6 +71,44 @@ namespace VLR {
     }
 
     template <typename RealType>
+    RT_FUNCTION constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
+        switch (spectrumType) {
+        case VLRSpectrumType_Reflectance:
+            transformTristimulus(mat_XYZ_to_sRGB_E, XYZ, RGB);
+            break;
+        case VLRSpectrumType_LightSource:
+        case VLRSpectrumType_NA:
+            transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
+            break;
+        case VLRSpectrumType_IndexOfRefraction:
+            transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
+            break;
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+    }
+
+    template <typename RealType>
+    RT_FUNCTION constexpr void transformFromRenderingRGB(VLRSpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
+        switch (spectrumType) {
+        case VLRSpectrumType_Reflectance:
+            transformTristimulus(mat_sRGB_E_to_XYZ, RGB, XYZ);
+            break;
+        case VLRSpectrumType_LightSource:
+        case VLRSpectrumType_NA:
+            transformTristimulus(mat_sRGB_D65_to_XYZ, RGB, XYZ);
+            break;
+        case VLRSpectrumType_IndexOfRefraction:
+            transformTristimulus(mat_sRGB_D65_to_XYZ, RGB, XYZ);
+            break;
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+    }
+
+    template <typename RealType>
     RT_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
         RealType b = xyz[0] + xyz[1] + xyz[2];
         if (b == 0) {

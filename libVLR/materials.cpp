@@ -950,7 +950,8 @@ namespace VLR {
     }
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_nodeEmittance(nullptr), m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)) {
+        SurfaceMaterial(context), m_nodeEmittanceTextured(nullptr), m_nodeEmittanceConstant(nullptr),
+        m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709, M_PI, M_PI, M_PI)), m_immScale(1.0f) {
         setupMaterialDescriptor();
     }
 
@@ -965,19 +966,37 @@ namespace VLR {
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         auto &mat = *matDesc.getData<Shared::EnvironmentEmitterSurfaceMaterial>();
         Shared::ShaderNodeSocketID nodeIndexEmittance = Shared::ShaderNodeSocketID::Invalid();
-        if (m_nodeEmittance) {
-            nodeIndexEmittance.nodeDescIndex = m_nodeEmittance->getShaderNodeIndex();
+        if (m_nodeEmittanceTextured) {
+            nodeIndexEmittance.nodeDescIndex = m_nodeEmittanceTextured->getShaderNodeIndex();
+            nodeIndexEmittance.socketIndex = 0;
+            nodeIndexEmittance.option = 0;
+        }
+        else if (m_nodeEmittanceConstant) {
+            nodeIndexEmittance.nodeDescIndex = m_nodeEmittanceConstant->getShaderNodeIndex();
             nodeIndexEmittance.socketIndex = 0;
             nodeIndexEmittance.option = 0;
         }
         mat.nodeEmittance = nodeIndexEmittance;
         mat.immEmittance = m_immEmittance;
+        mat.immScale = m_immScale;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool EnvironmentEmitterSurfaceMaterial::setNodeEmittance(const EnvironmentTextureShaderNode* node) {
-        m_nodeEmittance = node;
+    bool EnvironmentEmitterSurfaceMaterial::setNodeEmittanceTextured(const EnvironmentTextureShaderNode* node) {
+        m_nodeEmittanceTextured = node;
+        setupMaterialDescriptor();
+        if (m_importanceMap.isInitialized())
+            m_importanceMap.finalize(m_context);
+        return true;
+    }
+
+    bool EnvironmentEmitterSurfaceMaterial::setNodeEmittanceConstant(const ShaderNode* spectrumNode) {
+        if (!spectrumNode->is<TripletSpectrumShaderNode>() &&
+            !spectrumNode->is<RegularSampledSpectrumShaderNode>() &&
+            !spectrumNode->is<IrregularSampledSpectrumShaderNode>())
+            return false;
+        m_nodeEmittanceConstant = spectrumNode;
         setupMaterialDescriptor();
         if (m_importanceMap.isInitialized())
             m_importanceMap.finalize(m_context);
@@ -991,10 +1010,15 @@ namespace VLR {
             m_importanceMap.finalize(m_context);
     }
 
+    void EnvironmentEmitterSurfaceMaterial::setImmediateValueScale(float value) {
+        m_immScale = value;
+        setupMaterialDescriptor();
+    }
+
     const RegularConstantContinuousDistribution2D &EnvironmentEmitterSurfaceMaterial::getImportanceMap() {
         if (!m_importanceMap.isInitialized()) {
-            if (m_nodeEmittance) {
-                m_nodeEmittance->createImportanceMap(&m_importanceMap);
+            if (m_nodeEmittanceTextured) {
+                m_nodeEmittanceTextured->createImportanceMap(&m_importanceMap);
             }
             else {
                 uint32_t mapWidth = 512;

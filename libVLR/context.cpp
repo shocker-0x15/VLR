@@ -38,6 +38,8 @@ namespace VLR {
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
     defineClassID(ShaderNode, TripletSpectrumShaderNode);
+    defineClassID(ShaderNode, RegularSampledSpectrumShaderNode);
+    defineClassID(ShaderNode, IrregularSampledSpectrumShaderNode);
     defineClassID(ShaderNode, Vector3DToSpectrumShaderNode);
     defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);

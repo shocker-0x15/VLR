@@ -1675,7 +1675,7 @@ namespace VLR {
         auto &p = *(EnvironmentEDF*)params;
         auto &mat = *(const EnvironmentEmitterSurfaceMaterial*)matDesc;
 
-        p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls);
+        p.emittance = calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls) * mat.immScale;
 
         return sizeof(EnvironmentEDF) / 4;
     }

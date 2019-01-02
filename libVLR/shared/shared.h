@@ -238,7 +238,7 @@ namespace VLR {
 
         struct NodeDescriptor {
             uint32_t procSetIndex;
-#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (31)
+#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (47)
             uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
 
             template <typename T>
@@ -247,9 +247,9 @@ namespace VLR {
                 return (T*)data;
             }
         };
-        
-        
-        
+
+
+
         struct BSDFProcedureSet {
             int32_t progGetBaseColor;
             int32_t progMatches;
@@ -433,11 +433,16 @@ namespace VLR {
         };
 
         struct RegularSampledSpectrumShaderNode {
-            RegularSampledSpectrum value;
+            float minLambda;
+            float maxLambda;
+            float values[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 3];
+            uint32_t numSamples;
         };
 
         struct IrregularSampledSpectrumShaderNode {
-            IrregularSampledSpectrum value;
+            float lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            uint32_t numSamples;
         };
 #else
         struct TripletSpectrumShaderNode {
@@ -560,6 +565,7 @@ namespace VLR {
         struct EnvironmentEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
             TripletSpectrum immEmittance;
+            float immScale;
         };
 
         // END: Surface Materials

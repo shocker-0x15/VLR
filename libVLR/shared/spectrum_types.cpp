@@ -91,18 +91,7 @@ namespace VLR {
         case VLRColorSpace_Rec709: {
             RealType RGB[3] = { e0, e1, e2 };
             RealType XYZ[3];
-            switch (spType) {
-            case VLRSpectrumType_Reflectance:
-                transformTristimulus(mat_sRGB_E_to_XYZ, RGB, XYZ);
-                break;
-            case VLRSpectrumType_LightSource:
-            case VLRSpectrumType_IndexOfRefraction:
-                transformTristimulus(mat_sRGB_D65_to_XYZ, RGB, XYZ);
-                break;
-            default:
-                VLRAssert_ShouldNotBeCalled();
-                break;
-            }
+            transformFromRenderingRGB(spType, RGB, XYZ);
             e0 = XYZ[0];
             e1 = XYZ[1];
             e2 = XYZ[2];
@@ -196,13 +185,216 @@ namespace VLR {
 
 
 
+    template <typename RealType, uint32_t NumSpectralSamples>
+    RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> RegularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+        SampledSpectrumTemplate<RealType, NumSpectralSamples> ret(0.0f);
+        for (int i = 0; i < NumSpectralSamples; ++i) {
+            RealType binF = (wls[i] - m_minLambda) / (m_maxLambda - m_minLambda) * (m_numSamples - 1);
+            if (binF <= 0.0f) {
+                ret[i] = m_values[0];
+                continue;
+            }
+            else if (binF >= m_numSamples - 1) {
+                ret[i] = m_values[m_numSamples - 1];
+                continue;
+            }
+            int32_t bin = int32_t(binF);
+            VLRAssert(bin >= 0 && bin < m_numSamples - 1, "invalid bin index.");
+            RealType t = binF - bin;
+            ret[i] = (1 - t) * m_values[bin] + t * m_values[bin + 1];
+        }
+        return ret;
+    }
+
+#if defined(VLR_Host)
+    template <typename RealType, uint32_t NumSpectralSamples>
+    void RegularSampledSpectrumTemplate<RealType, NumSpectralSamples>::toXYZ(RealType XYZ[3]) const {
+        const RealType CMFBinWidth = (WavelengthHighBound - WavelengthLowBound) / (NumCMFSamples - 1);
+        const RealType binWidth = (m_maxLambda - m_minLambda) / (m_numSamples - 1);
+        uint32_t curCMFIdx = 0;
+        uint32_t baseIdx = 0;
+        RealType curWL = std::min<RealType>(WavelengthLowBound, m_minLambda);
+        RealType prev_xbarVal = 0, prev_ybarVal = 0, prev_zbarVal = 0;
+        RealType prevValue = 0;
+        RealType halfWidth = 0;
+        CompensatedSum<RealType> X(0), Y(0), Z(0);
+        while (true) {
+            RealType xbarValue, ybarValue, zbarValue;
+            if (curWL < WavelengthLowBound) {
+                xbarValue = 0;
+                ybarValue = 0;
+                zbarValue = 0;
+            }
+            else if (curWL == WavelengthLowBound + curCMFIdx * CMFBinWidth) {
+                xbarValue = xbarReferenceValues[curCMFIdx];
+                ybarValue = ybarReferenceValues[curCMFIdx];
+                zbarValue = zbarReferenceValues[curCMFIdx];
+                ++curCMFIdx;
+            }
+            else {
+                uint32_t idx = std::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
+                RealType CMFBaseWL = WavelengthLowBound + idx * CMFBinWidth;
+                RealType t = (curWL - CMFBaseWL) / CMFBinWidth;
+                xbarValue = (1 - t) * xbarReferenceValues[idx] + t * xbarReferenceValues[idx + 1];
+                ybarValue = (1 - t) * ybarReferenceValues[idx] + t * ybarReferenceValues[idx + 1];
+                zbarValue = (1 - t) * zbarReferenceValues[idx] + t * zbarReferenceValues[idx + 1];
+            }
+
+            RealType value;
+            if (curWL < m_minLambda) {
+                value = m_values[0];
+            }
+            else if (curWL > m_maxLambda) {
+                value = m_values[m_numSamples - 1];
+            }
+            else if (curWL == m_minLambda + baseIdx * binWidth) {
+                value = m_values[baseIdx];
+                ++baseIdx;
+            }
+            else {
+                uint32_t idx = std::min(uint32_t((curWL - m_minLambda) / binWidth), m_numSamples - 1);
+                RealType baseWL = m_minLambda + idx * binWidth;
+                RealType t = (curWL - baseWL) / binWidth;
+                value = (1 - t) * m_values[idx] + t * m_values[idx + 1];
+            }
+
+            RealType avgValue = (prevValue + value) * 0.5f;
+            X += avgValue * (prev_xbarVal + xbarValue) * halfWidth;
+            Y += avgValue * (prev_ybarVal + ybarValue) * halfWidth;
+            Z += avgValue * (prev_zbarVal + zbarValue) * halfWidth;
+
+            prev_xbarVal = xbarValue;
+            prev_ybarVal = ybarValue;
+            prev_zbarVal = zbarValue;
+            prevValue = value;
+            RealType prevWL = curWL;
+            curWL = std::min(WavelengthLowBound + curCMFIdx * CMFBinWidth,
+                             baseIdx < m_numSamples ? (m_minLambda + baseIdx * binWidth) : INFINITY);
+            halfWidth = (curWL - prevWL) * 0.5f;
+
+            if (curCMFIdx == NumCMFSamples)
+                break;
+        }
+        XYZ[0] = X / integralCMF;
+        XYZ[1] = Y / integralCMF;
+        XYZ[2] = Z / integralCMF;
+    }
+#endif
+
+    template class RegularSampledSpectrumTemplate<float, NumSpectralSamples>;
+
+
+
+    template <typename RealType, uint32_t NumSpectralSamples>
+    RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+        SampledSpectrumTemplate<RealType, NumSpectralSamples> ret(0.0f);
+        uint32_t baseIdx = 0;
+        for (int i = 0; i < NumSpectralSamples; ++i) {
+            for (int32_t delta = nextPowerOf2(m_numSamples - baseIdx) >> 1; delta > 0; delta >>= 1)
+                if (baseIdx + delta < m_numSamples)
+                    if (m_lambdas[baseIdx + delta] <= wls[i])
+                        baseIdx += delta;
+            VLRAssert(baseIdx < m_numSamples, "baseIdx should be less than numSamples.");
+
+            if (baseIdx >= m_numSamples - 1) {
+                ret[i] = m_values[m_numSamples - 1];
+                continue;
+            }
+            RealType t = (wls[i] - m_lambdas[baseIdx]) / (m_lambdas[baseIdx + 1] - m_lambdas[baseIdx]);
+            if (t <= 0.0f) {
+                ret[i] = m_values[baseIdx];
+                continue;
+            }
+            VLRAssert(t >= 0 && t <= 1, "invalid interpolation coefficient.");
+            ret[i] = (1 - t) * m_values[baseIdx] + t * m_values[baseIdx + 1];
+        }
+        return ret;
+    }
+
+#if defined(VLR_Host)
+    template <typename RealType, uint32_t NumSpectralSamples>
+    RT_FUNCTION void IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::toXYZ(RealType XYZ[3]) const {
+        const RealType CMFBinWidth = (WavelengthHighBound - WavelengthLowBound) / (NumCMFSamples - 1);
+        uint32_t curCMFIdx = 0;
+        uint32_t baseIdx = 0;
+        RealType curWL = std::min<RealType>(WavelengthLowBound, m_lambdas[0]);
+        RealType prev_xbarVal = 0, prev_ybarVal = 0, prev_zbarVal = 0;
+        RealType prevValue = 0;
+        RealType halfWidth = 0;
+        CompensatedSum<RealType> X(0), Y(0), Z(0);
+        while (true) {
+            RealType xbarValue, ybarValue, zbarValue;
+            if (curWL < WavelengthLowBound) {
+                xbarValue = 0.0f;
+                ybarValue = 0.0f;
+                zbarValue = 0.0f;
+            }
+            else if (curWL == WavelengthLowBound + curCMFIdx * CMFBinWidth) {
+                xbarValue = xbarReferenceValues[curCMFIdx];
+                ybarValue = ybarReferenceValues[curCMFIdx];
+                zbarValue = zbarReferenceValues[curCMFIdx];
+                ++curCMFIdx;
+            }
+            else {
+                uint32_t idx = std::min(uint32_t((curWL - WavelengthLowBound) / CMFBinWidth), NumCMFSamples - 1);
+                RealType CMFBaseWL = WavelengthLowBound + idx * CMFBinWidth;
+                RealType t = (curWL - CMFBaseWL) / CMFBinWidth;
+                xbarValue = (1 - t) * xbarReferenceValues[idx] + t * xbarReferenceValues[idx + 1];
+                ybarValue = (1 - t) * ybarReferenceValues[idx] + t * ybarReferenceValues[idx + 1];
+                zbarValue = (1 - t) * zbarReferenceValues[idx] + t * zbarReferenceValues[idx + 1];
+            }
+
+            RealType value;
+            if (curWL < m_lambdas[0]) {
+                value = m_values[0];
+            }
+            else if (curWL > m_lambdas[m_numSamples - 1]) {
+                value = m_values[m_numSamples - 1];
+            }
+            else if (curWL == m_lambdas[baseIdx]) {
+                value = m_values[baseIdx];
+                ++baseIdx;
+            }
+            else {
+                const RealType* lb = std::lower_bound(m_lambdas + std::max((int32_t)baseIdx - 1, 0), m_lambdas + m_numSamples, curWL);
+                uint32_t idx = std::max(int32_t(std::distance<const RealType*>(m_lambdas, lb)) - 1, 0);
+                RealType t = (curWL - m_lambdas[idx]) / (m_lambdas[idx + 1] - m_lambdas[idx]);
+                value = (1 - t) * m_values[idx] + t * m_values[idx + 1];
+            }
+
+            RealType avgValue = (prevValue + value) * 0.5f;
+            X += avgValue * (prev_xbarVal + xbarValue) * halfWidth;
+            Y += avgValue * (prev_ybarVal + ybarValue) * halfWidth;
+            Z += avgValue * (prev_zbarVal + zbarValue) * halfWidth;
+
+            prev_xbarVal = xbarValue;
+            prev_ybarVal = ybarValue;
+            prev_zbarVal = zbarValue;
+            prevValue = value;
+            RealType prevWL = curWL;
+            curWL = std::min(WavelengthLowBound + curCMFIdx * CMFBinWidth, baseIdx < m_numSamples ? m_lambdas[baseIdx] : INFINITY);
+            halfWidth = (curWL - prevWL) * 0.5f;
+
+            if (curCMFIdx == NumCMFSamples)
+                break;
+        }
+        XYZ[0] = X / integralCMF;
+        XYZ[1] = Y / integralCMF;
+        XYZ[2] = Z / integralCMF;
+    }
+#endif
+
+    template class IrregularSampledSpectrumTemplate<float, NumSpectralSamples>;
+
+
+
 #if defined(VLR_Device)
 #   define xbar DiscretizedSpectrum_xbar
 #   define ybar DiscretizedSpectrum_ybar
 #   define zbar DiscretizedSpectrum_zbar
 #   define integralCMF DiscretizedSpectrum_integralCMF
 #endif
-    
+
     template <typename RealType, uint32_t NumStrataForStorage>
     RT_FUNCTION void DiscretizedSpectrumTemplate<RealType, NumStrataForStorage>::toXYZ(RealType XYZ[3]) const {
         XYZ[0] = XYZ[1] = XYZ[2] = 0;

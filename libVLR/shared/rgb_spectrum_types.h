@@ -186,7 +186,7 @@ namespace VLR {
 
         RT_FUNCTION void toXYZ(RealType XYZ[3]) const {
             const RealType RGB[3] = { r, g, b };
-            transformTristimulus(mat_sRGB_D65_to_XYZ, RGB, XYZ);
+            transformFromRenderingRGB(VLRSpectrumType_LightSource, RGB, XYZ);
         }
 
 #if defined(VLR_Host)

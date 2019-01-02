@@ -82,7 +82,7 @@ VLR_API void vlrDevPrintf(const char* fmt, ...);
 #   if defined(VLR_USE_DEVPRINTF)
 #       define vlrprintf vlrDevPrintf
 #   else
-#       define vlrprintf(fmt, ...) vlrDevPrintf(fmt, ##__VA_ARGS__)
+#       define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
 #else
 #   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
