@@ -612,6 +612,14 @@ VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVe
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRVector3DToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueSpectrumTypeAndColorSpace(spectrumType, colorSpace);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 
 
 VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node) {

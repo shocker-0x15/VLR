@@ -461,6 +461,8 @@ namespace VLR {
         struct Vector3DToSpectrumShaderNode {
             ShaderNodeSocketID nodeVector3D;
             Vector3D immVector3D;
+            VLRSpectrumType spectrumType;
+            VLRColorSpace colorSpace;
         };
 
         struct OffsetAndScaleUVTextureMap2DShaderNode {

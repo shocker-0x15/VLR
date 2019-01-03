@@ -183,7 +183,7 @@ namespace VLR {
         auto &nodeData = *(const Vector3DToSpectrumShaderNode*)rawNodeData;
         Vector3D vector = calcNode(nodeData.nodeVector3D, nodeData.immVector3D, surfPt, wls);
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        return UpsampledSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709,
+        return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace,
                                  clamp(0.5f * vector.x + 0.5f, 0.0f, 1.0f),
                                  clamp(0.5f * vector.y + 0.5f, 0.0f, 1.0f),
                                  clamp(0.5f * vector.z + 0.5f, 0.0f, 1.0f)).evaluate(wls);
@@ -216,7 +216,7 @@ namespace VLR {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);
 #else
-        return SampledSpectrum(texValue.x, texValue.y, texValue.z);
+        return SampledSpectrum(texValue.x, texValue.y, texValue.z); // assume given data is in rendering RGB.
 #endif
     }
 
@@ -293,7 +293,7 @@ namespace VLR {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(VLRSpectrumType_LightSource, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);
 #else
-        return SampledSpectrum(texValue.x, texValue.y, texValue.z);
+        return SampledSpectrum(texValue.x, texValue.y, texValue.z); // assume given data is in rendering RGB.
 #endif
     }
 }

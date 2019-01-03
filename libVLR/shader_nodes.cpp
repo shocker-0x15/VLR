@@ -1086,7 +1086,7 @@ namespace VLR {
     }
 
     Vector3DToSpectrumShaderNode::Vector3DToSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_immVector3D(Vector3D(0, 0, 0)) {
+        ShaderNode(context), m_immVector3D(Vector3D(0, 0, 0)), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65) {
         setupNodeDescriptor();
     }
 
@@ -1101,6 +1101,8 @@ namespace VLR {
         auto &nodeData = *nodeDesc.getData<Shared::Vector3DToSpectrumShaderNode>();
         nodeData.nodeVector3D = m_nodeVector3D.getSharedType();
         nodeData.immVector3D = m_immVector3D;
+        nodeData.spectrumType = m_spectrumType;
+        nodeData.colorSpace = m_colorSpace;
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
@@ -1115,6 +1117,12 @@ namespace VLR {
 
     void Vector3DToSpectrumShaderNode::setImmediateValueVector3D(const Vector3D &value) {
         m_immVector3D = value;
+        setupNodeDescriptor();
+    }
+
+    void Vector3DToSpectrumShaderNode::setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+        m_spectrumType = spectrumType;
+        m_colorSpace = colorSpace;
         setupNodeDescriptor();
     }
 

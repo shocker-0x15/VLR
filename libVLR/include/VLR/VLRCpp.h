@@ -383,6 +383,9 @@ namespace VLRCpp {
             VLRVector3D v{ value.x, value.y, value.z };
             errorCheck(vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D((VLRVector3DToSpectrumShaderNode)m_raw, &v));
         }
+        void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+            errorCheck(vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace((VLRVector3DToSpectrumShaderNode)m_raw, spectrumType, colorSpace));
+        }
     };
 
 

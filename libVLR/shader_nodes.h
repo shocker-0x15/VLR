@@ -508,6 +508,8 @@ namespace VLR {
 
         ShaderNodeSocketIdentifier m_nodeVector3D;
         Vector3D m_immVector3D;
+        VLRSpectrumType m_spectrumType;
+        VLRColorSpace m_colorSpace;
 
         void setupNodeDescriptor() const;
 
@@ -531,6 +533,7 @@ namespace VLR {
 
         bool setNodeVector3D(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueVector3D(const Vector3D &value);
+        void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
     };
 
 

@@ -105,6 +105,52 @@ namespace VLR {
     }
 
     template <typename RealType>
+    inline constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, VLRColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
+        RealType srcTriplet[3] = { src[0], src[1], src[2] };
+        switch (srcSpace) {
+        case VLRColorSpace_Rec709_D65_sRGBGamma:
+            dstRGB[0] = sRGB_degamma(srcTriplet[0]);
+            dstRGB[1] = sRGB_degamma(srcTriplet[1]);
+            dstRGB[2] = sRGB_degamma(srcTriplet[2]);
+            break;
+        case VLRColorSpace_Rec709_D65:
+            dstRGB[0] = srcTriplet[0];
+            dstRGB[1] = srcTriplet[1];
+            dstRGB[2] = srcTriplet[2];
+            break;
+        case VLRColorSpace_xyY: {
+            if (srcTriplet[1] == 0) {
+                dstRGB[0] = dstRGB[1] = dstRGB[2] = 0.0f;
+                break;
+            }
+            RealType z = 1 - (srcTriplet[0] + srcTriplet[1]);
+            RealType b = srcTriplet[2] / srcTriplet[1];
+            srcTriplet[0] = srcTriplet[0] * b;
+            srcTriplet[1] = srcTriplet[2];
+            srcTriplet[2] = z * b;
+            // pass to XYZ
+        }
+        case VLRColorSpace_XYZ:
+            switch (spectrumType) {
+            case VLRSpectrumType_Reflectance:
+            case VLRSpectrumType_IndexOfRefraction:
+            case VLRSpectrumType_NA:
+                transformTristimulus(mat_XYZ_to_Rec709_E, srcTriplet, dstRGB);
+                break;
+            case VLRSpectrumType_LightSource:
+                transformTristimulus(mat_XYZ_to_Rec709_D65, srcTriplet, dstRGB);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    template <typename RealType>
     RT_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
         RealType b = xyz[0] + xyz[1] + xyz[2];
         if (b == 0) {

@@ -142,6 +142,7 @@ extern "C" {
     VLR_API VLRResult vlrVector3DToSpectrumShaderNodeDestroy(VLRContext context, VLRVector3DToSpectrumShaderNode node);
     VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetNodeVector3D(VLRVector3DToSpectrumShaderNode node, VLRShaderNode nodeVector3D, VLRShaderNodeSocketInfo socketInfo);
     VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value);
+    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRVector3DToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
 
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node);
     VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
