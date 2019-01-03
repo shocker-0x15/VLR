@@ -8,29 +8,38 @@ namespace VLR {
         return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
         switch (colorSpace) {
-        case VLRColorSpace_Rec709_sRGBGamma: {
-            return RGBSpectrum(sRGB_degamma(e0), sRGB_degamma(e1), sRGB_degamma(e2));
+        case VLRColorSpace_Rec709_D65_sRGBGamma: {
+            e0 = sRGB_degamma(e0);
+            e1 = sRGB_degamma(e1);
+            e2 = sRGB_degamma(e2);
+            // pass to Rec709 (D65)
         }
-        case VLRColorSpace_xyY: {
-            VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f, 
-                      "xy should be in [0, 1], Y should not be negative.");
-            if (e1 == 0)
-                return RGBSpectrum::Zero();
-            float z = 1 - e0 - e1;
-            float b = e2 / e1;
-            e0 = e0 * b;
-            e1 = e2;
-            e2 = z * b;
+        case VLRColorSpace_Rec709_D65: {
+            float RGB[3] = { e0, e1, e2 };
+            float XYZ[3];
+            transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+            e0 = XYZ[0];
+            e1 = XYZ[1];
+            e2 = XYZ[2];
             // pass to XYZ
         }
         case VLRColorSpace_XYZ: {
             float XYZ[3] = { e0, e1, e2 };
             float RGB[3];
-            transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
+            transformToRenderingRGB(spectrumType, XYZ, RGB);
             return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
         }
-        case VLRColorSpace_Rec709: {
-            return RGBSpectrum(e0, e1, e2);
+        case VLRColorSpace_xyY: {
+            VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
+                      "xy should be in [0, 1], Y should not be negative.");
+            if (e1 == 0)
+                return RGBSpectrum::Zero();
+            float z = 1 - (e0 + e1);
+            float b = e2 / e1;
+            float XYZ[3] = { e0 * b, e2, z * b };
+            float RGB[3];
+            transformToRenderingRGB(spectrumType, XYZ, RGB);
+            return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
         }
         default:
             VLRAssert_ShouldNotBeCalled();
@@ -562,9 +571,9 @@ namespace VLR {
         static std::map<uint32_t, LinearImage2D*> NullImages;
 
         optix::TextureSampler m_optixTextureSampler;
-        const Image2D* m_image;
         VLRSpectrumType m_spectrumType;
         VLRColorSpace m_colorSpace;
+        const Image2D* m_image;
         ShaderNodeSocketIdentifier m_nodeTexCoord;
 
         void setupNodeDescriptor() const;
@@ -599,10 +608,8 @@ namespace VLR {
             return ShaderNodeSocketIdentifier();
         }
 
-        void setImage(const Image2D* image);
+        void setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-        void setSpectrumType(VLRSpectrumType spectrumType);
-        void setColorSpace(VLRColorSpace colorSpace);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
     };
 
@@ -612,8 +619,8 @@ namespace VLR {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         optix::TextureSampler m_optixTextureSampler;
-        const Image2D* m_image;
         VLRColorSpace m_colorSpace;
+        const Image2D* m_image;
         ShaderNodeSocketIdentifier m_nodeTexCoord;
 
         void setupNodeDescriptor() const;
@@ -636,9 +643,8 @@ namespace VLR {
             return ShaderNodeSocketIdentifier();
         }
 
-        void setImage(const Image2D* image);
+        void setImage(VLRColorSpace colorSpace, const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
-        void setColorSpace(VLRColorSpace colorSpace);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
 
         void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;

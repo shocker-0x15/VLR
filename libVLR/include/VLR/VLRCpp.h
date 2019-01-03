@@ -415,15 +415,9 @@ namespace VLRCpp {
             errorCheck(vlrImage2DTextureShaderNodeDestroy(getRaw(m_context), (VLRImage2DTextureShaderNode)m_raw));
         }
 
-        void setImage(const Image2DRef &image) {
+        void setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrImage2DTextureShaderNodeSetImage((VLRImage2DTextureShaderNode)m_raw, m_image ? (VLRImage2D)m_image->get() : nullptr));
-        }
-        void setSpectrumType(VLRSpectrumType spectrumType) {
-            errorCheck(vlrImage2DTextureShaderNodeSetSpectrumType((VLRImage2DTextureShaderNode)m_raw, spectrumType));
-        }
-        void setColorSpace(VLRColorSpace colorSpace) {
-            errorCheck(vlrImage2DTextureShaderNodeSetColorSpace((VLRImage2DTextureShaderNode)m_raw, colorSpace));
+            errorCheck(vlrImage2DTextureShaderNodeSetImage((VLRImage2DTextureShaderNode)m_raw, spectrumType, colorSpace, m_image ? (VLRImage2D)m_image->get() : nullptr));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrImage2DTextureShaderNodeSetFilterMode((VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping));
@@ -448,12 +442,9 @@ namespace VLRCpp {
             errorCheck(vlrEnvironmentTextureShaderNodeDestroy(getRaw(m_context), (VLREnvironmentTextureShaderNode)m_raw));
         }
 
-        void setImage(const Image2DRef &image) {
+        void setImage(VLRColorSpace colorSpace, const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, (VLRImage2D)m_image->get()));
-        }
-        void setColorSpace(VLRColorSpace colorSpace) {
-            errorCheck(vlrEnvironmentTextureShaderNodeSetColorSpace((VLREnvironmentTextureShaderNode)m_raw, colorSpace));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, colorSpace, (VLRImage2D)m_image->get()));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));

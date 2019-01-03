@@ -383,7 +383,7 @@ namespace VLR {
                 switch (getDataFormat()) {
                 case VLRDataFormat_RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
-                    float Y = mat_sRGB_D65_to_XYZ[3] * pix.r + mat_sRGB_D65_to_XYZ[4] * pix.g + mat_sRGB_D65_to_XYZ[5] * pix.b;
+                    float Y = mat_Rec709_D65_to_XYZ[3] * pix.r + mat_Rec709_D65_to_XYZ[4] * pix.g + mat_Rec709_D65_to_XYZ[5] * pix.b;
                     *(float*)&data[(y * width + x) * stride] = Y;
                     break;
                 }
@@ -884,7 +884,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709),
+        ShaderNode(context), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -987,14 +987,6 @@ namespace VLR {
         std::copy_n(values, numSamples, m_values);
         m_numSamples = numSamples;
         setupNodeDescriptor();
-        // DELETE ME
-        //RegularSampledSpectrum spectrum(m_minLambda, m_maxLambda, m_values, m_numSamples);
-        //float XYZ[3];
-        //spectrum.toXYZ(XYZ);
-        //float RGB[3];
-        //transformTristimulus(mat_XYZ_to_sRGB_D65, XYZ, RGB);
-        //vlrprintf("(%.3f, %.3f, %.3f), (%.3f, %.3f, %.3f), (%u, %u, %u)\n",
-        //          XYZ[0], XYZ[1], XYZ[2], RGB[0], RGB[1], RGB[2], uint32_t(RGB[0] * 255), uint32_t(RGB[1] * 255), uint32_t(RGB[2] * 255));
     }
 
 
@@ -1208,7 +1200,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709) {
+        ShaderNode(context), m_image(nullptr), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -1240,7 +1232,9 @@ namespace VLR {
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void Image2DTextureShaderNode::setImage(const Image2D* image) {
+    void Image2DTextureShaderNode::setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2D* image) {
+        m_spectrumType = spectrumType;
+        m_colorSpace = colorSpace;
         m_image = image;
         if (m_image)
             m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
@@ -1251,16 +1245,6 @@ namespace VLR {
 
     void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
-    }
-
-    void Image2DTextureShaderNode::setSpectrumType(VLRSpectrumType spectrumType) {
-        m_spectrumType = spectrumType;
-        setupNodeDescriptor();
-    }
-
-    void Image2DTextureShaderNode::setColorSpace(VLRColorSpace colorSpace) {
-        m_colorSpace = colorSpace;
-        setupNodeDescriptor();
     }
 
     bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -1293,7 +1277,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr), m_colorSpace(VLRColorSpace_Rec709) {
+        ShaderNode(context), m_image(nullptr), m_colorSpace(VLRColorSpace_Rec709_D65) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
@@ -1323,7 +1307,8 @@ namespace VLR {
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void EnvironmentTextureShaderNode::setImage(const Image2D* image) {
+    void EnvironmentTextureShaderNode::setImage(VLRColorSpace colorSpace, const Image2D* image) {
+        m_colorSpace = colorSpace;
         m_image = image;
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
         setupNodeDescriptor();
@@ -1331,11 +1316,6 @@ namespace VLR {
 
     void EnvironmentTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
-    }
-
-    void EnvironmentTextureShaderNode::setColorSpace(VLRColorSpace colorSpace) {
-        m_colorSpace = colorSpace;
-        setupNodeDescriptor();
     }
 
     bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {

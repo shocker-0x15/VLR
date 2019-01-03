@@ -11,8 +11,8 @@ enum VLRSpectrumType {
 };
 
 enum VLRColorSpace {
-    VLRColorSpace_Rec709_sRGBGamma = 0,
-    VLRColorSpace_Rec709,
+    VLRColorSpace_Rec709_D65_sRGBGamma = 0,
+    VLRColorSpace_Rec709_D65,
     VLRColorSpace_XYZ,
     VLRColorSpace_xyY,
 };

@@ -358,14 +358,14 @@ static SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp:
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
         Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
         Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        tex->setImage(image);
+        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
         mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709, color[0], color[1], color[2]);
+        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
     }
     else {
-        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709, 1.0f, 0.0f, 1.0f);
+        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
     }
 
     return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
@@ -543,9 +543,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
         {
             Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
             Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
-            nodeAlbedo->setImage(image);
-            nodeAlbedo->setSpectrumType(VLRSpectrumType_Reflectance);
-            nodeAlbedo->setColorSpace(VLRColorSpace_Rec709);
+            nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
@@ -558,7 +556,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.75f, 0.75f);
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.75f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 4, 5, 6, 4, 6, 7,
@@ -569,7 +567,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.25f, 0.25f);
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.25f, 0.25f);
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
             //Float3TextureRef texEmittance = context->createConstantFloat3Texture(value);
@@ -583,7 +581,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_sRGBGamma, 0.25f, 0.25f, 0.75f);
+            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.25f, 0.25f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
@@ -593,7 +591,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 30.0f, 30.0f, 30.0f);
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 30.0f, 30.0f, 30.0f);
 
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
@@ -603,7 +601,7 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 100.0f, 100.0f, 100.0f);
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 100.0f, 100.0f, 100.0f);
 
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
@@ -642,9 +640,9 @@ static void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot)
         ////mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.79521f, 3.40035f, 3.00114f);
 
         SpecularScatteringSurfaceMaterialRef mat = context->createSpecularScatteringSurfaceMaterial();
-        mat->setImmediateValueCoeff(VLRColorSpace_Rec709, 0.999f, 0.999f, 0.999f);
-        mat->setImmediateValueEtaExt(VLRColorSpace_Rec709, 1.00036f, 1.00021f, 1.00071f); // Air
-        mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 2.41174f, 2.42343f, 2.44936f); // Diamond
+        mat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
+        mat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
+        mat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
         //mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.33161f, 1.33331f, 1.33799f); // Water
         //mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
 
@@ -706,9 +704,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
-        nodeAlbedo->setImage(image);
-        nodeAlbedo->setSpectrumType(VLRSpectrumType_Reflectance);
-        nodeAlbedo->setColorSpace(VLRColorSpace_Rec709);
+        nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
@@ -735,7 +731,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
         {
             DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
+            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -766,20 +762,18 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
         ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
             MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709, 0.18f, 0.18f, 0.18f);
+            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.18f, 0.18f, 0.18f);
 
             mat = matteMat;
         }
         else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
             Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
             Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
-            nodeBaseColorAlpha->setImage(imgNormalAlpha);
-            nodeBaseColorAlpha->setSpectrumType(VLRSpectrumType_Reflectance);
-            nodeBaseColorAlpha->setColorSpace(VLRColorSpace_Rec709);
+            nodeBaseColorAlpha->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imgNormalAlpha);
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_sRGBGamma, 0.75f, 0.5f, 0.0025f);
+            ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.5f, 0.0025f);
             ue4Mat->setImmediateValueOcclusion(0.0f);
             ue4Mat->setImmediateValueRoughness(0.3f);
             ue4Mat->setImmediateValueMetallic(0.0f);
@@ -900,8 +894,7 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
     Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(imgEnv);
-    nodeEnvTex->setColorSpace(VLRColorSpace_Rec709);
+    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));

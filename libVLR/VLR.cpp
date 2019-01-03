@@ -652,30 +652,13 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImag
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRImage2D image) {
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace, VLRImage2D image) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    node->setImage(image);
+    node->setImage(spectrumType, colorSpace, image);
 
     return VLR_ERROR_NO_ERROR;
 }
-
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetSpectrumType(VLRImage2DTextureShaderNode node, VLRSpectrumType spectrumType) {
-    if (!node->is<VLR::Image2DTextureShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    node->setSpectrumType(spectrumType);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetColorSpace(VLRImage2DTextureShaderNode node, VLRColorSpace colorSpace) {
-    if (!node->is<VLR::Image2DTextureShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    node->setColorSpace(colorSpace);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
 VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
@@ -709,18 +692,10 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeDestroy(VLRContext context, VLR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRImage2D image) {
+VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRColorSpace colorSpace, VLRImage2D image) {
     if (!node->is<VLR::EnvironmentTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    node->setImage(image);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetColorSpace(VLREnvironmentTextureShaderNode node, VLRColorSpace colorSpace) {
-    if (!node->is<VLR::EnvironmentTextureShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    node->setColorSpace(colorSpace);
+    node->setImage(colorSpace, image);
 
     return VLR_ERROR_NO_ERROR;
 }

@@ -82,16 +82,16 @@ namespace VLR {
     RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(VLRSpectrumType spType, VLRColorSpace space, RealType e0, RealType e1, RealType e2) {
         RealType x, y, brightness;
         switch (space) {
-        case VLRColorSpace_Rec709_sRGBGamma: {
+        case VLRColorSpace_Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
             e2 = sRGB_degamma(e2);
             // pass to the Rec709 process.
         }
-        case VLRColorSpace_Rec709: {
+        case VLRColorSpace_Rec709_D65: {
             RealType RGB[3] = { e0, e1, e2 };
             RealType XYZ[3];
-            transformFromRenderingRGB(spType, RGB, XYZ);
+            transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
             e0 = XYZ[0];
             e1 = XYZ[1];
             e2 = XYZ[2];
