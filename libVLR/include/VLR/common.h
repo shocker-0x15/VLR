@@ -3,15 +3,15 @@
 #if defined(__CUDACC__)
 #   define VLR_Device
 #   define RT_FUNCTION __forceinline__ __device__
-#   define RT_VARIABLE __device__ const
+#   define RT_VARIABLE __constant__
 #   define HOST_INLINE
-#   define HOST_CONSTEXPR
+#   define HOST_STATIC_CONSTEXPR
 #else
 #   define VLR_Host
 #   define RT_FUNCTION
 #   define RT_VARIABLE
 #   define HOST_INLINE inline
-#   define HOST_CONSTEXPR constexpr
+#   define HOST_STATIC_CONSTEXPR static constexpr
 #endif
 
 // Platform defines

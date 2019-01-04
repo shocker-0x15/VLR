@@ -383,7 +383,7 @@ namespace VLR {
                 switch (getDataFormat()) {
                 case VLRDataFormat_RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
-                    float Y = mat_Rec709_D65_to_XYZ[3] * pix.r + mat_Rec709_D65_to_XYZ[4] * pix.g + mat_Rec709_D65_to_XYZ[5] * pix.b;
+                    float Y = mat_Rec709_D65_to_XYZ[1] * pix.r + mat_Rec709_D65_to_XYZ[4] * pix.g + mat_Rec709_D65_to_XYZ[7] * pix.b;
                     *(float*)&data[(y * width + x) * stride] = Y;
                     break;
                 }

@@ -80,38 +80,53 @@ namespace VLR {
 
     template <typename RealType, uint32_t NumSpectralSamples>
     RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(VLRSpectrumType spType, VLRColorSpace space, RealType e0, RealType e1, RealType e2) {
-        RealType x, y, brightness;
+        RealType xy[2];
+        RealType brightness;
         switch (space) {
         case VLRColorSpace_Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
             e2 = sRGB_degamma(e2);
-            // pass to the Rec709 process.
+            // pass to Rec709
         }
         case VLRColorSpace_Rec709_D65: {
             RealType RGB[3] = { e0, e1, e2 };
             RealType XYZ[3];
-            transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+            switch (spType) {
+            case VLRSpectrumType_Reflectance:
+            case VLRSpectrumType_IndexOfRefraction:
+            case VLRSpectrumType_NA:
+                transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
+                break;
+            case VLRSpectrumType_LightSource:
+                transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
             e0 = XYZ[0];
             e1 = XYZ[1];
             e2 = XYZ[2];
-            // pass to the XYZ process.
+            // pass to XYZ
         }
         case VLRColorSpace_XYZ: {
-            brightness = e0 + e1 + e2;
-            if (brightness == 0) {
-                m_scale = 0;
-                computeAdjacents(6, 4);
-                return;
-            }
-            x = e0 / brightness;
-            y = e1 / brightness;
-            break;
+            RealType Y = e1;
+            RealType b = e0 + e1 + e2;
+            e0 = e0 / b;
+            e1 = e1 / b;
+            e2 = Y;
+            // pass to xyY
         }
         case VLRColorSpace_xyY: {
-            x = e0;
-            y = e1;
+            xy[0] = e0;
+            xy[1] = e1;
             brightness = e2 / e1;
+            if (e2 == 0) {
+                xy[0] = (RealType)0.3333;
+                xy[1] = (RealType)0.3333;
+                brightness = 0;
+            }
             break;
         }
         default:
@@ -122,7 +137,6 @@ namespace VLR {
         //if (spType == VLRSpectrumType_Reflectance)
         //    brightness = std::min(brightness, evaluateMaximumBrightness(x, y));
         m_scale = brightness / EqualEnergyReflectance();
-        RealType xy[2] = { x, y };
         RealType uv[2];
         xy_to_uv(xy, uv);
         VLRAssert(std::isfinite(uv[0]) && std::isfinite(uv[1]) && std::isfinite(m_scale), "Invalid value.");

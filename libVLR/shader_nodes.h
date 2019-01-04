@@ -7,6 +7,8 @@ namespace VLR {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
+        float XYZ[3];
+
         switch (colorSpace) {
         case VLRColorSpace_Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
@@ -16,37 +18,49 @@ namespace VLR {
         }
         case VLRColorSpace_Rec709_D65: {
             float RGB[3] = { e0, e1, e2 };
-            float XYZ[3];
-            transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
-            e0 = XYZ[0];
-            e1 = XYZ[1];
-            e2 = XYZ[2];
-            // pass to XYZ
+            switch (spectrumType) {
+            case VLRSpectrumType_Reflectance:
+            case VLRSpectrumType_IndexOfRefraction:
+            case VLRSpectrumType_NA:
+                transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
+                break;
+            case VLRSpectrumType_LightSource:
+                transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+            break;
         }
         case VLRColorSpace_XYZ: {
-            float XYZ[3] = { e0, e1, e2 };
-            float RGB[3];
-            transformToRenderingRGB(spectrumType, XYZ, RGB);
-            return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
+            XYZ[0] = e0;
+            XYZ[1] = e1;
+            XYZ[2] = e2;
+            break;
         }
         case VLRColorSpace_xyY: {
             VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
                       "xy should be in [0, 1], Y should not be negative.");
-            if (e1 == 0)
-                return RGBSpectrum::Zero();
+            if (e1 == 0) {
+                XYZ[0] = XYZ[1] = XYZ[2] = 0;
+                break;
+            }
             float z = 1 - (e0 + e1);
             float b = e2 / e1;
-            float XYZ[3] = { e0 * b, e2, z * b };
-            float RGB[3];
-            transformToRenderingRGB(spectrumType, XYZ, RGB);
-            return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
+            XYZ[0] = e0 * b;
+            XYZ[1] = e2;
+            XYZ[2] = z * b;
+            break;
         }
         default:
-            VLRAssert_ShouldNotBeCalled();
+            VLRAssert_NotImplemented();
             break;
         }
 
-        return RGBSpectrum::Zero();
+        float RGB[3];
+        transformToRenderingRGB(spectrumType, XYZ, RGB);
+        return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
 #endif
     }
 
