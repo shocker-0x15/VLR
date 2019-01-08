@@ -187,6 +187,7 @@ namespace VLR {
         };
 
         uint32_t m_nodeIndex;
+        const bool m_isSpectrumNode;
 
         static void commonInitializeProcedure(Context &context, const char** identifiers, uint32_t numIDs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
@@ -198,12 +199,13 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        ShaderNode(Context &context);
+        ShaderNode(Context &context, bool isSpectrumNode = false);
         virtual ~ShaderNode();
 
         virtual ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const = 0;
 
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
+        bool isSpectrumNode() const { return m_isSpectrumNode; }
     };
 
 

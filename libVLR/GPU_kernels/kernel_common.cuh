@@ -283,6 +283,7 @@ namespace VLR {
     // Context-scope Variables
     rtBuffer<NodeProcedureSet, 1> pv_nodeProcedureSetBuffer;
     rtBuffer<NodeDescriptor, 1> pv_nodeDescriptorBuffer;
+    rtBuffer<SpectrumNodeDescriptor, 1> pv_spectrumNodeDescriptorBuffer;
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
@@ -307,9 +308,20 @@ namespace VLR {
         if (socket.isValid()) {
             using ProgSigT = rtCallableProgramId<SampledSpectrum(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
 
-            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
-            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
-            return program(nodeDesc.data, socket.option, surfPt, wls);
+            uint32_t procSetIndex;
+            const uint32_t* data;
+            if (socket.isSpectrumNode) {
+                const SpectrumNodeDescriptor &nodeDesc = pv_spectrumNodeDescriptorBuffer[socket.nodeDescIndex];
+                procSetIndex = nodeDesc.procSetIndex;
+                data = nodeDesc.data;
+            }
+            else {
+                const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
+                procSetIndex = nodeDesc.procSetIndex;
+                data = nodeDesc.data;
+            }
+            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[procSetIndex].progs[socket.socketIndex];
+            return program(data, socket.option, surfPt, wls);
         }
         else {
             return defaultValue.evaluate(wls);

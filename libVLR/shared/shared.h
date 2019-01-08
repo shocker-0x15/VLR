@@ -223,9 +223,10 @@ namespace VLR {
 
         union ShaderNodeSocketID {
             struct {
-                unsigned int nodeDescIndex : 26;
+                unsigned int nodeDescIndex : 25;
                 unsigned int socketIndex : 4;
                 unsigned int option : 2;
+                bool isSpectrumNode : 1;
             };
             uint32_t asUInt;
 
@@ -238,8 +239,24 @@ namespace VLR {
 
         struct NodeDescriptor {
             uint32_t procSetIndex;
-#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (47)
+#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (15)
             uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
+
+            template <typename T>
+            T* getData() const {
+                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return (T*)data;
+            }
+        };
+
+        struct SpectrumNodeDescriptor {
+            uint32_t procSetIndex;
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+#   define VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS (63)
+#else
+#   define VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS (3)
+#endif
+            uint32_t data[VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS];
 
             template <typename T>
             T* getData() const {
@@ -435,13 +452,13 @@ namespace VLR {
         struct RegularSampledSpectrumShaderNode {
             float minLambda;
             float maxLambda;
-            float values[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 3];
+            float values[VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 3];
             uint32_t numSamples;
         };
 
         struct IrregularSampledSpectrumShaderNode {
-            float lambdas[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
-            float values[(VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float lambdas[(VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float values[(VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
             uint32_t numSamples;
         };
 #else

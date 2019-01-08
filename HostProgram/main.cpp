@@ -1021,15 +1021,30 @@ static void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* sho
     //lightNode->addChild(light);
     //shot->scene->addChild(lightNode);
 
-    const float IlluminantD50SpectrumValues[] = {
-        23.942, 26.961, 24.488, 29.871, 49.308, 56.513, 60.034, 57.818, 74.825, 87.247,
-        90.612, 91.368, 95.109, 91.963, 95.724, 96.613, 97.129, 102.099, 100.755, 102.317,
-        100, 97.735, 98.918, 93.499, 97.688, 99.269, 99.042, 95.722, 98.857, 95.667,
-        98.19, 103.003, 99.133, 87.381, 91.604, 92.889, 76.854, 86.511, 92.58, 78.23,
-        57.692, 82.923, 78.274,
-    }; // 360-780[nm]
+    //const float IlluminantD50SpectrumValues[] = {
+    //    23.942, 26.961, 24.488, 29.871, 49.308, 56.513, 60.034, 57.818, 74.825, 87.247,
+    //    90.612, 91.368, 95.109, 91.963, 95.724, 96.613, 97.129, 102.099, 100.755, 102.317,
+    //    100, 97.735, 98.918, 93.499, 97.688, 99.269, 99.042, 95.722, 98.857, 95.667,
+    //    98.19, 103.003, 99.133, 87.381, 91.604, 92.889, 76.854, 86.511, 92.58, 78.23,
+    //    57.692, 82.923, 78.274,
+    //}; // 360-780[nm]
+    //const float* Values = IlluminantD50SpectrumValues;
+    //const float MinLambda = 360;
+    //const float MaxLambda = 780;
+    //const uint32_t NumLambdas = lengthof(IlluminantD50SpectrumValues);
+    const float IlluminantD65SpectrumValues[] = {
+        46.6383, 52.0891, 49.9755, 54.6482, 82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008,
+        117.812, 114.861, 115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
+        100, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886, 83.6992, 80.0268,
+        80.2146, 82.2778, 78.2842, 69.7213, 71.6091, 74.349, 61.604, 69.8856, 75.087, 63.5927,
+        46.4182, 66.8054, 63.3828, 64.304, 59.4519, 51.959, 57.4406, 60.3125,
+    }; // 360-830
+    const float* Values = IlluminantD65SpectrumValues;
+    const float MinLambda = 360;
+    const float MaxLambda = 830;
+    const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
     auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, 360.0f, 780.0f, IlluminantD50SpectrumValues, lengthof(IlluminantD50SpectrumValues));
+    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
     float envScale = 0.02f;
     //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
     //auto spectrum = context->createRegularSampledSpectrumShaderNode();

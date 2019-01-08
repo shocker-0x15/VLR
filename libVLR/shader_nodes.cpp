@@ -422,6 +422,7 @@ namespace VLR {
             ret.nodeDescIndex = node->getShaderNodeIndex();
             ret.socketIndex = socketInfo.outputIndex;
             ret.option = socketInfo.option;
+            ret.isSpectrumNode = node->isSpectrumNode();
             return ret;
         }
         return Shared::ShaderNodeSocketID::Invalid();
@@ -487,13 +488,19 @@ namespace VLR {
         GeometryShaderNode::finalize(context);
     }
 
-    ShaderNode::ShaderNode(Context &context) : Object(context) {
-        m_nodeIndex = m_context.allocateNodeDescriptor();
+    ShaderNode::ShaderNode(Context &context, bool isSpectrumNode) : Object(context), m_isSpectrumNode(isSpectrumNode) {
+        if (m_isSpectrumNode)
+            m_nodeIndex = m_context.allocateSpectrumNodeDescriptor();
+        else
+            m_nodeIndex = m_context.allocateNodeDescriptor();
     }
 
     ShaderNode::~ShaderNode() {
         if (m_nodeIndex != 0xFFFFFFFF)
-            m_context.releaseNodeDescriptor(m_nodeIndex);
+            if (m_isSpectrumNode)
+                m_context.releaseSpectrumNodeDescriptor(m_nodeIndex);
+            else
+                m_context.releaseNodeDescriptor(m_nodeIndex);
         m_nodeIndex = 0xFFFFFFFF;
     }
 
@@ -884,7 +891,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65),
+        ShaderNode(context, true), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -895,12 +902,12 @@ namespace VLR {
     void TripletSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
+        Shared::SpectrumNodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        m_context.updateSpectrumNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     void TripletSpectrumShaderNode::setImmediateValueSpectrumType(VLRSpectrumType spectrumType) {
@@ -942,7 +949,7 @@ namespace VLR {
     }
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_spectrumType(VLRSpectrumType_NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
+        ShaderNode(context, true), m_spectrumType(VLRSpectrumType_NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
         m_values = new float[2];
         m_values[0] = m_values[1] = 1.0f;
         setupNodeDescriptor();
@@ -956,7 +963,7 @@ namespace VLR {
     void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
+        Shared::SpectrumNodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
@@ -974,7 +981,7 @@ namespace VLR {
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
 #endif
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        m_context.updateSpectrumNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     void RegularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
@@ -1011,7 +1018,7 @@ namespace VLR {
     }
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_spectrumType(VLRSpectrumType_NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
+        ShaderNode(context, true), m_spectrumType(VLRSpectrumType_NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
         m_lambdas = new float[2];
         m_values = new float[2];
         m_lambdas[0] = 0.0f;
@@ -1030,7 +1037,7 @@ namespace VLR {
     void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
+        Shared::SpectrumNodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
@@ -1047,7 +1054,7 @@ namespace VLR {
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
 #endif
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        m_context.updateSpectrumNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     void IrregularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
