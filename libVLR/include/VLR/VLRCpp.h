@@ -425,6 +425,9 @@ namespace VLRCpp {
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrImage2DTextureShaderNodeSetFilterMode((VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping));
         }
+        void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
+            errorCheck(vlrImage2DTextureShaderNodeSetWrapMode((VLRImage2DTextureShaderNode)m_raw, x, y));
+        }
         void setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;
             errorCheck(vlrImage2DTextureShaderNodeSetNodeTexCoord((VLRImage2DTextureShaderNode)m_raw, m_nodeTexCoord.getNode(), m_nodeTexCoord.socketInfo));
@@ -451,6 +454,9 @@ namespace VLRCpp {
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));
+        }
+        void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
+            errorCheck(vlrEnvironmentTextureShaderNodeSetWrapMode((VLREnvironmentTextureShaderNode)m_raw, x, y));
         }
         bool setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;

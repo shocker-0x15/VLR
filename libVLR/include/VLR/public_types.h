@@ -59,6 +59,13 @@ enum VLRTextureFilter {
     VLRTextureFilter_None
 };
 
+enum VLRTextureWrapMode {
+    VLRTextureWrapMode_Repeat = 0,
+    VLRTextureWrapMode_ClampToEdge,
+    VLRTextureWrapMode_Mirror,
+    VLRTextureWrapMode_ClampToBorder,
+};
+
 
 
 enum VLRTangentType {

@@ -1262,6 +1262,11 @@ namespace VLR {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
     }
 
+    void Image2DTextureShaderNode::setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
+        m_optixTextureSampler->setWrapMode(0, (RTwrapmode)x);
+        m_optixTextureSampler->setWrapMode(1, (RTwrapmode)y);
+    }
+
     bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
         if (outputSocket.getType() != VLRShaderNodeSocketType_TextureCoordinates)
             return false;
@@ -1331,6 +1336,11 @@ namespace VLR {
 
     void EnvironmentTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
         m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    }
+
+    void EnvironmentTextureShaderNode::setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
+        m_optixTextureSampler->setWrapMode(0, (RTwrapmode)x);
+        m_optixTextureSampler->setWrapMode(1, (RTwrapmode)y);
     }
 
     bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {

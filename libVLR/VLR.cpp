@@ -667,10 +667,19 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNod
 
     return VLR_ERROR_NO_ERROR;
 }
+
 VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setTextureFilterMode(minification, magnification, mipmapping);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetWrapMode(VLRImage2DTextureShaderNode node, VLRTextureWrapMode x, VLRTextureWrapMode y) {
+    if (!node->is<VLR::Image2DTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setTextureWrapMode(x, y);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -712,6 +721,14 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetFilterMode(VLREnvironmentTex
     if (!node->is<VLR::EnvironmentTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setTextureFilterMode(minification, magnification, mipmapping);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetWrapMode(VLREnvironmentTextureShaderNode node, VLRTextureWrapMode x, VLRTextureWrapMode y) {
+    if (!node->is<VLR::EnvironmentTextureShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setTextureWrapMode(x, y);
 
     return VLR_ERROR_NO_ERROR;
 }

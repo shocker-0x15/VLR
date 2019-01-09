@@ -398,7 +398,7 @@ namespace VLR {
         RealType values[NumStrataForStorage];
 
     public:
-        static_assert(NumStrataForStorage == 16, "Code assumes NumStrataForStorage == 4.");
+        static_assert(NumStrataForStorage == 16, "Code assumes NumStrataForStorage == 16.");
         RT_FUNCTION constexpr DiscretizedSpectrumTemplate(RealType v = 0.0f) :
             values{ v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v } {}
         RT_FUNCTION constexpr DiscretizedSpectrumTemplate(const RealType* vals) : 

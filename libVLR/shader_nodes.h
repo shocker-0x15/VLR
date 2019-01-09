@@ -629,6 +629,7 @@ namespace VLR {
 
         void setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
     };
 
@@ -664,6 +665,7 @@ namespace VLR {
 
         void setImage(VLRColorSpace colorSpace, const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y);
         bool setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket);
 
         void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;
