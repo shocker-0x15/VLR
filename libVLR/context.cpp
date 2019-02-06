@@ -80,6 +80,12 @@ namespace VLR {
     uint32_t Context::NextID = 0;
 
     Context::Context(bool logging, uint32_t stackSize) {
+        const int32_t EnableRTX = 1;
+        if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(int32_t), &EnableRTX) == RT_SUCCESS)
+            vlrprintf("RTX ON\n");
+        else
+            vlrprintf("RTX Not Available\n");
+
         vlrprintf("Start initializing VLR ...");
 
         initializeColorSystem();
