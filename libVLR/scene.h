@@ -235,7 +235,6 @@ namespace VLR {
 
 
 
-#define VLR_USE_GEOMETRY_TRIANGLES
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
 #if defined(VLR_USE_GEOMETRY_TRIANGLES)

@@ -4,6 +4,10 @@
 
 #define VLR_ENABLE_VALIDATION
 #define VLR_ENABLE_TIMEOUT_CALLBACK
+//#define VLR_USE_RTX_FEATURES
+#if defined(VLR_USE_RTX_FEATURES)
+#   define VLR_USE_GEOMETRY_TRIANGLES
+#endif
 
 #define VLR_Color_System_CIE_1931_2deg  0
 #define VLR_Color_System_CIE_1964_10deg 1

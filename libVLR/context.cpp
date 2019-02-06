@@ -80,11 +80,15 @@ namespace VLR {
     uint32_t Context::NextID = 0;
 
     Context::Context(bool logging, uint32_t stackSize) {
-        const int32_t EnableRTX = 1;
-        if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(int32_t), &EnableRTX) == RT_SUCCESS)
-            vlrprintf("RTX ON\n");
+#if defined(VLR_USE_RTX_FEATURES)
+        const int32_t RTXEnabled = 1;
+#else
+        const int32_t RTXEnabled = 0;
+#endif
+        if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(RTXEnabled), &RTXEnabled) == RT_SUCCESS)
+            vlrprintf("RTX %s\n", RTXEnabled ? "ON" : "OFF");
         else
-            vlrprintf("RTX Not Available\n");
+            vlrprintf("failed to set the global attribute RT_GLOBAL_ATTRIBUTE_ENABLE_RTX.\n");
 
         vlrprintf("Start initializing VLR ...");
 
