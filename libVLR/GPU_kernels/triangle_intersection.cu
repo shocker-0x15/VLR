@@ -51,6 +51,14 @@ namespace VLR {
         bbox->unify(p2);
     }
 
+    // Attribute Program (for GeometryTriangles)
+    RT_PROGRAM void calcAttributeForTriangle() {
+        optix::float2 bc = rtGetTriangleBarycentrics();
+        a_hitPointParam.b0 = 1 - bc.x - bc.y;
+        a_hitPointParam.b1 = bc.x;
+        a_hitPointParam.primIndex = rtGetPrimitiveIndex();
+    }
+
 
 
     // bound

@@ -43,12 +43,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -66,11 +66,14 @@
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64" to "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optix.51.dll" "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optixu.1.dll" "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\cudart64_90.dll" "$(OutDir)"
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optixu.6.0.0.dll" "$(OutDir)"
+
 echo copy assimp dll
+
 copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -92,11 +95,14 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
       <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64" to "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optix.51.dll" "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\optixu.1.dll" "$(OutDir)"
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\bin64\cudart64_90.dll" "$(OutDir)"
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optixu.6.0.0.dll" "$(OutDir)"
+
 echo copy assimp dll
+
 copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

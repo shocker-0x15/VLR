@@ -401,8 +401,12 @@ namespace VLR {
 
         optix::Context optixContext = context.getOptiXContext();
 
+#if defined(VLR_USE_GEOMETRY_TRIANGLES)
+        programSet.programCalcAttributeForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::calcAttributeForTriangle");
+#else
         programSet.programIntersectTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::intersectTriangle");
         programSet.programCalcBBoxForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::calcBBoxForTriangle");
+#endif
 
         programSet.callableProgramDecodeHitPointForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::decodeHitPointForTriangle");
         programSet.callableProgramDecodeTexCoordForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::decodeTexCoordForTriangle");
@@ -421,8 +425,12 @@ namespace VLR {
         programSet.callableProgramDecodeTexCoordForTriangle->destroy();
         programSet.callableProgramDecodeHitPointForTriangle->destroy();
 
+#if defined(VLR_USE_GEOMETRY_TRIANGLES)
+        programSet.programCalcAttributeForTriangle->destroy();
+#else
         programSet.programCalcBBoxForTriangle->destroy();
         programSet.programIntersectTriangle->destroy();
+#endif
 
         OptiXProgramSets.erase(context.getID());
     }
@@ -490,10 +498,14 @@ namespace VLR {
             geom.indices = std::move(indices);
             uint32_t numTriangles = (uint32_t)geom.indices.size() / 3;
 
+#if defined(VLR_USE_GEOMETRY_TRIANGLES)
+            geom.optixGeometry = optixContext->createGeometryTriangles();
+            geom.optixGeometry->setAttributeProgram(progSet.programCalcAttributeForTriangle);
+#else
             geom.optixGeometry = optixContext->createGeometry();
-            geom.optixGeometry->setPrimitiveCount(numTriangles);
             geom.optixGeometry->setIntersectionProgram(progSet.programIntersectTriangle);
             geom.optixGeometry->setBoundingBoxProgram(progSet.programCalcBBoxForTriangle);
+#endif
 
             geom.optixIndexBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, numTriangles);
             geom.optixIndexBuffer->setElementSize(sizeof(Shared::Triangle));
@@ -515,6 +527,14 @@ namespace VLR {
                 }
                 geom.optixIndexBuffer->unmap();
             }
+
+            geom.optixGeometry->setPrimitiveCount(numTriangles);
+#if defined(VLR_USE_GEOMETRY_TRIANGLES)
+            // TODO: share the same index buffer with different offsets.
+            geom.optixGeometry->setTriangleIndices(geom.optixIndexBuffer, 0, sizeof(Shared::Triangle), RT_FORMAT_UNSIGNED_INT3);
+            geom.optixGeometry->setVertices(m_vertices.size(), m_optixVertexBuffer, 0, sizeof(Vertex), RT_FORMAT_FLOAT3);
+            geom.optixGeometry->setBuildFlags(RTgeometrybuildflags(0));
+#endif
 
             if (material->isEmitting())
                 geom.primDist.initialize(m_context, areas.data(), areas.size());
@@ -553,7 +573,11 @@ namespace VLR {
         SHGeometryInstance* geomInst = new SHGeometryInstance(m_context, lightDesc);
         {
             optix::GeometryInstance optixGeomInst = geomInst->getOptiXObject();
+#if defined(VLR_USE_GEOMETRY_TRIANGLES)
+            optixGeomInst->setGeometryTriangles(geom.optixGeometry);
+#else
             optixGeomInst->setGeometry(geom.optixGeometry);
+#endif
             optixGeomInst->setMaterialCount(1);
 
             optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);

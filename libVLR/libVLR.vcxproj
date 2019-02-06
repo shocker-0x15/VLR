@@ -44,11 +44,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -78,7 +78,7 @@
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
     </CudaCompile>
     <Link>
-      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optixu.1.lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optix.51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optixu.6.0.0.lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
@@ -99,7 +99,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optixu.1.lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 5.1.0\lib64\optix.51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optixu.6.0.0.lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <CompileOut>$(SolutionDir)HostProgram\resources\ptxes\%(Filename).ptx</CompileOut>
