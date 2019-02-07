@@ -237,12 +237,9 @@ namespace VLR {
 
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-#if defined(VLR_USE_GEOMETRY_TRIANGLES)
             optix::Program programCalcAttributeForTriangle; // Attribute Program
-#else
             optix::Program programIntersectTriangle; // Intersection Program
             optix::Program programCalcBBoxForTriangle; // Bounding Box Program
-#endif
             optix::Program callableProgramDecodeHitPointForTriangle;
             optix::Program callableProgramDecodeTexCoordForTriangle;
             optix::Program callableProgramSampleTriangleMesh;
@@ -253,11 +250,8 @@ namespace VLR {
         struct OptiXGeometry {
             std::vector<uint32_t> indices;
             optix::Buffer optixIndexBuffer;
-#if defined(VLR_USE_GEOMETRY_TRIANGLES)
-            optix::GeometryTriangles optixGeometry;
-#else
+            optix::GeometryTriangles optixGeometryTriangles;
             optix::Geometry optixGeometry;
-#endif
             DiscreteDistribution1D primDist;
         };
 

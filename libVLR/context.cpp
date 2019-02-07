@@ -79,12 +79,24 @@ namespace VLR {
 
     uint32_t Context::NextID = 0;
 
-    Context::Context(bool logging, uint32_t stackSize) {
-#if defined(VLR_USE_RTX_FEATURES)
-        const int32_t RTXEnabled = 1;
-#else
-        const int32_t RTXEnabled = 0;
-#endif
+    Context::Context(bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+        // JP: 使用するすべてのGPUがRTXをサポートしている(= Maxwell世代以降のGPU)か調べる。
+        // EN: check if all the GPUs to use support RTX (i.e. Maxwell or later generation GPU).
+        m_RTXEnabled = true;
+        for (int i = 0; i < numDevices; ++i) {
+            int32_t computeCapability[2];
+            rtDeviceGetAttribute(devices[i], RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability);
+            m_RTXEnabled &= computeCapability[0] >= 5;
+            if (!m_RTXEnabled)
+                break;
+        }
+        if (devices == nullptr || numDevices == 0) {
+            int32_t computeCapability[2];
+            rtDeviceGetAttribute(0, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability);
+            m_RTXEnabled &= computeCapability[0] >= 5;
+        }
+
+        int32_t RTXEnabled = m_RTXEnabled;
         if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(RTXEnabled), &RTXEnabled) == RT_SUCCESS)
             vlrprintf("RTX %s\n", RTXEnabled ? "ON" : "OFF");
         else
@@ -362,10 +374,6 @@ namespace VLR {
         m_optixProgramShadowAnyHitDefault->destroy();
 
         m_optixContext->destroy();
-    }
-
-    void Context::setDevices(const int32_t* devices, uint32_t numDevices) {
-        m_optixContext->setDevices(devices, devices + numDevices);
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {

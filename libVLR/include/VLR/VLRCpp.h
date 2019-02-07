@@ -1107,15 +1107,15 @@ namespace VLRCpp {
 
         Context() {}
 
-        void initialize(bool logging, uint32_t stackSize) {
-            errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize));
+        void initialize(bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+            errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize, devices, numDevices));
             m_geomShaderNode = std::make_shared<GeometryShaderNodeHolder>(shared_from_this());
         }
 
     public:
-        static ContextRef create(bool logging, uint32_t stackSize) {
+        static ContextRef create(bool logging, uint32_t stackSize, const int32_t* devices = nullptr, uint32_t numDevices = 0) {
             auto ret = std::shared_ptr<Context>(new Context());
-            ret->initialize(logging, stackSize);
+            ret->initialize(logging, stackSize, devices, numDevices);
             return ret;
         }
 
@@ -1125,10 +1125,6 @@ namespace VLRCpp {
 
         VLRContext get() const {
             return m_rawContext;
-        }
-
-        void setDevices(const int32_t* devices, uint32_t numDevices) const {
-            errorCheck(vlrContextSetDevices(m_rawContext, devices, numDevices));
         }
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {

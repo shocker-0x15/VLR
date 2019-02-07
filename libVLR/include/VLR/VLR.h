@@ -65,8 +65,7 @@ extern "C" {
 
     VLR_API const char* vlrGetErrorMessage(VLRResult code);
 
-    VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize);
-    VLR_API VLRResult vlrContextSetDevices(VLRContext context, const int32_t* devices, uint32_t numDevices);
+    VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
 
     VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);

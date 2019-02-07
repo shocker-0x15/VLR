@@ -136,14 +136,8 @@ VLR_API const char* vlrGetErrorMessage(VLRResult code) {
 
 
 
-VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize) {
-    *context = new VLR::Context(logging, stackSize);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrContextSetDevices(VLRContext context, const int32_t* devices, uint32_t numDevices) {
-    context->setDevices(devices, numDevices);
+VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+    *context = new VLR::Context(logging, stackSize, devices, numDevices);
 
     return VLR_ERROR_NO_ERROR;
 }
