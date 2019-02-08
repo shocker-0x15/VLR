@@ -455,19 +455,20 @@ namespace VLR {
     void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         optix::Context optixContext = getOptiXContext();
 
-        scene.set();
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
-        optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+        if (firstFrame) {
+            scene.set();
+            camera->set();
 
-        if (firstFrame)
+            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+
             m_numAccumFrames = 0;
+        }
+
         ++m_numAccumFrames;
         *numAccumFrames = m_numAccumFrames;
-
         //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
         optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
-
-        camera->set();
 
 #if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
         optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
