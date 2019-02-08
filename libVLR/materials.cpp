@@ -965,18 +965,12 @@ namespace VLR {
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         auto &mat = *matDesc.getData<Shared::EnvironmentEmitterSurfaceMaterial>();
-        Shared::ShaderNodeSocketID nodeIndexEmittance = Shared::ShaderNodeSocketID::Invalid();
-        if (m_nodeEmittanceTextured) {
-            nodeIndexEmittance.nodeDescIndex = m_nodeEmittanceTextured->getShaderNodeIndex();
-            nodeIndexEmittance.socketIndex = 0;
-            nodeIndexEmittance.option = 0;
-        }
-        else if (m_nodeEmittanceConstant) {
-            nodeIndexEmittance.nodeDescIndex = m_nodeEmittanceConstant->getShaderNodeIndex();
-            nodeIndexEmittance.socketIndex = 0;
-            nodeIndexEmittance.option = 0;
-        }
-        mat.nodeEmittance = nodeIndexEmittance;
+        VLR::ShaderNodeSocketIdentifier socket;
+        if (m_nodeEmittanceTextured)
+            socket = m_nodeEmittanceTextured->getSocket(VLRShaderNodeSocketType_Spectrum, 0);
+        else if (m_nodeEmittanceConstant)
+            socket = m_nodeEmittanceConstant->getSocket(VLRShaderNodeSocketType_Spectrum, 0);
+        mat.nodeEmittance = socket.getSharedType();
         mat.immEmittance = m_immEmittance;
         mat.immScale = m_immScale;
 

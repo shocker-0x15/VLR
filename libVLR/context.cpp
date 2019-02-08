@@ -305,8 +305,8 @@ namespace VLR {
         RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
         vlrprintf("Stack Size: %u\n", actuallyUsedStackSize);
 
-        m_optixContext->setMaxTraceDepth(2);
-        m_optixContext->setMaxCallableProgramDepth(8);
+        //m_optixContext->setMaxTraceDepth(2);
+        //m_optixContext->setMaxCallableProgramDepth(8);
     }
 
     Context::~Context() {

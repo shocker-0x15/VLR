@@ -226,7 +226,8 @@ namespace VLR {
                 unsigned int nodeDescIndex : 25;
                 unsigned int socketIndex : 4;
                 unsigned int option : 2;
-                bool isSpectrumNode : 1;
+                //bool isSpectrumNode : 1; // using bool leads the size of this struct to be 8 in MSVC (bug??).
+                unsigned int isSpectrumNode : 1;
             };
             uint32_t asUInt;
 
@@ -236,6 +237,7 @@ namespace VLR {
 
             static constexpr ShaderNodeSocketID Invalid() { return ShaderNodeSocketID(0xFFFFFFFF); }
         };
+        static_assert(sizeof(ShaderNodeSocketID) == 4, "Unexpected Size");
 
         struct NodeDescriptor {
             uint32_t procSetIndex;

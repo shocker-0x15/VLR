@@ -8,7 +8,8 @@ namespace VLR {
         RealType lambdas[NumSpectralSamples];
         struct {
             unsigned int _selectedLambdaIndex : 16;
-            bool _singleIsSelected : 1;
+            //bool _singleIsSelected : 1;
+            unsigned int _singleIsSelected : 1;
         };
 
         RT_FUNCTION WavelengthSamplesTemplate() {}

@@ -1132,17 +1132,16 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         }
     }
 
-    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, stackSize);
-
     int32_t primaryDevice = 0;
+    std::vector<int32_t> deviceArray;
     if (!devices.empty()) {
-        std::vector<int32_t> deviceArray;
         for (auto it = devices.cbegin(); it != devices.cend(); ++it)
             deviceArray.push_back(*it);
-        context->setDevices(deviceArray.data(), deviceArray.size());
 
         primaryDevice = deviceArray.front();
     }
+
+    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, stackSize, deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
 
     char deviceName[128];
     vlrGetDeviceName(primaryDevice, deviceName, lengthof(deviceName));

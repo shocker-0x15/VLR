@@ -534,12 +534,15 @@ namespace VLR {
                 geom.optixIndexBuffer->unmap();
             }
 
-            geom.optixGeometry->setPrimitiveCount(numTriangles);
             if (m_context.RTXEnabled()) {
+                geom.optixGeometryTriangles->setPrimitiveCount(numTriangles);
                 // TODO: share the same index buffer with different offsets.
                 geom.optixGeometryTriangles->setTriangleIndices(geom.optixIndexBuffer, 0, sizeof(Shared::Triangle), RT_FORMAT_UNSIGNED_INT3);
                 geom.optixGeometryTriangles->setVertices(m_vertices.size(), m_optixVertexBuffer, 0, sizeof(Vertex), RT_FORMAT_FLOAT3);
                 geom.optixGeometryTriangles->setBuildFlags(RTgeometrybuildflags(0));
+            }
+            else {
+                geom.optixGeometry->setPrimitiveCount(numTriangles);
             }
 
             if (material->isEmitting())
