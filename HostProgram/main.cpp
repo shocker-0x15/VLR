@@ -1695,7 +1695,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
 
                 bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || outputBufferSizeChanged || cameraSettingsChanged;
-                firstFrame = g_frameIndex == 0;
+                if (g_frameIndex == 0)
+                    firstFrame = true;
                 if (firstFrame)
                     accumFrameTimes = 0;
                 else
