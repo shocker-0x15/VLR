@@ -183,6 +183,21 @@ namespace VLR {
                 auto geometryInstance = (RTgeometryinstance)object;
                 vlrprintf("GeometryInstance\n");
 
+                RTgeometry geometry = nullptr;
+                RTgeometrytriangles geometryTriangles = nullptr;
+                rtGeometryInstanceGetGeometry(geometryInstance, &geometry);
+                rtGeometryInstanceGetGeometryTriangles(geometryInstance, &geometryTriangles);
+                VLRAssert((geometry != nullptr) ^ (geometryTriangles != nullptr), "Only one Geometry or GeometryTriangles node can be attached to a GeometryInstance at once.");
+                uint32_t numPrims;
+                if (geometry) {
+                    rtGeometryGetPrimitiveCount(geometry, &numPrims);
+                    vlrprintf("- Geometry 0x%p: %u [primitives]\n", geometry, numPrims);
+                }
+                if (geometryTriangles) {
+                    rtGeometryTrianglesGetPrimitiveCount(geometryTriangles, &numPrims);
+                    vlrprintf("- GeometryTriangles 0x%p: %u [primitives]\n", geometryTriangles, numPrims);
+                }
+
                 geometryInstanceList.insert(geometryInstance);
 
                 break;

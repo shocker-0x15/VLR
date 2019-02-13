@@ -79,23 +79,39 @@ namespace VLR {
 
     uint32_t Context::NextID = 0;
 
+    static void checkError(RTresult code) {
+        if (code != RT_SUCCESS && code != RT_TIMEOUT_CALLBACK)
+            throw optix::Exception::makeException(code, 0);
+    }
+
     Context::Context(bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
         // JP: 使用するすべてのGPUがRTXをサポートしている(= Maxwell世代以降のGPU)か調べる。
         // EN: check if all the GPUs to use support RTX (i.e. Maxwell or later generation GPU).
-        m_RTXEnabled = true;
+        bool satisfyRequirements = true;
+        const int32_t* deviceIndices = devices;
+        if (devices == nullptr || numDevices == 0) {
+            rtDeviceGetDeviceCount(&numDevices);
+            auto _devices = new int32_t[numDevices];
+            for (int i = 0; i < numDevices; ++i)
+                _devices[i] = i;
+            deviceIndices = _devices;
+        }
         for (int i = 0; i < numDevices; ++i) {
             int32_t computeCapability[2];
-            rtDeviceGetAttribute(devices[i], RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability);
-            m_RTXEnabled &= computeCapability[0] >= 5;
-            if (!m_RTXEnabled)
+            checkError(rtDeviceGetAttribute(deviceIndices[i], RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability));
+            satisfyRequirements &= computeCapability[0] >= 5;
+            if (!satisfyRequirements)
                 break;
         }
-        if (devices == nullptr || numDevices == 0) {
-            int32_t computeCapability[2];
-            rtDeviceGetAttribute(0, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability);
-            m_RTXEnabled &= computeCapability[0] >= 5;
+        if (devices == nullptr || numDevices == 0)
+            delete[] deviceIndices;
+        if (!satisfyRequirements) {
+            vlrprintf("Selected devices don't satisfy compute capability 5.0.\n");
+            checkError(RT_ERROR_INVALID_CONTEXT);
+            return;
         }
 
+        m_RTXEnabled = true;
         int32_t RTXEnabled = m_RTXEnabled;
         if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(RTXEnabled), &RTXEnabled) == RT_SUCCESS)
             vlrprintf("RTX %s\n", RTXEnabled ? "ON" : "OFF");
