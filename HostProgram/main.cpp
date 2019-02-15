@@ -1489,7 +1489,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     cameraSettingsChanged |= ImGui::Combo("Camera Type", &g_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
 
                     if (g_cameraType == 0) {
-                        cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &g_fovYInDeg, 1, 179, "%.3f", 1.0f);
+                        cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &g_fovYInDeg, 1, 179, "%.3f", 2.0f);
                         cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &g_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
                         cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &g_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
 
