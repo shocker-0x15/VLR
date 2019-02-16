@@ -3,7 +3,7 @@
 namespace VLR {
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
-        std::string ptx = readTxtFile("resources/ptxes/materials.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"materials.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
 

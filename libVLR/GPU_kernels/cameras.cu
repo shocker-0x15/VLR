@@ -69,7 +69,7 @@ namespace VLR {
     // per Context
     rtDeclareVariable(EquirectangularCamera, pv_equirectangularCamera, , );
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleLensPosition(const LensPosSample &sample, LensPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleLensPosition(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
         Matrix3x3 rotMat = pv_equirectangularCamera.orientation.toMatrix3x3();
 
         Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
@@ -98,7 +98,7 @@ namespace VLR {
         return SampledSpectrum(pv_equirectangularCamera.sensitivity);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const IDFSample &sample, IDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
         float phi = pv_equirectangularCamera.phiAngle * (sample.uDir[0] - 0.5f);
         float theta = 0.5f * M_PIf + pv_equirectangularCamera.thetaAngle * (sample.uDir[1] - 0.5f);
         result->dirLocal = Vector3D::fromPolarYUp(phi, theta);

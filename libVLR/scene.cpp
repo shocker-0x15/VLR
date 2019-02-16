@@ -410,7 +410,7 @@ namespace VLR {
 
     // static
     void TriangleMeshSurfaceNode::initialize(Context &context) {
-        std::string ptx = readTxtFile("resources/ptxes/triangle_intersection.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"triangle_intersection.ptx");
 
         OptiXProgramSet programSet;
 
@@ -649,7 +649,7 @@ namespace VLR {
 
     // static
     void InfiniteSphereSurfaceNode::initialize(Context &context) {
-        std::string ptx = readTxtFile("resources/ptxes/infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"infinite_sphere_intersection.ptx");
 
         OptiXProgramSet programSet;
 
@@ -1339,7 +1339,7 @@ namespace VLR {
 
     Scene::Scene(Context &context, const Transform* localToWorld) : 
     Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr) {
-        std::string ptx = readTxtFile("resources/ptxes/infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"infinite_sphere_intersection.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
 
@@ -1391,7 +1391,7 @@ namespace VLR {
 
     // static
     void PerspectiveCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile("resources/ptxes/cameras.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"cameras.ptx");
 
         OptiXProgramSet programSet;
 
@@ -1435,7 +1435,7 @@ namespace VLR {
 
     // static
     void EquirectangularCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile("resources/ptxes/cameras.ptx");
+        std::string ptx = readTxtFile(VLR_PTX_DIR"cameras.ptx");
 
         OptiXProgramSet programSet;
 

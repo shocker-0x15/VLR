@@ -821,74 +821,116 @@ static void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* sho
 
 
 
-    //construct(context, "../../assets/spman2/spman2.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-    //    using namespace VLRCpp;
-    //    using namespace VLR;
+ //   construct(context, "../../assets/spman2/spman2.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+ //       using namespace VLRCpp;
+ //       using namespace VLR;
 
-    //    aiReturn ret;
-    //    (void)ret;
-    //    aiString strValue;
-    //    float color[3];
+ //       aiReturn ret;
+ //       (void)ret;
+ //       aiString strValue;
+ //       float color[3];
 
-    //    aiMat->Get(AI_MATKEY_NAME, strValue);
+ //       aiMat->Get(AI_MATKEY_NAME, strValue);
 
-    //    SurfaceMaterialRef mat;
-    //    ShaderNodeSocket socketNormal;
-    //    ShaderNodeSocket socketAlpha;
-    //    if (strcmp(strValue.C_Str(), "_Head1") == 0) {
-    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
-    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
-    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
+ //       SurfaceMaterialRef mat;
+ //       ShaderNodeSocket socketNormal;
+ //       ShaderNodeSocket socketAlpha;
+ //       if (strcmp(strValue.C_Str(), "_Head1") == 0) {
+ //           Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+ //           nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
+ //           Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+ //           nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
+ //           Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+ //           nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
 
-    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+ //           UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+ //           ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+ //           ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
-    //        mat = ue4Mat;
-    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
-    //    }
-    //    else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
-    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
-    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
-    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+ //           mat = ue4Mat;
+ //           socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+ //       }
+ //       else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
+ //           Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+ //           nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
+ //           Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+ //           nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
+ //           Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+ //           nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
 
-    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+ //           UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+ //           ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+ //           ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
-    //        mat = ue4Mat;
-    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
-    //    }
-    //    else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
-    //        Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-    //        nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
-    //        Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-    //        nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
-    //        Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-    //        nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
+ //           mat = ue4Mat;
+ //           socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+ //       }
+ //       else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
+ //           Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
+ //           nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
+ //           Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
+ //           nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
+ //           Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
+ //           nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
 
-    //        UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-    //        ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-    //        ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+ //           UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
+ //           ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+ //           ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
-    //        mat = ue4Mat;
-    //        socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
-    //    }
+ //           mat = ue4Mat;
+ //           socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+ //       }
 
-    //    return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
-    //}, [](const aiMesh* mesh) {
-    //    if (std::strcmp(mesh->mName.C_Str(), "base_base") == 0)
-    //        return MeshAttributeTuple(true, VLRTangentType_RadialY);
-    //    return MeshAttributeTuple(true, VLRTangentType_TC0Direction);
-    //});
-    //shot->scene->addChild(modelNode);
-    //modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
+ //       return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+ //   }, [](const aiMesh* mesh) {
+ //       if (std::strcmp(mesh->mName.C_Str(), "base_base") == 0)
+ //           return MeshAttributeTuple(true, VLRTangentType_RadialY);
+ //       return MeshAttributeTuple(true, VLRTangentType_TC0Direction);
+ //   });
+ //   shot->scene->addChild(modelNode);
+ //   modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
+
+
+
+	//construct(context, "resources/sphere/sphere.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+	//	using namespace VLRCpp;
+	//	using namespace VLR;
+
+	//	SpecularReflectionSurfaceMaterialRef mat = context->createSpecularReflectionSurfaceMaterial();
+	//	mat->setImmediateValueCoeffR(VLRColorSpace_Rec709_D65_sRGBGamma, 0.999f, 0.999f, 0.999f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.27579f, 0.940922f, 0.574879f); // Aluminum
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 7.30257f, 6.33458f, 5.16694f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 0.237698f, 0.734847f, 1.37062f); // Copper
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.44233f, 2.55751f, 2.23429f);
+	//	mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.12481f, 0.468228f, 1.44476f); // Gold
+	//	mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.32107f, 2.23761f, 1.69196f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.91705f, 2.92092f, 2.53253f); // Iron
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.06696f, 2.93804f, 2.7429f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.9566f, 1.82777f, 1.46089f); // Lead
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.49593f, 3.38158f, 3.17737f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 1.99144f, 1.5186f, 1.00058f); // Mercury
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 5.25161f, 4.6095f, 3.7646f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.32528f, 2.06722f, 1.81479f); // Platinum
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 4.19238f, 3.67941f, 3.06551f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 0.157099f, 0.144013f, 0.134847f); // Silver
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.82431f, 3.1451f, 2.27711f);
+	//	//mat->setImmediateValueEta(VLRColorSpace_Rec709, 2.71866f, 2.50954f, 2.22767f); // Titanium
+	//	//mat->setImmediateValue_k(VLRColorSpace_Rec709, 3.79521f, 3.40035f, 3.00114f);
+
+	//	//SpecularScatteringSurfaceMaterialRef mat = context->createSpecularScatteringSurfaceMaterial();
+	//	//mat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
+	//	//mat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
+	//	//mat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
+	//	////mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.33161f, 1.33331f, 1.33799f); // Water
+	//	////mat->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
+
+	//	//SurfaceMaterialRef mats[] = { matA, matB };
+	//	//SurfaceMaterialRef mat = context->createMultiSurfaceMaterial(mats, lengthof(mats));
+
+	//	return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+	//});
+	//shot->scene->addChild(modelNode);
+	//modelNode->setTransform(context->createStaticTransform(translate<float>(-2.0f, 0.0f, 2.0f) * scale(1.0f) * translate<float>(0.0f, 1.0f, 0.0f)));
 
 
 

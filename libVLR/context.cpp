@@ -130,7 +130,7 @@ namespace VLR {
         m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
 
         {
-            std::string ptx = readTxtFile("resources/ptxes/path_tracing.ptx");
+            std::string ptx = readTxtFile(VLR_PTX_DIR"path_tracing.ptx");
 
             m_optixProgramShadowAnyHitDefault = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitDefault");
             m_optixProgramAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::anyHitWithAlpha");
@@ -145,7 +145,7 @@ namespace VLR {
         m_optixContext->setExceptionProgram(0, m_optixProgramException);
 
         {
-            std::string ptx = readTxtFile("resources/ptxes/convert_to_rgb.ptx");
+            std::string ptx = readTxtFile(VLR_PTX_DIR"convert_to_rgb.ptx");
             m_optixProgramConvertToRGB = m_optixContext->createProgramFromPTXString(ptx, "VLR::convertToRGB");
         }
         m_optixContext->setRayGenerationProgram(1, m_optixProgramConvertToRGB);
@@ -236,7 +236,7 @@ namespace VLR {
         m_optixContext["VLR::pv_edfProcedureSetBuffer"]->set(m_optixEDFProcedureSetBuffer);
 
         {
-            std::string ptx = readTxtFile("resources/ptxes/materials.ptx");
+            std::string ptx = readTxtFile(VLR_PTX_DIR"materials.ptx");
 
             m_optixCallableProgramNullBSDF_setupBSDF = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_setupBSDF");
             m_optixCallableProgramNullBSDF_getBaseColor = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_getBaseColor");
@@ -321,8 +321,8 @@ namespace VLR {
         RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
         vlrprintf("Stack Size: %u\n", actuallyUsedStackSize);
 
-        //m_optixContext->setMaxTraceDepth(2);
-        //m_optixContext->setMaxCallableProgramDepth(8);
+        m_optixContext->setMaxTraceDepth(2);
+        m_optixContext->setMaxCallableProgramDepth(8);
     }
 
     Context::~Context() {

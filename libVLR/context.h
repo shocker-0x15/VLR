@@ -5,6 +5,12 @@
 
 #include "slot_manager.h"
 
+#if defined(DEBUG)
+#   define VLR_PTX_DIR "resources/ptxes/Debug/"
+#else
+#   define VLR_PTX_DIR "resources/ptxes/Release/"
+#endif
+
 namespace VLR {
     std::string readTxtFile(const std::string& filepath);
 
