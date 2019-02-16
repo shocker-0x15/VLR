@@ -1,4 +1,4 @@
-#include "shader_nodes.h"
+﻿#include "shader_nodes.h"
 
 namespace VLR {
     const size_t sizesOfDataFormats[(uint32_t)NumVLRDataFormats] = {

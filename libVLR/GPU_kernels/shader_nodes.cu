@@ -1,4 +1,4 @@
-#include "kernel_common.cuh"
+﻿#include "kernel_common.cuh"
 
 namespace VLR {
     RT_CALLABLE_PROGRAM Point3D GeometryShaderNode_Point3D(const uint32_t* rawNodeData, uint32_t option,

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "common.h"
 
@@ -91,7 +91,7 @@ inline void* VLR_memalign(size_t size, size_t alignment) {
 
 
 // ----------------------------------------------------------------
-// JP: ‚æ‚­g—p‚³‚ê‚éŠî‘b“I‚ÈŠÖ”‚Ì’è‹`B
+// JP: ã‚ˆãä½¿ç”¨ã•ã‚Œã‚‹åŸºç¤çš„ãªé–¢æ•°ã®å®šç¾©ã€‚
 // EN: define fundamental functions often used.
 
 namespace VLR {

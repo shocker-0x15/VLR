@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../include/VLR/public_types.h"
 #include "common_internal.h"

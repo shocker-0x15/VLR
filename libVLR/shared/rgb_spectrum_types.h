@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "spectrum_base.h"
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../shared/basic_types_internal.h"
 

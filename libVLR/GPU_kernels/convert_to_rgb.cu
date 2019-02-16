@@ -1,4 +1,4 @@
-#include "../shared/shared.h"
+﻿#include "../shared/shared.h"
 
 namespace VLR {
     rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );

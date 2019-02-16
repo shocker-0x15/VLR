@@ -1,4 +1,4 @@
-//#include "light_transport_common.cuh"
+ï»¿//#include "light_transport_common.cuh"
 //
 //namespace VLR {
 //    struct DebugRenderingPayload {
@@ -94,9 +94,9 @@
 //
 //
 //
-//    // JP: –{“–‚Í–³ŒÀ‘å‚Ì‹…‚ÌIntersection/Bounding Box Program‚ğg—p‚µ‚ÄŠÂ‹«Œõ‚ÉŠÖ‚·‚éˆ—‚àClosest Hit Program‚Å“ˆê“I‚És‚¢‚½‚¢B
-//    //     ‚ªAOptiX‚ÌBVHƒrƒ‹ƒ_[‚ªLBVHƒx[ƒX‚È‚Ì‚Å–³ŒÀ‘å‚ÌAABB‚ğ¶¬‚·‚é‚Ì‚ÍŠëŒ¯B
-//    //     d•û‚È‚­Miss Program‚ÅŠÂ‹«Œõ‚ğˆ—‚·‚éB
+//    // JP: æœ¬å½“ã¯ç„¡é™å¤§ã®çƒã®Intersection/Bounding Box Programã‚’ä½¿ç”¨ã—ã¦ç’°å¢ƒå…‰ã«é–¢ã™ã‚‹å‡¦ç†ã‚‚Closest Hit Programã§çµ±ä¸€çš„ã«è¡Œã„ãŸã„ã€‚
+//    //     ãŒã€OptiXã®BVHãƒ“ãƒ«ãƒ€ãƒ¼ãŒLBVHãƒ™ãƒ¼ã‚¹ãªã®ã§ç„¡é™å¤§ã®AABBã‚’ç”Ÿæˆã™ã‚‹ã®ã¯å±é™ºã€‚
+//    //     ä»•æ–¹ãªãMiss Programã§ç’°å¢ƒå…‰ã‚’å‡¦ç†ã™ã‚‹ã€‚
 //    RT_PROGRAM void debugRenderingMiss() {
 //        if (pv_envLightDescriptor.importance == 0)
 //            return;

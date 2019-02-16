@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <optix_world.h>
 #include "common_internal.h"

@@ -1,4 +1,4 @@
-#include "spectrum_base.h"
+﻿#include "spectrum_base.h"
 #include "rgb_spectrum_types.h"
 #include "spectrum_types.h"
 

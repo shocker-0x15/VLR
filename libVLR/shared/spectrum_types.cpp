@@ -1,4 +1,4 @@
-#include "spectrum_types.h"
+﻿#include "spectrum_types.h"
 
 namespace VLR {
 #if defined(VLR_Device)

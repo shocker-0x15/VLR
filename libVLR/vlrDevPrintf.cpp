@@ -1,4 +1,4 @@
-#include "common.h"
+﻿#include "common.h"
 
 #if defined(VLR_Platform_Windows_MSVC)
 VLR_API void vlrDevPrintf(const char* fmt, ...) {
