@@ -215,6 +215,7 @@ namespace VLR {
     }
 
     RT_FUNCTION float evaluateEnvironmentAreaPDF(float phi, float theta) {
+		VLRAssert(std::isfinite(phi) && std::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
         float uvPDF = pv_envLightDescriptor.body.asEnvironmentLight.importanceMap.evaluatePDF(phi / (2 * M_PIf), theta / M_PIf);
         return uvPDF / (2 * M_PIf * M_PIf * std::sin(theta));
     }

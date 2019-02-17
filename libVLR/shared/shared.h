@@ -60,6 +60,69 @@ namespace VLR {
     rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
 #endif
 
+	RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+		return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
+#else
+		float XYZ[3];
+
+		switch (colorSpace) {
+		case VLRColorSpace_Rec709_D65_sRGBGamma: {
+			e0 = sRGB_degamma(e0);
+			e1 = sRGB_degamma(e1);
+			e2 = sRGB_degamma(e2);
+			// pass to Rec709 (D65)
+		}
+		case VLRColorSpace_Rec709_D65: {
+			float RGB[3] = { e0, e1, e2 };
+			switch (spectrumType) {
+			case VLRSpectrumType_Reflectance:
+			case VLRSpectrumType_IndexOfRefraction:
+			case VLRSpectrumType_NA:
+				transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
+				break;
+			case VLRSpectrumType_LightSource:
+				transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+				break;
+			default:
+				VLRAssert_ShouldNotBeCalled();
+				break;
+			}
+			break;
+		}
+		case VLRColorSpace_XYZ: {
+			XYZ[0] = e0;
+			XYZ[1] = e1;
+			XYZ[2] = e2;
+			break;
+		}
+		case VLRColorSpace_xyY: {
+			VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
+					  "xy should be in [0, 1], Y should not be negative.");
+			if (e1 == 0) {
+				XYZ[0] = XYZ[1] = XYZ[2] = 0;
+				break;
+			}
+			float z = 1 - (e0 + e1);
+			float b = e2 / e1;
+			XYZ[0] = e0 * b;
+			XYZ[1] = e2;
+			XYZ[2] = z * b;
+			break;
+		}
+		default:
+			VLRAssert_NotImplemented();
+			break;
+		}
+
+		float RGB[3];
+		transformToRenderingRGB(spectrumType, XYZ, RGB);
+		return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
+#endif
+	}
+
+
+
     namespace Shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
@@ -226,7 +289,7 @@ namespace VLR {
                 unsigned int nodeDescIndex : 25;
                 unsigned int socketIndex : 4;
                 unsigned int option : 2;
-                //bool isSpectrumNode : 1; // using bool leads the size of this struct to be 8 in MSVC (bug??).
+                //bool isSpectrumNode : 1; // using bool leads the size of this struct to be 8 in MSVC (C++ spec).
                 unsigned int isSpectrumNode : 1;
             };
             uint32_t asUInt;
@@ -383,11 +446,31 @@ namespace VLR {
                 Primary = 0,
                 Scattered,
                 Shadow,
+				DebugPrimary,
                 NumTypes
             } value;
 
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
         };
+
+		struct SurfacePointAttribute {
+			enum Value {
+				GeometricNormal = 0,
+				ShadingTangent,
+				ShadingBitangent,
+				ShadingNormal,
+				TC0Direction,
+				TextureCoordinates,
+				ShadingFrameLengths,
+				ShadingFrameOrthogonality,
+			} value;
+
+			RT_FUNCTION constexpr SurfacePointAttribute(Value v = GeometricNormal) : value(v) {}
+
+			RT_FUNCTION operator int32_t() const {
+				return value;
+			}
+		};
 
 
 

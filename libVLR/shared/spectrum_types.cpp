@@ -481,10 +481,10 @@ namespace VLR {
     //template class DiscretizedSpectrumTemplate<double, NumStrataForStorage>;
 
 #if defined(VLR_Device)
-#   undef integralCMF DiscretizedSpectrum_integralCMF
-#   undef zbar DiscretizedSpectrum_zbar
-#   undef ybar DiscretizedSpectrum_ybar
-#   undef xbar DiscretizedSpectrum_xbar
+#   undef integralCMF
+#   undef zbar
+#   undef ybar
+#   undef xbar
 #endif
 
 

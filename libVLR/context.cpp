@@ -77,6 +77,19 @@ namespace VLR {
 
 
 
+	struct EntryPoint {
+		enum Value {
+			PathTracing = 0,
+			DebugRendering,
+			ConvertToRGB,
+			NumEntryPoints
+		} value;
+
+		constexpr EntryPoint(Value v) : value(v) {}
+	};
+
+
+
     uint32_t Context::NextID = 0;
 
     static void checkError(RTresult code) {
@@ -126,7 +139,7 @@ namespace VLR {
 
         m_optixContext = optix::Context::create();
 
-        m_optixContext->setEntryPointCount(2);
+        m_optixContext->setEntryPointCount(EntryPoint::NumEntryPoints);
         m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
 
         {
@@ -141,17 +154,29 @@ namespace VLR {
             m_optixProgramPathTracingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::pathTracingMiss");
             m_optixProgramException = m_optixContext->createProgramFromPTXString(ptx, "VLR::exception");
         }
-        m_optixContext->setRayGenerationProgram(0, m_optixProgramPathTracing);
-        m_optixContext->setExceptionProgram(0, m_optixProgramException);
+        m_optixContext->setRayGenerationProgram(EntryPoint::PathTracing, m_optixProgramPathTracing);
+        m_optixContext->setExceptionProgram(EntryPoint::PathTracing, m_optixProgramException);
+
+		{
+			std::string ptx = readTxtFile(VLR_PTX_DIR"debug_rendering.ptx");
+
+			m_optixProgramDebugRenderingClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingClosestHit");
+			m_optixProgramDebugRenderingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingMiss");
+			m_optixProgramDebugRenderingRayGeneration = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingRayGeneration");
+			m_optixProgramDebugRenderingException = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingException");
+		}
+		m_optixContext->setRayGenerationProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingRayGeneration);
+		m_optixContext->setExceptionProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingException);
 
         {
             std::string ptx = readTxtFile(VLR_PTX_DIR"convert_to_rgb.ptx");
             m_optixProgramConvertToRGB = m_optixContext->createProgramFromPTXString(ptx, "VLR::convertToRGB");
         }
-        m_optixContext->setRayGenerationProgram(1, m_optixProgramConvertToRGB);
+        m_optixContext->setRayGenerationProgram(EntryPoint::ConvertToRGB, m_optixProgramConvertToRGB);
 
         m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
         m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
+        m_optixContext->setMissProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingMiss);
 
 
 
@@ -184,6 +209,7 @@ namespace VLR {
         m_optixMaterialDefault = m_optixContext->createMaterial();
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
+        m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingClosestHit);
         //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Primary, );
         //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Scattered, );
         m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitDefault);
@@ -191,6 +217,7 @@ namespace VLR {
         m_optixMaterialWithAlpha = m_optixContext->createMaterial();
         m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
         m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
+        m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingClosestHit);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Primary, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Scattered, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitWithAlpha);
@@ -380,6 +407,11 @@ namespace VLR {
 
         m_optixProgramConvertToRGB->destroy();
 
+		m_optixProgramDebugRenderingException->destroy();
+		m_optixProgramDebugRenderingRayGeneration->destroy();
+		m_optixProgramDebugRenderingMiss->destroy();
+		m_optixProgramDebugRenderingClosestHit->destroy();
+
         m_optixProgramException->destroy();
         m_optixProgramPathTracingMiss->destroy();
         m_optixProgramPathTracing->destroy();
@@ -494,8 +526,11 @@ namespace VLR {
         optixContext->validate();
 #endif
 
-        optixContext->launch(0, imageSize.x, imageSize.y);
-        optixContext->launch(1, imageSize.x, imageSize.y);
+        optixContext->launch(EntryPoint::PathTracing, imageSize.x, imageSize.y);
+		//Shared::SurfacePointAttribute attr = Shared::SurfacePointAttribute::ShadingFrameOrthogonality;
+		//optixContext["VLR::pv_surfacePointAttribute"]->setUserData(sizeof(attr), &attr);
+  //      optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
+        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 
 

@@ -100,6 +100,8 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 	hpprintf("Material: %s\n", strValue.C_Str());
 
 	MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
+	ShaderNodeSocket socketNormal;
+	ShaderNodeSocket socketAlpha;
 	if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
 		Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
 		Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
@@ -113,7 +115,14 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 		mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
 	}
 
-	return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+	if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+		Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+		Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
+		nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
+		socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
+	}
+
+	return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
 }
 
 MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
@@ -804,6 +813,414 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 	shot->camera = shot->perspectiveCamera;
 }
 
+void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
+	using namespace VLRCpp;
+	using namespace VLR;
+
+	shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+
+	InternalNodeRef modelNode;
+
+	TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+	{
+		std::vector<Vertex> vertices;
+
+		// Light
+		vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+		vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+		light->setVertices(vertices.data(), vertices.size());
+
+		{
+			DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+			matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+
+			std::vector<uint32_t> matGroup = {
+				0, 1, 2, 0, 2, 3
+			};
+			light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+		}
+	}
+	InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 2.0f, 0.0f) * rotateX<float>(M_PI)));
+	lightNode->addChild(light);
+	shot->scene->addChild(lightNode);
+
+
+
+	const auto gelleryMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+		using namespace VLRCpp;
+		using namespace VLR;
+
+		aiReturn ret;
+		(void)ret;
+		aiString strValue;
+		float color[3];
+
+		aiMat->Get(AI_MATKEY_NAME, strValue);
+
+		SurfaceMaterialRef mat;
+		ShaderNodeSocket socketNormal;
+		ShaderNodeSocket socketAlpha;
+		{
+			MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
+			matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+
+			mat = matteMat;
+		}
+
+		return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+	};
+	construct(context, "../../assets/gallery/gallery.obj", true, &modelNode, createMaterialDefaultFunction);
+	shot->scene->addChild(modelNode);
+	modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.5f)));
+
+
+
+	shot->cameraPos = Point3D(-2.3f, 1.0f, 3.5f);
+	shot->cameraOrientation = qRotateY<float>(0.8 * M_PI) * qRotateX<float>(0);
+	shot->brightnessCoeff = 1.0f;
+
+	shot->renderTargetSizeX = 1280;
+	shot->renderTargetSizeY = 720;
+
+	shot->persSensitivity = 1.0f;
+	shot->fovYInDeg = 40;
+	shot->lensRadius = 0.0f;
+	shot->objPlaneDistance = 1.0f;
+	shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
+															   shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
+															   shot->lensRadius, 1.0f, shot->objPlaneDistance);
+
+	shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
+	shot->phiAngle = M_PI;
+	shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+	shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
+																	   shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+
+	shot->cameraType = 0;
+	shot->camera = shot->perspectiveCamera;
+}
+
+void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
+	using namespace VLRCpp;
+	using namespace VLR;
+
+	shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+
+	InternalNodeRef modelNode;
+
+	TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+	{
+		std::vector<Vertex> vertices;
+
+		// Light
+		vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+		vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+		light->setVertices(vertices.data(), vertices.size());
+
+		{
+			DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+			matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+
+			std::vector<uint32_t> matGroup = {
+				0, 1, 2, 0, 2, 3
+			};
+			light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+		}
+	}
+	InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 0.0f) * rotateX<float>(M_PI)));
+	lightNode->addChild(light);
+	shot->scene->addChild(lightNode);
+
+
+
+	construct(context, "../../assets/hairball/hairball.obj", false, &modelNode,
+			  [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+		using namespace VLRCpp;
+		using namespace VLR;
+
+		aiReturn ret;
+		(void)ret;
+		aiString strValue;
+		float color[3];
+
+		aiMat->Get(AI_MATKEY_NAME, strValue);
+
+		SurfaceMaterialRef mat;
+		ShaderNodeSocket socketNormal;
+		ShaderNodeSocket socketAlpha;
+		{
+			MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
+			matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+
+			mat = matteMat;
+		}
+
+		return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+	},
+			  [](const aiMesh* mesh) {
+		return MeshAttributeTuple(true, VLRTangentType_RadialY);
+	});
+	shot->scene->addChild(modelNode);
+	modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.1f)));
+
+
+
+	shot->cameraPos = Point3D(1.5f, 0.0f, 0.0f);
+	shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(0 * M_PI / 180);
+	shot->brightnessCoeff = 1.0f;
+
+	shot->renderTargetSizeX = 1024;
+	shot->renderTargetSizeY = 1024;
+
+	shot->persSensitivity = 1.0f;
+	shot->fovYInDeg = 40;
+	shot->lensRadius = 0.0f;
+	shot->objPlaneDistance = 1.0f;
+	shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
+															   shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
+															   shot->lensRadius, 1.0f, shot->objPlaneDistance);
+
+	shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
+	shot->phiAngle = M_PI;
+	shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+	shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
+																	   shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+
+	shot->cameraType = 0;
+	shot->camera = shot->perspectiveCamera;
+}
+
+void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
+	using namespace VLRCpp;
+	using namespace VLR;
+
+	shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(0.2 * M_PI) * translate(0.0f, 0.0f, 0.0f)));
+
+	InternalNodeRef modelNode;
+
+	//TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+	//{
+	//	std::vector<Vertex> vertices;
+
+	//	// Light
+	//	vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+	//	vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+	//	vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+	//	vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+	//	light->setVertices(vertices.data(), vertices.size());
+
+	//	{
+	//		DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+	//		matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+
+	//		std::vector<uint32_t> matGroup = {
+	//			0, 1, 2, 0, 2, 3
+	//		};
+	//		light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+	//	}
+	//}
+	//InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 7.0f, 0.0f) * rotateX<float>(M_PI)));
+	//lightNode->addChild(light);
+	//shot->scene->addChild(lightNode);
+
+
+
+	const auto rungholtMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+		using namespace VLRCpp;
+		using namespace VLR;
+
+		aiReturn ret;
+		(void)ret;
+		aiString strValue;
+		float color[3];
+
+		aiMat->Get(AI_MATKEY_NAME, strValue);
+
+		SurfaceMaterialRef mat;
+		ShaderNodeSocket socketNormal;
+		ShaderNodeSocket socketAlpha;
+		{
+			MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
+			matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+
+			mat = matteMat;
+		}
+
+		return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+	};
+	construct(context, "../../assets/rungholt/rungholt.obj", true, &modelNode, createMaterialDefaultFunction);
+	shot->scene->addChild(modelNode);
+	modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.04f)));
+
+
+
+	Image2DRef imgEnv = loadImage2D(context, "../../assets/environments/Playa_Sunrise.exr", false);
+	EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
+	nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+	EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+	matEnv->setNodeEmittanceTextured(nodeEnvTex);
+	//matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+	shot->scene->setEnvironment(matEnv);
+
+
+
+	shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
+	shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(30 * M_PI / 180);
+	shot->brightnessCoeff = 1.0f;
+
+	shot->renderTargetSizeX = 1280;
+	shot->renderTargetSizeY = 720;
+
+	shot->persSensitivity = 1.0f;
+	shot->fovYInDeg = 40;
+	shot->lensRadius = 0.0f;
+	shot->objPlaneDistance = 1.0f;
+	shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
+															   shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
+															   shot->lensRadius, 1.0f, shot->objPlaneDistance);
+
+	shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
+	shot->phiAngle = M_PI;
+	shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+	shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
+																	   shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+
+	shot->cameraType = 0;
+	shot->camera = shot->perspectiveCamera;
+}
+
+void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
+	using namespace VLRCpp;
+	using namespace VLR;
+
+	shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+
+	InternalNodeRef modelNode;
+
+	construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+		using namespace VLRCpp;
+		using namespace VLR;
+
+		float offset[2] = { 0, 0 };
+		float scale[2] = { 10, 20 };
+		OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context->createOffsetAndScaleUVTextureMap2DShaderNode();
+		nodeTexCoord->setValues(offset, scale);
+
+		Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
+
+		Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
+		nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+		nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+		nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
+
+		MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
+		mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+		return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+	});
+	shot->scene->addChild(modelNode);
+
+
+
+	TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+	{
+		std::vector<Vertex> vertices;
+
+		// Light
+		vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+		vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+		vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+		light->setVertices(vertices.data(), vertices.size());
+
+		{
+			DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+			matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+
+			std::vector<uint32_t> matGroup = {
+				0, 1, 2, 0, 2, 3
+			};
+			light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+		}
+	}
+	InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
+	lightNode->addChild(light);
+	shot->scene->addChild(lightNode);
+
+
+
+	const auto powerplantMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+		using namespace VLRCpp;
+		using namespace VLR;
+
+		aiReturn ret;
+		(void)ret;
+		aiString strValue;
+		float color[3];
+
+		aiMat->Get(AI_MATKEY_NAME, strValue);
+
+		SurfaceMaterialRef mat;
+		ShaderNodeSocket socketNormal;
+		ShaderNodeSocket socketAlpha;
+		{
+			MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
+			matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+
+			mat = matteMat;
+		}
+
+		return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+	};
+	construct(context, "../../assets/powerplant/powerplant.obj", true, &modelNode, createMaterialDefaultFunction);
+	shot->scene->addChild(modelNode);
+	modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.00005f)));
+
+
+
+	Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
+	EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
+	nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+	EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+	matEnv->setNodeEmittanceTextured(nodeEnvTex);
+	//matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+	shot->scene->setEnvironment(matEnv);
+
+
+
+	shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
+	shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180);
+	shot->brightnessCoeff = 1.0f;
+
+	shot->renderTargetSizeX = 1280;
+	shot->renderTargetSizeY = 720;
+
+	shot->persSensitivity = 1.0f;
+	shot->fovYInDeg = 40;
+	shot->lensRadius = 0.0f;
+	shot->objPlaneDistance = 1.0f;
+	shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
+															   shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
+															   shot->lensRadius, 1.0f, shot->objPlaneDistance);
+
+	shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
+	shot->phiAngle = M_PI;
+	shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+	shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
+																	   shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+
+	shot->cameraType = 0;
+	shot->camera = shot->perspectiveCamera;
+}
+
 void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
 	using namespace VLRCpp;
 	using namespace VLR;
@@ -962,7 +1379,11 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
 	//createCornellBoxScene(context, shot);
-	//createMaterialTestScene(context, shot);
-	createSubstanceManScene(context, shot);
+	createMaterialTestScene(context, shot);
+	//createSubstanceManScene(context, shot);
+	//createGalleryScene(context, shot);
+	//createHairballScene(context, shot);
+	//createRungholtScene(context, shot);
+	//createPowerplantScene(context, shot);
 	//createColorCheckerScene(context, shot);
 }
