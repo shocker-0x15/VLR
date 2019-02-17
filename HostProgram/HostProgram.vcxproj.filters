@@ -17,6 +17,7 @@
     <ClCompile Include="ext\src\imGui\imgui.cpp">
       <Filter>imGui</Filter>
     </ClCompile>
+    <ClCompile Include="scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">
@@ -59,6 +60,8 @@
     </ClInclude>
     <ClInclude Include="GLToolkit.h" />
     <ClInclude Include="StopWatch.h" />
+    <ClInclude Include="scene.h" />
+    <ClInclude Include="common.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shaders\scale.frag">

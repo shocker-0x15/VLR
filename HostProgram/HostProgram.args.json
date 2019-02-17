@@ -1,0 +1,30 @@
+{
+  "FileVersion": 2,
+  "Id": "6430930f-4932-457f-ac9c-aed74facc5c7",
+  "Items": [
+    {
+      "Id": "0594cc28-c876-4c2b-81f9-eca8aaaedcb4",
+      "Command": "--list"
+    },
+    {
+      "Id": "5099f6ab-3338-4428-b1d1-5c3752cb46b0",
+      "Command": "--disableRTX"
+    },
+    {
+      "Id": "655fa978-c650-49aa-9eca-1623800adb13",
+      "Command": "--stacksize 2560"
+    },
+    {
+      "Id": "8ebe06c6-cad8-4178-a939-eade53b301d0",
+      "Command": "--stacksize 3072"
+    },
+    {
+      "Id": "02bd491c-9d1e-4857-960f-1401190fc5f0",
+      "Command": "--stacksize 4096"
+    },
+    {
+      "Id": "7608790c-38ee-4ab4-9c61-f35c81248674",
+      "Command": "--logging"
+    }
+  ]
+}

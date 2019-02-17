@@ -113,8 +113,10 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     <ClCompile Include="ext\src\imGui\imgui_draw.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="scene.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="common.h" />
     <ClInclude Include="ext\include\GL\gl3w.h" />
     <ClInclude Include="ext\include\GL\glcorearb.h" />
     <ClInclude Include="ext\include\imGui\imconfig.h" />
@@ -125,6 +127,7 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     <ClInclude Include="ext\include\imGui\stb_textedit.h" />
     <ClInclude Include="ext\include\imGui\stb_truetype.h" />
     <ClInclude Include="GLToolkit.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="StopWatch.h" />
   </ItemGroup>
   <ItemGroup>

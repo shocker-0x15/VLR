@@ -153,7 +153,7 @@ namespace VLRCpp {
 
 
 
-    VLRShaderNode ShaderNodeSocket::getNode() const {
+    inline VLRShaderNode ShaderNodeSocket::getNode() const {
         if (node)
             return (VLRShaderNode)node->get();
         else
@@ -1107,15 +1107,15 @@ namespace VLRCpp {
 
         Context() {}
 
-        void initialize(bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
-            errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize, devices, numDevices));
+        void initialize(bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices) {
+            errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize, enableRTX, devices, numDevices));
             m_geomShaderNode = std::make_shared<GeometryShaderNodeHolder>(shared_from_this());
         }
 
     public:
-        static ContextRef create(bool logging, uint32_t stackSize, const int32_t* devices = nullptr, uint32_t numDevices = 0) {
+        static ContextRef create(bool logging, uint32_t stackSize, bool enableRTX = true, const int32_t* devices = nullptr, uint32_t numDevices = 0) {
             auto ret = std::shared_ptr<Context>(new Context());
-            ret->initialize(logging, stackSize, devices, numDevices);
+            ret->initialize(logging, stackSize, enableRTX, devices, numDevices);
             return ret;
         }
 

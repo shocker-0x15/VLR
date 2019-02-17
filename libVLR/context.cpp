@@ -84,7 +84,7 @@ namespace VLR {
             throw optix::Exception::makeException(code, 0);
     }
 
-    Context::Context(bool logging, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+    Context::Context(bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices) {
         // JP: 使用するすべてのGPUがRTXをサポートしている(= Maxwell世代以降のGPU)か調べる。
         // EN: check if all the GPUs to use support RTX (i.e. Maxwell or later generation GPU).
         bool satisfyRequirements = true;
@@ -111,7 +111,7 @@ namespace VLR {
             return;
         }
 
-        m_RTXEnabled = true;
+        m_RTXEnabled = enableRTX;
         int32_t RTXEnabled = m_RTXEnabled;
         if (rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(RTXEnabled), &RTXEnabled) == RT_SUCCESS)
             vlrprintf("RTX %s\n", RTXEnabled ? "ON" : "OFF");
