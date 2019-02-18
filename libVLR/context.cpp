@@ -77,16 +77,16 @@ namespace VLR {
 
 
 
-	struct EntryPoint {
-		enum Value {
-			PathTracing = 0,
-			DebugRendering,
-			ConvertToRGB,
-			NumEntryPoints
-		} value;
+    struct EntryPoint {
+        enum Value {
+            PathTracing = 0,
+            DebugRendering,
+            ConvertToRGB,
+            NumEntryPoints
+        } value;
 
-		constexpr EntryPoint(Value v) : value(v) {}
-	};
+        constexpr EntryPoint(Value v) : value(v) {}
+    };
 
 
 
@@ -157,16 +157,16 @@ namespace VLR {
         m_optixContext->setRayGenerationProgram(EntryPoint::PathTracing, m_optixProgramPathTracing);
         m_optixContext->setExceptionProgram(EntryPoint::PathTracing, m_optixProgramException);
 
-		{
-			std::string ptx = readTxtFile(VLR_PTX_DIR"debug_rendering.ptx");
+        {
+            std::string ptx = readTxtFile(VLR_PTX_DIR"debug_rendering.ptx");
 
-			m_optixProgramDebugRenderingClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingClosestHit");
-			m_optixProgramDebugRenderingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingMiss");
-			m_optixProgramDebugRenderingRayGeneration = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingRayGeneration");
-			m_optixProgramDebugRenderingException = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingException");
-		}
-		m_optixContext->setRayGenerationProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingRayGeneration);
-		m_optixContext->setExceptionProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingException);
+            m_optixProgramDebugRenderingClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingClosestHit");
+            m_optixProgramDebugRenderingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingMiss");
+            m_optixProgramDebugRenderingRayGeneration = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingRayGeneration");
+            m_optixProgramDebugRenderingException = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingException");
+        }
+        m_optixContext->setRayGenerationProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingRayGeneration);
+        m_optixContext->setExceptionProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingException);
 
         {
             std::string ptx = readTxtFile(VLR_PTX_DIR"convert_to_rgb.ptx");
@@ -407,10 +407,10 @@ namespace VLR {
 
         m_optixProgramConvertToRGB->destroy();
 
-		m_optixProgramDebugRenderingException->destroy();
-		m_optixProgramDebugRenderingRayGeneration->destroy();
-		m_optixProgramDebugRenderingMiss->destroy();
-		m_optixProgramDebugRenderingClosestHit->destroy();
+        m_optixProgramDebugRenderingException->destroy();
+        m_optixProgramDebugRenderingRayGeneration->destroy();
+        m_optixProgramDebugRenderingMiss->destroy();
+        m_optixProgramDebugRenderingClosestHit->destroy();
 
         m_optixProgramException->destroy();
         m_optixProgramPathTracingMiss->destroy();
@@ -527,9 +527,9 @@ namespace VLR {
 #endif
 
         optixContext->launch(EntryPoint::PathTracing, imageSize.x, imageSize.y);
-		//Shared::SurfacePointAttribute attr = Shared::SurfacePointAttribute::ShadingFrameOrthogonality;
-		//optixContext["VLR::pv_surfacePointAttribute"]->setUserData(sizeof(attr), &attr);
-  //      optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
+        //Shared::SurfacePointAttribute attr = Shared::SurfacePointAttribute::ShadingFrameOrthogonality;
+        //optixContext["VLR::pv_surfacePointAttribute"]->setUserData(sizeof(attr), &attr);
+        //optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
         optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 

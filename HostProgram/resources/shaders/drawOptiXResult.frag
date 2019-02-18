@@ -23,7 +23,7 @@ void main(void) {
     vec2 srcPixel = gl_FragCoord.xy / shrinkCoeff;
     vec4 opResult = texelFetch(srcTexture, int(srcPixel.y) * srcFullWidth + int(srcPixel.x));
     opResult.rgb *= brightness;
-	opResult.rgb = max(opResult.rgb, 0.0f);
+    opResult.rgb = max(opResult.rgb, 0.0f);
     opResult.rgb = 1 - exp(-opResult.rgb);
     opResult.rgb = sRGB_gamma(opResult.rgb);
     color = opResult;

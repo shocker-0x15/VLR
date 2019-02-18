@@ -38,10 +38,10 @@ namespace VLR {
         optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
         optix::Program m_optixProgramException; // -------------- Exception Program
 
-		optix::Program m_optixProgramDebugRenderingClosestHit;
-		optix::Program m_optixProgramDebugRenderingMiss;
-		optix::Program m_optixProgramDebugRenderingRayGeneration;
-		optix::Program m_optixProgramDebugRenderingException;
+        optix::Program m_optixProgramDebugRenderingClosestHit;
+        optix::Program m_optixProgramDebugRenderingMiss;
+        optix::Program m_optixProgramDebugRenderingRayGeneration;
+        optix::Program m_optixProgramDebugRenderingException;
 
         optix::Program m_optixProgramConvertToRGB; // ----------- Ray Generation Program (TODO: port to pure CUDA code)
 

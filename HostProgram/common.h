@@ -44,12 +44,12 @@
 
 #ifdef HP_Platform_Windows_MSVC
 static void devPrintf(const char* fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	char str[1024];
-	vsprintf_s(str, fmt, args);
-	va_end(args);
-	OutputDebugString(str);
+    va_list args;
+    va_start(args, fmt);
+    char str[1024];
+    vsprintf_s(str, fmt, args);
+    va_end(args);
+    OutputDebugString(str);
 }
 #else
 #   define devPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
@@ -72,5 +72,5 @@ static void devPrintf(const char* fmt, ...) {
 
 template <typename T, size_t size>
 constexpr size_t lengthof(const T(&array)[size]) {
-	return size;
+    return size;
 }

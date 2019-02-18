@@ -212,9 +212,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 }
                 --i;
             }
-			else if (strcmp(argv[i] + 2, "disableRTX") == 0) {
-				enableRTX = false;
-			}
+            else if (strcmp(argv[i] + 2, "disableRTX") == 0) {
+                enableRTX = false;
+            }
             else if (strcmp(argv[i] + 2, "logging") == 0) {
                 enableLogging = true;
             }
@@ -244,14 +244,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         primaryDevice = deviceArray.front();
     }
 
-	char deviceName[128];
-	vlrGetDeviceName(primaryDevice, deviceName, lengthof(deviceName));
+    char deviceName[128];
+    vlrGetDeviceName(primaryDevice, deviceName, lengthof(deviceName));
 
     VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, stackSize, enableRTX,
-														 deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
+                                                         deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
 
     Shot shot;
-	createScene(context, &shot);
+    createScene(context, &shot);
 
 
 
@@ -437,8 +437,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 curFBWidth = newFBWidth;
                 curFBHeight = newFBHeight;
 
-				shot.renderTargetSizeX = curFBWidth / UIScaling;
-				shot.renderTargetSizeY = curFBHeight / UIScaling;
+                shot.renderTargetSizeX = curFBWidth / UIScaling;
+                shot.renderTargetSizeY = curFBHeight / UIScaling;
                 g_requestedSize[0] = shot.renderTargetSizeX;
                 g_requestedSize[1] = shot.renderTargetSizeY;
 
@@ -455,8 +455,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 frameBuffer.initialize(shot.renderTargetSizeX, shot.renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
 
                 shot.perspectiveCamera = context->createPerspectiveCamera(shot.cameraPos, shot.cameraOrientation,
-																		  shot.persSensitivity, (float)shot.renderTargetSizeX / shot.renderTargetSizeY, shot.fovYInDeg * M_PI / 180,
-																		  shot.lensRadius, 1.0f, shot.objPlaneDistance);
+                                                                          shot.persSensitivity, (float)shot.renderTargetSizeX / shot.renderTargetSizeY, shot.fovYInDeg * M_PI / 180,
+                                                                          shot.lensRadius, 1.0f, shot.objPlaneDistance);
 
                 resized = true;
             }
@@ -540,11 +540,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 if (deltaAngle == 0.0f)
                     axis = Vector3D(1, 0, 0);
 
-				shot.cameraOrientation = shot.cameraOrientation * qRotateZ(0.025f * tiltZ);
+                shot.cameraOrientation = shot.cameraOrientation * qRotateZ(0.025f * tiltZ);
                 tempOrientation = shot.cameraOrientation * qRotate(0.15f * 1e-2f * deltaAngle, axis);
-				shot.cameraPos += tempOrientation.toMatrix3x3() * 0.05f * Vector3D(trackX, trackY, trackZ);
+                shot.cameraPos += tempOrientation.toMatrix3x3() * 0.05f * Vector3D(trackX, trackY, trackZ);
                 if (g_buttonRotate.getState() == false && g_buttonRotate.getTime() == g_frameIndex) {
-					shot.cameraOrientation = tempOrientation;
+                    shot.cameraOrientation = tempOrientation;
                     deltaX = 0;
                     deltaY = 0;
                 }
@@ -586,6 +586,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
                     cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&shot.cameraPos);
+                    cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)&shot.cameraOrientation);
                     ImGui::SliderFloat("Brightness", &shot.brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
 
                     const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
@@ -596,7 +597,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                         cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &shot.lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
                         cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &shot.objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
 
-						shot.persSensitivity = shot.lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * shot.lensRadius * shot.lensRadius);
+                        shot.persSensitivity = shot.lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * shot.lensRadius * shot.lensRadius);
 
                         shot.camera = shot.perspectiveCamera;
                     }
@@ -604,7 +605,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                         cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &shot.phiAngle, M_PI / 18, 2 * M_PI);
                         cameraSettingsChanged |= ImGui::SliderFloat("Theta Angle", &shot.thetaAngle, M_PI / 18, 1 * M_PI);
 
-						shot.equiSensitivity = 1.0f / (shot.phiAngle * (1 - std::cos(shot.thetaAngle)));
+                        shot.equiSensitivity = 1.0f / (shot.phiAngle * (1 - std::cos(shot.thetaAngle)));
 
                         shot.camera = shot.equirectangularCamera;
                     }

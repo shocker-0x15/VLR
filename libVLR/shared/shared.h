@@ -15,7 +15,7 @@ namespace VLR {
         uint16_t raw;
 
         operator float() const {
-			uint32_t bits = (uint32_t)(raw & 0x8000) << 16;
+            uint32_t bits = (uint32_t)(raw & 0x8000) << 16;
             uint32_t abs = raw & 0x7FFF;
             if (abs) {
                 // JP: halfの指数部が   無限大 or NaN       を表す(11111)       場合: floatビット: (* 11100000 00000000000000000000000)
@@ -60,66 +60,66 @@ namespace VLR {
     rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
 #endif
 
-	RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+    RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, float e0, float e1, float e2) {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-		return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
+        return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
-		float XYZ[3];
+        float XYZ[3];
 
-		switch (colorSpace) {
-		case VLRColorSpace_Rec709_D65_sRGBGamma: {
-			e0 = sRGB_degamma(e0);
-			e1 = sRGB_degamma(e1);
-			e2 = sRGB_degamma(e2);
-			// pass to Rec709 (D65)
-		}
-		case VLRColorSpace_Rec709_D65: {
-			float RGB[3] = { e0, e1, e2 };
-			switch (spectrumType) {
-			case VLRSpectrumType_Reflectance:
-			case VLRSpectrumType_IndexOfRefraction:
-			case VLRSpectrumType_NA:
-				transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
-				break;
-			case VLRSpectrumType_LightSource:
-				transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
-				break;
-			default:
-				VLRAssert_ShouldNotBeCalled();
-				break;
-			}
-			break;
-		}
-		case VLRColorSpace_XYZ: {
-			XYZ[0] = e0;
-			XYZ[1] = e1;
-			XYZ[2] = e2;
-			break;
-		}
-		case VLRColorSpace_xyY: {
-			VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
-					  "xy should be in [0, 1], Y should not be negative.");
-			if (e1 == 0) {
-				XYZ[0] = XYZ[1] = XYZ[2] = 0;
-				break;
-			}
-			float z = 1 - (e0 + e1);
-			float b = e2 / e1;
-			XYZ[0] = e0 * b;
-			XYZ[1] = e2;
-			XYZ[2] = z * b;
-			break;
-		}
-		default:
-			VLRAssert_NotImplemented();
-			break;
-		}
+        switch (colorSpace) {
+        case VLRColorSpace_Rec709_D65_sRGBGamma: {
+            e0 = sRGB_degamma(e0);
+            e1 = sRGB_degamma(e1);
+            e2 = sRGB_degamma(e2);
+            // pass to Rec709 (D65)
+        }
+        case VLRColorSpace_Rec709_D65: {
+            float RGB[3] = { e0, e1, e2 };
+            switch (spectrumType) {
+            case VLRSpectrumType_Reflectance:
+            case VLRSpectrumType_IndexOfRefraction:
+            case VLRSpectrumType_NA:
+                transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
+                break;
+            case VLRSpectrumType_LightSource:
+                transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+            break;
+        }
+        case VLRColorSpace_XYZ: {
+            XYZ[0] = e0;
+            XYZ[1] = e1;
+            XYZ[2] = e2;
+            break;
+        }
+        case VLRColorSpace_xyY: {
+            VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
+                      "xy should be in [0, 1], Y should not be negative.");
+            if (e1 == 0) {
+                XYZ[0] = XYZ[1] = XYZ[2] = 0;
+                break;
+            }
+            float z = 1 - (e0 + e1);
+            float b = e2 / e1;
+            XYZ[0] = e0 * b;
+            XYZ[1] = e2;
+            XYZ[2] = z * b;
+            break;
+        }
+        default:
+            VLRAssert_NotImplemented();
+            break;
+        }
 
-		float RGB[3];
-		transformToRenderingRGB(spectrumType, XYZ, RGB);
-		return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
+        float RGB[3];
+        transformToRenderingRGB(spectrumType, XYZ, RGB);
+        return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
 #endif
-	}
+    }
 
 
 
@@ -446,31 +446,31 @@ namespace VLR {
                 Primary = 0,
                 Scattered,
                 Shadow,
-				DebugPrimary,
+                DebugPrimary,
                 NumTypes
             } value;
 
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
         };
 
-		struct SurfacePointAttribute {
-			enum Value {
-				GeometricNormal = 0,
-				ShadingTangent,
-				ShadingBitangent,
-				ShadingNormal,
-				TC0Direction,
-				TextureCoordinates,
-				ShadingFrameLengths,
-				ShadingFrameOrthogonality,
-			} value;
+        struct SurfacePointAttribute {
+            enum Value {
+                GeometricNormal = 0,
+                ShadingTangent,
+                ShadingBitangent,
+                ShadingNormal,
+                TC0Direction,
+                TextureCoordinates,
+                ShadingFrameLengths,
+                ShadingFrameOrthogonality,
+            } value;
 
-			RT_FUNCTION constexpr SurfacePointAttribute(Value v = GeometricNormal) : value(v) {}
+            RT_FUNCTION constexpr SurfacePointAttribute(Value v = GeometricNormal) : value(v) {}
 
-			RT_FUNCTION operator int32_t() const {
-				return value;
-			}
-		};
+            RT_FUNCTION operator int32_t() const {
+                return value;
+            }
+        };
 
 
 
