@@ -136,8 +136,8 @@ VLR_API const char* vlrGetErrorMessage(VLRResult code) {
 
 
 
-VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices) {
-    *context = new VLR::Context(logging, stackSize, enableRTX, devices, numDevices);
+VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+    *context = new VLR::Context(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
 
     return VLR_ERROR_NO_ERROR;
 }

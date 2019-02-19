@@ -1071,7 +1071,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archives/Playa_Sunrise/Playa_Sunrise.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Playa_Sunrise/Playa_Sunrise.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
@@ -1084,6 +1084,9 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
     shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(30 * M_PI / 180);
     shot->brightnessCoeff = 1.0f;
+    //shot->cameraPos = Point3D(-1.814296f, 1.352077f, -1.647351f);
+    //shot->cameraOrientation = Quaternion(0.016491f, -0.892946f, 0.085988f, 0.258323f);
+    //shot->brightnessCoeff = 5.362f;
 
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
@@ -1099,6 +1102,8 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
     shot->phiAngle = M_PI;
     shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+    //shot->phiAngle = 1.749f;
+    //shot->thetaAngle = 1.092f;
     shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
                                                                        shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
 
@@ -1143,7 +1148,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archives/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();

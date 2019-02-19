@@ -97,7 +97,7 @@ namespace VLR {
             throw optix::Exception::makeException(code, 0);
     }
 
-    Context::Context(bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices) {
+    Context::Context(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
         // JP: 使用するすべてのGPUがRTXをサポートしている(= Maxwell世代以降のGPU)か調べる。
         // EN: check if all the GPUs to use support RTX (i.e. Maxwell or later generation GPU).
         bool satisfyRequirements = true;
@@ -319,9 +319,15 @@ namespace VLR {
 
 
         RTsize defaultStackSize = m_optixContext->getStackSize();
-        vlrprintf("Default Stack Size: %u\n", defaultStackSize);
+        if (m_RTXEnabled) {
+            if (stackSize > 0)
+                vlrprintf("Specified stack size is ignored in RTX mode.\n");
+        }
+        else {
+            vlrprintf("Default Stack Size: %u\n", defaultStackSize);
 
-        vlrprintf("Requested Stack Size: %u\n", stackSize);
+            vlrprintf("Requested Stack Size: %u\n", stackSize);
+        }
 
         if (logging) {
             m_optixContext->setPrintEnabled(true);
@@ -331,25 +337,28 @@ namespace VLR {
             //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
             //m_optixContext->setPrintLaunchIndex(0, 0, 0);
             if (stackSize == 0)
-                stackSize = 1280;
+                stackSize = 3072;
         }
         else {
             m_optixContext->setExceptionEnabled(RT_EXCEPTION_STACK_OVERFLOW, false);
             if (stackSize == 0)
-                stackSize = 640;
+                stackSize = 2560;
         }
 
-        // Dirty hack for OptiX stack size management where the relation between set/getStackSize() is inconsistent
-        // depending on a device or a version of OptiX.
-        m_optixContext->setStackSize(defaultStackSize);
-        stackSize = stackSize * defaultStackSize / m_optixContext->getStackSize();
+        if (m_RTXEnabled) {
+            m_optixContext->setMaxTraceDepth(2); // Iterative path tracing needs only depth 2 (shadow ray in closest hit program).
+            m_optixContext->setMaxCallableProgramDepth(std::max<uint32_t>(3, maxCallableDepth));
+        }
+        else {
+            // Dirty hack for OptiX stack size management where the relation between set/getStackSize() is inconsistent
+            // depending on a device or a version of OptiX.
+            m_optixContext->setStackSize(defaultStackSize);
+            stackSize = stackSize * defaultStackSize / m_optixContext->getStackSize();
 
-        m_optixContext->setStackSize(stackSize);
-        RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
-        vlrprintf("Stack Size: %u\n", actuallyUsedStackSize);
-
-        m_optixContext->setMaxTraceDepth(2);
-        m_optixContext->setMaxCallableProgramDepth(8);
+            m_optixContext->setStackSize(stackSize);
+            RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
+            vlrprintf("Stack Size: %u\n", actuallyUsedStackSize);
+        }
     }
 
     Context::~Context() {

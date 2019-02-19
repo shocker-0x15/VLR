@@ -97,7 +97,7 @@ namespace VLR {
         uint32_t m_numAccumFrames;
 
     public:
-        Context(bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices);
+        Context(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices);
         ~Context();
 
         uint32_t getID() const {

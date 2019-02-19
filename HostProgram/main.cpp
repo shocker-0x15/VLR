@@ -190,11 +190,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     using namespace VLR;
 
     std::set<int32_t> devices;
-    bool enableRTX = true;
     bool enableLogging = false;
+    bool enableRTX = true;
     bool enableGUI = true;
     uint32_t renderImageSizeX = 1920;
     uint32_t renderImageSizeY = 1080;
+    uint32_t maxCallableDepth = 8;
     uint32_t stackSize = 0;
 
     for (int i = 1; i < argc; ++i) {
@@ -227,6 +228,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 ++i;
                 renderImageSizeY = atoi(argv[i]);
             }
+            else if (strcmp(argv[i] + 2, "maxcallabledepth") == 0) { // TODO: change this to user-friendly parameter.
+                ++i;
+                if (strncmp(argv[i], "--", 2) != 0)
+                    maxCallableDepth = atoi(argv[i]);
+            }
             else if (strcmp(argv[i] + 2, "stacksize") == 0) {
                 ++i;
                 if (strncmp(argv[i], "--", 2) != 0)
@@ -247,7 +253,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     char deviceName[128];
     vlrGetDeviceName(primaryDevice, deviceName, lengthof(deviceName));
 
-    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, stackSize, enableRTX,
+    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, enableRTX, maxCallableDepth, stackSize,
                                                          deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
 
     Shot shot;

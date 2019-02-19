@@ -1107,15 +1107,17 @@ namespace VLRCpp {
 
         Context() {}
 
-        void initialize(bool logging, uint32_t stackSize, bool enableRTX, const int32_t* devices, uint32_t numDevices) {
-            errorCheck(vlrCreateContext(&m_rawContext, logging, stackSize, enableRTX, devices, numDevices));
+        void initialize(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize,
+                        const int32_t* devices, uint32_t numDevices) {
+            errorCheck(vlrCreateContext(&m_rawContext, logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices));
             m_geomShaderNode = std::make_shared<GeometryShaderNodeHolder>(shared_from_this());
         }
 
     public:
-        static ContextRef create(bool logging, uint32_t stackSize, bool enableRTX = true, const int32_t* devices = nullptr, uint32_t numDevices = 0) {
+        static ContextRef create(bool logging, bool enableRTX = true, uint32_t maxCallableDepth = 8, uint32_t stackSize = 0,
+                                 const int32_t* devices = nullptr, uint32_t numDevices = 0) {
             auto ret = std::shared_ptr<Context>(new Context());
-            ret->initialize(logging, stackSize, enableRTX, devices, numDevices);
+            ret->initialize(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
             return ret;
         }
 
