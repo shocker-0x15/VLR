@@ -40,8 +40,9 @@ namespace VLR {
         return VLRDataFormat_RGBA8x4;
     }
 
-    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat dataFormat) :
-        Object(context), m_width(width), m_height(height), m_dataFormat(dataFormat), m_initOptiXObject(false) {
+    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat) :
+        Object(context), m_width(width), m_height(height), m_originalDataFormat(originalDataFormat), m_initOptiXObject(false) {
+        m_dataFormat = getInternalFormat(m_originalDataFormat);
     }
 
     Image2D::~Image2D() {

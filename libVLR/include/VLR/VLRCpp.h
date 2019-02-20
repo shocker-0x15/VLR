@@ -83,40 +83,46 @@ namespace VLRCpp {
 
 
     class Image2DHolder : public Object {
+    protected:
+        VLRImage2D m_raw;
+
     public:
         Image2DHolder(const ContextConstRef &context) : Object(context) {}
+
+        uint32_t getWidth() const {
+            uint32_t width;
+            errorCheck(vlrImage2DGetWidth(m_raw, &width));
+            return width;
+        }
+        uint32_t getHeight() const {
+            uint32_t height;
+            errorCheck(vlrImage2DGetHeight(m_raw, &height));
+            return height;
+        }
+        uint32_t getStride() const {
+            uint32_t stride;
+            errorCheck(vlrImage2DGetStride(m_raw, &stride));
+            return stride;
+        }
+        bool originalHasAlpha() const {
+            bool hasAlpha;
+            errorCheck(vlrImage2DOriginalHasAlpha(m_raw, &hasAlpha));
+            return hasAlpha;
+        }
+
+        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
 
     class LinearImage2DHolder : public Image2DHolder {
-        VLRLinearImage2D m_raw;
-
     public:
         LinearImage2DHolder(const ContextConstRef &context, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) :
             Image2DHolder(context) {
-            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), &m_raw, width, height, format, applyDegamma, linearData));
+            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, width, height, format, applyDegamma, linearData));
         }
         ~LinearImage2DHolder() {
-            errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), m_raw));
-        }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
-
-        uint32_t getWidth() {
-            uint32_t width;
-            errorCheck(vlrLinearImage2DGetWidth(m_raw, &width));
-            return width;
-        }
-        uint32_t getHeight() {
-            uint32_t height;
-            errorCheck(vlrLinearImage2DGetHeight(m_raw, &height));
-            return height;
-        }
-        uint32_t getStride() {
-            uint32_t stride;
-            errorCheck(vlrLinearImage2DGetStride(m_raw, &stride));
-            return stride;
+            errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), (VLRLinearImage2D)m_raw));
         }
     };
 

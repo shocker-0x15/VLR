@@ -76,12 +76,14 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width);
+    VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height);
+    VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride);
+    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha);
+
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData);
     VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image);
-    VLR_API VLRResult vlrLinearImage2DGetWidth(VLRLinearImage2D image, uint32_t* width);
-    VLR_API VLRResult vlrLinearImage2DGetHeight(VLRLinearImage2D image, uint32_t* height);
-    VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* stride);
 
 
 

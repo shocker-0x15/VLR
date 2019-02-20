@@ -17,6 +17,7 @@ namespace VLR {
 
     class Image2D : public Object {
         uint32_t m_width, m_height;
+        VLRDataFormat m_originalDataFormat;
         VLRDataFormat m_dataFormat;
         mutable optix::Buffer m_optixDataBuffer;
         mutable bool m_initOptiXObject;
@@ -27,7 +28,7 @@ namespace VLR {
 
         static VLRDataFormat getInternalFormat(VLRDataFormat inputFormat);
 
-        Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat dataFormat);
+        Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat);
         virtual ~Image2D();
 
         virtual Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const = 0;
@@ -40,11 +41,20 @@ namespace VLR {
         uint32_t getHeight() const {
             return m_height;
         }
+        VLRDataFormat getOriginalDataFormat() const {
+            return m_originalDataFormat;
+        }
         VLRDataFormat getDataFormat() const {
             return m_dataFormat;
         }
         uint32_t getStride() const {
             return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
+        }
+        bool originalHasAlpha() const {
+            return (m_originalDataFormat == VLRDataFormat_RGBA8x4 ||
+                    m_originalDataFormat == VLRDataFormat_RGBA16Fx4 ||
+                    m_originalDataFormat == VLRDataFormat_RGBA32Fx4 ||
+                    m_originalDataFormat == VLRDataFormat_GrayA8x2);
         }
 
         virtual optix::Buffer getOptiXObject() const;

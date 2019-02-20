@@ -184,6 +184,40 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
 
 
 
+VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width) {
+    if (!image->isMemberOf<VLR::Image2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    *width = image->getWidth();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height) {
+    if (!image->isMemberOf<VLR::Image2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    *height = image->getHeight();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
+    if (!image->isMemberOf<VLR::Image2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    *stride = image->getStride();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha) {
+    if (!image->isMemberOf<VLR::Image2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    *hasAlpha = image->originalHasAlpha();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                          uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) {
     *image = new VLR::LinearImage2D(*context, linearData, width, height, format, applyDegamma);
@@ -195,30 +229,6 @@ VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D i
     if (!image->is<VLR::LinearImage2D>())
         return VLR_ERROR_INVALID_TYPE;
     delete image;
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrLinearImage2DGetWidth(VLRLinearImage2D image, uint32_t* width) {
-    if (!image->is<VLR::LinearImage2D>())
-        return VLR_ERROR_INVALID_TYPE;
-    *width = image->getWidth();
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrLinearImage2DGetHeight(VLRLinearImage2D image, uint32_t* height) {
-    if (!image->is<VLR::LinearImage2D>())
-        return VLR_ERROR_INVALID_TYPE;
-    *height = image->getHeight();
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrLinearImage2DGetStride(VLRLinearImage2D image, uint32_t* stride) {
-    if (!image->is<VLR::LinearImage2D>())
-        return VLR_ERROR_INVALID_TYPE;
-    *stride = image->getStride();
 
     return VLR_ERROR_NO_ERROR;
 }

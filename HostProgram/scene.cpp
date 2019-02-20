@@ -144,7 +144,7 @@ MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
 }
 
 void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
-                        const std::vector<SurfaceMaterialAttributeTuple> &matAttrTuples, bool flipV, const PerMeshFunction &meshFunc,
+                        const std::vector<SurfaceMaterialAttributeTuple> &matAttrTuples, const PerMeshFunction &meshFunc,
                         VLRCpp::InternalNodeRef* nodeOut) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -193,7 +193,7 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
             const aiVector3D &t = mesh->mTangents ? mesh->mTangents[v] : aiVector3D(tangent[0], tangent[1], tangent[2]);
             const aiVector3D &uv = mesh->mNumUVComponents[0] > 0 ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
 
-            Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, flipV ? (1 - uv.y) : uv.y) };
+            Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, uv.y) };
             float dotNT = dot(outVtx.normal, outVtx.tc0Direction);
             if (std::fabs(dotNT) >= 0.01f)
                 outVtx.tc0Direction = normalize(outVtx.tc0Direction - dotNT * outVtx.normal);
@@ -217,7 +217,7 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
     if (nodeSrc->mNumChildren) {
         for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
             InternalNodeRef subNode;
-            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], matAttrTuples, flipV, meshFunc, &subNode);
+            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], matAttrTuples, meshFunc, &subNode);
             if (subNode != nullptr)
                 (*nodeOut)->addChild(subNode);
         }
@@ -230,7 +230,7 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
     using namespace VLR;
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace | (flipV ? aiProcess_FlipUVs : 0));
     if (!scene) {
         hpprintf("Failed to load %s.\n", filePath.c_str());
         return;
@@ -246,7 +246,7 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
         attrTuples.push_back(matFunc(context, aiMat, pathPrefix));
     }
 
-    recursiveConstruct(context, scene, scene->mRootNode, attrTuples, flipV, meshFunc, nodeOut);
+    recursiveConstruct(context, scene, scene->mRootNode, attrTuples, meshFunc, nodeOut);
 
     hpprintf("Constructing: %s done.\n", filePath.c_str());
 }
@@ -1216,73 +1216,54 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
         SurfaceMaterialRef mat;
         ShaderNodeSocket socketNormal;
         ShaderNodeSocket socketAlpha;
-        //{
-        //    auto ue4Mat = context->createUE4SurfaceMaterial();
-
-        //    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-        //        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
-        //        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        //        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
-
-        //        ue4Mat->setNodeBaseColor(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-        //    }
-        //    else {
-        //        ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65, 0.0f, 0.0f, 0.0f);
-        //    }
-
-        //    if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
-        //        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
-        //        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        //        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
-
-        //        auto nodeORM = context->createFloat3ShaderNode();
-        //        nodeORM->setImmediateValue0(0.0f);
-        //        if (aiMat->Get(AI_MATKEY_SHININESS, floatValue) == 0)
-        //            nodeORM->setImmediateValue1(floatValue);
-        //        else
-        //            nodeORM->setImmediateValue1(floatValue);
-        //        nodeORM->setNode2(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-
-        //        ue4Mat->setNodeOcclusionRoughnessMetallic();
-        //    }
-        //    else {
-        //        ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65, 0.0f, 0.0f, 0.0f);
-        //    }
-        //}
-
-        //if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-        //}
-        //if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
-        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-        //}
-
-        //if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-        //    Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
-        //    nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
-        //    socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
-        //}
-
-        // need to flip G value.
-        if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
-            Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-            Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
-            nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
-            socketNormal = nodeTex->getSocket(VLRShaderNodeSocketType_float3, 0);
-        }
-
-        if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-            Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-            Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
-            nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
-            socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
-        }
-
         {
-            auto matteMat = context->createMatteSurfaceMaterial();
+            auto ue4Mat = context->createUE4SurfaceMaterial();
 
-            mat = matteMat;
+            Image2DRef imageDiffuse;
+            Image2DRef imageSpecular;
+            Image2DRef imageNormal;
+            Image2DRef imageAlpha;
+            Image2DTextureShaderNodeRef texDiffuse;
+            Image2DTextureShaderNodeRef texSpecular;
+            Image2DTextureShaderNodeRef texNormal;
+            Image2DTextureShaderNodeRef texAlpha;
+
+            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                imageDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+                texDiffuse = context->createImage2DTextureShaderNode();
+                texDiffuse->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imageDiffuse);
+            }
+            if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
+                imageSpecular = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+                texSpecular = context->createImage2DTextureShaderNode();
+                texSpecular->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imageSpecular);
+            }
+            if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
+                imageNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+                texNormal = context->createImage2DTextureShaderNode();
+                texNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imageNormal);
+            }
+            if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+                imageAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+                texAlpha = context->createImage2DTextureShaderNode();
+                texAlpha->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imageAlpha);
+            }
+
+            if (texDiffuse)
+                ue4Mat->setNodeBaseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+            ue4Mat->setImmediateValueMetallic(0);
+            ue4Mat->setImmediateValueRoughness(0.3f);
+
+            if (texNormal)
+                socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+
+            if (texAlpha)
+                socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+            else if (imageDiffuse && imageDiffuse->originalHasAlpha())
+                socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
+
+            mat = ue4Mat;
         }
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
@@ -1293,7 +1274,8 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
+    //Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", false);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
