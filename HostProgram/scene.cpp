@@ -1488,12 +1488,12 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    //createMaterialTestScene(context, shot);
+    createMaterialTestScene(context, shot);
     //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
     //createRungholtScene(context, shot);
     //createPowerplantScene(context, shot);
-    createAmazonBistroScene(context, shot);
+    //createAmazonBistroScene(context, shot);
     //createColorCheckerScene(context, shot);
 }

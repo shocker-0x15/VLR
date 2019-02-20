@@ -155,7 +155,7 @@ namespace VLR {
                     dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
                     dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
                     dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
-                    dst.a = 255;
+                    dst.a = src.a;
                 };
                 processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
