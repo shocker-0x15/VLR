@@ -11,6 +11,7 @@ namespace VLR {
     struct RG32Fx2 { float r, g; };
     struct Gray32F { float v; };
     struct Gray8 { uint8_t v; };
+    struct GrayA8x2 { uint8_t v; uint8_t a; };
 
     extern const size_t sizesOfDataFormats[(uint32_t)VLRDataFormat::NumVLRDataFormats];
 

@@ -28,6 +28,7 @@ enum VLRDataFormat {
     VLRDataFormat_RG32Fx2,
     VLRDataFormat_Gray32F,
     VLRDataFormat_Gray8,
+    VLRDataFormat_GrayA8x2,
     NumVLRDataFormats
 };
 

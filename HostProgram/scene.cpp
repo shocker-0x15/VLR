@@ -80,8 +80,15 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
     }
     else {
         int32_t width, height, n;
-        uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 4);
-        ret = context->createLinearImage2D(width, height, VLRDataFormat_RGBA8x4, applyDegamma, linearImageData);
+        uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 0);
+        if (n == 4)
+            ret = context->createLinearImage2D(width, height, VLRDataFormat_RGBA8x4, applyDegamma, linearImageData);
+        else if (n == 3)
+            ret = context->createLinearImage2D(width, height, VLRDataFormat_RGB8x3, applyDegamma, linearImageData);
+        else if (n == 2)
+            ret = context->createLinearImage2D(width, height, VLRDataFormat_GrayA8x2, applyDegamma, linearImageData);
+        else if (n == 1)
+            ret = context->createLinearImage2D(width, height, VLRDataFormat_Gray8, applyDegamma, linearImageData);
         stbi_image_free(linearImageData);
     }
 
@@ -1185,6 +1192,144 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->camera = shot->perspectiveCamera;
 }
 
+void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+
+    InternalNodeRef modelNode;
+
+    const auto bistroMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        ai_real floatValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+        hpprintf("Material: %s\n", strValue.C_Str());
+
+        SurfaceMaterialRef mat;
+        ShaderNodeSocket socketNormal;
+        ShaderNodeSocket socketAlpha;
+        //{
+        //    auto ue4Mat = context->createUE4SurfaceMaterial();
+
+        //    if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+        //        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
+        //        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+        //        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+
+        //        ue4Mat->setNodeBaseColor(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        //    }
+        //    else {
+        //        ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65, 0.0f, 0.0f, 0.0f);
+        //    }
+
+        //    if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
+        //        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
+        //        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+        //        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+
+        //        auto nodeORM = context->createFloat3ShaderNode();
+        //        nodeORM->setImmediateValue0(0.0f);
+        //        if (aiMat->Get(AI_MATKEY_SHININESS, floatValue) == 0)
+        //            nodeORM->setImmediateValue1(floatValue);
+        //        else
+        //            nodeORM->setImmediateValue1(floatValue);
+        //        nodeORM->setNode2(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+        //        ue4Mat->setNodeOcclusionRoughnessMetallic();
+        //    }
+        //    else {
+        //        ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65, 0.0f, 0.0f, 0.0f);
+        //    }
+        //}
+
+        //if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+        //}
+        //if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
+        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+        //}
+
+        //if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+        //    Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+        //    Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
+        //    nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
+        //    socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
+        //}
+
+        // need to flip G value.
+        if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
+            Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+            Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
+            nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
+            socketNormal = nodeTex->getSocket(VLRShaderNodeSocketType_float3, 0);
+        }
+
+        if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+            Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+            Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
+            nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
+            socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
+        }
+
+        {
+            auto matteMat = context->createMatteSurfaceMaterial();
+
+            mat = matteMat;
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+    };
+    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", true, &modelNode, bistroMaterialFunc);
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
+
+
+
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
+    EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
+    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+    matEnv->setNodeEmittanceTextured(nodeEnvTex);
+    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    shot->scene->setEnvironment(matEnv);
+
+
+
+    shot->cameraPos = Point3D(0, 0, 0);
+    shot->cameraOrientation = qRotateY<float>(M_PI);
+    //shot->cameraPos = Point3D(3.586937f, 1.629551f, 11.421754f);
+    //shot->cameraOrientation = Quaternion(-0.002190f, 0.934560f, 0.014282f, -0.355509f);
+    shot->brightnessCoeff = 1.0f;
+
+    shot->renderTargetSizeX = 1280;
+    shot->renderTargetSizeY = 720;
+
+    shot->persSensitivity = 1.0f;
+    shot->fovYInDeg = 40;
+    shot->lensRadius = 0.0f;
+    shot->objPlaneDistance = 1.0f;
+    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
+                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
+                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+
+    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
+    shot->phiAngle = M_PI;
+    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
+    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
+                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+
+    shot->cameraType = 0;
+    shot->camera = shot->perspectiveCamera;
+}
+
 void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -1343,11 +1488,12 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    createMaterialTestScene(context, shot);
+    //createMaterialTestScene(context, shot);
     //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
     //createRungholtScene(context, shot);
     //createPowerplantScene(context, shot);
+    createAmazonBistroScene(context, shot);
     //createColorCheckerScene(context, shot);
 }

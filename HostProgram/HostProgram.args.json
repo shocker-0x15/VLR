@@ -11,16 +11,24 @@
       "Command": "--disableRTX"
     },
     {
-      "Id": "655fa978-c650-49aa-9eca-1623800adb13",
-      "Command": "--stacksize 2560"
+      "Id": "02bd491c-9d1e-4857-960f-1401190fc5f0",
+      "Command": "--stacksize 4096"
     },
     {
       "Id": "8ebe06c6-cad8-4178-a939-eade53b301d0",
       "Command": "--stacksize 3072"
     },
     {
-      "Id": "02bd491c-9d1e-4857-960f-1401190fc5f0",
-      "Command": "--stacksize 4096"
+      "Id": "655fa978-c650-49aa-9eca-1623800adb13",
+      "Command": "--stacksize 2560"
+    },
+    {
+      "Id": "a99c0bd0-4300-45b5-b15c-8cfddf6c2e3e",
+      "Command": "-maxcallabledepth 8"
+    },
+    {
+      "Id": "d388d70f-0e7c-4182-b62b-714ef2401f4a",
+      "Command": "--maxcallabledepth 5"
     },
     {
       "Id": "7608790c-38ee-4ab4-9c61-f35c81248674",

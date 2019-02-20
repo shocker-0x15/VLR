@@ -10,6 +10,7 @@ namespace VLR {
     sizeof(RG32Fx2),
     sizeof(Gray32F),
     sizeof(Gray8),
+    sizeof(GrayA8x2),
     };
 
     VLRDataFormat Image2D::getInternalFormat(VLRDataFormat inputFormat) {
@@ -30,6 +31,8 @@ namespace VLR {
             return VLRDataFormat_Gray32F;
         case VLRDataFormat_Gray8:
             return VLRDataFormat_Gray8;
+        case VLRDataFormat_GrayA8x2:
+            return VLRDataFormat_GrayA8x2;
         default:
             VLRAssert(false, "Data format is invalid.");
             break;
@@ -76,6 +79,9 @@ namespace VLR {
         case VLRDataFormat_Gray8:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
             break;
+        case VLRDataFormat_GrayA8x2:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
+            break;
         default:
             VLRAssert_ShouldNotBeCalled();
             break;
@@ -88,165 +94,166 @@ namespace VLR {
 
 
 
+    template <typename SrcType, typename DstType>
+    using FuncProcessPixel = void (*)(const SrcType &src, DstType &dst);
+    
+    template <typename SrcType, typename DstType>
+    void processAllPixels(const uint8_t* srcData, uint8_t* dstData, uint32_t width, uint32_t height, FuncProcessPixel<SrcType, DstType> func) {
+        auto srcHead = (const SrcType*)srcData;
+        auto dstHead = (DstType*)dstData;
+        for (int y = 0; y < height; ++y) {
+            auto srcLineHead = srcHead + width * y;
+            auto dstLineHead = dstHead + width * y;
+            for (int x = 0; x < width; ++x) {
+                auto &src = *(srcLineHead + x);
+                auto &dst = *(dstLineHead + x);
+                func(src, dst);
+            }
+        }
+    }
+    
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
         Image2D(context, width, height, Image2D::getInternalFormat(dataFormat)), m_copyDone(false) {
         m_data.resize(getStride() * getWidth() * getHeight());
 
         switch (dataFormat) {
         case VLRDataFormat_RGB8x3: {
-            auto srcHead = (const RGB8x3*)linearData;
-            auto dstHead = (RGBA8x4*)m_data.data();
-            for (int y = 0; y < height; ++y) {
-                auto srcLineHead = srcHead + width * y;
-                auto dstLineHead = dstHead + width * y;
-                for (int x = 0; x < width; ++x) {
-                    const RGB8x3 &src = *(srcLineHead + x);
-                    RGBA8x4 &dst = *(dstLineHead + x);
-                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f)) : src.r;
-                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f)) : src.g;
-                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f)) : src.b;
-                    dst.a = 255;
-                }
-            }
+            FuncProcessPixel<RGB8x3, RGBA8x4> funcApplyDegamma = [](const RGB8x3 &src, RGBA8x4 &dst) {
+                dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
+                dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
+                dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
+                dst.a = 255;
+            };
+            FuncProcessPixel<RGB8x3, RGBA8x4> funcAsIs = [](const RGB8x3 &src, RGBA8x4 &dst) {
+                dst.r = src.r;
+                dst.g = src.g;
+                dst.b = src.b;
+                dst.a = 255;
+            };
+            processAllPixels(linearData, m_data.data(), width, height, applyDegamma ? funcApplyDegamma : funcAsIs);
             break;
         }
         case VLRDataFormat_RGB_8x4: {
-            auto srcHead = (const RGB_8x4*)linearData;
-            auto dstHead = (RGBA8x4*)m_data.data();
-            for (int y = 0; y < height; ++y) {
-                auto srcLineHead = srcHead + width * y;
-                auto dstLineHead = dstHead + width * y;
-                for (int x = 0; x < width; ++x) {
-                    const RGB_8x4 &src = *(srcLineHead + x);
-                    RGBA8x4 &dst = *(dstLineHead + x);
-                    dst.r = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f)) : src.r;
-                    dst.g = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f)) : src.g;
-                    dst.b = applyDegamma ? std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f)) : src.b;
-                    dst.a = 255;
-                }
-            }
+            FuncProcessPixel<RGB_8x4, RGBA8x4> funcApplyDegamma = [](const RGB_8x4 &src, RGBA8x4 &dst) {
+                dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
+                dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
+                dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
+                dst.a = 255;
+            };
+            FuncProcessPixel<RGB_8x4, RGBA8x4> funcAsIs = [](const RGB_8x4 &src, RGBA8x4 &dst) {
+                dst.r = src.r;
+                dst.g = src.g;
+                dst.b = src.b;
+                dst.a = 255;
+            };
+            processAllPixels(linearData, m_data.data(), width, height, applyDegamma ? funcApplyDegamma : funcAsIs);
             break;
         }
         case VLRDataFormat_RGBA8x4: {
-            auto srcHead = (const RGBA8x4*)linearData;
-            auto dstHead = (RGBA8x4*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const RGBA8x4 &src = *(srcLineHead + x);
-                        RGBA8x4 &dst = *(dstLineHead + x);
-                        dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
-                        dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
-                        dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
-                        dst.a = src.a;
-                    }
-                }
+                FuncProcessPixel<RGBA8x4, RGBA8x4> funcApplyDegamma = [](const RGBA8x4 &src, RGBA8x4 &dst) {
+                    dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
+                    dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
+                    dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
+                    dst.a = 255;
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const RGBA8x4*)linearData;
+                auto dstHead = (RGBA8x4*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
         }
         case VLRDataFormat_RGBA16Fx4: {
-            auto srcHead = (const RGBA16Fx4*)linearData;
-            auto dstHead = (RGBA16Fx4*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const RGBA16Fx4 &src = *(srcLineHead + x);
-                        RGBA16Fx4 &dst = *(dstLineHead + x);
-                        dst.r = (half)sRGB_degamma((float)src.r);
-                        dst.g = (half)sRGB_degamma((float)src.g);
-                        dst.b = (half)sRGB_degamma((float)src.b);
-                        dst.a = src.a;
-                    }
-                }
+                FuncProcessPixel<RGBA16Fx4, RGBA16Fx4> funcApplyDegamma = [](const RGBA16Fx4 &src, RGBA16Fx4 &dst) {
+                    dst.r = (half)sRGB_degamma((float)src.r);
+                    dst.g = (half)sRGB_degamma((float)src.g);
+                    dst.b = (half)sRGB_degamma((float)src.b);
+                    dst.a = src.a;
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const RGBA16Fx4*)linearData;
+                auto dstHead = (RGBA16Fx4*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
         }
         case VLRDataFormat_RGBA32Fx4: {
-            auto srcHead = (const RGBA32Fx4*)linearData;
-            auto dstHead = (RGBA32Fx4*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const RGBA32Fx4 &src = *(srcLineHead + x);
-                        RGBA32Fx4 &dst = *(dstLineHead + x);
-                        dst.r = sRGB_degamma(src.r);
-                        dst.g = sRGB_degamma(src.g);
-                        dst.b = sRGB_degamma(src.b);
-                        dst.a = src.a;
-                    }
-                }
+                FuncProcessPixel<RGBA32Fx4, RGBA32Fx4> funcApplyDegamma = [](const RGBA32Fx4 &src, RGBA32Fx4 &dst) {
+                    dst.r = sRGB_degamma(src.r);
+                    dst.g = sRGB_degamma(src.g);
+                    dst.b = sRGB_degamma(src.b);
+                    dst.a = src.a;
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const RGBA32Fx4*)linearData;
+                auto dstHead = (RGBA32Fx4*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
         }
         case VLRDataFormat_RG32Fx2: {
-            auto srcHead = (const RG32Fx2*)linearData;
-            auto dstHead = (RG32Fx2*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const RG32Fx2 &src = *(srcLineHead + x);
-                        RG32Fx2 &dst = *(dstLineHead + x);
-                        dst.r = sRGB_degamma(src.r);
-                        dst.g = sRGB_degamma(src.g);
-                    }
-                }
+                FuncProcessPixel<RG32Fx2, RG32Fx2> funcApplyDegamma = [](const RG32Fx2 &src, RG32Fx2 &dst) {
+                    dst.r = sRGB_degamma(src.r);
+                    dst.g = sRGB_degamma(src.g);
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const RG32Fx2*)linearData;
+                auto dstHead = (RG32Fx2*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
         }
         case VLRDataFormat_Gray32F: {
-            auto srcHead = (const Gray32F*)linearData;
-            auto dstHead = (Gray32F*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const Gray32F &src = *(srcLineHead + x);
-                        Gray32F &dst = *(dstLineHead + x);
-                        dst.v = sRGB_degamma(src.v);
-                    }
-                }
+                FuncProcessPixel<Gray32F, Gray32F> funcApplyDegamma = [](const Gray32F &src, Gray32F &dst) {
+                    dst.v = sRGB_degamma(src.v);
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const Gray32F*)linearData;
+                auto dstHead = (Gray32F*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
         }
         case VLRDataFormat_Gray8: {
-            auto srcHead = (const Gray8*)linearData;
-            auto dstHead = (Gray8*)m_data.data();
             if (applyDegamma) {
-                for (int y = 0; y < height; ++y) {
-                    auto srcLineHead = srcHead + width * y;
-                    auto dstLineHead = dstHead + width * y;
-                    for (int x = 0; x < width; ++x) {
-                        const Gray8 &src = *(srcLineHead + x);
-                        Gray8 &dst = *(dstLineHead + x);
-                        dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
-                    }
-                }
+                FuncProcessPixel<Gray8, Gray8> funcApplyDegamma = [](const Gray8 &src, Gray8 &dst) {
+                    dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
             }
             else {
+                auto srcHead = (const Gray8*)linearData;
+                auto dstHead = (Gray8*)m_data.data();
+                std::copy_n(srcHead, width * height, dstHead);
+            }
+            break;
+        }
+        case VLRDataFormat_GrayA8x2: {
+            if (applyDegamma) {
+                FuncProcessPixel<GrayA8x2, GrayA8x2> funcApplyDegamma = [](const GrayA8x2 &src, GrayA8x2 &dst) {
+                    dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
+                    dst.a = src.a;
+                };
+                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
+            }
+            else {
+                auto srcHead = (const GrayA8x2*)linearData;
+                auto dstHead = (GrayA8x2*)m_data.data();
                 std::copy_n(srcHead, width * height, dstHead);
             }
             break;
