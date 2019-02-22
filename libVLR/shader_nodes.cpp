@@ -471,11 +471,12 @@ namespace VLR {
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
+        ScaleAndOffsetFloatShaderNode::initialize(context);
         TripletSpectrumShaderNode::initialize(context);
         RegularSampledSpectrumShaderNode::initialize(context);
         IrregularSampledSpectrumShaderNode::initialize(context);
         Vector3DToSpectrumShaderNode::initialize(context);
-        OffsetAndScaleUVTextureMap2DShaderNode::initialize(context);
+        ScaleAndOffsetUVTextureMap2DShaderNode::initialize(context);
         Image2DTextureShaderNode::initialize(context);
         EnvironmentTextureShaderNode::initialize(context);
     }
@@ -484,11 +485,12 @@ namespace VLR {
     void ShaderNode::finalize(Context &context) {
         EnvironmentTextureShaderNode::finalize(context);
         Image2DTextureShaderNode::finalize(context);
-        OffsetAndScaleUVTextureMap2DShaderNode::finalize(context);
+        ScaleAndOffsetUVTextureMap2DShaderNode::finalize(context);
         Vector3DToSpectrumShaderNode::finalize(context);
         IrregularSampledSpectrumShaderNode::finalize(context);
         RegularSampledSpectrumShaderNode::finalize(context);
         TripletSpectrumShaderNode::finalize(context);
+        ScaleAndOffsetFloatShaderNode::finalize(context);
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
@@ -879,6 +881,84 @@ namespace VLR {
 
 
 
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::OptiXProgramSets;
+
+    // static
+    void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::ScaleAndOffsetFloatShaderNode_float",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void ScaleAndOffsetFloatShaderNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
+        ShaderNode(context), m_immScale(1.0f), m_immOffset(0.0f) {
+        setupNodeDescriptor();
+    }
+
+    ScaleAndOffsetFloatShaderNode::~ScaleAndOffsetFloatShaderNode() {
+    }
+
+    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::NodeDescriptor nodeDesc;
+        nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
+        auto &nodeData = *nodeDesc.getData<Shared::ScaleAndOffsetFloatShaderNode>();
+        nodeData.nodeValue = m_nodeValue.getSharedType();
+        nodeData.nodeScale = m_nodeScale.getSharedType();
+        nodeData.nodeOffset = m_nodeOffset.getSharedType();
+        nodeData.immScale = m_immScale;
+        nodeData.immOffset = m_immOffset;
+
+        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+    }
+
+    bool ScaleAndOffsetFloatShaderNode::setNodeValue(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
+            return false;
+        m_nodeValue = outputSocket;
+        setupNodeDescriptor();
+        return true;
+    }
+
+    bool ScaleAndOffsetFloatShaderNode::setNodeScale(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
+            return false;
+        m_nodeScale = outputSocket;
+        setupNodeDescriptor();
+        return true;
+    }
+
+    bool ScaleAndOffsetFloatShaderNode::setNodeOffset(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
+            return false;
+        m_nodeOffset = outputSocket;
+        setupNodeDescriptor();
+        return true;
+    }
+
+    void ScaleAndOffsetFloatShaderNode::setImmediateValueScale(float value) {
+        m_immScale = value;
+        setupNodeDescriptor();
+    }
+
+    void ScaleAndOffsetFloatShaderNode::setImmediateValueOffset(float value) {
+        m_immOffset = value;
+        setupNodeDescriptor();
+    }
+
+
+
     std::map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::OptiXProgramSets;
 
     // static
@@ -1143,12 +1223,12 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> OffsetAndScaleUVTextureMap2DShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::OptiXProgramSets;
 
     // static
-    void OffsetAndScaleUVTextureMap2DShaderNode::initialize(Context &context) {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::initialize(Context &context) {
         const char* identifiers[] = {
-            "VLR::OffsetAndScaleUVTextureMap2DShaderNode_textureCoordinates",
+            "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_textureCoordinates",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
@@ -1157,25 +1237,25 @@ namespace VLR {
     }
 
     // static
-    void OffsetAndScaleUVTextureMap2DShaderNode::finalize(Context &context) {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
     }
 
-    OffsetAndScaleUVTextureMap2DShaderNode::OffsetAndScaleUVTextureMap2DShaderNode(Context &context) :
+    ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
         ShaderNode(context), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
         setupNodeDescriptor();
     }
 
-    OffsetAndScaleUVTextureMap2DShaderNode::~OffsetAndScaleUVTextureMap2DShaderNode() {
+    ScaleAndOffsetUVTextureMap2DShaderNode::~ScaleAndOffsetUVTextureMap2DShaderNode() {
     }
 
-    void OffsetAndScaleUVTextureMap2DShaderNode::setupNodeDescriptor() const {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
         Shared::NodeDescriptor nodeDesc;
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
-        auto &nodeData = *nodeDesc.getData<Shared::OffsetAndScaleUVTextureMap2DShaderNode>();
+        auto &nodeData = *nodeDesc.getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
@@ -1184,7 +1264,7 @@ namespace VLR {
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void OffsetAndScaleUVTextureMap2DShaderNode::setValues(const float offset[2], const float scale[2]) {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::setValues(const float offset[2], const float scale[2]) {
         std::copy_n(offset, 2, m_offset);
         std::copy_n(scale, 2, m_scale);
         setupNodeDescriptor();
@@ -1248,6 +1328,7 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
+        nodeData.format = m_image ? m_image->getDataFormat() : (VLRDataFormat)0;
         nodeData.spectrumType = m_spectrumType;
         nodeData.colorSpace = m_colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();

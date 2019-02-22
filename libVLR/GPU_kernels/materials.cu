@@ -1049,63 +1049,26 @@ namespace VLR {
 
 
 
-    // ----------------------------------------------------------------
-    // UE4 (Modified) BRDF
-
 #define USE_HEIGHT_CORRELATED_SMITH
 
-    struct UE4BRDF {
-        SampledSpectrum baseColor;
-        float roughness;
-        float metallic;
-    };
-
-    RT_CALLABLE_PROGRAM uint32_t UE4SurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
-        auto &p = *(UE4BRDF*)params;
-        auto &mat = *(const UE4SurfaceMaterial*)matDesc;
-
-        p.baseColor = calcNode(mat.nodeBaseColor, mat.immBaseColor, surfPt, wls);
-        optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic, 
-                                                            optix::make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic), 
-                                                            surfPt, wls);
-        p.roughness = std::fmax(0.01f, occlusionRoughnessMetallic.y);
-        p.metallic = occlusionRoughnessMetallic.z;
-
-        return sizeof(UE4BRDF) / 4;
-    }
-
-    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_getBaseColor(const uint32_t* params) {
-        auto &p = *(const UE4BRDF*)params;
-
-        return p.baseColor;
-    }
-
-    RT_CALLABLE_PROGRAM bool UE4BRDF_matches(const uint32_t* params, DirectionType flags) {
-        DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
-        return m_type.matches(flags);
-    }
-
-    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
-        auto &p = *(const UE4BRDF*)params;
-
-        const float specular = 0.5f;
-        float alpha = p.roughness * p.roughness;
+    RT_FUNCTION SampledSpectrum diffuseAndSpecularBRDF_sampleInternal(const SampledSpectrum &diffuseColor, const SampledSpectrum &specularF0Color, float roughness,
+                                                                      const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        float alpha = roughness * roughness;
         GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         bool entering = query.dirLocal.z >= 0.0f;
         Vector3D dirL;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
-        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float expectedF_D90 = 0.5f * roughness + 2 * roughness * query.dirLocal.z * query.dirLocal.z;
         float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
-        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+        float iBaseColor = diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, roughness);
 
-        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
         float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
         float iSpecularF0 = specularF0Color.importance(query.wlHint);
 
-        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float diffuseWeight = iBaseColor;
         float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
 
         float weights[] = { diffuseWeight, specularWeight };
@@ -1171,11 +1134,11 @@ namespace VLR {
         float microfacetDenom = 4 * dirL.z * dirV.z;
         SampledSpectrum specularValue = F * ((D * G) / microfacetDenom);
 
-        float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
+        float F_D90 = 0.5f * roughness + 2 * roughness * dotLH * dotLH;
         float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
-        SampledSpectrum diffuseValue = p.baseColor * ((diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf) * (1 - p.metallic));
+        SampledSpectrum diffuseValue = diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, roughness) / M_PIf);
 
         SampledSpectrum ret = diffuseValue + specularValue;
 
@@ -1187,11 +1150,9 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
-        auto &p = *(const UE4BRDF*)params;
-
-        const float specular = 0.5f;
-        float alpha = p.roughness * p.roughness;
+    RT_FUNCTION SampledSpectrum diffuseAndSpecularBRDF_evaluateInternal(const SampledSpectrum &diffuseColor, const SampledSpectrum &specularF0Color, float roughness,
+                                                                        const BSDFQuery &query, const Vector3D &dirLocal) {
+        float alpha = roughness * roughness;
         GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         if (dirLocal.z * query.dirLocal.z <= 0) {
@@ -1207,8 +1168,6 @@ namespace VLR {
 
         float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
 
-        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
-
         float D = ggx.evaluate(m);
 #if defined(USE_HEIGHT_CORRELATED_SMITH)
         float G = ggx.evaluateHeightCorrelatedSmithG(dirL, dirV, m);
@@ -1220,24 +1179,22 @@ namespace VLR {
         float microfacetDenom = 4 * dirL.z * dirV.z;
         SampledSpectrum specularValue = F * ((D * G) / microfacetDenom);
 
-        float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
+        float F_D90 = 0.5f * roughness + 2 * roughness * dotLH * dotLH;
         float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
         float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
 
-        SampledSpectrum diffuseValue = p.baseColor * ((diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf) * (1 - p.metallic));
+        SampledSpectrum diffuseValue = diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, roughness) / M_PIf);
 
         SampledSpectrum ret = diffuseValue + specularValue;
 
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM float UE4BRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
-        auto &p = *(const UE4BRDF*)params;
-
-        const float specular = 0.5f;
-        float alpha = p.roughness * p.roughness;
+    RT_FUNCTION float diffuseAndSpecularBRDF_evaluatePDFInternal(const SampledSpectrum &diffuseColor, const SampledSpectrum &specularF0Color, float roughness,
+                                                                 const BSDFQuery &query, const Vector3D &dirLocal) {
+        float alpha = roughness * roughness;
         GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -1248,16 +1205,15 @@ namespace VLR {
         float dotLH = dot(dirL, m);
         float commonPDFTerm = 1.0f / (4 * dotLH);
 
-        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float expectedF_D90 = 0.5f * roughness + 2 * roughness * query.dirLocal.z * query.dirLocal.z;
         float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
-        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+        float iBaseColor = diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, roughness);
 
-        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
         float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
         float iSpecularF0 = specularF0Color.importance(query.wlHint);
 
-        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float diffuseWeight = iBaseColor;
         float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
 
         float sumWeights = diffuseWeight + specularWeight;
@@ -1270,30 +1226,166 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM float UE4BRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
-        auto &p = *(const UE4BRDF*)params;
-
-        const float specular = 0.5f;
-
+    RT_FUNCTION float diffuseAndSpecularBRDF_weightInternal(const SampledSpectrum &diffuseColor, const SampledSpectrum &specularF0Color, float roughness,
+                                                            const BSDFQuery &query) {
         bool entering = query.dirLocal.z >= 0.0f;
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
-        float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
+        float expectedF_D90 = 0.5f * roughness + 2 * roughness * query.dirLocal.z * query.dirLocal.z;
         float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
-        float iBaseColor = p.baseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
+        float iBaseColor = diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, roughness);
 
-        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
         float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
         float iSpecularF0 = specularF0Color.importance(query.wlHint);
 
-        float diffuseWeight = iBaseColor * (1 - p.metallic);
+        float diffuseWeight = iBaseColor;
         float specularWeight = lerp(iSpecularF0, 1.0f, expectedOneMinusDotVH5);
 
         return diffuseWeight + specularWeight;
     }
 
+    
+    
+    // ----------------------------------------------------------------
+    // UE4 (Modified) BRDF
+
+    struct UE4BRDF {
+        SampledSpectrum baseColor;
+        float roughness;
+        float metallic;
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t UE4SurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+        auto &p = *(UE4BRDF*)params;
+        auto &mat = *(const UE4SurfaceMaterial*)matDesc;
+
+        p.baseColor = calcNode(mat.nodeBaseColor, mat.immBaseColor, surfPt, wls);
+        optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic, 
+                                                            optix::make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic), 
+                                                            surfPt, wls);
+        p.roughness = std::fmax(0.01f, occlusionRoughnessMetallic.y);
+        p.metallic = occlusionRoughnessMetallic.z;
+
+        return sizeof(UE4BRDF) / 4;
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_getBaseColor(const uint32_t* params) {
+        auto &p = *(const UE4BRDF*)params;
+
+        return p.baseColor;
+    }
+
+    RT_CALLABLE_PROGRAM bool UE4BRDF_matches(const uint32_t* params, DirectionType flags) {
+        DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
+        return m_type.matches(flags);
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        auto &p = *(const UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        SampledSpectrum diffuseColor = p.baseColor * (1 - p.metallic);
+        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
+        return diffuseAndSpecularBRDF_sampleInternal(diffuseColor, specularF0Color, p.roughness,
+                                                     query, uComponent, uDir, result);
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum UE4BRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *(const UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        SampledSpectrum diffuseColor = p.baseColor * (1 - p.metallic);
+        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
+        return diffuseAndSpecularBRDF_evaluateInternal(diffuseColor, specularF0Color, p.roughness,
+                                                       query, dirLocal);
+    }
+
+    RT_CALLABLE_PROGRAM float UE4BRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *(const UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        SampledSpectrum diffuseColor = p.baseColor * (1 - p.metallic);
+        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
+        return diffuseAndSpecularBRDF_evaluatePDFInternal(diffuseColor, specularF0Color, p.roughness,
+                                                          query, dirLocal);
+    }
+
+    RT_CALLABLE_PROGRAM float UE4BRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+        auto &p = *(const UE4BRDF*)params;
+
+        const float specular = 0.5f;
+        SampledSpectrum diffuseColor = p.baseColor * (1 - p.metallic);
+        SampledSpectrum specularF0Color = lerp(0.08f * specular * SampledSpectrum::One(), p.baseColor, p.metallic);
+        return diffuseAndSpecularBRDF_weightInternal(diffuseColor, specularF0Color, p.roughness,
+                                                     query);
+    }
+
     // END: UE4 (Modified) BRDF
+    // ----------------------------------------------------------------
+
+
+
+    // ----------------------------------------------------------------
+    // Old style BRDF
+
+    struct OldStyleBRDF {
+        SampledSpectrum diffuseColor;
+        SampledSpectrum specularColor;
+        float glossiness;
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t OldStyleSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+        auto &p = *(OldStyleBRDF*)params;
+        auto &mat = *(const OldStyleSurfaceMaterial*)matDesc;
+
+        p.diffuseColor = calcNode(mat.nodeDiffuseColor, mat.immDiffuseColor, surfPt, wls);
+        p.specularColor = calcNode(mat.nodeSpecularColor, mat.immSpecularColor, surfPt, wls);
+        p.glossiness = std::fmin(0.99f, calcNode(mat.nodeGlossiness, mat.immGlossiness, surfPt, wls));
+
+        return sizeof(OldStyleBRDF) / 4;
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum OldStyleBRDF_getBaseColor(const uint32_t* params) {
+        auto &p = *(const OldStyleBRDF*)params;
+
+        return p.diffuseColor + p.specularColor;
+    }
+
+    RT_CALLABLE_PROGRAM bool OldStyleBRDF_matches(const uint32_t* params, DirectionType flags) {
+        DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
+        return m_type.matches(flags);
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum OldStyleBRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        auto &p = *(const OldStyleBRDF*)params;
+
+        return diffuseAndSpecularBRDF_sampleInternal(p.diffuseColor, p.specularColor, 1 - p.glossiness,
+                                                     query, uComponent, uDir, result);
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum OldStyleBRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *(const OldStyleBRDF*)params;
+
+        return diffuseAndSpecularBRDF_evaluateInternal(p.diffuseColor, p.specularColor, 1 - p.glossiness,
+                                                       query, dirLocal);
+    }
+
+    RT_CALLABLE_PROGRAM float OldStyleBRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *(const OldStyleBRDF*)params;
+
+        return diffuseAndSpecularBRDF_evaluatePDFInternal(p.diffuseColor, p.specularColor, 1 - p.glossiness,
+                                                          query, dirLocal);
+    }
+
+    RT_CALLABLE_PROGRAM float OldStyleBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+        auto &p = *(const OldStyleBRDF*)params;
+
+        return diffuseAndSpecularBRDF_weightInternal(p.diffuseColor, p.specularColor, 1 - p.glossiness,
+                                                     query);
+    }
+
+    // END: Old style BRDF
     // ----------------------------------------------------------------
 
 

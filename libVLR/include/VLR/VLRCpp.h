@@ -21,11 +21,12 @@ namespace VLRCpp {
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float2ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float4ShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ScaleAndOffsetFloatShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(TripletSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(RegularSampledSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(IrregularSampledSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Vector3DToSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(OffsetAndScaleUVTextureMap2DShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(ScaleAndOffsetUVTextureMap2DShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentTextureShaderNode);
 
@@ -37,6 +38,7 @@ namespace VLRCpp {
     VLR_DECLARE_HOLDER_AND_REFERENCE(MicrofacetScatteringSurfaceMaterial);
     VLR_DECLARE_HOLDER_AND_REFERENCE(LambertianScatteringSurfaceMaterial);
     VLR_DECLARE_HOLDER_AND_REFERENCE(UE4SurfaceMaterial);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(OldStyleSurfaceMaterial);
     VLR_DECLARE_HOLDER_AND_REFERENCE(DiffuseEmitterSurfaceMaterial);
     VLR_DECLARE_HOLDER_AND_REFERENCE(MultiSurfaceMaterial);
     VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentEmitterSurfaceMaterial);
@@ -104,9 +106,14 @@ namespace VLRCpp {
             errorCheck(vlrImage2DGetStride(m_raw, &stride));
             return stride;
         }
-        bool originalHasAlpha() const {
+        VLRDataFormat getDataFormat() const {
+            VLRDataFormat format;
+            errorCheck(vlrImage2DGetDataFormat(m_raw, &format));
+            return format;
+        }
+        bool hasAlpha() const {
             bool hasAlpha;
-            errorCheck(vlrImage2DOriginalHasAlpha(m_raw, &hasAlpha));
+            errorCheck(vlrImage2DHasAlpha(m_raw, &hasAlpha));
             return hasAlpha;
         }
 
@@ -316,6 +323,41 @@ namespace VLRCpp {
 
 
 
+    class ScaleAndOffsetFloatShaderNodeHolder : public ShaderNodeHolder {
+        ShaderNodeSocket m_nodeValue;
+        ShaderNodeSocket m_nodeScale;
+        ShaderNodeSocket m_nodeOffset;
+
+    public:
+        ScaleAndOffsetFloatShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeCreate(getRaw(m_context), (VLRScaleAndOffsetFloatShaderNode*)&m_raw));
+        }
+        ~ScaleAndOffsetFloatShaderNodeHolder() {
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeDestroy(getRaw(m_context), (VLRScaleAndOffsetFloatShaderNode)m_raw));
+        }
+
+        void setNodeValue(const ShaderNodeSocket &node) {
+            m_nodeValue = node;
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeValue((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeValue.getNode(), m_nodeValue.socketInfo));
+        }
+        void setNodeScale(const ShaderNodeSocket &node) {
+            m_nodeScale = node;
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeScale((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeScale.getNode(), m_nodeScale.socketInfo));
+        }
+        void setNodeOffset(const ShaderNodeSocket &node) {
+            m_nodeOffset = node;
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeOffset((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeOffset.getNode(), m_nodeOffset.socketInfo));
+        }
+        void setImmediateValueScale(float value) {
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale((VLRScaleAndOffsetFloatShaderNode)m_raw, value));
+        }
+        void setImmediateValueOffset(float value) {
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset((VLRScaleAndOffsetFloatShaderNode)m_raw, value));
+        }
+    };
+
+
+
     class TripletSpectrumShaderNodeHolder : public ShaderNodeHolder {
     public:
         TripletSpectrumShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
@@ -396,17 +438,17 @@ namespace VLRCpp {
 
 
 
-    class OffsetAndScaleUVTextureMap2DShaderNodeHolder : public ShaderNodeHolder {
+    class ScaleAndOffsetUVTextureMap2DShaderNodeHolder : public ShaderNodeHolder {
     public:
-        OffsetAndScaleUVTextureMap2DShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
-            errorCheck(vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(getRaw(m_context), (VLROffsetAndScaleUVTextureMap2DShaderNode*)&m_raw));
+        ScaleAndOffsetUVTextureMap2DShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
+            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeCreate(getRaw(m_context), (VLRScaleAndOffsetUVTextureMap2DShaderNode*)&m_raw));
         }
-        ~OffsetAndScaleUVTextureMap2DShaderNodeHolder() {
-            errorCheck(vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(getRaw(m_context), (VLROffsetAndScaleUVTextureMap2DShaderNode)m_raw));
+        ~ScaleAndOffsetUVTextureMap2DShaderNodeHolder() {
+            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(getRaw(m_context), (VLRScaleAndOffsetUVTextureMap2DShaderNode)m_raw));
         }
 
         void setValues(const float offset[2], const float scale[2]) {
-            errorCheck(vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues((VLROffsetAndScaleUVTextureMap2DShaderNode)m_raw, offset, scale));
+            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeSetValues((VLRScaleAndOffsetUVTextureMap2DShaderNode)m_raw, offset, scale));
         }
     };
 
@@ -739,6 +781,44 @@ namespace VLRCpp {
         }
         void setImmediateValueMetallic(float value) {
             errorCheck(vlrUE4SufaceMaterialSetImmediateValueMetallic((VLRUE4SurfaceMaterial)m_raw, value));
+        }
+    };
+
+
+
+    class OldStyleSurfaceMaterialHolder : public SurfaceMaterialHolder {
+        ShaderNodeSocket m_nodeDiffuseColor;
+        ShaderNodeSocket m_nodeSpecularColor;
+        ShaderNodeSocket m_nodeGlossiness;
+
+    public:
+        OldStyleSurfaceMaterialHolder(const ContextConstRef &context) : SurfaceMaterialHolder(context) {
+            errorCheck(vlrOldStyleSurfaceMaterialCreate(getRaw(m_context), (VLROldStyleSurfaceMaterial*)&m_raw));
+        }
+        ~OldStyleSurfaceMaterialHolder() {
+            errorCheck(vlrOldStyleSurfaceMaterialDestroy(getRaw(m_context), (VLROldStyleSurfaceMaterial)m_raw));
+        }
+
+        void setNodeDiffuseColor(const ShaderNodeSocket &node) {
+            m_nodeDiffuseColor = node;
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeDiffuseColor((VLROldStyleSurfaceMaterial)m_raw, m_nodeDiffuseColor.getNode(), m_nodeDiffuseColor.socketInfo));
+        }
+        void setImmediateValueDiffuseColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor((VLROldStyleSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+        }
+        void setNodeSpecularColor(const ShaderNodeSocket &node) {
+            m_nodeSpecularColor = node;
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeSpecularColor((VLROldStyleSurfaceMaterial)m_raw, m_nodeSpecularColor.getNode(), m_nodeSpecularColor.socketInfo));
+        }
+        void setImmediateValueSpecularColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor((VLROldStyleSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+        }
+        void setNodeGlossiness(const ShaderNodeSocket &node) {
+            m_nodeGlossiness = node;
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeGlossiness((VLROldStyleSurfaceMaterial)m_raw, m_nodeSpecularColor.getNode(), m_nodeGlossiness.socketInfo));
+        }
+        void setImmediateValueGlossiness(float value) {
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueGlossiness((VLROldStyleSurfaceMaterial)m_raw, value));
         }
     };
 
@@ -1185,6 +1265,10 @@ namespace VLRCpp {
             return std::make_shared<Float4ShaderNodeHolder>(shared_from_this());
         }
 
+        ScaleAndOffsetFloatShaderNodeRef createScaleAndOffsetFloatShaderNode() const {
+            return std::make_shared<ScaleAndOffsetFloatShaderNodeHolder>(shared_from_this());
+        }
+
         TripletSpectrumShaderNodeRef createTripletSpectrumShaderNode() const {
             return std::make_shared<TripletSpectrumShaderNodeHolder>(shared_from_this());
         }
@@ -1201,8 +1285,8 @@ namespace VLRCpp {
             return std::make_shared<Vector3DToSpectrumShaderNodeHolder>(shared_from_this());
         }
 
-        OffsetAndScaleUVTextureMap2DShaderNodeRef createOffsetAndScaleUVTextureMap2DShaderNode() const {
-            return std::make_shared<OffsetAndScaleUVTextureMap2DShaderNodeHolder>(shared_from_this());
+        ScaleAndOffsetUVTextureMap2DShaderNodeRef createScaleAndOffsetUVTextureMap2DShaderNode() const {
+            return std::make_shared<ScaleAndOffsetUVTextureMap2DShaderNodeHolder>(shared_from_this());
         }
 
         Image2DTextureShaderNodeRef createImage2DTextureShaderNode() const {
@@ -1241,6 +1325,10 @@ namespace VLRCpp {
 
         UE4SurfaceMaterialRef createUE4SurfaceMaterial() const {
             return std::make_shared<UE4SurfaceMaterialHolder>(shared_from_this());
+        }
+
+        OldStyleSurfaceMaterialRef createOldStyleSurfaceMaterial() const {
+            return std::make_shared<OldStyleSurfaceMaterialHolder>(shared_from_this());
         }
 
         DiffuseEmitterSurfaceMaterialRef createDiffuseEmitterSurfaceMaterial() const {

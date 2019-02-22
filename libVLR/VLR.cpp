@@ -15,11 +15,12 @@ typedef VLR::FloatShaderNode* VLRFloatShaderNode;
 typedef VLR::Float2ShaderNode* VLRFloat2ShaderNode;
 typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
 typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
+typedef VLR::ScaleAndOffsetFloatShaderNode* VLRScaleAndOffsetFloatShaderNode;
 typedef VLR::TripletSpectrumShaderNode* VLRTripletSpectrumShaderNode;
 typedef VLR::RegularSampledSpectrumShaderNode* VLRRegularSampledSpectrumShaderNode;
 typedef VLR::IrregularSampledSpectrumShaderNode* VLRIrregularSampledSpectrumShaderNode;
 typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
-typedef VLR::OffsetAndScaleUVTextureMap2DShaderNode* VLROffsetAndScaleUVTextureMap2DShaderNode;
+typedef VLR::ScaleAndOffsetUVTextureMap2DShaderNode* VLRScaleAndOffsetUVTextureMap2DShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
 typedef VLR::EnvironmentTextureShaderNode* VLREnvironmentTextureShaderNode;
 
@@ -31,6 +32,7 @@ typedef VLR::MicrofacetReflectionSurfaceMaterial* VLRMicrofacetReflectionSurface
 typedef VLR::MicrofacetScatteringSurfaceMaterial* VLRMicrofacetScatteringSurfaceMaterial;
 typedef VLR::LambertianScatteringSurfaceMaterial* VLRLambertianScatteringSurfaceMaterial;
 typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
+typedef VLR::OldStyleSurfaceMaterial* VLROldStyleSurfaceMaterial;
 typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
 typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
 typedef VLR::EnvironmentEmitterSurfaceMaterial* VLREnvironmentEmitterSurfaceMaterial;
@@ -208,10 +210,18 @@ VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha) {
+VLR_API VLRResult vlrImage2DGetDataFormat(VLRImage2D image, VLRDataFormat* format) {
     if (!image->isMemberOf<VLR::Image2D>())
         return VLR_ERROR_INVALID_TYPE;
-    *hasAlpha = image->originalHasAlpha();
+    *format = image->getDataFormat();
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha) {
+    if (!image->isMemberOf<VLR::Image2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    *hasAlpha = image->hasAlpha();
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -497,6 +507,65 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node
 
 
 
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeCreate(VLRContext context, VLRScaleAndOffsetFloatShaderNode* node) {
+    *node = new VLR::ScaleAndOffsetFloatShaderNode(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeDestroy(VLRContext context, VLRScaleAndOffsetFloatShaderNode node) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete node;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeValue(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeValue, VLRShaderNodeSocketInfo socketInfo) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!node->setNodeValue(VLR::ShaderNodeSocketIdentifier(nodeValue, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeScale(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeScale, VLRShaderNodeSocketInfo socketInfo) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!node->setNodeScale(VLR::ShaderNodeSocketIdentifier(nodeScale, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeOffset, VLRShaderNodeSocketInfo socketInfo) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!node->setNodeOffset(VLR::ShaderNodeSocketIdentifier(nodeOffset, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale(VLRScaleAndOffsetFloatShaderNode node, float value) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueScale(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset(VLRScaleAndOffsetFloatShaderNode node, float value) {
+    if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
+        return VLR_ERROR_INVALID_TYPE;
+    node->setImmediateValueOffset(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
 VLR_API VLRResult vlrTripletSpectrumShaderNodeCreate(VLRContext context, VLRTripletSpectrumShaderNode* node) {
     *node = new VLR::TripletSpectrumShaderNode(*context);
 
@@ -626,22 +695,22 @@ VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAn
 
 
 
-VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node) {
-    *node = new VLR::OffsetAndScaleUVTextureMap2DShaderNode(*context);
+VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeCreate(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode* node) {
+    *node = new VLR::ScaleAndOffsetUVTextureMap2DShaderNode(*context);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node) {
-    if (!node->is<VLR::OffsetAndScaleUVTextureMap2DShaderNode>())
+VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode node) {
+    if (!node->is<VLR::ScaleAndOffsetUVTextureMap2DShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     delete node;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues(VLROffsetAndScaleUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]) {
-    if (!node->is<VLR::OffsetAndScaleUVTextureMap2DShaderNode>())
+VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeSetValues(VLRScaleAndOffsetUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]) {
+    if (!node->is<VLR::ScaleAndOffsetUVTextureMap2DShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setValues(offset, scale);
 
@@ -1210,6 +1279,73 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueMetallic(VLRUE4SurfaceMat
     if (!material->is<VLR::UE4SurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
     material->setImmediateValueMetallic(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrOldStyleSurfaceMaterialCreate(VLRContext context, VLROldStyleSurfaceMaterial* material) {
+    *material = new VLR::OldStyleSurfaceMaterial(*context);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSurfaceMaterialDestroy(VLRContext context, VLROldStyleSurfaceMaterial material) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete material;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeDiffuseColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!material->setNodeDiffuseColor(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor(VLROldStyleSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueDiffuseColor(colorSpace, e0, e1, e2);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeSpecularColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!material->setNodeSpecularColor(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor(VLROldStyleSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueSpecularColor(colorSpace, e0, e1, e2);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeGlossiness(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    if (!material->setNodeGlossiness(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueGlossiness(VLROldStyleSurfaceMaterial material, float value) {
+    if (!material->is<VLR::OldStyleSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueGlossiness(value);
 
     return VLR_ERROR_NO_ERROR;
 }

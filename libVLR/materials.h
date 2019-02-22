@@ -270,6 +270,38 @@ namespace VLR {
 
 
 
+    class OldStyleSurfaceMaterial : public SurfaceMaterial {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_nodeDiffuseColor;
+        ShaderNodeSocketIdentifier m_nodeSpecularColor;
+        ShaderNodeSocketIdentifier m_nodeGlossiness;
+        TripletSpectrum m_immDiffuseColor;
+        TripletSpectrum m_immSpecularColor;
+        float m_immGlossiness;
+
+        void setupMaterialDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        OldStyleSurfaceMaterial(Context &context);
+        ~OldStyleSurfaceMaterial();
+
+        bool setNodeDiffuseColor(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueDiffuseColor(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        bool setNodeSpecularColor(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueSpecularColor(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        bool setNodeGlossiness(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueGlossiness(float value);
+    };
+
+
+
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 

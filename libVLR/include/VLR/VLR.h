@@ -24,11 +24,12 @@ extern "C" {
     typedef struct VLRFloat2ShaderNode_API* VLRFloat2ShaderNode;
     typedef struct VLRFloat3ShaderNode_API* VLRFloat3ShaderNode;
     typedef struct VLRFloat4ShaderNode_API* VLRFloat4ShaderNode;
+    typedef struct VLRScaleAndOffsetFloatShaderNode_API* VLRScaleAndOffsetFloatShaderNode;
     typedef struct VLRTripletSpectrumShaderNode_API* VLRTripletSpectrumShaderNode;
     typedef struct VLRRegularSampledSpectrumShaderNode_API* VLRRegularSampledSpectrumShaderNode;
     typedef struct VLRIrregularSampledSpectrumShaderNode_API* VLRIrregularSampledSpectrumShaderNode;
     typedef struct VLRVector3DToSpectrumShaderNode_API* VLRVector3DToSpectrumShaderNode;
-    typedef struct VLROffsetAndScaleUVTextureMap2DShaderNode_API* VLROffsetAndScaleUVTextureMap2DShaderNode;
+    typedef struct VLRScaleAndOffsetUVTextureMap2DShaderNode_API* VLRScaleAndOffsetUVTextureMap2DShaderNode;
     typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
     typedef struct VLREnvironmentTextureShaderNode_API* VLREnvironmentTextureShaderNode;
 
@@ -40,6 +41,7 @@ extern "C" {
     typedef struct VLRMicrofacetScatteringSurfaceMaterial_API* VLRMicrofacetScatteringSurfaceMaterial;
     typedef struct VLRLambertianScatteringSurfaceMaterial_API* VLRLambertianScatteringSurfaceMaterial;
     typedef struct VLRUE4SurfaceMaterial_API* VLRUE4SurfaceMaterial;
+    typedef struct VLROldStyleSurfaceMaterial_API* VLROldStyleSurfaceMaterial;
     typedef struct VLRDiffuseEmitterSurfaceMaterial_API* VLRDiffuseEmitterSurfaceMaterial;
     typedef struct VLRMultiSurfaceMaterial_API* VLRMultiSurfaceMaterial;
     typedef struct VLREnvironmentEmitterSurfaceMaterial_API* VLREnvironmentEmitterSurfaceMaterial;
@@ -79,7 +81,8 @@ extern "C" {
     VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width);
     VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height);
     VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride);
-    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha);
+    VLR_API VLRResult vlrImage2DGetDataFormat(VLRImage2D image, VLRDataFormat* format);
+    VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData);
@@ -125,6 +128,14 @@ extern "C" {
     VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShaderNode node3, VLRShaderNodeSocketInfo socketInfo);
     VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node, float value);
 
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeCreate(VLRContext context, VLRScaleAndOffsetFloatShaderNode* node);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeDestroy(VLRContext context, VLRScaleAndOffsetFloatShaderNode node);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeValue(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeValue, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeScale(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeScale, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeOffset, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale(VLRScaleAndOffsetFloatShaderNode node, float value);
+    VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset(VLRScaleAndOffsetFloatShaderNode node, float value);
+
     VLR_API VLRResult vlrTripletSpectrumShaderNodeCreate(VLRContext context, VLRTripletSpectrumShaderNode* node);
     VLR_API VLRResult vlrTripletSpectrumShaderNodeDestroy(VLRContext context, VLRTripletSpectrumShaderNode node);
     VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueSpectrumType(VLRTripletSpectrumShaderNode node, VLRSpectrumType spectrumType);
@@ -145,9 +156,9 @@ extern "C" {
     VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value);
     VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRVector3DToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
 
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeCreate(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode* node);
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeDestroy(VLRContext context, VLROffsetAndScaleUVTextureMap2DShaderNode node);
-    VLR_API VLRResult vlrOffsetAndScaleUVTextureMap2DShaderNodeSetValues(VLROffsetAndScaleUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]);
+    VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeCreate(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode* node);
+    VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode node);
+    VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeSetValues(VLRScaleAndOffsetUVTextureMap2DShaderNode node, const float offset[2], const float scale[2]);
 
     VLR_API VLRResult vlrImage2DTextureShaderNodeCreate(VLRContext context, VLRImage2DTextureShaderNode* node);
     VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImage2DTextureShaderNode node);
@@ -227,6 +238,15 @@ extern "C" {
     VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueOcclusion(VLRUE4SurfaceMaterial material, float value);
     VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueRoughness(VLRUE4SurfaceMaterial material, float value);
     VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueMetallic(VLRUE4SurfaceMaterial material, float value);
+
+    VLR_API VLRResult vlrOldStyleSurfaceMaterialCreate(VLRContext context, VLROldStyleSurfaceMaterial* material);
+    VLR_API VLRResult vlrOldStyleSurfaceMaterialDestroy(VLRContext context, VLROldStyleSurfaceMaterial material);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeDiffuseColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeSpecularColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeGlossiness(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor(VLROldStyleSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor(VLROldStyleSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2);
+    VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueGlossiness(VLROldStyleSurfaceMaterial material, float value);
 
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialCreate(VLRContext context, VLRDiffuseEmitterSurfaceMaterial* material);
     VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialDestroy(VLRContext context, VLRDiffuseEmitterSurfaceMaterial material);

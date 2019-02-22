@@ -101,6 +101,7 @@ namespace VLR {
         MicrofacetScatteringSurfaceMaterial::initialize(context);
         LambertianScatteringSurfaceMaterial::initialize(context);
         UE4SurfaceMaterial::initialize(context);
+        OldStyleSurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
         MultiSurfaceMaterial::initialize(context);
         EnvironmentEmitterSurfaceMaterial::initialize(context);
@@ -111,6 +112,7 @@ namespace VLR {
         EnvironmentEmitterSurfaceMaterial::finalize(context);
         MultiSurfaceMaterial::finalize(context);
         DiffuseEmitterSurfaceMaterial::finalize(context);
+        OldStyleSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
         LambertianScatteringSurfaceMaterial::finalize(context);
         MicrofacetScatteringSurfaceMaterial::finalize(context);
@@ -784,6 +786,102 @@ namespace VLR {
 
     void UE4SurfaceMaterial::setImmediateValueMetallic(float value) {
         m_immMetallic = value;
+        setupMaterialDescriptor();
+    }
+
+
+
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::OptiXProgramSets;
+
+    // static
+    void OldStyleSurfaceMaterial::initialize(Context &context) {
+        const char* identifiers[] = {
+            "VLR::OldStyleSurfaceMaterial_setupBSDF",
+            "VLR::OldStyleBRDF_getBaseColor",
+            "VLR::OldStyleBRDF_matches",
+            "VLR::OldStyleBRDF_sampleInternal",
+            "VLR::OldStyleBRDF_evaluateInternal",
+            "VLR::OldStyleBRDF_evaluatePDFInternal",
+            "VLR::OldStyleBRDF_weightInternal",
+            nullptr,
+            nullptr,
+            nullptr
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void OldStyleSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+    }
+
+    OldStyleSurfaceMaterial::OldStyleSurfaceMaterial(Context &context) :
+        SurfaceMaterial(context),
+        m_immDiffuseColor(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, 0.18f, 0.18f, 0.18f)),
+        m_immSpecularColor(createTripletSpectrum(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, 0.04f, 0.04f, 0.04f)),
+        m_immGlossiness(0.9f) {
+        setupMaterialDescriptor();
+    }
+
+    OldStyleSurfaceMaterial::~OldStyleSurfaceMaterial() {
+    }
+
+    void OldStyleSurfaceMaterial::setupMaterialDescriptor() const {
+        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+
+        Shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptorHead(m_context, progSet, &matDesc);
+        auto &mat = *matDesc.getData<Shared::OldStyleSurfaceMaterial>();
+        mat.nodeDiffuseColor = m_nodeDiffuseColor.getSharedType();
+        mat.nodeSpecularColor = m_nodeSpecularColor.getSharedType();
+        mat.nodeGlossiness = m_nodeGlossiness.getSharedType();
+        mat.immDiffuseColor = m_immDiffuseColor;
+        mat.immSpecularColor = m_immSpecularColor;
+        mat.immGlossiness = m_immGlossiness;
+
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+    }
+
+    bool OldStyleSurfaceMaterial::setNodeDiffuseColor(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_Spectrum)
+            return false;
+        m_nodeDiffuseColor = outputSocket;
+        setupMaterialDescriptor();
+        return true;
+    }
+
+    void OldStyleSurfaceMaterial::setImmediateValueDiffuseColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immDiffuseColor = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
+        setupMaterialDescriptor();
+    }
+
+    bool OldStyleSurfaceMaterial::setNodeSpecularColor(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_Spectrum)
+            return false;
+        m_nodeSpecularColor = outputSocket;
+        setupMaterialDescriptor();
+        return true;
+    }
+
+    void OldStyleSurfaceMaterial::setImmediateValueSpecularColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
+        m_immSpecularColor = createTripletSpectrum(VLRSpectrumType_Reflectance, colorSpace, e0, e1, e2);
+        setupMaterialDescriptor();
+    }
+
+    bool OldStyleSurfaceMaterial::setNodeGlossiness(const ShaderNodeSocketIdentifier &outputSocket) {
+        if (outputSocket.getType() != VLRShaderNodeSocketType_float)
+            return false;
+        m_nodeGlossiness = outputSocket;
+        setupMaterialDescriptor();
+        return true;
+    }
+
+    void OldStyleSurfaceMaterial::setImmediateValueGlossiness(float value) {
+        m_immGlossiness = value;
         setupMaterialDescriptor();
     }
 

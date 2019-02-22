@@ -529,6 +529,14 @@ namespace VLR {
             float imm3;
         };
 
+        struct ScaleAndOffsetFloatShaderNode {
+            ShaderNodeSocketID nodeValue;
+            ShaderNodeSocketID nodeScale;
+            ShaderNodeSocketID nodeOffset;
+            float immScale;
+            float immOffset;
+        };
+
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         struct TripletSpectrumShaderNode {
             UpsampledSpectrum value;
@@ -567,13 +575,14 @@ namespace VLR {
             VLRColorSpace colorSpace;
         };
 
-        struct OffsetAndScaleUVTextureMap2DShaderNode {
+        struct ScaleAndOffsetUVTextureMap2DShaderNode {
             float offset[2];
             float scale[2];
         };
 
         struct Image2DTextureShaderNode {
             int32_t textureID;
+            VLRDataFormat format;
             VLRSpectrumType spectrumType;
             VLRColorSpace colorSpace;
             ShaderNodeSocketID nodeTexCoord;
@@ -654,6 +663,15 @@ namespace VLR {
             float immOcclusion;
             float immRoughness;
             float immMetallic;
+        };
+
+        struct OldStyleSurfaceMaterial {
+            ShaderNodeSocketID nodeDiffuseColor;
+            ShaderNodeSocketID nodeSpecularColor;
+            ShaderNodeSocketID nodeGlossiness;
+            TripletSpectrum immDiffuseColor;
+            TripletSpectrum immSpecularColor;
+            float immGlossiness;
         };
 
         struct DiffuseEmitterSurfaceMaterial {

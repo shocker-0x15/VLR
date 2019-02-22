@@ -150,6 +150,17 @@ namespace VLR {
 
 
 
+    RT_CALLABLE_PROGRAM float ScaleAndOffsetFloatShaderNode_float(const uint32_t* rawNodeData, uint32_t option,
+                                                                  const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        auto &nodeData = *(const ScaleAndOffsetFloatShaderNode*)rawNodeData;
+        float value = calcNode(nodeData.nodeValue, 0.0f, surfPt, wls);
+        float scale = calcNode(nodeData.nodeScale, nodeData.immScale, surfPt, wls);
+        float offset = calcNode(nodeData.nodeOffset, nodeData.immOffset, surfPt, wls);
+        return scale * value + offset;
+    }
+
+
+
     RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                            const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const TripletSpectrumShaderNode*)rawNodeData;
@@ -196,9 +207,9 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM Point3D OffsetAndScaleUVTextureMap2DShaderNode_textureCoordinates(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM Point3D ScaleAndOffsetUVTextureMap2DShaderNode_textureCoordinates(const uint32_t* rawNodeData, uint32_t option,
                                                                                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        auto &nodeData = *(const OffsetAndScaleUVTextureMap2DShaderNode*)rawNodeData;
+        auto &nodeData = *(const ScaleAndOffsetUVTextureMap2DShaderNode*)rawNodeData;
         return Point3D(nodeData.scale[0] * surfPt.texCoord.u + nodeData.offset[0],
                        nodeData.scale[1] * surfPt.texCoord.v + nodeData.offset[1],
                        0.0f);
@@ -212,6 +223,10 @@ namespace VLR {
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
         optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        if (nodeData.format == VLRDataFormat_Gray32F ||
+            nodeData.format == VLRDataFormat_Gray8 ||
+            nodeData.format == VLRDataFormat_GrayA8x2)
+            texValue.z = texValue.y = texValue.x;
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);

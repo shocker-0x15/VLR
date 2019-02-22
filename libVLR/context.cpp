@@ -37,11 +37,12 @@ namespace VLR {
     defineClassID(ShaderNode, Float2ShaderNode);
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
+    defineClassID(ShaderNode, ScaleAndOffsetFloatShaderNode);
     defineClassID(ShaderNode, TripletSpectrumShaderNode);
     defineClassID(ShaderNode, RegularSampledSpectrumShaderNode);
     defineClassID(ShaderNode, IrregularSampledSpectrumShaderNode);
     defineClassID(ShaderNode, Vector3DToSpectrumShaderNode);
-    defineClassID(ShaderNode, OffsetAndScaleUVTextureMap2DShaderNode);
+    defineClassID(ShaderNode, ScaleAndOffsetUVTextureMap2DShaderNode);
     defineClassID(ShaderNode, Image2DTextureShaderNode);
     defineClassID(ShaderNode, EnvironmentTextureShaderNode);
 
@@ -53,6 +54,7 @@ namespace VLR {
     defineClassID(SurfaceMaterial, MicrofacetScatteringSurfaceMaterial);
     defineClassID(SurfaceMaterial, LambertianScatteringSurfaceMaterial);
     defineClassID(SurfaceMaterial, UE4SurfaceMaterial);
+    defineClassID(SurfaceMaterial, OldStyleSurfaceMaterial);
     defineClassID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);
     defineClassID(SurfaceMaterial, MultiSurfaceMaterial);
     defineClassID(SurfaceMaterial, EnvironmentEmitterSurfaceMaterial);

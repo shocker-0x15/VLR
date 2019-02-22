@@ -463,7 +463,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
-        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context->createOffsetAndScaleUVTextureMap2DShaderNode();
+        auto nodeTexCoord = context->createScaleAndOffsetUVTextureMap2DShaderNode();
         nodeTexCoord->setValues(offset, scale);
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
@@ -635,7 +635,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
-        OffsetAndScaleUVTextureMap2DShaderNodeRef nodeTexCoord = context->createOffsetAndScaleUVTextureMap2DShaderNode();
+        auto nodeTexCoord = context->createScaleAndOffsetUVTextureMap2DShaderNode();
         nodeTexCoord->setValues(offset, scale);
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
@@ -1212,12 +1212,14 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         aiMat->Get(AI_MATKEY_NAME, strValue);
         hpprintf("Material: %s\n", strValue.C_Str());
+        //if (strcmp(strValue.C_Str(), "MASTER_Forge_Metal") == 0)
+        //    printf("");
 
         SurfaceMaterialRef mat;
         ShaderNodeSocket socketNormal;
         ShaderNodeSocket socketAlpha;
         {
-            auto ue4Mat = context->createUE4SurfaceMaterial();
+            auto oldMat = context->createOldStyleSurfaceMaterial();
 
             Image2DRef imageDiffuse;
             Image2DRef imageSpecular;
@@ -1250,20 +1252,32 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
             }
 
             if (texDiffuse)
-                ue4Mat->setNodeBaseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                oldMat->setNodeDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
-            ue4Mat->setImmediateValueMetallic(0);
-            ue4Mat->setImmediateValueRoughness(0.3f);
+            if (texSpecular)
+                oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+            if (imageSpecular && imageSpecular->hasAlpha()) {
+                if (imageSpecular->getDataFormat() == VLRDataFormat_GrayA8x2)
+                    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_float, 1));
+                else
+                    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_float, 3));
+            }
 
             if (texNormal)
                 socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
 
-            if (texAlpha)
+            if (texAlpha) {
                 socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
-            else if (imageDiffuse && imageDiffuse->originalHasAlpha())
-                socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
+            }
+            else if (imageDiffuse && imageDiffuse->hasAlpha()) {
+                if (imageDiffuse->getDataFormat() == VLRDataFormat_GrayA8x2)
+                    socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 1);
+                else
+                    socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
+            }
 
-            mat = ue4Mat;
+            mat = oldMat;
         }
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);

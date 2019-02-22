@@ -41,20 +41,17 @@ namespace VLR {
         uint32_t getHeight() const {
             return m_height;
         }
-        VLRDataFormat getOriginalDataFormat() const {
-            return m_originalDataFormat;
+        uint32_t getStride() const {
+            return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
         }
         VLRDataFormat getDataFormat() const {
             return m_dataFormat;
         }
-        uint32_t getStride() const {
-            return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
-        }
-        bool originalHasAlpha() const {
-            return (m_originalDataFormat == VLRDataFormat_RGBA8x4 ||
-                    m_originalDataFormat == VLRDataFormat_RGBA16Fx4 ||
-                    m_originalDataFormat == VLRDataFormat_RGBA32Fx4 ||
-                    m_originalDataFormat == VLRDataFormat_GrayA8x2);
+        bool hasAlpha() const {
+            return (m_dataFormat == VLRDataFormat_RGBA8x4 ||
+                    m_dataFormat == VLRDataFormat_RGBA16Fx4 ||
+                    m_dataFormat == VLRDataFormat_RGBA32Fx4 ||
+                    m_dataFormat == VLRDataFormat_GrayA8x2);
         }
 
         virtual optix::Buffer getOptiXObject() const;
@@ -368,6 +365,44 @@ namespace VLR {
 
 
 
+    class ScaleAndOffsetFloatShaderNode : public ShaderNode {
+        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+
+        ShaderNodeSocketIdentifier m_nodeValue;
+        ShaderNodeSocketIdentifier m_nodeScale;
+        ShaderNodeSocketIdentifier m_nodeOffset;
+        float m_immScale;
+        float m_immOffset;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        ScaleAndOffsetFloatShaderNode(Context &context);
+        ~ScaleAndOffsetFloatShaderNode();
+
+        // Out Socket | option |
+        // 0 (float)  |      0 | s0
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+            if (stype == VLRShaderNodeSocketType_float && index < 1)
+                return ShaderNodeSocketIdentifier(this, 0, index, stype);
+            return ShaderNodeSocketIdentifier();
+        }
+
+        bool setNodeValue(const ShaderNodeSocketIdentifier &outputSocket);
+        bool setNodeScale(const ShaderNodeSocketIdentifier &outputSocket);
+        bool setNodeOffset(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueScale(float value);
+        void setImmediateValueOffset(float value);
+    };
+
+
+
     class TripletSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -504,7 +539,7 @@ namespace VLR {
 
 
 
-    class OffsetAndScaleUVTextureMap2DShaderNode : public ShaderNode {
+    class ScaleAndOffsetUVTextureMap2DShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         float m_offset[2];
@@ -519,8 +554,8 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        OffsetAndScaleUVTextureMap2DShaderNode(Context &context);
-        ~OffsetAndScaleUVTextureMap2DShaderNode();
+        ScaleAndOffsetUVTextureMap2DShaderNode(Context &context);
+        ~ScaleAndOffsetUVTextureMap2DShaderNode();
 
         // Out Socket  | option |
         // 0 (Point3D) |      0 | TexCoord
