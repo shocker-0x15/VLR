@@ -74,50 +74,46 @@ namespace VLRCpp {
     class Object : public std::enable_shared_from_this<Object> {
     protected:
         ContextConstRef m_context;
+        VLRObject m_raw;
 
     public:
         Object(const ContextConstRef &context) : m_context(context) {}
         virtual ~Object() {}
 
-        virtual VLRObject get() const = 0;
+        VLRObject get() const { return m_raw; }
     };
 
 
 
     class Image2DHolder : public Object {
-    protected:
-        VLRImage2D m_raw;
-
     public:
         Image2DHolder(const ContextConstRef &context) : Object(context) {}
 
         uint32_t getWidth() const {
             uint32_t width;
-            errorCheck(vlrImage2DGetWidth(m_raw, &width));
+            errorCheck(vlrImage2DGetWidth((VLRImage2D)m_raw, &width));
             return width;
         }
         uint32_t getHeight() const {
             uint32_t height;
-            errorCheck(vlrImage2DGetHeight(m_raw, &height));
+            errorCheck(vlrImage2DGetHeight((VLRImage2D)m_raw, &height));
             return height;
         }
         uint32_t getStride() const {
             uint32_t stride;
-            errorCheck(vlrImage2DGetStride(m_raw, &stride));
+            errorCheck(vlrImage2DGetStride((VLRImage2D)m_raw, &stride));
             return stride;
         }
         VLRDataFormat getDataFormat() const {
             VLRDataFormat format;
-            errorCheck(vlrImage2DGetDataFormat(m_raw, &format));
+            errorCheck(vlrImage2DGetDataFormat((VLRImage2D)m_raw, &format));
             return format;
         }
         bool hasAlpha() const {
             bool hasAlpha;
-            errorCheck(vlrImage2DHasAlpha(m_raw, &hasAlpha));
+            errorCheck(vlrImage2DHasAlpha((VLRImage2D)m_raw, &hasAlpha));
             return hasAlpha;
         }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -149,19 +145,14 @@ namespace VLRCpp {
 
 
     class ShaderNodeHolder : public Object {
-    protected:
-        VLRShaderNode m_raw;
-
     public:
         ShaderNodeHolder(const ContextConstRef &context) : Object(context) {}
 
         ShaderNodeSocket getSocket(VLRShaderNodeSocketType socketType, uint32_t index) {
             VLRShaderNodeSocketInfo socketInfo;
-            errorCheck(vlrShaderNodeGetSocket(m_raw, socketType, index, &socketInfo));
+            errorCheck(vlrShaderNodeGetSocket((VLRShaderNode)m_raw, socketType, index, &socketInfo));
             return ShaderNodeSocket(std::dynamic_pointer_cast<ShaderNodeHolder>(shared_from_this()), socketInfo);
         }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -515,13 +506,8 @@ namespace VLRCpp {
 
 
     class SurfaceMaterialHolder : public Object {
-    protected:
-        VLRSurfaceMaterial m_raw;
-
     public:
         SurfaceMaterialHolder(const ContextConstRef &context) : Object(context) {}
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -896,12 +882,8 @@ namespace VLRCpp {
 
 
     class TransformHolder : public Object {
-    protected:
-        VLRTransform m_raw;
     public:
         TransformHolder(const ContextConstRef &context) : Object(context) {}
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
     };
 
 
@@ -923,18 +905,23 @@ namespace VLRCpp {
 
 
 
-    enum class NodeType {
-        TriangleMeshSurfaceNode = 0,
-        InternalNode,
-    };
-
     class NodeHolder : public Object {
     public:
         NodeHolder(const ContextConstRef &context) : Object(context) {}
 
-        virtual NodeType getNodeType() const = 0;
-        virtual void setName(const std::string &name) const = 0;
-        virtual const char* getName() const = 0;
+        VLRNodeType getNodeType() const {
+            VLRNodeType type;
+            errorCheck(vlrNodeGetType((VLRNode)m_raw, &type));
+            return type;
+        }
+        void setName(const std::string &name) const {
+            errorCheck(vlrNodeSetName((VLRNode)m_raw, name.c_str()));
+        }
+        const char* getName() const {
+            const char* name;
+            errorCheck(vlrNodeGetName((VLRNode)m_raw, &name));
+            return name;
+        }
     };
 
 
@@ -947,7 +934,6 @@ namespace VLRCpp {
 
 
     class TriangleMeshSurfaceNodeHolder : public SurfaceNodeHolder {
-        VLRTriangleMeshSurfaceNode m_raw;
         std::vector<SurfaceMaterialRef> m_materials;
         std::vector<ShaderNodeSocket> m_nodeNormals;
         std::vector<ShaderNodeSocket> m_nodeAlphas;
@@ -955,26 +941,14 @@ namespace VLRCpp {
     public:
         TriangleMeshSurfaceNodeHolder(const ContextConstRef &context, const char* name) :
             SurfaceNodeHolder(context) {
-            errorCheck(vlrTriangleMeshSurfaceNodeCreate(getRaw(m_context), &m_raw, name));
+            errorCheck(vlrTriangleMeshSurfaceNodeCreate(getRaw(m_context), (VLRTriangleMeshSurfaceNode*)&m_raw, name));
         }
         ~TriangleMeshSurfaceNodeHolder() {
-            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRaw(m_context), m_raw));
-        }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
-
-        NodeType getNodeType() const override { return NodeType::TriangleMeshSurfaceNode; }
-        void setName(const std::string &name) const override {
-            errorCheck(vlrTriangleMeshSurfaceNodeSetName(m_raw, name.c_str()));
-        }
-        const char* getName() const override {
-            const char* name;
-            errorCheck(vlrTriangleMeshSurfaceNodeGetName(m_raw, &name));
-            return name;
+            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRaw(m_context), (VLRTriangleMeshSurfaceNode)m_raw));
         }
 
         void setVertices(VLR::Vertex* vertices, uint32_t numVertices) {
-            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(m_raw, (VLRVertex*)vertices, numVertices));
+            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices((VLRTriangleMeshSurfaceNode)m_raw, (VLRVertex*)vertices, numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
@@ -994,34 +968,21 @@ namespace VLRCpp {
 
 
     class InternalNodeHolder : public NodeHolder {
-        VLRInternalNode m_raw;
         StaticTransformRef m_transform;
         std::set<NodeRef> m_children;
 
     public:
         InternalNodeHolder(const ContextConstRef &context, const char* name, const StaticTransformRef &transform) :
             NodeHolder(context), m_transform(transform) {
-            errorCheck(vlrInternalNodeCreate(getRaw(m_context), &m_raw, name, (VLRTransform)m_transform->get()));
+            errorCheck(vlrInternalNodeCreate(getRaw(m_context), (VLRInternalNode*)&m_raw, name, (VLRTransform)m_transform->get()));
         }
         ~InternalNodeHolder() {
-            errorCheck(vlrInternalNodeDestroy(getRaw(m_context), m_raw));
-        }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
-
-        NodeType getNodeType() const override { return NodeType::InternalNode; }
-        void setName(const std::string &name) const override {
-            errorCheck(vlrInternalNodeSetName(m_raw, name.c_str()));
-        }
-        const char* getName() const override {
-            const char* name;
-            errorCheck(vlrInternalNodeGetName(m_raw, &name));
-            return name;
+            errorCheck(vlrInternalNodeDestroy(getRaw(m_context), (VLRInternalNode)m_raw));
         }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            errorCheck(vlrInternalNodeSetTransform(m_raw, (VLRTransform)transform->get()));
+            errorCheck(vlrInternalNodeSetTransform((VLRInternalNode)m_raw, (VLRTransform)transform->get()));
         }
         StaticTransformRef getTransform() const {
             return m_transform;
@@ -1029,19 +990,19 @@ namespace VLRCpp {
 
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild(m_raw, child->get()));
+            errorCheck(vlrInternalNodeAddChild((VLRInternalNode)m_raw, child->get()));
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild(m_raw, child->get()));
+            errorCheck(vlrInternalNodeRemoveChild((VLRInternalNode)m_raw, child->get()));
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild(m_raw, child->get()));
+            errorCheck(vlrInternalNodeAddChild((VLRInternalNode)m_raw, child->get()));
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild(m_raw, child->get()));
+            errorCheck(vlrInternalNodeRemoveChild((VLRInternalNode)m_raw, child->get()));
         }
         uint32_t getNumChildren() const {
             return (uint32_t)m_children.size();
@@ -1056,7 +1017,6 @@ namespace VLRCpp {
 
 
     class SceneHolder : public Object {
-        VLRScene m_raw;
         StaticTransformRef m_transform;
         std::set<NodeRef> m_children;
         EnvironmentEmitterSurfaceMaterialRef m_matEnv;
@@ -1064,17 +1024,15 @@ namespace VLRCpp {
     public:
         SceneHolder(const ContextConstRef &context, const StaticTransformRef &transform) :
             Object(context), m_transform(transform) {
-            errorCheck(vlrSceneCreate(getRaw(m_context), &m_raw, (VLRTransform)m_transform->get()));
+            errorCheck(vlrSceneCreate(getRaw(m_context), (VLRScene*)&m_raw, (VLRTransform)m_transform->get()));
         }
         ~SceneHolder() {
-            errorCheck(vlrSceneDestroy(getRaw(m_context), m_raw));
+            errorCheck(vlrSceneDestroy(getRaw(m_context), (VLRScene)m_raw));
         }
-
-        VLRObject get() const override { return (VLRObject)m_raw; }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            errorCheck(vlrSceneSetTransform(m_raw, (VLRTransform)transform->get()));
+            errorCheck(vlrSceneSetTransform((VLRScene)m_raw, (VLRTransform)transform->get()));
         }
         StaticTransformRef getTransform() const {
             return m_transform;
@@ -1082,19 +1040,19 @@ namespace VLRCpp {
 
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrSceneAddChild(m_raw, child->get()));
+            errorCheck(vlrSceneAddChild((VLRScene)m_raw, child->get()));
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild(m_raw, child->get()));
+            errorCheck(vlrSceneRemoveChild((VLRScene)m_raw, child->get()));
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrSceneAddChild(m_raw, child->get()));
+            errorCheck(vlrSceneAddChild((VLRScene)m_raw, child->get()));
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild(m_raw, child->get()));
+            errorCheck(vlrSceneRemoveChild((VLRScene)m_raw, child->get()));
         }
         uint32_t getNumChildren() const {
             return (uint32_t)m_children.size();
@@ -1107,31 +1065,30 @@ namespace VLRCpp {
 
         void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv) {
             m_matEnv = matEnv;
-            errorCheck(vlrSceneSetEnvironment(m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get()));
+            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get()));
         }
     };
 
 
 
     class CameraHolder : public Object {
-    protected:
-        VLRCamera m_raw;
-
     public:
         CameraHolder(const ContextConstRef &context) : Object(context) {}
 
-        VLRObject get() const override { return (VLRObject)m_raw; }
+        VLRCameraType getCameraType() const {
+            VLRCameraType type;
+            errorCheck(vlrCameraGetType((VLRCamera)m_raw, &type));
+            return type;
+        }
     };
 
 
 
     class PerspectiveCameraHolder : public CameraHolder {
     public:
-        PerspectiveCameraHolder(const ContextConstRef &context, const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
+        PerspectiveCameraHolder(const ContextConstRef &context) :
             CameraHolder(context) {
-            VLRResult res = vlrPerspectiveCameraCreate(getRaw(m_context), (VLRPerspectiveCamera*)&m_raw, (VLRPoint3D*)&position, (VLRQuaternion*)&orientation,
-                                                       sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
+            errorCheck(vlrPerspectiveCameraCreate(getRaw(m_context), (VLRPerspectiveCamera*)&m_raw));
         }
         ~PerspectiveCameraHolder() {
             errorCheck(vlrPerspectiveCameraDestroy(getRaw(m_context), (VLRPerspectiveCamera)m_raw));
@@ -1142,6 +1099,9 @@ namespace VLRCpp {
         }
         void setOrientation(const VLR::Quaternion &orientation) {
             errorCheck(vlrPerspectiveCameraSetOrientation((VLRPerspectiveCamera)m_raw, (VLRQuaternion*)&orientation));
+        }
+        void setAspectRatio(float aspect) {
+            errorCheck(vlrPerspectiveCameraSetAspectRatio((VLRPerspectiveCamera)m_raw, aspect));
         }
         void setSensitivity(float sensitivity) {
             errorCheck(vlrPerspectiveCameraSetSensitivity((VLRPerspectiveCamera)m_raw, sensitivity));
@@ -1155,17 +1115,37 @@ namespace VLRCpp {
         void setObjectPlaneDistance(float distance) {
             errorCheck(vlrPerspectiveCameraSetObjectPlaneDistance((VLRPerspectiveCamera)m_raw, distance));
         }
+
+        void getPosition(VLR::Point3D* position) {
+            errorCheck(vlrPerspectiveCameraGetPosition((VLRPerspectiveCamera)m_raw, (VLRPoint3D*)position));
+        }
+        void getOrientation(VLR::Quaternion* orientation) {
+            errorCheck(vlrPerspectiveCameraGetOrientation((VLRPerspectiveCamera)m_raw, (VLRQuaternion*)orientation));
+        }
+        void getAspectRatio(float* aspect) {
+            errorCheck(vlrPerspectiveCameraGetAspectRatio((VLRPerspectiveCamera)m_raw, aspect));
+        }
+        void getSensitivity(float* sensitivity) {
+            errorCheck(vlrPerspectiveCameraGetSensitivity((VLRPerspectiveCamera)m_raw, sensitivity));
+        }
+        void getFovY(float* fovY) {
+            errorCheck(vlrPerspectiveCameraGetFovY((VLRPerspectiveCamera)m_raw, fovY));
+        }
+        void getLensRadius(float* lensRadius) {
+            errorCheck(vlrPerspectiveCameraGetLensRadius((VLRPerspectiveCamera)m_raw, lensRadius));
+        }
+        void getObjectPlaneDistance(float* distance) {
+            errorCheck(vlrPerspectiveCameraGetObjectPlaneDistance((VLRPerspectiveCamera)m_raw, distance));
+        }
     };
 
 
 
     class EquirectangularCameraHolder : public CameraHolder {
     public:
-        EquirectangularCameraHolder(const ContextConstRef &context, const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                    float sensitivity, float phiAngle, float thetaAngle) :
+        EquirectangularCameraHolder(const ContextConstRef &context) :
             CameraHolder(context) {
-            VLRResult res = vlrEquirectangularCameraCreate(getRaw(m_context), (VLREquirectangularCamera*)&m_raw, (VLRPoint3D*)&position, (VLRQuaternion*)&orientation,
-                                                           sensitivity, phiAngle, thetaAngle);
+            errorCheck(vlrEquirectangularCameraCreate(getRaw(m_context), (VLREquirectangularCamera*)&m_raw));
         }
         ~EquirectangularCameraHolder() {
             errorCheck(vlrEquirectangularCameraDestroy(getRaw(m_context), (VLREquirectangularCamera)m_raw));
@@ -1182,6 +1162,19 @@ namespace VLRCpp {
         }
         void setAngles(float phiAngle, float thetaAngle) {
             errorCheck(vlrEquirectangularCameraSetAngles((VLREquirectangularCamera)m_raw, phiAngle, thetaAngle));
+        }
+
+        void getPosition(VLR::Point3D* position) {
+            errorCheck(vlrEquirectangularCameraGetPosition((VLREquirectangularCamera)m_raw, (VLRPoint3D*)position));
+        }
+        void getOrientation(VLR::Quaternion* orientation) {
+            errorCheck(vlrEquirectangularCameraGetOrientation((VLREquirectangularCamera)m_raw, (VLRQuaternion*)orientation));
+        }
+        void getSensitivity(float* sensitivity) {
+            errorCheck(vlrEquirectangularCameraGetSensitivity((VLREquirectangularCamera)m_raw, sensitivity));
+        }
+        void getAngles(float* phiAngle, float* thetaAngle) {
+            errorCheck(vlrEquirectangularCameraGetAngles((VLREquirectangularCamera)m_raw, phiAngle, thetaAngle));
         }
     };
 
@@ -1365,14 +1358,12 @@ namespace VLRCpp {
             return std::make_shared<SceneHolder>(shared_from_this(), transform);
         }
 
-        PerspectiveCameraRef createPerspectiveCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                                     float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) const {
-            return std::make_shared<PerspectiveCameraHolder>(shared_from_this(), position, orientation, sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist);
+        PerspectiveCameraRef createPerspectiveCamera() const {
+            return std::make_shared<PerspectiveCameraHolder>(shared_from_this());
         }
 
-        EquirectangularCameraRef createEquirectangularCamera(const VLR::Point3D &position, const VLR::Quaternion &orientation,
-                                                             float sensitivity, float phiAngle, float thetaAngle) const {
-            return std::make_shared<EquirectangularCameraHolder>(shared_from_this(), position, orientation, sensitivity, phiAngle, thetaAngle);
+        EquirectangularCameraRef createEquirectangularCamera() const {
+            return std::make_shared<EquirectangularCameraHolder>(shared_from_this());
         }
     };
 

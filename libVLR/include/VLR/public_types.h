@@ -78,6 +78,18 @@ enum VLRTangentType {
 
 
 
+enum VLRNodeType {
+    VLRNodeType_TriangleMeshSurfaceNode = 0,
+    VLRNodeType_InternalNode,
+};
+
+enum VLRCameraType {
+    VLRCameraType_Perspective = 0,
+    VLRCameraType_Equirectangular,
+};
+
+
+
 struct VLRPoint3D {
     float x, y, z;
 };

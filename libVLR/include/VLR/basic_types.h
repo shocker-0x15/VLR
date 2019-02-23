@@ -1262,6 +1262,10 @@ namespace VLR {
 
         RT_FUNCTION bool operator==(const QuaternionTemplate &q) const { return v == q.v && w == q.w; }
         RT_FUNCTION bool operator!=(const QuaternionTemplate &q) const { return v != q.v || w != q.w; }
+
+        RT_FUNCTION static constexpr QuaternionTemplate Identity() {
+            return QuaternionTemplate(0, 0, 0, 1);
+        }
     };
 
 

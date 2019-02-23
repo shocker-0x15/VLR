@@ -33,10 +33,6 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 
 MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh);
 
-void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
-                        const std::vector<SurfaceMaterialAttributeTuple> &matAttrTuples, bool flipV, const PerMeshFunction &meshFunc,
-                        VLRCpp::InternalNodeRef* nodeOut);
-
 static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
                       CreateMaterialFunction matFunc = createMaterialDefaultFunction, PerMeshFunction meshFunc = perMeshDefaultFunction);
 
@@ -48,23 +44,9 @@ struct Shot {
     uint32_t renderTargetSizeX;
     uint32_t renderTargetSizeY;
 
-    VLR::Point3D cameraPos;
-    VLR::Quaternion cameraOrientation;
     float brightnessCoeff;
 
-    VLRCpp::PerspectiveCameraRef perspectiveCamera;
-    float persSensitivity;
-    float fovYInDeg;
-    float lensRadius;
-    float objPlaneDistance;
-
-    VLRCpp::EquirectangularCameraRef equirectangularCamera;
-    float equiSensitivity;
-    float phiAngle;
-    float thetaAngle;
-
-    int32_t cameraType;
-    VLRCpp::CameraRef camera;
+    std::vector<VLRCpp::CameraRef> viewpoints;
 };
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot);

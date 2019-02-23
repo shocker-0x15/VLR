@@ -89,6 +89,8 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
             ret = context->createLinearImage2D(width, height, VLRDataFormat_GrayA8x2, applyDegamma, linearImageData);
         else if (n == 1)
             ret = context->createLinearImage2D(width, height, VLRDataFormat_Gray8, applyDegamma, linearImageData);
+        else
+            Assert_ShouldNotBeCalled();
         stbi_image_free(linearImageData);
     }
 
@@ -116,11 +118,17 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
     MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
     ShaderNodeSocket socketNormal;
     ShaderNodeSocket socketAlpha;
+
+    Image2DRef imgDiffuse;
+    Image2DTextureShaderNodeRef texDiffuse;
+    Image2DRef imgAlpha;
+    Image2DTextureShaderNodeRef texAlpha;
+    
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-        Image2DTextureShaderNodeRef tex = context->createImage2DTextureShaderNode();
-        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        tex->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
-        mat->setNodeAlbedo(tex->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        texDiffuse = context->createImage2DTextureShaderNode();
+        imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+        texDiffuse->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imgDiffuse);
+        mat->setNodeAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
         mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
@@ -130,10 +138,19 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
     }
 
     if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-        Image2DRef image = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
-        Image2DTextureShaderNodeRef nodeTex = context->createImage2DTextureShaderNode();
-        nodeTex->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, image);
-        socketAlpha = nodeTex->getSocket(VLRShaderNodeSocketType_float, 0);
+        imgAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+        texAlpha = context->createImage2DTextureShaderNode();
+        texAlpha->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imgAlpha);
+    }
+
+    if (imgAlpha) {
+        socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+    }
+    else if (imgDiffuse && imgDiffuse->hasAlpha()) {
+        if (imgDiffuse->getDataFormat() == VLRDataFormat_GrayA8x2)
+            socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 1);
+        else
+            socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
     }
 
     return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
@@ -424,29 +441,26 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial(texEnv);
     //scene->setEnvironment(matEnv);
 
-    shot->cameraPos = Point3D(0, 1.5f, 6.0f);
-    shot->cameraOrientation = qRotateY<float>(M_PI);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setPosition(Point3D(0, 1.5f, 6.0f));
+        camera->setOrientation(qRotateY<float>(M_PI));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -596,29 +610,26 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
-    shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
+        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -805,29 +816,26 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
-    shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
+    
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+        camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
+        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180));
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -895,29 +903,26 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(-2.3f, 1.0f, 3.5f);
-    shot->cameraOrientation = qRotateY<float>(0.8 * M_PI) * qRotateX<float>(0);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
+    
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+        camera->setPosition(Point3D(-2.3f, 1.0f, 3.5f));
+        camera->setOrientation(qRotateY<float>(0.8 * M_PI) * qRotateX<float>(0));
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -988,29 +993,26 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(1.5f, 0.0f, 0.0f);
-    shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(0 * M_PI / 180);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1024;
     shot->renderTargetSizeY = 1024;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
+    
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+        camera->setPosition(Point3D(1.5f, 0.0f, 0.0f));
+        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(0 * M_PI / 180));
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -1088,34 +1090,26 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(10.0f, 5.0f, 0.0f);
-    shot->cameraOrientation = qRotateY<float>(-M_PI / 2) * qRotateX<float>(30 * M_PI / 180);
-    shot->brightnessCoeff = 1.0f;
-    //shot->cameraPos = Point3D(-1.814296f, 1.352077f, -1.647351f);
-    //shot->cameraOrientation = Quaternion(0.016491f, -0.892946f, 0.085988f, 0.258323f);
-    //shot->brightnessCoeff = 5.362f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    //shot->phiAngle = 1.749f;
-    //shot->thetaAngle = 1.092f;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
+        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(30 * M_PI / 180));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -1165,31 +1159,26 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(-14.89948f, 1.289585f, -1.764552f);
-    shot->cameraOrientation = Quaternion(-0.089070f, 0.531405f, 0.087888f, 0.837825f);
-    //shot->cameraPos = Point3D(3.586937f, 1.629551f, 11.421754f);
-    //shot->cameraOrientation = Quaternion(-0.002190f, 0.934560f, 0.014282f, -0.355509f);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setPosition(Point3D(-14.89948f, 1.289585f, -1.764552f));
+        camera->setOrientation(Quaternion(-0.089070f, 0.531405f, 0.087888f, 0.837825f));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -1299,31 +1288,57 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    shot->cameraPos = Point3D(0, 0, 0);
-    shot->cameraOrientation = qRotateY<float>(M_PI);
-    //shot->cameraPos = Point3D(3.586937f, 1.629551f, 11.421754f);
-    //shot->cameraOrientation = Quaternion(-0.002190f, 0.934560f, 0.014282f, -0.355509f);
-    shot->brightnessCoeff = 1.0f;
-
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
+    
+    shot->brightnessCoeff = 1.0f;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+        camera->setPosition(Point3D(-0.753442f, 0.140257f, -0.056083f));
+        camera->setOrientation(Quaternion(-0.009145f, 0.531434f, -0.005825f, 0.847030f));
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        float lensRadius = 0.001f;
+        camera->setSensitivity(1.0f / (M_PI * lensRadius * lensRadius));
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(lensRadius);
+        camera->setObjectPlaneDistance(0.267f);
+
+        shot->viewpoints.push_back(camera);
+    }
+
+    {
+        auto camera = context->createEquirectangularCamera();
+
+        camera->setPosition(Point3D(-1.092485f, 0.640749f, -0.094409f));
+        camera->setOrientation(Quaternion(0.109960f, 0.671421f, -0.081981f, 0.812352f));
+
+        float phiAngle = 2.127f;
+        float thetaAngle = 1.153f;
+        camera->setSensitivity(1.0f / (phiAngle * (1 - std::cos(thetaAngle))));
+        camera->setAngles(phiAngle, thetaAngle);
+
+        shot->viewpoints.push_back(camera);
+    }
+
+    {
+        auto camera = context->createPerspectiveCamera();
+
+        camera->setPosition(Point3D(-0.380530f, 0.167073f, -0.309329f));
+        camera->setOrientation(Quaternion(0.152768f, 0.422808f, -0.030319f, 0.962553f));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
@@ -1457,29 +1472,28 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     matEnv->setImmediateValueScale(envScale);
     shot->scene->setEnvironment(matEnv);
 
-    shot->cameraPos = Point3D(0, 0, 6.0f);
-    shot->cameraOrientation = qRotateY<float>(M_PI);
-    shot->brightnessCoeff = 1.0f;
+
 
     shot->renderTargetSizeX = 1280;
     shot->renderTargetSizeY = 720;
 
-    shot->persSensitivity = 1.0f;
-    shot->fovYInDeg = 40;
-    shot->lensRadius = 0.0f;
-    shot->objPlaneDistance = 1.0f;
-    shot->perspectiveCamera = context->createPerspectiveCamera(shot->cameraPos, shot->cameraOrientation,
-                                                               shot->persSensitivity, (float)shot->renderTargetSizeX / shot->renderTargetSizeY, shot->fovYInDeg * M_PI / 180,
-                                                               shot->lensRadius, 1.0f, shot->objPlaneDistance);
+    shot->brightnessCoeff = 1.0f;
 
-    shot->equiSensitivity = 1.0f / (shot->phiAngle * (1 - std::cos(shot->thetaAngle)));
-    shot->phiAngle = M_PI;
-    shot->thetaAngle = shot->phiAngle * shot->renderTargetSizeY / shot->renderTargetSizeX;
-    shot->equirectangularCamera = context->createEquirectangularCamera(shot->cameraPos, shot->cameraOrientation,
-                                                                       shot->equiSensitivity, shot->phiAngle, shot->thetaAngle);
+    {
+        auto camera = context->createPerspectiveCamera();
 
-    shot->cameraType = 0;
-    shot->camera = shot->perspectiveCamera;
+        camera->setPosition(Point3D(0, 0, 6.0f));
+        camera->setOrientation(qRotateY<float>(M_PI));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {

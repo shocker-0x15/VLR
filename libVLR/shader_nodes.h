@@ -94,6 +94,7 @@ namespace VLR {
                 unsigned int option : 2;
                 unsigned int type : 4;
             } socketInfo;
+            static_assert(sizeof(SocketInfo) == sizeof(uint32_t), "sizeof(SocketInfo) is expected to be 4.");
             uint32_t socketInfoAsUInt;
         };
 

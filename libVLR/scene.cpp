@@ -1413,11 +1413,16 @@ namespace VLR {
         OptiXProgramSets.erase(context.getID());
     }
 
-    PerspectiveCamera::PerspectiveCamera(Context &context, const Point3D &position, const Quaternion &orientation,
-                                         float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist) :
-        Camera(context), m_data(sensitivity, aspect, fovY, lensRadius, imgPDist, objPDist) {
-        m_data.position = position;
-        m_data.orientation = orientation;
+    PerspectiveCamera::PerspectiveCamera(Context &context) :
+        Camera(context) {
+        m_data.position = Point3D(0, 0, 0);
+        m_data.orientation = Quaternion::Identity();
+        m_data.aspect = 1.0f;
+        m_data.fovY = 45 * M_PI / 180;
+        m_data.lensRadius = 1.0f;
+        m_data.sensitivity = 1.0f;
+        m_data.objPlaneDistance = 1.0f;
+        m_data.setImagePlaneArea();
     }
 
     void PerspectiveCamera::set() const {
@@ -1457,11 +1462,13 @@ namespace VLR {
         OptiXProgramSets.erase(context.getID());
     }
 
-    EquirectangularCamera::EquirectangularCamera(Context &context, const Point3D &position, const Quaternion &orientation,
-                                                 float sensitivity, float phiAngle, float thetaAngle) :
-        Camera(context), m_data(sensitivity, phiAngle, thetaAngle) {
-        m_data.position = position;
-        m_data.orientation = orientation;
+    EquirectangularCamera::EquirectangularCamera(Context &context) :
+        Camera(context) {
+        m_data.position = Point3D(0, 0, 0);
+        m_data.orientation = Quaternion::Identity();
+        m_data.phiAngle = 2 * M_PI;
+        m_data.thetaAngle = M_PI;
+        m_data.sensitivity = 1.0f;
     }
 
     void EquirectangularCamera::set() const {

@@ -408,16 +408,11 @@ namespace VLR {
             float imgPlaneArea;
 
             RT_FUNCTION PerspectiveCamera() {}
-            PerspectiveCamera(float _sensitivity, float _aspect, float _fovY, float _lensRadius, float _imgPDist, float _objPDist) :
-                sensitivity(_sensitivity), aspect(_aspect), fovY(_fovY), lensRadius(_lensRadius), imgPlaneDistance(_imgPDist), objPlaneDistance(_objPDist) {
-                opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
-                opWidth = opHeight * aspect;
-                imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
-            }
 
             void setImagePlaneArea() {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
+                imgPlaneDistance = 1.0f;
                 imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
             }
         };
@@ -434,9 +429,6 @@ namespace VLR {
             float thetaAngle;
 
             RT_FUNCTION EquirectangularCamera() {}
-            EquirectangularCamera(float _sensitivity, float _phiAngle, float _thetaAngle) :
-                sensitivity(_sensitivity), phiAngle(_phiAngle), thetaAngle(_thetaAngle) {
-            }
         };
 
 

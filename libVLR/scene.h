@@ -197,6 +197,7 @@ namespace VLR {
     class Node : public Object {
     protected:
         std::string m_name;
+
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
@@ -208,6 +209,8 @@ namespace VLR {
         virtual void setName(const std::string &name) {
             m_name = name;
         }
+        virtual VLRNodeType getType() const = 0;
+
         const std::string &getName() const {
             return m_name;
         }
@@ -272,6 +275,10 @@ namespace VLR {
 
         TriangleMeshSurfaceNode(Context &context, const std::string &name);
         ~TriangleMeshSurfaceNode();
+
+        VLRNodeType getType() const override {
+            return VLRNodeType_TriangleMeshSurfaceNode;
+        }
 
         void addParent(ParentNode* parent) override;
         void removeParent(ParentNode* parent) override;
@@ -340,6 +347,9 @@ namespace VLR {
         virtual ~ParentNode();
 
         void setName(const std::string &name) override;
+        VLRNodeType getType() const override {
+            return VLRNodeType_InternalNode;
+        }
 
         enum class UpdateEvent {
             TransformAdded = 0,
@@ -456,6 +466,7 @@ namespace VLR {
         virtual ~Camera() {}
 
         virtual void set() const = 0;
+        virtual VLRCameraType getType() const = 0;
     };
 
 
@@ -477,16 +488,22 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        PerspectiveCamera(Context &context, const Point3D &position, const Quaternion &orientation,
-                          float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
+        PerspectiveCamera(Context &context);
 
         void set() const override;
+        VLRCameraType getType() const override {
+            return VLRCameraType_Perspective;
+        }
 
         void setPosition(const Point3D &position) {
             m_data.position = position;
         }
         void setOrientation(const Quaternion &orientation) {
             m_data.orientation = orientation;
+        }
+        void setAspectRatio(float aspect) {
+            m_data.aspect = aspect;
+            m_data.setImagePlaneArea();
         }
         void setSensitivity(float sensitivity) {
             m_data.sensitivity = sensitivity;
@@ -501,6 +518,28 @@ namespace VLR {
         void setObjectPlaneDistance(float distance) {
             m_data.objPlaneDistance = distance;
             m_data.setImagePlaneArea();
+        }
+
+        void getPosition(Point3D* position) {
+            *position = m_data.position;
+        }
+        void getOrientation(Quaternion* orientation) {
+            *orientation = m_data.orientation;
+        }
+        void getAspectRatio(float* aspect) {
+            *aspect = m_data.aspect;
+        }
+        void getSensitivity(float* sensitivity) {
+            *sensitivity = m_data.sensitivity;
+        }
+        void getFovY(float* fovY) {
+            *fovY = m_data.fovY;
+        }
+        void getLensRadius(float* lensRadius) {
+            *lensRadius = m_data.lensRadius;
+        }
+        void getObjectPlaneDistance(float* distance) {
+            *distance = m_data.objPlaneDistance;
         }
     };
 
@@ -523,10 +562,12 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        EquirectangularCamera(Context &context, const Point3D &position, const Quaternion &orientation,
-                              float sensitivity, float phiAngle, float thetaAngle);
+        EquirectangularCamera(Context &context);
 
         void set() const override;
+        VLRCameraType getType() const override {
+            return VLRCameraType_Equirectangular;
+        }
 
         void setPosition(const Point3D &position) {
             m_data.position = position;
@@ -540,6 +581,20 @@ namespace VLR {
         void setAngles(float phiAngle, float thetaAngle) {
             m_data.phiAngle = phiAngle;
             m_data.thetaAngle = thetaAngle;
+        }
+
+        void getPosition(Point3D* position) {
+            *position = m_data.position;
+        }
+        void getOrientation(Quaternion* orientation) {
+            *orientation = m_data.orientation;
+        }
+        void getSensitivity(float* sensitivity) {
+            *sensitivity = m_data.sensitivity;
+        }
+        void getAngles(float* phiAngle, float* thetaAngle) {
+            *phiAngle = m_data.phiAngle;
+            *thetaAngle = m_data.thetaAngle;
         }
     };
 }

@@ -18,8 +18,8 @@ extern "C" {
     typedef struct VLRImage2D_API* VLRImage2D;
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
 
-    typedef struct VLRGeometryShaderNode_API* VLRGeometryShaderNode;
     typedef struct VLRShaderNode_API* VLRShaderNode;
+    typedef struct VLRGeometryShaderNode_API* VLRGeometryShaderNode;
     typedef struct VLRFloatShaderNode_API* VLRFloatShaderNode;
     typedef struct VLRFloat2ShaderNode_API* VLRFloat2ShaderNode;
     typedef struct VLRFloat3ShaderNode_API* VLRFloat3ShaderNode;
@@ -50,6 +50,7 @@ extern "C" {
     typedef const struct VLRTransform_API* VLRTransformConst;
     typedef struct VLRStaticTransform_API* VLRStaticTransform;
 
+    typedef struct VLRNode_API* VLRNode;
     typedef struct VLRSurfaceNode_API* VLRSurfaceNode;
     typedef struct VLRTriangleMeshSurfaceNode_API* VLRTriangleMeshSurfaceNode;
     typedef struct VLRInternalNode_API* VLRInternalNode;
@@ -272,11 +273,13 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrNodeSetName(VLRNode node, const char* name);
+    VLR_API VLRResult vlrNodeGetName(VLRNode node, const char** name);
+    VLR_API VLRResult vlrNodeGetType(VLRNode node, VLRNodeType* type);
+    
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode,
                                                        const char* name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTriangleMeshSurfaceNode surfaceNode);
-    VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetName(VLRTriangleMeshSurfaceNode node, const char* name);
-    VLR_API VLRResult vlrTriangleMeshSurfaceNodeGetName(VLRTriangleMeshSurfaceNode node, const char** name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
                                                                  VLRSurfaceMaterial material, 
@@ -284,13 +287,9 @@ extern "C" {
                                                                  VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo,
                                                                  VLRTangentType tangentType);
 
-
-
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
                                             const char* name, VLRTransform transform);
     VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode node);
-    VLR_API VLRResult vlrInternalNodeSetName(VLRInternalNode node, const char* name);
-    VLR_API VLRResult vlrInternalNodeGetName(VLRInternalNode node, const char** name);
     VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransform localToWorld);
     VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, VLRTransformConst* localToWorld);
     VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRObject child);
@@ -308,25 +307,33 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera, 
-                                                 const VLRPoint3D* position, const VLRQuaternion* orientation,
-                                                 float sensitivity, float aspect, float fovY, float lensRadius, float imgPDist, float objPDist);
+    VLR_API VLRResult vlrCameraGetType(VLRCamera camera, VLRCameraType* type);
+    
+    VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera);
     VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera);
     VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLRPoint3D* position);
     VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLRQuaternion* orientation);
+    VLR_API VLRResult vlrPerspectiveCameraSetAspectRatio(VLRPerspectiveCamera camera, float aspect);
     VLR_API VLRResult vlrPerspectiveCameraSetSensitivity(VLRPerspectiveCamera camera, float sensitivity);
     VLR_API VLRResult vlrPerspectiveCameraSetFovY(VLRPerspectiveCamera camera, float fovY);
     VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius);
     VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance);
+    VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCamera camera, VLRPoint3D* position);
+    VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCamera camera, VLRQuaternion* orientation);
+    VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCamera camera, float* aspect);
+    VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCamera camera, float* sensitivity);
+    VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCamera camera, float* fovY);
+    VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCamera camera, float* lensRadius);
+    VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCamera camera, float* distance);
 
-
-
-    VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera,
-                                                     const VLRPoint3D* position, const VLRQuaternion* orientation,
-                                                     float sensitivity, float phiAngle, float thetaAngle);
+    VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera);
     VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirectangularCamera camera);
     VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLRPoint3D* position);
     VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLRQuaternion* orientation);
     VLR_API VLRResult vlrEquirectangularCameraSetSensitivity(VLREquirectangularCamera camera, float sensitivity);
     VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera camera, float phiAngle, float thetaAngle);
+    VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCamera camera, VLRPoint3D* position);
+    VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCamera camera, VLRQuaternion* orientation);
+    VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCamera camera, float* sensitivity);
+    VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCamera camera, float* phiAngle, float* thetaAngle);
 }
