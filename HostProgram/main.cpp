@@ -63,6 +63,8 @@ KeyState g_keyUpward;
 KeyState g_keyDownward;
 KeyState g_keyTiltLeft;
 KeyState g_keyTiltRight;
+KeyState g_keyFasterPosMovSpeed;
+KeyState g_keySlowerPosMovSpeed;
 KeyState g_buttonRotate;
 double g_mouseX;
 double g_mouseY;
@@ -71,7 +73,10 @@ double g_mouseY;
 
 VLR::Point3D g_cameraPosition;
 VLR::Quaternion g_cameraOrientation;
-VLR::Quaternion g_tempOrientation;
+VLR::Quaternion g_tempCameraOrientation;
+float g_cameraPositionalMovingSpeed;
+float g_cameraDirectionalMovingSpeed;
+float g_cameraTiltSpeed;
 
 float g_persSensitivity;
 float g_fovYInDeg;
@@ -155,7 +160,7 @@ RGB max(const RGB &v, float maxValue) {
     return RGB(std::fmax(v.r, maxValue), std::fmax(v.g, maxValue), std::fmax(v.b, maxValue));
 }
 
-static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const Shot &shot, const std::string &filename) {
+static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename) {
     using namespace VLR;
     using namespace VLRCpp;
 
@@ -171,7 +176,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
 
             if (srcPix.r < 0.0f || srcPix.g < 0.0f || srcPix.b < 0.0f)
                 vlrprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-            srcPix *= shot.brightnessCoeff;
+            srcPix *= g_brightnessCoeff;
             srcPix = max(srcPix, 0.0f);
             srcPix = RGB::One() - exp(-srcPix);
             srcPix = sRGB_gamma(srcPix);
@@ -344,11 +349,14 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             g_camera = g_equirectangularCamera;
         }
 
-        g_tempOrientation = g_cameraOrientation;
+        g_tempCameraOrientation = g_cameraOrientation;
     };
 
     setViewport(shot.viewpoints[0]);
     g_presetViewportIndex = 0;
+    g_cameraPositionalMovingSpeed = 0.01f;
+    g_cameraDirectionalMovingSpeed = 0.0015f;
+    g_cameraTiltSpeed = 0.025f;
 
 
 
@@ -456,6 +464,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 break;
             }
         });
+        glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
+            //devPrintf("%g, %g\n", x, y);
+        });
         glfwSetCursorPosCallback(window, [](GLFWwindow* window, double x, double y) {
             g_mouseX = x;
             g_mouseY = y;
@@ -502,6 +513,16 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             case GLFW_KEY_E: {
                 devPrintf("E: %d\n", action);
                 g_keyTiltRight.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
+                break;
+            }
+            case GLFW_KEY_T: {
+                devPrintf("T: %d\n", action);
+                g_keyFasterPosMovSpeed.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
+                break;
+            }
+            case GLFW_KEY_G: {
+                devPrintf("G: %d\n", action);
+                g_keySlowerPosMovSpeed.recordStateChange(action == GLFW_PRESS || action == GLFW_REPEAT, g_frameIndex);
                 break;
             }
             default:
@@ -558,61 +579,31 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             // process key events
             {
-                int32_t trackZ = 0;
-                if (g_keyForward.getState() == true) {
-                    if (g_keyBackward.getState() == true)
-                        trackZ = 0;
-                    else
-                        trackZ = 1;
-                }
-                else {
-                    if (g_keyBackward.getState() == true)
-                        trackZ = -1;
-                    else
-                        trackZ = 0;
-                }
+                const auto decideDirection = [](const KeyState &a, const KeyState &b) {
+                    int32_t dir = 0;
+                    if (a.getState() == true) {
+                        if (b.getState() == true)
+                            dir = 0;
+                        else
+                            dir = 1;
+                    }
+                    else {
+                        if (b.getState() == true)
+                            dir = -1;
+                        else
+                            dir = 0;
+                    }
+                    return dir;
+                };
 
-                int32_t trackX = 0;
-                if (g_keyLeftward.getState() == true) {
-                    if (g_keyRightward.getState() == true)
-                        trackX = 0;
-                    else
-                        trackX = 1;
-                }
-                else {
-                    if (g_keyRightward.getState() == true)
-                        trackX = -1;
-                    else
-                        trackX = 0;
-                }
+                int32_t trackZ = decideDirection(g_keyForward, g_keyBackward);
+                int32_t trackX = decideDirection(g_keyLeftward, g_keyRightward);
+                int32_t trackY = decideDirection(g_keyUpward, g_keyDownward);
+                int32_t tiltZ = decideDirection(g_keyTiltRight, g_keyTiltLeft);
+                int32_t adjustPosMoveSpeed = decideDirection(g_keyFasterPosMovSpeed, g_keySlowerPosMovSpeed);
 
-                int32_t trackY = 0;
-                if (g_keyUpward.getState() == true) {
-                    if (g_keyDownward.getState() == true)
-                        trackY = 0;
-                    else
-                        trackY = 1;
-                }
-                else {
-                    if (g_keyDownward.getState() == true)
-                        trackY = -1;
-                    else
-                        trackY = 0;
-                }
-
-                int32_t tiltZ = 0;
-                if (g_keyTiltRight.getState() == true) {
-                    if (g_keyTiltLeft.getState() == true)
-                        tiltZ = 0;
-                    else
-                        tiltZ = 1;
-                }
-                else {
-                    if (g_keyTiltLeft.getState() == true)
-                        tiltZ = -1;
-                    else
-                        tiltZ = 0;
-                }
+                g_cameraPositionalMovingSpeed *= 1.0f + 0.02f * adjustPosMoveSpeed;
+                g_cameraPositionalMovingSpeed = std::min(std::max(g_cameraPositionalMovingSpeed, 1e-6f), 1e+6f);
 
                 static double deltaX = 0, deltaY = 0;
                 static double lastX, lastY;
@@ -634,11 +625,11 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 if (deltaAngle == 0.0f)
                     axis = Vector3D(1, 0, 0);
 
-                g_cameraOrientation = g_cameraOrientation * qRotateZ(0.025f * tiltZ);
-                g_tempOrientation = g_cameraOrientation * qRotate(0.15f * 1e-2f * deltaAngle, axis);
-                g_cameraPosition += g_tempOrientation.toMatrix3x3() * 0.01f * Vector3D(trackX, trackY, trackZ);
+                g_cameraOrientation = g_cameraOrientation * qRotateZ(g_cameraTiltSpeed * tiltZ);
+                g_tempCameraOrientation = g_cameraOrientation * qRotate(g_cameraDirectionalMovingSpeed * deltaAngle, axis);
+                g_cameraPosition += g_tempCameraOrientation.toMatrix3x3() * g_cameraPositionalMovingSpeed * Vector3D(trackX, trackY, trackZ);
                 if (g_buttonRotate.getState() == false && g_buttonRotate.getTime() == g_frameIndex) {
-                    g_cameraOrientation = g_tempOrientation;
+                    g_cameraOrientation = g_tempCameraOrientation;
                     deltaX = 0;
                     deltaY = 0;
                 }
@@ -669,7 +660,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     outputBufferSizeChanged |= ImGui::Checkbox("Force Low Resolution", &g_forceLowResolution);
 
                     if (ImGui::Button("Save Output"))
-                        saveOutputBufferAsImageFile(context, shot, "output.bmp");
+                        saveOutputBufferAsImageFile(context, "output.bmp");
 
                     ImGui::End();
                 }
@@ -692,6 +683,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                         cameraSettingsChanged = true;
                     }
+
+                    ImGui::Text("Pos. Moving Speed: %g", g_cameraPositionalMovingSpeed);
 
                     const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
                     cameraSettingsChanged |= ImGui::Combo("Camera Type", (int32_t*)&g_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
@@ -882,7 +875,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                 if (g_cameraType == VLRCameraType_Perspective) {
                     g_perspectiveCamera->setPosition(g_cameraPosition);
-                    g_perspectiveCamera->setOrientation(g_tempOrientation);
+                    g_perspectiveCamera->setOrientation(g_tempCameraOrientation);
                     if (cameraSettingsChanged) {
                         g_perspectiveCamera->setAspectRatio((float)g_renderTargetSizeX / g_renderTargetSizeY);
                         g_perspectiveCamera->setSensitivity(g_persSensitivity);
@@ -893,7 +886,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 }
                 else if (g_cameraType == VLRCameraType_Equirectangular) {
                     g_equirectangularCamera->setPosition(g_cameraPosition);
-                    g_equirectangularCamera->setOrientation(g_tempOrientation);
+                    g_equirectangularCamera->setOrientation(g_tempCameraOrientation);
                     if (cameraSettingsChanged) {
                         g_equirectangularCamera->setSensitivity(g_equiSensitivity);
                         g_equirectangularCamera->setAngles(g_phiAngle, g_thetaAngle);
