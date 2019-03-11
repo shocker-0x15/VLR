@@ -31,17 +31,21 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
     * Path Tracing \[Kajiya1986\] with MIS
 * Correct handling of non-symmetric scattering due to shading normals \[Veach1996, 1997\]
 
+## TODO
+- [ ] Scene Editor
+- [ ] Compile shader node at runtime using NVRTC to remove overhead of callable shaders.
+
 ## 動作環境 / Confirmed Environment
 現状以下の環境で動作を確認しています。  
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1809) & Visual Studio 2017 (15.9.7)
+* Windows 10 (1809) & Visual Studio 2017 (15.9.8)
 * Core i9-9900K, 32GB, RTX 2070 8GB
 
 動作させるにあたっては以下のライブラリが必要です。  
 It requires the following libraries.
 
-* CUDA 10.0
+* CUDA 10.1
 * OptiX 6.0 (requires Maxwell or later generation NVIDIA GPU)
 * OpenEXR 2.2
 * assimp 4.1
