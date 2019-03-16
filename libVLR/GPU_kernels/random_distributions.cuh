@@ -155,8 +155,19 @@ namespace VLR {
 
     template <typename RealType>
     RT_FUNCTION inline void uniformSampleTriangle(RealType u0, RealType u1, RealType* b0, RealType* b1) {
-        RealType su1 = std::sqrt(u0);
-        *b0 = 1.0f - su1;
-        *b1 = u1 * su1;
+        // Square-Root Parameterization
+        //RealType su1 = std::sqrt(u0);
+        //*b0 = 1.0f - su1;
+        //*b1 = u1 * su1;
+        
+        // Reference
+        // A Low-Distortion Map Between Triangle and Square
+        *b0 = 0.5f * u0;
+        *b1 = 0.5f * u1;
+        RealType offset = *b1 - *b0;
+        if (offset > 0)
+            *b1 += offset;
+        else
+            *b0 -= offset;
     }
 }
