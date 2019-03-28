@@ -30,6 +30,7 @@ namespace VLR {
 
     defineClassID(Object, Image2D);
     defineClassID(Image2D, LinearImage2D);
+    defineClassID(Image2D, BlockCompressedImage2D);
 
     defineClassID(Object, ShaderNode);
     defineClassID(ShaderNode, GeometryShaderNode);
@@ -192,14 +193,14 @@ namespace VLR {
         m_optixBufferUpsampledSpectrum_spectrum_grid = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, NumSpectrumGridCells);
         m_optixBufferUpsampledSpectrum_spectrum_grid->setElementSize(sizeof(UpsampledSpectrum::spectrum_grid_cell_t));
         {
-            auto values = (UpsampledSpectrum::spectrum_grid_cell_t*)m_optixBufferUpsampledSpectrum_spectrum_grid->map();
+            auto values = (UpsampledSpectrum::spectrum_grid_cell_t*)m_optixBufferUpsampledSpectrum_spectrum_grid->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
             std::copy_n(UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells, values);
             m_optixBufferUpsampledSpectrum_spectrum_grid->unmap();
         }
         m_optixBufferUpsampledSpectrum_spectrum_data_points = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, NumSpectrumDataPoints);
         m_optixBufferUpsampledSpectrum_spectrum_data_points->setElementSize(sizeof(UpsampledSpectrum::spectrum_data_point_t));
         {
-            auto values = (UpsampledSpectrum::spectrum_data_point_t*)m_optixBufferUpsampledSpectrum_spectrum_data_points->map();
+            auto values = (UpsampledSpectrum::spectrum_data_point_t*)m_optixBufferUpsampledSpectrum_spectrum_data_points->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
             std::copy_n(UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints, values);
             m_optixBufferUpsampledSpectrum_spectrum_data_points->unmap();
         }
@@ -467,7 +468,7 @@ namespace VLR {
         {
             std::mt19937_64 rng(591842031321323413);
 
-            auto dstData = (uint64_t*)m_rngBuffer->map();
+            auto dstData = (uint64_t*)m_rngBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
             for (int y = 0; y < m_height; ++y) {
                 for (int x = 0; x < m_width; ++x) {
                     dstData[y * m_width + x] = rng();
@@ -480,7 +481,7 @@ namespace VLR {
         //{
         //    std::mt19937 rng(591031321);
 
-        //    auto dstData = (uint32_t*)m_rngBuffer->map();
+        //    auto dstData = (uint32_t*)m_rngBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
         //    for (int y = 0; y < m_height; ++y) {
         //        for (int x = 0; x < m_width; ++x) {
         //            uint32_t index = 4 * (y * m_width + x);
@@ -559,7 +560,7 @@ namespace VLR {
 
     void Context::updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet) {
         VLRAssert(m_nodeProcSetSlotManager.getUsage(index), "Invalid index.");
-        auto procSets = (Shared::NodeProcedureSet*)m_optixNodeProcedureSetBuffer->map();
+        auto procSets = (Shared::NodeProcedureSet*)m_optixNodeProcedureSetBuffer->map(0, RT_BUFFER_MAP_WRITE);
         procSets[index] = procSet;
         m_optixNodeProcedureSetBuffer->unmap();
     }
@@ -579,7 +580,7 @@ namespace VLR {
 
     void Context::updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc) {
         VLRAssert(m_nodeDescSlotManager.getUsage(index), "Invalid index.");
-        auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map();
+        auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
         nodeDescs[index] = nodeDesc;
         m_optixNodeDescriptorBuffer->unmap();
     }
@@ -599,7 +600,7 @@ namespace VLR {
 
     void Context::updateSpectrumNodeDescriptor(uint32_t index, const Shared::SpectrumNodeDescriptor &nodeDesc) {
         VLRAssert(m_spectrumNodeDescSlotManager.getUsage(index), "Invalid index.");
-        auto nodeDescs = (Shared::SpectrumNodeDescriptor*)m_optixSpectrumNodeDescriptorBuffer->map();
+        auto nodeDescs = (Shared::SpectrumNodeDescriptor*)m_optixSpectrumNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
         nodeDescs[index] = nodeDesc;
         m_optixSpectrumNodeDescriptorBuffer->unmap();
     }
@@ -619,7 +620,7 @@ namespace VLR {
 
     void Context::updateBSDFProcedureSet(uint32_t index, const Shared::BSDFProcedureSet &procSet) {
         VLRAssert(m_bsdfProcSetSlotManager.getUsage(index), "Invalid index.");
-        auto procSets = (Shared::BSDFProcedureSet*)m_optixBSDFProcedureSetBuffer->map();
+        auto procSets = (Shared::BSDFProcedureSet*)m_optixBSDFProcedureSetBuffer->map(0, RT_BUFFER_MAP_WRITE);
         procSets[index] = procSet;
         m_optixBSDFProcedureSetBuffer->unmap();
     }
@@ -639,7 +640,7 @@ namespace VLR {
 
     void Context::updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet) {
         VLRAssert(m_edfProcSetSlotManager.getUsage(index), "Invalid index.");
-        auto procSets = (Shared::EDFProcedureSet*)m_optixEDFProcedureSetBuffer->map();
+        auto procSets = (Shared::EDFProcedureSet*)m_optixEDFProcedureSetBuffer->map(0, RT_BUFFER_MAP_WRITE);
         procSets[index] = procSet;
         m_optixEDFProcedureSetBuffer->unmap();
     }
@@ -659,7 +660,7 @@ namespace VLR {
 
     void Context::updateSurfaceMaterialDescriptor(uint32_t index, const Shared::SurfaceMaterialDescriptor &matDesc) {
         VLRAssert(m_surfMatDescSlotManager.getUsage(index), "Invalid index.");
-        auto matDescs = (Shared::SurfaceMaterialDescriptor*)m_optixSurfaceMaterialDescriptorBuffer->map();
+        auto matDescs = (Shared::SurfaceMaterialDescriptor*)m_optixSurfaceMaterialDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
         matDescs[index] = matDesc;
         m_optixSurfaceMaterialDescriptorBuffer->unmap();
     }

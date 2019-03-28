@@ -19,6 +19,7 @@ namespace VLR {
         uint32_t m_width, m_height;
         VLRDataFormat m_originalDataFormat;
         VLRDataFormat m_dataFormat;
+        bool m_needsDegamma;
         mutable optix::Buffer m_optixDataBuffer;
         mutable bool m_initOptiXObject;
 
@@ -28,7 +29,7 @@ namespace VLR {
 
         static VLRDataFormat getInternalFormat(VLRDataFormat inputFormat);
 
-        Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat);
+        Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat, bool applyDegamma);
         virtual ~Image2D();
 
         virtual Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const = 0;
@@ -53,6 +54,9 @@ namespace VLR {
                     m_dataFormat == VLRDataFormat_RGBA32Fx4 ||
                     m_dataFormat == VLRDataFormat_GrayA8x2);
         }
+        bool needsDegamma() const {
+            return m_needsDegamma;
+        }
 
         virtual optix::Buffer getOptiXObject() const;
     };
@@ -74,6 +78,25 @@ namespace VLR {
         PixelType get(uint32_t x, uint32_t y) const {
             return *(PixelType*)(m_data.data() + (y * getWidth() + x) * getStride());
         }
+
+        Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const override;
+        Image2D* createLuminanceImage2D() const override;
+        void* createLinearImageData() const override;
+
+        optix::Buffer getOptiXObject() const override;
+    };
+
+
+
+    class BlockCompressedImage2D : public Image2D {
+        std::vector<std::vector<uint8_t>> m_data;
+        mutable bool m_copyDone;
+
+    public:
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier &getClass() const { return ClassID; }
+
+        BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma);
 
         Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const override;
         Image2D* createLuminanceImage2D() const override;

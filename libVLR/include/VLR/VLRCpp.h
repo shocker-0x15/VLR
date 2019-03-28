@@ -14,6 +14,7 @@ namespace VLRCpp {
 
     VLR_DECLARE_HOLDER_AND_REFERENCE(Image2D);
     VLR_DECLARE_HOLDER_AND_REFERENCE(LinearImage2D);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(BlockCompressedImage2D);
 
     VLR_DECLARE_HOLDER_AND_REFERENCE(ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(GeometryShaderNode);
@@ -120,12 +121,25 @@ namespace VLRCpp {
 
     class LinearImage2DHolder : public Image2DHolder {
     public:
-        LinearImage2DHolder(const ContextConstRef &context, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) :
+        LinearImage2DHolder(const ContextConstRef &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) :
             Image2DHolder(context) {
-            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, width, height, format, applyDegamma, linearData));
+            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, applyDegamma));
         }
         ~LinearImage2DHolder() {
             errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), (VLRLinearImage2D)m_raw));
+        }
+    };
+
+
+
+    class BlockCompressedImage2DHolder : public Image2DHolder {
+    public:
+        BlockCompressedImage2DHolder(const ContextConstRef &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
+            Image2DHolder(context) {
+            errorCheck(vlrBlockCompressedImage2DCreate(getRaw(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, applyDegamma));
+        }
+        ~BlockCompressedImage2DHolder() {
+            errorCheck(vlrBlockCompressedImage2DDestroy(getRaw(m_context), (VLRBlockCompressedImage2D)m_raw));
         }
     };
 
@@ -1232,8 +1246,12 @@ namespace VLRCpp {
 
 
 
-        LinearImage2DRef createLinearImage2D(uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) const {
-            return std::make_shared<LinearImage2DHolder>(shared_from_this(), width, height, format, applyDegamma, linearData);
+        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) const {
+            return std::make_shared<LinearImage2DHolder>(shared_from_this(), linearData, width, height, format, applyDegamma);
+        }
+
+        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) const {
+            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(), data, sizes, mipCount, width, height, format, applyDegamma);
         }
 
 

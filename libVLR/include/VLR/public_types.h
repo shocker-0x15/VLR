@@ -29,6 +29,16 @@ enum VLRDataFormat {
     VLRDataFormat_Gray32F,
     VLRDataFormat_Gray8,
     VLRDataFormat_GrayA8x2,
+    VLRDataFormat_BC1,
+    VLRDataFormat_BC2,
+    VLRDataFormat_BC3,
+    VLRDataFormat_BC4,
+    VLRDataFormat_BC4_Signed,
+    VLRDataFormat_BC5,
+    VLRDataFormat_BC5_Signed,
+    VLRDataFormat_BC6H,
+    VLRDataFormat_BC6H_Signed,
+    VLRDataFormat_BC7,
     NumVLRDataFormats
 };
 

@@ -499,7 +499,7 @@ namespace VLR {
         m_optixVertexBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_vertices.size());
         m_optixVertexBuffer->setElementSize(sizeof(Vertex));
         {
-            auto dstVertices = (Vertex*)m_optixVertexBuffer->map();
+            auto dstVertices = (Vertex*)m_optixVertexBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
             std::copy_n((Vertex*)m_vertices.data(), m_vertices.size(), dstVertices);
             m_optixVertexBuffer->unmap();
         }
@@ -534,7 +534,7 @@ namespace VLR {
             std::vector<float> areas;
             areas.resize(numTriangles);
             {
-                auto dstTriangles = (Shared::Triangle*)geom.optixIndexBuffer->map();
+                auto dstTriangles = (Shared::Triangle*)geom.optixIndexBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
                 for (auto i = 0; i < numTriangles; ++i) {
                     uint32_t i0 = geom.indices[3 * i + 0];
                     uint32_t i1 = geom.indices[3 * i + 1];
@@ -1312,7 +1312,7 @@ namespace VLR {
             importances.resize(m_surfaceLights.size());
 
             {
-                Shared::SurfaceLightDescriptor* descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map();
+                Shared::SurfaceLightDescriptor* descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
                 for (auto it = m_surfaceLights.cbegin(); it != m_surfaceLights.cend(); ++it) {
                     uint32_t index = std::distance(m_surfaceLights.cbegin(), it);
                     const Shared::SurfaceLightDescriptor &lightDesc = it->second;

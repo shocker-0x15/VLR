@@ -8,6 +8,7 @@ typedef VLR::Context* VLRContext;
 
 typedef VLR::Image2D* VLRImage2D;
 typedef VLR::LinearImage2D* VLRLinearImage2D;
+typedef VLR::BlockCompressedImage2D* VLRBlockCompressedImage2D;
 
 typedef VLR::ShaderNode* VLRShaderNode;
 typedef VLR::GeometryShaderNode* VLRGeometryShaderNode;
@@ -230,7 +231,7 @@ VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha) {
 
 
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                         uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData) {
+                                         uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) {
     *image = new VLR::LinearImage2D(*context, linearData, width, height, format, applyDegamma);
 
     return VLR_ERROR_NO_ERROR;
@@ -238,6 +239,23 @@ VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* i
 
 VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image) {
     if (!image->is<VLR::LinearImage2D>())
+        return VLR_ERROR_INVALID_TYPE;
+    delete image;
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+
+
+VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
+                                                  uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) {
+    *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height, dataFormat, applyDegamma);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image) {
+    if (!image->is<VLR::BlockCompressedImage2D>())
         return VLR_ERROR_INVALID_TYPE;
     delete image;
 

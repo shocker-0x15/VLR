@@ -11,6 +11,16 @@ namespace VLR {
     sizeof(Gray32F),
     sizeof(Gray8),
     sizeof(GrayA8x2),
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
     };
 
     VLRDataFormat Image2D::getInternalFormat(VLRDataFormat inputFormat) {
@@ -33,6 +43,26 @@ namespace VLR {
             return VLRDataFormat_Gray8;
         case VLRDataFormat_GrayA8x2:
             return VLRDataFormat_GrayA8x2;
+        case VLRDataFormat_BC1:
+            return VLRDataFormat_BC1;
+        case VLRDataFormat_BC2:
+            return VLRDataFormat_BC2;
+        case VLRDataFormat_BC3:
+            return VLRDataFormat_BC3;
+        case VLRDataFormat_BC4:
+            return VLRDataFormat_BC4;
+        case VLRDataFormat_BC4_Signed:
+            return VLRDataFormat_BC4_Signed;
+        case VLRDataFormat_BC5:
+            return VLRDataFormat_BC5;
+        case VLRDataFormat_BC5_Signed:
+            return VLRDataFormat_BC5_Signed;
+        case VLRDataFormat_BC6H:
+            return VLRDataFormat_BC6H;
+        case VLRDataFormat_BC6H_Signed:
+            return VLRDataFormat_BC6H_Signed;
+        case VLRDataFormat_BC7:
+            return VLRDataFormat_BC7;
         default:
             VLRAssert(false, "Data format is invalid.");
             break;
@@ -40,9 +70,24 @@ namespace VLR {
         return VLRDataFormat_RGBA8x4;
     }
 
-    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat) :
+    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat, bool applyDegamma) :
         Object(context), m_width(width), m_height(height), m_originalDataFormat(originalDataFormat), m_initOptiXObject(false) {
         m_dataFormat = getInternalFormat(m_originalDataFormat);
+        m_needsDegamma = false;
+        if (applyDegamma) {
+            if (m_dataFormat == VLRDataFormat_RGBA8x4 ||
+                m_dataFormat == VLRDataFormat_Gray8 ||
+                m_dataFormat == VLRDataFormat_BC1 ||
+                m_dataFormat == VLRDataFormat_BC2 ||
+                m_dataFormat == VLRDataFormat_BC3 ||
+                m_dataFormat == VLRDataFormat_BC4 ||
+                m_dataFormat == VLRDataFormat_BC7)
+                m_needsDegamma = true;
+
+            // GrayA8はRT_FORMAT_UNSIGNED_BYTE2なのでテクスチャーユニットにデガンマさせるとA成分もデガンマされて不都合。
+            // BC4_Signedは符号付きなのでデガンマは不適切。
+            // BC5も法線マップなどに使われる2成分テクスチャーなのでデガンマは考えにくい。
+        }
     }
 
     Image2D::~Image2D() {
@@ -83,6 +128,36 @@ namespace VLR {
         case VLRDataFormat_GrayA8x2:
             m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
             break;
+        case VLRDataFormat_BC1:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC2:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC2, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC3:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC3, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC4:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC4, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC4_Signed:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC4, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC5:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC5, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC5_Signed:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC5, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC6H:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC6H, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC6H_Signed:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC6H, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
+        case VLRDataFormat_BC7:
+            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC7, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
+            break;
         default:
             VLRAssert_ShouldNotBeCalled();
             break;
@@ -114,57 +189,34 @@ namespace VLR {
     }
     
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
-        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat)), m_copyDone(false) {
+        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat), applyDegamma), m_copyDone(false) {
         m_data.resize(getStride() * getWidth() * getHeight());
 
         switch (dataFormat) {
         case VLRDataFormat_RGB8x3: {
-            FuncProcessPixel<RGB8x3, RGBA8x4> funcApplyDegamma = [](const RGB8x3 &src, RGBA8x4 &dst) {
-                dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
-                dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
-                dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
-                dst.a = 255;
-            };
             FuncProcessPixel<RGB8x3, RGBA8x4> funcAsIs = [](const RGB8x3 &src, RGBA8x4 &dst) {
                 dst.r = src.r;
                 dst.g = src.g;
                 dst.b = src.b;
                 dst.a = 255;
             };
-            processAllPixels(linearData, m_data.data(), width, height, applyDegamma ? funcApplyDegamma : funcAsIs);
+            processAllPixels(linearData, m_data.data(), width, height, funcAsIs);
             break;
         }
         case VLRDataFormat_RGB_8x4: {
-            FuncProcessPixel<RGB_8x4, RGBA8x4> funcApplyDegamma = [](const RGB_8x4 &src, RGBA8x4 &dst) {
-                dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
-                dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
-                dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
-                dst.a = 255;
-            };
             FuncProcessPixel<RGB_8x4, RGBA8x4> funcAsIs = [](const RGB_8x4 &src, RGBA8x4 &dst) {
                 dst.r = src.r;
                 dst.g = src.g;
                 dst.b = src.b;
                 dst.a = 255;
             };
-            processAllPixels(linearData, m_data.data(), width, height, applyDegamma ? funcApplyDegamma : funcAsIs);
+            processAllPixels(linearData, m_data.data(), width, height, funcAsIs);
             break;
         }
         case VLRDataFormat_RGBA8x4: {
-            if (applyDegamma) {
-                FuncProcessPixel<RGBA8x4, RGBA8x4> funcApplyDegamma = [](const RGBA8x4 &src, RGBA8x4 &dst) {
-                    dst.r = std::min<uint32_t>(255, 256 * sRGB_degamma(src.r / 255.0f));
-                    dst.g = std::min<uint32_t>(255, 256 * sRGB_degamma(src.g / 255.0f));
-                    dst.b = std::min<uint32_t>(255, 256 * sRGB_degamma(src.b / 255.0f));
-                    dst.a = src.a;
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
-            }
-            else {
-                auto srcHead = (const RGBA8x4*)linearData;
-                auto dstHead = (RGBA8x4*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
-            }
+            auto srcHead = (const RGBA8x4*)linearData;
+            auto dstHead = (RGBA8x4*)m_data.data();
+            std::copy_n(srcHead, width * height, dstHead);
             break;
         }
         case VLRDataFormat_RGBA16Fx4: {
@@ -231,17 +283,9 @@ namespace VLR {
             break;
         }
         case VLRDataFormat_Gray8: {
-            if (applyDegamma) {
-                FuncProcessPixel<Gray8, Gray8> funcApplyDegamma = [](const Gray8 &src, Gray8 &dst) {
-                    dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
-            }
-            else {
-                auto srcHead = (const Gray8*)linearData;
-                auto dstHead = (Gray8*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
-            }
+            auto srcHead = (const Gray8*)linearData;
+            auto dstHead = (Gray8*)m_data.data();
+            std::copy_n(srcHead, width * height, dstHead);
             break;
         }
         case VLRDataFormat_GrayA8x2: {
@@ -414,9 +458,65 @@ namespace VLR {
     optix::Buffer LinearImage2D::getOptiXObject() const {
         optix::Buffer buffer = Image2D::getOptiXObject();
         if (!m_copyDone) {
-            auto dstData = (uint8_t*)buffer->map();
+            auto dstData = (uint8_t*)buffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
             std::copy(m_data.cbegin(), m_data.cend(), dstData);
             buffer->unmap();
+            m_copyDone = true;
+        }
+        return buffer;
+    }
+
+
+
+    BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
+        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat), applyDegamma), m_copyDone(false) {
+        VLRAssert(dataFormat >= VLRDataFormat_BC1 && dataFormat <= VLRDataFormat_BC7, "Specified data format is not block compressed format.");
+        m_data.resize(mipCount);
+        for (int i = 0; i < mipCount; ++i) {
+            m_data[i].resize(sizes[i]);
+            std::copy(data[i], data[i] + sizes[i], m_data[i].data());
+        }
+    }
+
+    Image2D* BlockCompressedImage2D::createShrinkedImage2D(uint32_t width, uint32_t height) const {
+        VLRAssert_NotImplemented();
+        return nullptr;
+    }
+
+    Image2D* BlockCompressedImage2D::createLuminanceImage2D() const {
+        VLRAssert_NotImplemented();
+        return nullptr;
+    }
+
+    void* BlockCompressedImage2D::createLinearImageData() const {
+        VLRAssert_NotImplemented();
+        return nullptr;
+    }
+
+    optix::Buffer BlockCompressedImage2D::getOptiXObject() const {
+        optix::Buffer buffer = Image2D::getOptiXObject();
+        if (!m_copyDone) {
+            // JP: OptiXのBCブロックカウントの計算がおかしいらしく。
+            //     非2のべき乗テクスチャーだとサイズがずれる。
+            //     要問い合わせ。
+            int32_t mipCount = 1;// m_data.size();
+
+            buffer->setMipLevelCount(mipCount);
+            auto dstData = new uint8_t*[mipCount];
+
+            for (int mipLevel = 0; mipLevel < mipCount; ++mipLevel)
+                dstData[mipLevel] = (uint8_t*)buffer->map(mipLevel, RT_BUFFER_MAP_WRITE_DISCARD);
+
+            for (int mipLevel = 0; mipLevel < mipCount; ++mipLevel) {
+                const auto &mipData = m_data[mipLevel];
+                std::copy(mipData.cbegin(), mipData.cend(), dstData[mipLevel]);
+            }
+
+            for (int mipLevel = mipCount - 1; mipLevel >= 0; --mipLevel)
+                buffer->unmap(mipLevel);
+
+            delete[] dstData;
+
             m_copyDone = true;
         }
         return buffer;
@@ -1340,10 +1440,14 @@ namespace VLR {
         m_spectrumType = spectrumType;
         m_colorSpace = colorSpace;
         m_image = image;
-        if (m_image)
+        if (m_image) {
             m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
-        else
+            m_optixTextureSampler->setReadMode(m_image->needsDegamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
+        }
+        else {
             m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
+            m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
+        }
         setupNodeDescriptor();
     }
 

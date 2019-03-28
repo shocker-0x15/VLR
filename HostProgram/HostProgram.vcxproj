@@ -43,12 +43,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_1)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_0)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_1)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

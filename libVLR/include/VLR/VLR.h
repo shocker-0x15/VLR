@@ -17,6 +17,7 @@ extern "C" {
 
     typedef struct VLRImage2D_API* VLRImage2D;
     typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
+    typedef struct VLRBlockCompressedImage2D_API* VLRBlockCompressedImage2D;
 
     typedef struct VLRShaderNode_API* VLRShaderNode;
     typedef struct VLRGeometryShaderNode_API* VLRGeometryShaderNode;
@@ -86,8 +87,12 @@ extern "C" {
     VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                             uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma, uint8_t* linearData);
+                                             uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma);
     VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image);
+
+    VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
+                                                      uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma);
+    VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image);
 
 
 
