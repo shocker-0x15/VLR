@@ -24,7 +24,7 @@ struct Image2DCacheKey {
 static std::map<Image2DCacheKey, VLRCpp::Image2DRef> s_image2DCache;
 
 namespace DDS {
-    enum class Format {
+    enum class Format : uint32_t {
         BC1_UNorm = 71,
         BC1_UNorm_sRGB = 72,
         BC2_UNorm = 74,
@@ -71,6 +71,89 @@ namespace DDS {
             }
         };
 
+        struct PFFlags {
+            enum Value : uint32_t {
+                AlphaPixels = 1 << 0,
+                Alpha = 1 << 1,
+                FourCC = 1 << 2,
+                PaletteIndexed4 = 1 << 3,
+                PaletteIndexed8 = 1 << 5,
+                RGB = 1 << 6,
+                Luminance = 1 << 17,
+                BumpDUDV = 1 << 19,
+            } value;
+
+            PFFlags() : value((Value)0) {}
+            PFFlags(Value v) : value(v) {}
+
+            PFFlags operator&(PFFlags v) const {
+                return (Value)(value & v.value);
+            }
+            PFFlags operator|(PFFlags v) const {
+                return (Value)(value | v.value);
+            }
+            bool operator==(uint32_t v) const {
+                return value == v;
+            }
+            bool operator!=(uint32_t v) const {
+                return value != v;
+            }
+        };
+
+        struct Caps {
+            enum Value : uint32_t {
+                Alpha = 1 << 1,
+                Complex = 1 << 3,
+                Texture = 1 << 12,
+                MipMap = 1 << 22,
+            } value;
+
+            Caps() : value((Value)0) {}
+            Caps(Value v) : value(v) {}
+
+            Caps operator&(Caps v) const {
+                return (Value)(value & v.value);
+            }
+            Caps operator|(Caps v) const {
+                return (Value)(value | v.value);
+            }
+            bool operator==(uint32_t v) const {
+                return value == v;
+            }
+            bool operator!=(uint32_t v) const {
+                return value != v;
+            }
+        };
+
+        struct Caps2 {
+            enum Value : uint32_t {
+                CubeMap = 1 << 9,
+                CubeMapPositiveX = 1 << 10,
+                CubeMapNegativeX = 1 << 11,
+                CubeMapPositiveY = 1 << 12,
+                CubeMapNegativeY = 1 << 13,
+                CubeMapPositiveZ = 1 << 14,
+                CubeMapNegativeZ = 1 << 15,
+                Volume = 1 << 22,
+            } value;
+
+            Caps2() : value((Value)0) {}
+            Caps2(Value v) : value(v) {}
+
+            Caps2 operator&(Caps2 v) const {
+                return (Value)(value & v.value);
+            }
+            Caps2 operator|(Caps2 v) const {
+                return (Value)(value | v.value);
+            }
+            bool operator==(uint32_t v) const {
+                return value == v;
+            }
+            bool operator!=(uint32_t v) const {
+                return value != v;
+            }
+        };
+
         uint32_t m_magic;
         uint32_t m_size;
         Flags m_flags;
@@ -81,22 +164,22 @@ namespace DDS {
         uint32_t m_mipmapCount;
         uint32_t m_reserved1[11];
         uint32_t m_PFSize;
-        uint32_t m_PFFlags;
+        PFFlags m_PFFlags;
         uint32_t m_fourCC;
         uint32_t m_RGBBitCount;
         uint32_t m_RBitMask;
         uint32_t m_GBitMask;
         uint32_t m_BBitMask;
         uint32_t m_RGBAlphaBitMask;
-        uint32_t m_caps;
-        uint32_t m_caps2;
+        Caps m_caps;
+        Caps2 m_caps2;
         uint32_t m_reservedCaps[2];
         uint32_t m_reserved2;
     };
     static_assert(sizeof(Header) == 128, "sizeof(Header) must be 128.");
 
     struct HeaderDX10 {
-        uint32_t m_format;
+        Format m_format;
         uint32_t m_dimension;
         uint32_t m_miscFlag;
         uint32_t m_arraySize;
@@ -120,7 +203,7 @@ namespace DDS {
         Header header;
         ifs.read((char*)&header, sizeof(Header));
         if (header.m_magic != 0x20534444 || header.m_fourCC != 0x30315844) {
-            hpprintf("Non dds file: %s", filepath);
+            hpprintf("Non dds (dx10) file: %s", filepath);
             return nullptr;
         }
 
@@ -130,6 +213,17 @@ namespace DDS {
         *width = header.m_width;
         *height = header.m_height;
         *format = (Format)dx10Header.m_format;
+
+        if (*format != Format::BC1_UNorm && *format != Format::BC1_UNorm_sRGB &&
+            *format != Format::BC2_UNorm && *format != Format::BC2_UNorm_sRGB &&
+            *format != Format::BC3_UNorm && *format != Format::BC3_UNorm_sRGB &&
+            *format != Format::BC4_UNorm && *format != Format::BC4_SNorm &&
+            *format != Format::BC5_UNorm && *format != Format::BC5_SNorm &&
+            *format != Format::BC6H_UF16 && *format != Format::BC6H_SF16 &&
+            *format != Format::BC7_UNorm && *format != Format::BC7_UNorm_sRGB) {
+            hpprintf("No support for non block compressed formats: %s", filepath);
+            return nullptr;
+        }
 
         const size_t dataSize = fileSize - (sizeof(Header) + sizeof(HeaderDX10));
 
@@ -147,7 +241,6 @@ namespace DDS {
             blockSize = 8;
         size_t cumDataSize = 0;
         for (int i = 0; i < *mipCount; ++i) {
-            Assert(mipWidth > 0 && mipHeight > 0, "Error in mip size calculation.");
             int32_t bw = (mipWidth + 3) / 4;
             int32_t bh = (mipHeight + 3) / 4;
             size_t mipDataSize = bw * bh * blockSize;
@@ -157,8 +250,8 @@ namespace DDS {
             ifs.read((char*)data[i], mipDataSize);
             cumDataSize += mipDataSize;
 
-            mipWidth /= 2;
-            mipHeight /= 2;
+            mipWidth = std::max<int32_t>(1, mipWidth / 2);
+            mipHeight = std::max<int32_t>(1, mipHeight / 2);
         }
         Assert(cumDataSize == dataSize, "Data size mismatch.");
 
@@ -197,6 +290,20 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
 
     std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
     std::transform(ext.begin(), ext.end(), ext.begin(), std::tolower);
+
+//#define OVERRIDE_BY_DDS
+
+#if defined(OVERRIDE_BY_DDS)
+    std::string ddsFilepath = filepath;
+    ddsFilepath = filepath.substr(0, filepath.find_last_of('.'));
+    ddsFilepath += ".dds";
+    {
+        std::ifstream ifs(ddsFilepath);
+        if (ifs.is_open())
+            ext = "dds";
+    }
+#endif
+
     if (ext == "exr") {
         using namespace Imf;
         using namespace Imath;
@@ -233,7 +340,11 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
         int32_t width, height, mipCount;
         size_t* sizes;
         DDS::Format format;
+#if defined(OVERRIDE_BY_DDS)
+        uint8_t** data = DDS::load(ddsFilepath.c_str(), &width, &height, &mipCount, &sizes, &format);
+#else
         uint8_t** data = DDS::load(filepath.c_str(), &width, &height, &mipCount, &sizes, &format);
+#endif
 
         const auto translate = [](DDS::Format ddsFormat, VLRDataFormat* vlrFormat, bool* needsDegamma) {
             *needsDegamma = false;
@@ -294,6 +405,7 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
         translate(format, &vlrFormat, &needsDegamma);
 
         ret = context->createBlockCompressedImage2D(data, sizes, mipCount, width, height, vlrFormat, needsDegamma);
+        Assert(ret, "failed to load a block compressed texture.");
 
         DDS::free(data, mipCount, sizes);
     }
@@ -869,7 +981,6 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         nodeTexCoord->setValues(offset, scale);
 
         Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
-        //Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.dds", true);
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);

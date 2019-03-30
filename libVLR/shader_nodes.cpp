@@ -100,67 +100,80 @@ namespace VLR {
             return m_optixDataBuffer;
 
         optix::Context optixContext = m_context.getOptiXContext();
-        switch (m_dataFormat) {
-        case VLRDataFormat_RGB8x3:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
-            break;
-        case VLRDataFormat_RGB_8x4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
-            break;
-        case VLRDataFormat_RGBA8x4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
-            break;
-        case VLRDataFormat_RGBA16Fx4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
-            break;
-        case VLRDataFormat_RGBA32Fx4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
-            break;
-        case VLRDataFormat_RG32Fx2:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
-            break;
-        case VLRDataFormat_Gray32F:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
-            break;
-        case VLRDataFormat_Gray8:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
-            break;
-        case VLRDataFormat_GrayA8x2:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
-            break;
-        case VLRDataFormat_BC1:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC2:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC2, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC3:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC3, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC4:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC4, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC4_Signed:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC4, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC5:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC5, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC5_Signed:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC5, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC6H:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC6H, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC6H_Signed:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC6H, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        case VLRDataFormat_BC7:
-            m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC7, nextMultiplierForPowOf2(m_width, 4), nextMultiplierForPowOf2(m_height, 4));
-            break;
-        default:
-            VLRAssert_ShouldNotBeCalled();
-            break;
+
+        if (m_dataFormat >= VLRDataFormat_BC1 && m_dataFormat <= VLRDataFormat_BC7) {
+            uint32_t widthInBlocks = nextMultiplierForPowOf2(m_width, 4);
+            uint32_t heightInBlocks = nextMultiplierForPowOf2(m_height, 4);
+
+            switch (m_dataFormat) {
+            case VLRDataFormat_BC1:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC2:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC2, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC3:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC3, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC4, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC4_Signed:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC4, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC5:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC5, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC5_Signed:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC5, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC6H:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC6H, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC6H_Signed:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC6H, widthInBlocks, heightInBlocks);
+                break;
+            case VLRDataFormat_BC7:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC7, widthInBlocks, heightInBlocks);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+        }
+        else {
+            switch (m_dataFormat) {
+            case VLRDataFormat_RGB8x3:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
+                break;
+            case VLRDataFormat_RGB_8x4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
+                break;
+            case VLRDataFormat_RGBA8x4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
+                break;
+            case VLRDataFormat_RGBA16Fx4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
+                break;
+            case VLRDataFormat_RGBA32Fx4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
+                break;
+            case VLRDataFormat_RG32Fx2:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
+                break;
+            case VLRDataFormat_Gray32F:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
+                break;
+            case VLRDataFormat_Gray8:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
+                break;
+            case VLRDataFormat_GrayA8x2:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
+                break;
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
         }
 
         m_initOptiXObject = true;

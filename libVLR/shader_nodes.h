@@ -52,7 +52,11 @@ namespace VLR {
             return (m_dataFormat == VLRDataFormat_RGBA8x4 ||
                     m_dataFormat == VLRDataFormat_RGBA16Fx4 ||
                     m_dataFormat == VLRDataFormat_RGBA32Fx4 ||
-                    m_dataFormat == VLRDataFormat_GrayA8x2);
+                    m_dataFormat == VLRDataFormat_GrayA8x2 ||
+                    m_dataFormat == VLRDataFormat_BC1 ||
+                    m_dataFormat == VLRDataFormat_BC2 ||
+                    m_dataFormat == VLRDataFormat_BC3 ||
+                    m_dataFormat == VLRDataFormat_BC7);
         }
         bool needsDegamma() const {
             return m_needsDegamma;

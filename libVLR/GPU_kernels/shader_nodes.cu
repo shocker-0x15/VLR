@@ -222,7 +222,7 @@ namespace VLR {
         auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
         if (nodeData.format == VLRDataFormat_Gray32F ||
             nodeData.format == VLRDataFormat_Gray8 ||
             nodeData.format == VLRDataFormat_GrayA8x2)
@@ -240,7 +240,7 @@ namespace VLR {
         auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
         if (option == 0)
             return texValue.x;
@@ -259,7 +259,7 @@ namespace VLR {
         auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
         if (option == 0)
             return optix::make_float2(texValue.x, texValue.y);
@@ -276,7 +276,7 @@ namespace VLR {
         auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
         if (option == 0)
             return optix::make_float3(texValue.x, texValue.y, texValue.z);
@@ -291,7 +291,7 @@ namespace VLR {
         auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
         return texValue;
     }
@@ -303,7 +303,7 @@ namespace VLR {
         auto &nodeData = *(const EnvironmentTextureShaderNode*)rawNodeData;
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2D<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(VLRSpectrumType_LightSource, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);
