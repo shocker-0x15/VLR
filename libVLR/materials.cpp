@@ -706,12 +706,12 @@ namespace VLR {
     void UE4SurfaceMaterial::initialize(Context &context) {
         const char* identifiers[] = {
             "VLR::UE4SurfaceMaterial_setupBSDF",
-            "VLR::UE4BRDF_getBaseColor",
-            "VLR::UE4BRDF_matches",
-            "VLR::UE4BRDF_sampleInternal",
-            "VLR::UE4BRDF_evaluateInternal",
-            "VLR::UE4BRDF_evaluatePDFInternal",
-            "VLR::UE4BRDF_weightInternal",
+            "VLR::DiffuseAndSpecularBRDF_getBaseColor",
+            "VLR::DiffuseAndSpecularBRDF_matches",
+            "VLR::DiffuseAndSpecularBRDF_sampleInternal",
+            "VLR::DiffuseAndSpecularBRDF_evaluateInternal",
+            "VLR::DiffuseAndSpecularBRDF_evaluatePDFInternal",
+            "VLR::DiffuseAndSpecularBRDF_weightInternal",
             nullptr,
             nullptr,
             nullptr
@@ -797,12 +797,12 @@ namespace VLR {
     void OldStyleSurfaceMaterial::initialize(Context &context) {
         const char* identifiers[] = {
             "VLR::OldStyleSurfaceMaterial_setupBSDF",
-            "VLR::OldStyleBRDF_getBaseColor",
-            "VLR::OldStyleBRDF_matches",
-            "VLR::OldStyleBRDF_sampleInternal",
-            "VLR::OldStyleBRDF_evaluateInternal",
-            "VLR::OldStyleBRDF_evaluatePDFInternal",
-            "VLR::OldStyleBRDF_weightInternal",
+            "VLR::DiffuseAndSpecularBRDF_getBaseColor",
+            "VLR::DiffuseAndSpecularBRDF_matches",
+            "VLR::DiffuseAndSpecularBRDF_sampleInternal",
+            "VLR::DiffuseAndSpecularBRDF_evaluateInternal",
+            "VLR::DiffuseAndSpecularBRDF_evaluatePDFInternal",
+            "VLR::DiffuseAndSpecularBRDF_weightInternal",
             nullptr,
             nullptr,
             nullptr
