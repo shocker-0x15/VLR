@@ -173,6 +173,34 @@ namespace VLR {
 
 
 
+    // Reference:
+    // Chapter 6. A Fast and Robust Method for Avoiding Self-Intersection, Ray Tracing Gems, 2019
+    RT_FUNCTION Point3D offsetRayOrigin(const Point3D &p, const Normal3D &geometricNormal) {
+        constexpr float kOrigin = 1.0f / 32.0f;
+        constexpr float kFloatScale = 1.0f / 65536.0f;
+        constexpr float kIntScale = 256.0f;
+
+        int32_t offsetInInt[] = {
+            kIntScale * geometricNormal.x,
+            kIntScale * geometricNormal.y,
+            kIntScale * geometricNormal.z
+        };
+
+        // JP: 数学的な衝突点の座標と、実際の座標の誤差は原点からの距離に比例する。
+        //     intとしてオフセットを加えることでスケール非依存に適切なオフセットを加えることができる。
+        // EN: The error of the actual coorinates of the intersection point to the mathematical one is proportional to the distance to the origin.
+        //     Applying the offset as int makes applying appropriate scale invariant amount of offset possible.
+        Point3D newP = Point3D(__int_as_float(__float_as_int(p.x) + (p.x < 0 ? -offsetInInt[0] : offsetInInt[0])),
+                               __int_as_float(__float_as_int(p.y) + (p.y < 0 ? -offsetInInt[1] : offsetInInt[1])),
+                               __int_as_float(__float_as_int(p.z) + (p.z < 0 ? -offsetInInt[2] : offsetInInt[2])));
+
+        return Point3D(std::fabs(p.x) < kOrigin ? (p.x + kFloatScale * geometricNormal.x) : newP.x,
+                       std::fabs(p.y) < kOrigin ? (p.y + kFloatScale * geometricNormal.y) : newP.y,
+                       std::fabs(p.z) < kOrigin ? (p.z + kFloatScale * geometricNormal.z) : newP.z);
+    }
+
+
+
     // ----------------------------------------------------------------
     // Light
 
@@ -181,7 +209,12 @@ namespace VLR {
         VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
 
         *shadowRayDir = lightSurfacePoint.calcDirectionFrom(shadingSurfacePoint.position, squaredDistance);
-        optix::Ray shadowRay = optix::make_Ray(asOptiXType(shadingSurfacePoint.position), asOptiXType(*shadowRayDir), RayType::Shadow, 1e-4f, FLT_MAX);
+
+        const Normal3D &geomNormal = shadingSurfacePoint.geometricNormal;
+        bool isFrontSide = dot(geomNormal, *shadowRayDir) > 0;
+        Point3D shadingPoint = offsetRayOrigin(shadingSurfacePoint.position, isFrontSide ? geomNormal : -geomNormal);
+
+        optix::Ray shadowRay = optix::make_Ray(asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), RayType::Shadow, 0.0f, FLT_MAX);
         if (!lightSurfacePoint.atInfinity)
             shadowRay.tmax = std::sqrt(*squaredDistance) * 0.9999f;
 

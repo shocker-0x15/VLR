@@ -102,10 +102,11 @@ namespace VLR {
             wls.setSingleIsSelected();
         }
 
-        sm_payload.alpha *= fs * (absDot(fsResult.dirLocal, geomNormalLocal) / fsResult.dirPDF);
+        float cosFactor = dot(fsResult.dirLocal, geomNormalLocal);
+        sm_payload.alpha *= fs * (std::fabs(cosFactor) / fsResult.dirPDF);
 
         Vector3D dirIn = surfPt.fromLocal(fsResult.dirLocal);
-        sm_payload.origin = surfPt.position;
+        sm_payload.origin = offsetRayOrigin(surfPt.position, cosFactor > 0.0f ? surfPt.geometricNormal : -surfPt.geometricNormal);
         sm_payload.direction = dirIn;
         sm_payload.prevDirPDF = fsResult.dirPDF;
         sm_payload.prevSampledType = fsResult.sampledType;
@@ -213,7 +214,7 @@ namespace VLR {
                 break;
             VLRAssert(pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
 
-            ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 1e-4f, FLT_MAX);
+            ray = optix::make_Ray(asOptiXType(payload.origin), asOptiXType(payload.direction), RayType::Scattered, 0.0f, FLT_MAX);
         }
         pv_rngBuffer[sm_launchIndex] = payload.rng;
         if (!payload.contribution.allFinite()) {
