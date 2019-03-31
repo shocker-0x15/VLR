@@ -190,13 +190,17 @@ namespace VLR {
         //     intとしてオフセットを加えることでスケール非依存に適切なオフセットを加えることができる。
         // EN: The error of the actual coorinates of the intersection point to the mathematical one is proportional to the distance to the origin.
         //     Applying the offset as int makes applying appropriate scale invariant amount of offset possible.
-        Point3D newP = Point3D(__int_as_float(__float_as_int(p.x) + (p.x < 0 ? -offsetInInt[0] : offsetInInt[0])),
-                               __int_as_float(__float_as_int(p.y) + (p.y < 0 ? -offsetInInt[1] : offsetInInt[1])),
-                               __int_as_float(__float_as_int(p.z) + (p.z < 0 ? -offsetInInt[2] : offsetInInt[2])));
+        Point3D newP1 = Point3D(__int_as_float(__float_as_int(p.x) + (p.x < 0 ? -1 : 1) * offsetInInt[0]),
+                                __int_as_float(__float_as_int(p.y) + (p.y < 0 ? -1 : 1) * offsetInInt[1]),
+                                __int_as_float(__float_as_int(p.z) + (p.z < 0 ? -1 : 1) * offsetInInt[2]));
 
-        return Point3D(std::fabs(p.x) < kOrigin ? (p.x + kFloatScale * geometricNormal.x) : newP.x,
-                       std::fabs(p.y) < kOrigin ? (p.y + kFloatScale * geometricNormal.y) : newP.y,
-                       std::fabs(p.z) < kOrigin ? (p.z + kFloatScale * geometricNormal.z) : newP.z);
+        // JP: 原点に近い場所では、原点からの距離に依存せず一定の誤差が残るため別処理が必要。
+        // EN: A constant amount of error remains near the origin independent of the distance to the origin so we need handle it separately.
+        Point3D newP2 = p + kFloatScale * geometricNormal;
+
+        return Point3D(std::fabs(p.x) < kOrigin ? newP2.x : newP1.x,
+                       std::fabs(p.y) < kOrigin ? newP2.y : newP1.y,
+                       std::fabs(p.z) < kOrigin ? newP2.z : newP1.z);
     }
 
 
