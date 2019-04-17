@@ -61,10 +61,11 @@ namespace VLR {
             break;
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
             float sim = dot(surfPt.geometricNormal, surfPt.shadingFrame.z);
-            sim = clamp(0.5f + 1 * (sim - 1), 0.0f, 1.0f);
+            bool opposite = sim < 0.0f;
+            sim = clamp(1 * std::fabs(sim), 0.0f, 1.0f);
             //float gLength = clamp(0.5f + 100 * (surfPt.geometricNormal.length() - 1), 0.0f, 1.0f);
             //float sLength = clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f);
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, sim, sim, sim);
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, sim, opposite ? 0 : sim, opposite ? 0 : sim);
             break;
         }
         case DebugRenderingAttribute::ShadingFrameLengths:
@@ -110,9 +111,9 @@ namespace VLR {
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
-        float sinTheta, cosTheta;
-        VLR::sincos(theta, &sinTheta, &cosTheta);
-        Vector3D texCoord0Dir = Vector3D(-cosTheta, 0.0f, -sinTheta);
+        float sinPhi, cosPhi;
+        VLR::sincos(phi, &sinPhi, &cosPhi);
+        Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
         shadingFrame.z = -direction;
@@ -127,9 +128,9 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
+        phi += pv_envLightDescriptor.body.asEnvironmentLight.rotationPhi;
+        phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
-
-        float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
 
         sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute);
     }

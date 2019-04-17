@@ -126,9 +126,9 @@ namespace VLR {
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
-        float sinTheta, cosTheta;
-        VLR::sincos(theta, &sinTheta, &cosTheta);
-        Vector3D texCoord0Dir = Vector3D(-cosTheta, 0.0f, -sinTheta);
+        float sinPhi, cosPhi;
+        VLR::sincos(phi, &sinPhi, &cosPhi);
+        Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
         shadingFrame.z = -direction;
