@@ -121,9 +121,9 @@ namespace VLRCpp {
 
     class LinearImage2DHolder : public Image2DHolder {
     public:
-        LinearImage2DHolder(const ContextConstRef &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) :
+        LinearImage2DHolder(const ContextConstRef &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) :
             Image2DHolder(context) {
-            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, applyDegamma));
+            errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, spectrumType, colorSpace));
         }
         ~LinearImage2DHolder() {
             errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), (VLRLinearImage2D)m_raw));
@@ -134,9 +134,9 @@ namespace VLRCpp {
 
     class BlockCompressedImage2DHolder : public Image2DHolder {
     public:
-        BlockCompressedImage2DHolder(const ContextConstRef &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
+        BlockCompressedImage2DHolder(const ContextConstRef &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) :
             Image2DHolder(context) {
-            errorCheck(vlrBlockCompressedImage2DCreate(getRaw(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, applyDegamma));
+            errorCheck(vlrBlockCompressedImage2DCreate(getRaw(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, spectrumType, colorSpace));
         }
         ~BlockCompressedImage2DHolder() {
             errorCheck(vlrBlockCompressedImage2DDestroy(getRaw(m_context), (VLRBlockCompressedImage2D)m_raw));
@@ -471,9 +471,9 @@ namespace VLRCpp {
             errorCheck(vlrImage2DTextureShaderNodeDestroy(getRaw(m_context), (VLRImage2DTextureShaderNode)m_raw));
         }
 
-        void setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2DRef &image) {
+        void setImage(const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrImage2DTextureShaderNodeSetImage((VLRImage2DTextureShaderNode)m_raw, spectrumType, colorSpace, m_image ? (VLRImage2D)m_image->get() : nullptr));
+            errorCheck(vlrImage2DTextureShaderNodeSetImage((VLRImage2DTextureShaderNode)m_raw, m_image ? (VLRImage2D)m_image->get() : nullptr));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrImage2DTextureShaderNodeSetFilterMode((VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping));
@@ -501,9 +501,9 @@ namespace VLRCpp {
             errorCheck(vlrEnvironmentTextureShaderNodeDestroy(getRaw(m_context), (VLREnvironmentTextureShaderNode)m_raw));
         }
 
-        void setImage(VLRColorSpace colorSpace, const Image2DRef &image) {
+        void setImage(const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, colorSpace, (VLRImage2D)m_image->get()));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, (VLRImage2D)m_image->get()));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));
@@ -1077,9 +1077,9 @@ namespace VLRCpp {
             return *it;
         }
 
-        void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv) {
+        void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv, float rotationPhi) {
             m_matEnv = matEnv;
-            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get()));
+            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get(), rotationPhi));
         }
     };
 
@@ -1244,14 +1244,18 @@ namespace VLRCpp {
             errorCheck(vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), shrinkCoeff, firstFrame, numAccumFrames));
         }
 
-
-
-        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) const {
-            return std::make_shared<LinearImage2DHolder>(shared_from_this(), linearData, width, height, format, applyDegamma);
+        void debugRender(const SceneRef &scene, const CameraRef &camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
+            errorCheck(vlrContextDebugRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), renderMode, shrinkCoeff, firstFrame, numAccumFrames));
         }
 
-        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) const {
-            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(), data, sizes, mipCount, width, height, format, applyDegamma);
+
+
+        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) const {
+            return std::make_shared<LinearImage2DHolder>(shared_from_this(), linearData, width, height, format, spectrumType, colorSpace);
+        }
+
+        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) const {
+            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(), data, sizes, mipCount, width, height, format, spectrumType, colorSpace);
         }
 
 

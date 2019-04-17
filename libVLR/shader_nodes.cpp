@@ -1,7 +1,7 @@
 ﻿#include "shader_nodes.h"
 
 namespace VLR {
-    const size_t sizesOfDataFormats[(uint32_t)NumVLRDataFormats] = {
+    const size_t sizesOfDataFormats[DataFormat::NumDataFormats] = {
     sizeof(RGB8x3),
     sizeof(RGB_8x4),
     sizeof(RGBA8x4),
@@ -20,69 +20,306 @@ namespace VLR {
     0,
     0,
     0,
-    0
+    0,
+    sizeof(uvsA8x4),
+    sizeof(uvsA16Fx4),
     };
 
-    VLRDataFormat Image2D::getInternalFormat(VLRDataFormat inputFormat) {
-        switch (inputFormat) {
-        case VLRDataFormat_RGB8x3:
-            return VLRDataFormat_RGBA8x4;
-        case VLRDataFormat_RGB_8x4:
-            return VLRDataFormat_RGBA8x4;
-        case VLRDataFormat_RGBA8x4:
-            return VLRDataFormat_RGBA8x4;
-        case VLRDataFormat_RGBA16Fx4:
-            return VLRDataFormat_RGBA16Fx4;
-        case VLRDataFormat_RGBA32Fx4:
-            return VLRDataFormat_RGBA32Fx4;
-        case VLRDataFormat_RG32Fx2:
-            return VLRDataFormat_RG32Fx2;
-        case VLRDataFormat_Gray32F:
-            return VLRDataFormat_Gray32F;
-        case VLRDataFormat_Gray8:
-            return VLRDataFormat_Gray8;
-        case VLRDataFormat_GrayA8x2:
-            return VLRDataFormat_GrayA8x2;
-        case VLRDataFormat_BC1:
-            return VLRDataFormat_BC1;
-        case VLRDataFormat_BC2:
-            return VLRDataFormat_BC2;
-        case VLRDataFormat_BC3:
-            return VLRDataFormat_BC3;
-        case VLRDataFormat_BC4:
-            return VLRDataFormat_BC4;
-        case VLRDataFormat_BC4_Signed:
-            return VLRDataFormat_BC4_Signed;
-        case VLRDataFormat_BC5:
-            return VLRDataFormat_BC5;
-        case VLRDataFormat_BC5_Signed:
-            return VLRDataFormat_BC5_Signed;
-        case VLRDataFormat_BC6H:
-            return VLRDataFormat_BC6H;
-        case VLRDataFormat_BC6H_Signed:
-            return VLRDataFormat_BC6H_Signed;
-        case VLRDataFormat_BC7:
-            return VLRDataFormat_BC7;
-        default:
-            VLRAssert(false, "Data format is invalid.");
+    uint32_t getComponentStartIndex(DataFormat dataFormat, VLRShaderNodeSocketType stype, uint32_t index) {
+        uint32_t ret = 0xFFFFFFFF;
+
+        switch (dataFormat.value) {
+        case DataFormat::RGBA8x4:
+        case DataFormat::RGBA16Fx4:
+        case DataFormat::RGBA32Fx4:
+        case DataFormat::BC1:
+        case DataFormat::BC2:
+        case DataFormat::BC3:
+        case DataFormat::BC7: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_float:
+                if (index < 4)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float2:
+                if (index < 3)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float3:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float4:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Point3D:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Vector3D:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Normal3D:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Spectrum:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Alpha:
+                if (index < 1)
+                    ret = 3;
+                break;
+            case VLRShaderNodeSocketType_TextureCoordinates:
+                if (index < 3)
+                    ret = index;
+                break;
+            default:
+                break;
+            }
             break;
         }
-        return VLRDataFormat_RGBA8x4;
+        case DataFormat::BC6H:
+        case DataFormat::BC6H_Signed: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_float:
+                if (index < 3)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float2:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float3:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Point3D:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Vector3D:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Normal3D:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Spectrum:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_TextureCoordinates:
+                if (index < 2)
+                    ret = index;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        case DataFormat::RG32Fx2:
+        case DataFormat::BC5:
+        case DataFormat::BC5_Signed: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_float:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float2:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_TextureCoordinates:
+                if (index < 1)
+                    ret = index;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        case DataFormat::Gray32F:
+        case DataFormat::Gray8:
+        case DataFormat::BC4:
+        case DataFormat::BC4_Signed: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_float:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Spectrum:
+                if (index < 1)
+                    ret = index;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        case DataFormat::GrayA8x2: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_float:
+                if (index < 2)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_float2:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Spectrum:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Alpha:
+                if (index < 1)
+                    ret = 1;
+                break;
+            case VLRShaderNodeSocketType_TextureCoordinates:
+                if (index < 1)
+                    ret = index;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        case DataFormat::uvsA8x4:
+        case DataFormat::uvsA16Fx4: {
+            switch (stype) {
+            case VLRShaderNodeSocketType_Spectrum:
+                if (index < 1)
+                    ret = index;
+                break;
+            case VLRShaderNodeSocketType_Alpha:
+                if (index < 1)
+                    ret = 3;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+
+        return ret;
     }
 
-    Image2D::Image2D(Context &context, uint32_t width, uint32_t height, VLRDataFormat originalDataFormat, bool applyDegamma) :
-        Object(context), m_width(width), m_height(height), m_originalDataFormat(originalDataFormat), m_initOptiXObject(false) {
-        m_dataFormat = getInternalFormat(m_originalDataFormat);
-        m_needsDegamma = false;
-        if (applyDegamma) {
-            if (m_dataFormat == VLRDataFormat_RGBA8x4 ||
-                m_dataFormat == VLRDataFormat_Gray8 ||
-                m_dataFormat == VLRDataFormat_BC1 ||
-                m_dataFormat == VLRDataFormat_BC2 ||
-                m_dataFormat == VLRDataFormat_BC3 ||
-                m_dataFormat == VLRDataFormat_BC4 ||
-                m_dataFormat == VLRDataFormat_BC7)
-                m_needsDegamma = true;
+
+
+    DataFormat Image2D::getInternalFormat(DataFormat inputFormat, VLRSpectrumType spectrumType) {
+        const auto asis = [](DataFormat inputFormat) {
+            switch (inputFormat.value) {
+            case DataFormat::RGB8x3:
+                return DataFormat::RGBA8x4;
+            case DataFormat::RGB_8x4:
+                return DataFormat::RGBA8x4;
+            case DataFormat::RGBA8x4:
+                return DataFormat::RGBA8x4;
+            case DataFormat::RGBA16Fx4:
+                return DataFormat::RGBA16Fx4;
+            case DataFormat::RGBA32Fx4:
+                return DataFormat::RGBA32Fx4;
+            case DataFormat::RG32Fx2:
+                return DataFormat::RG32Fx2;
+            case DataFormat::Gray32F:
+                return DataFormat::Gray32F;
+            case DataFormat::Gray8:
+                return DataFormat::Gray8;
+            case DataFormat::GrayA8x2:
+                return DataFormat::GrayA8x2;
+            case DataFormat::BC1:
+                return DataFormat::BC1;
+            case DataFormat::BC2:
+                return DataFormat::BC2;
+            case DataFormat::BC3:
+                return DataFormat::BC3;
+            case DataFormat::BC4:
+                return DataFormat::BC4;
+            case DataFormat::BC4_Signed:
+                return DataFormat::BC4_Signed;
+            case DataFormat::BC5:
+                return DataFormat::BC5;
+            case DataFormat::BC5_Signed:
+                return DataFormat::BC5_Signed;
+            case DataFormat::BC6H:
+                return DataFormat::BC6H;
+            case DataFormat::BC6H_Signed:
+                return DataFormat::BC6H_Signed;
+            case DataFormat::BC7:
+                return DataFormat::BC7;
+            case DataFormat::uvsA8x4:
+                return DataFormat::uvsA8x4;
+            case DataFormat::uvsA16Fx4:
+                return DataFormat::uvsA16Fx4;
+            default:
+                VLRAssert(false, "Data format is invalid.");
+                break;
+            }
+            return (DataFormat::Value)0;
+        };
+
+        if (spectrumType == VLRSpectrumType_NA) {
+            return asis(inputFormat);
+        }
+        else {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            switch (inputFormat.value) {
+            case DataFormat::RGB8x3:
+                if (spectrumType == VLRSpectrumType_Reflectance)
+                    return DataFormat::uvsA8x4;
+                else
+                    return DataFormat::uvsA16Fx4;
+            case DataFormat::RGB_8x4:
+                if (spectrumType == VLRSpectrumType_Reflectance)
+                    return DataFormat::uvsA8x4;
+                else
+                    return DataFormat::uvsA16Fx4;
+            case DataFormat::RGBA8x4:
+                if (spectrumType == VLRSpectrumType_Reflectance)
+                    return DataFormat::uvsA8x4;
+                else
+                    return DataFormat::uvsA16Fx4;
+            case DataFormat::RGBA16Fx4:
+                return DataFormat::uvsA16Fx4;
+            case DataFormat::RGBA32Fx4:
+                VLRAssert_NotImplemented();
+                return DataFormat::uvsA16Fx4;
+            default:
+                break;
+            }
+            return asis(inputFormat);
+#else
+            return asis(inputFormat);
+#endif
+        }
+        return DataFormat((DataFormat::Value)0);
+    }
+
+    Image2D::Image2D(Context &context, uint32_t width, uint32_t height,
+                     DataFormat originalDataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+        Object(context), m_width(width), m_height(height), 
+        m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace),
+        m_initOptiXObject(false)
+    {
+        m_dataFormat = getInternalFormat(m_originalDataFormat, spectrumType);
+        m_needsHW_sRGB_degamma = false;
+        if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma) {
+            if (m_dataFormat == DataFormat::RGBA8x4 ||
+                m_dataFormat == DataFormat::Gray8 ||
+                m_dataFormat == DataFormat::BC1 ||
+                m_dataFormat == DataFormat::BC2 ||
+                m_dataFormat == DataFormat::BC3 ||
+                m_dataFormat == DataFormat::BC4 ||
+                m_dataFormat == DataFormat::BC7)
+                m_needsHW_sRGB_degamma = true;
 
             // GrayA8はRT_FORMAT_UNSIGNED_BYTE2なのでテクスチャーユニットにデガンマさせるとA成分もデガンマされて不都合。
             // BC4_Signedは符号付きなのでデガンマは不適切。
@@ -101,39 +338,39 @@ namespace VLR {
 
         optix::Context optixContext = m_context.getOptiXContext();
 
-        if (m_dataFormat >= VLRDataFormat_BC1 && m_dataFormat <= VLRDataFormat_BC7) {
+        if (m_dataFormat >= DataFormat::BC1 && m_dataFormat <= DataFormat::BC7) {
             uint32_t widthInBlocks = nextMultiplierForPowOf2(m_width, 4);
             uint32_t heightInBlocks = nextMultiplierForPowOf2(m_height, 4);
 
-            switch (m_dataFormat) {
-            case VLRDataFormat_BC1:
+            switch (m_dataFormat.value) {
+            case DataFormat::BC1:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC2:
+            case DataFormat::BC2:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC2, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC3:
+            case DataFormat::BC3:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC3, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC4:
+            case DataFormat::BC4:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC4, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC4_Signed:
+            case DataFormat::BC4_Signed:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC4, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC5:
+            case DataFormat::BC5:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC5, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC5_Signed:
+            case DataFormat::BC5_Signed:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC5, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC6H:
+            case DataFormat::BC6H:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC6H, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC6H_Signed:
+            case DataFormat::BC6H_Signed:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC6H, widthInBlocks, heightInBlocks);
                 break;
-            case VLRDataFormat_BC7:
+            case DataFormat::BC7:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC7, widthInBlocks, heightInBlocks);
                 break;
             default:
@@ -142,33 +379,39 @@ namespace VLR {
             }
         }
         else {
-            switch (m_dataFormat) {
-            case VLRDataFormat_RGB8x3:
+            switch (m_dataFormat.value) {
+            case DataFormat::RGB8x3:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
                 break;
-            case VLRDataFormat_RGB_8x4:
+            case DataFormat::RGB_8x4:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
                 break;
-            case VLRDataFormat_RGBA8x4:
+            case DataFormat::RGBA8x4:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
                 break;
-            case VLRDataFormat_RGBA16Fx4:
+            case DataFormat::RGBA16Fx4:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
                 break;
-            case VLRDataFormat_RGBA32Fx4:
+            case DataFormat::RGBA32Fx4:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
                 break;
-            case VLRDataFormat_RG32Fx2:
+            case DataFormat::RG32Fx2:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
                 break;
-            case VLRDataFormat_Gray32F:
+            case DataFormat::Gray32F:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
                 break;
-            case VLRDataFormat_Gray8:
+            case DataFormat::Gray8:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
                 break;
-            case VLRDataFormat_GrayA8x2:
+            case DataFormat::GrayA8x2:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
+                break;
+            case DataFormat::uvsA8x4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
+                break;
+            case DataFormat::uvsA16Fx4:
+                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
                 break;
             default:
                 VLRAssert_ShouldNotBeCalled();
@@ -183,139 +426,389 @@ namespace VLR {
 
 
 
-    template <typename SrcType, typename DstType>
-    using FuncProcessPixel = void (*)(const SrcType &src, DstType &dst);
-    
-    template <typename SrcType, typename DstType>
-    void processAllPixels(const uint8_t* srcData, uint8_t* dstData, uint32_t width, uint32_t height, FuncProcessPixel<SrcType, DstType> func) {
-        auto srcHead = (const SrcType*)srcData;
-        auto dstHead = (DstType*)dstData;
-        for (int y = 0; y < height; ++y) {
-            auto srcLineHead = srcHead + width * y;
-            auto dstLineHead = dstHead + width * y;
-            for (int x = 0; x < width; ++x) {
-                auto &src = *(srcLineHead + x);
-                auto &dst = *(dstLineHead + x);
-                func(src, dst);
+    template <bool enableDegamma>
+    struct sRGB_D65_ColorSpaceFunc {
+        static float degamma(float v) {
+            if /*constexpr*/ (enableDegamma)
+                return sRGB_degamma(v);
+            else
+                return v;
+        }
+        static uint8_t degamma(uint8_t v) {
+            if /*constexpr*/ (enableDegamma)
+                return (uint8_t)std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f));
+            else
+                return v;
+        }
+
+        static void RGB_to_XYZ(const float RGB[3], float XYZ[3]) {
+            transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
+        }
+    };
+
+    template <bool enableDegamma>
+    struct sRGB_E_ColorSpaceFunc {
+        static float degamma(float v) {
+            if /*constexpr*/ (enableDegamma)
+                return sRGB_degamma(v);
+            else
+                return v;
+        }
+        static uint8_t degamma(uint8_t v) {
+            if /*constexpr*/ (enableDegamma)
+                return (uint8_t)std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f));
+            else
+                return v;
+        }
+
+        static void RGB_to_XYZ(const float RGB[3], float XYZ[3]) {
+            transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
+        }
+    };
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB8x3 &srcData, RGBA8x4 &dstData) {
+        dstData.r = ColorSpaceFunc::degamma(srcData.r);
+        dstData.g = ColorSpaceFunc::degamma(srcData.g);
+        dstData.b = ColorSpaceFunc::degamma(srcData.b);
+        dstData.a = 255;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB_8x4 &srcData, RGBA8x4 &dstData) {
+        dstData.r = ColorSpaceFunc::degamma(srcData.r);
+        dstData.g = ColorSpaceFunc::degamma(srcData.g);
+        dstData.b = ColorSpaceFunc::degamma(srcData.b);
+        dstData.a = 255;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA8x4 &srcData, RGBA8x4 &dstData) {
+        dstData.r = ColorSpaceFunc::degamma(srcData.r);
+        dstData.g = ColorSpaceFunc::degamma(srcData.g);
+        dstData.b = ColorSpaceFunc::degamma(srcData.b);
+        dstData.a = srcData.a;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA16Fx4 &srcData, RGBA16Fx4 &dstData) {
+        dstData.r = (half)ColorSpaceFunc::degamma((float)srcData.r);
+        dstData.g = (half)ColorSpaceFunc::degamma((float)srcData.g);
+        dstData.b = (half)ColorSpaceFunc::degamma((float)srcData.b);
+        dstData.a = srcData.a;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA32Fx4 &srcData, RGBA32Fx4 &dstData) {
+        dstData.r = ColorSpaceFunc::degamma(srcData.r);
+        dstData.g = ColorSpaceFunc::degamma(srcData.g);
+        dstData.b = ColorSpaceFunc::degamma(srcData.b);
+        dstData.a = srcData.a;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RG32Fx2 &srcData, RG32Fx2 &dstData) {
+        dstData.r = ColorSpaceFunc::degamma(srcData.r);
+        dstData.g = ColorSpaceFunc::degamma(srcData.g);
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const Gray32F &srcData, Gray32F &dstData) {
+        dstData.v = ColorSpaceFunc::degamma(srcData.v);
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const Gray8 &srcData, Gray8 &dstData) {
+        dstData.v = ColorSpaceFunc::degamma(srcData.v);
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const GrayA8x2 &srcData, GrayA8x2 &dstData) {
+        dstData.v = ColorSpaceFunc::degamma(srcData.v);
+        dstData.a = srcData.a;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(float RGB[3], uvsA8x4 &dstData) {
+        RGB[0] = ColorSpaceFunc::degamma(RGB[0]);
+        RGB[1] = ColorSpaceFunc::degamma(RGB[1]);
+        RGB[2] = ColorSpaceFunc::degamma(RGB[2]);
+
+        float XYZ[3];
+        ColorSpaceFunc::RGB_to_XYZ(RGB, XYZ);
+
+        float b = XYZ[0] + XYZ[1] + XYZ[2];
+        float xy[2];
+        xy[0] = b > 0.0f ? XYZ[0] / b : (1.0f / 3.0f);
+        xy[1] = b > 0.0f ? XYZ[1] / b : (1.0f / 3.0f);
+
+        float uv[2];
+        UpsampledSpectrum::xy_to_uv(xy, uv);
+
+        dstData.u = (uint8_t)(255 * clamp<float>(uv[0] / UpsampledSpectrum::GridWidth(), 0, 1));
+        dstData.v = (uint8_t)(255 * clamp<float>(uv[1] / UpsampledSpectrum::GridHeight(), 0, 1));
+        dstData.s = (uint8_t)(255 * clamp<float>(b / 3.0f, 0, 1));
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(float RGB[3], uvsA16Fx4 &dstData) {
+        RGB[0] = ColorSpaceFunc::degamma(RGB[0]);
+        RGB[1] = ColorSpaceFunc::degamma(RGB[1]);
+        RGB[2] = ColorSpaceFunc::degamma(RGB[2]);
+
+        float XYZ[3];
+        ColorSpaceFunc::RGB_to_XYZ(RGB, XYZ);
+
+        float b = XYZ[0] + XYZ[1] + XYZ[2];
+        float xy[2];
+        xy[0] = b > 0.0f ? XYZ[0] / b : (1.0f / 3.0f);
+        xy[1] = b > 0.0f ? XYZ[1] / b : (1.0f / 3.0f);
+
+        float uv[2];
+        UpsampledSpectrum::xy_to_uv(xy, uv);
+
+        dstData.u = (half)uv[0];
+        dstData.v = (half)uv[1];
+        // JP: よくあるテクスチャーの値だとInfになってしまうため
+        //     本来は割るべきところを割らないままにしておく。
+        // EN: 
+        dstData.s = (half)(b/* / UpsampledSpectrum::EqualEnergyReflectance()*/);
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB8x3 &srcData, uvsA8x4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = 255;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB8x3 &srcData, uvsA16Fx4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = (half)1.0f;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB_8x4 &srcData, uvsA8x4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = 255;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGB_8x4 &srcData, uvsA16Fx4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = (half)1.0f;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA8x4 &srcData, uvsA8x4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = srcData.a;
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA8x4 &srcData, uvsA16Fx4 &dstData) {
+        float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = (half)(srcData.a / 255.0f);
+    }
+
+    template <typename ColorSpaceFunc>
+    void perPixelFunc(const RGBA16Fx4 &srcData, uvsA16Fx4 &dstData) {
+        float RGB[] = { srcData.r, srcData.g, srcData.b };
+        perPixelFunc<ColorSpaceFunc>(RGB, dstData);
+        dstData.a = srcData.a;
+    }
+
+    template <typename SrcType, typename DstType, typename ColorSpaceFunc>
+    void processAllPixels(const uint8_t* srcData, uint8_t* dstData, uint32_t width, uint32_t height) {
+        if /* constexpr */ (std::is_same<SrcType, DstType>::value &&
+            (std::is_same<ColorSpaceFunc, sRGB_D65_ColorSpaceFunc<false>>::value ||
+             std::is_same<ColorSpaceFunc, sRGB_E_ColorSpaceFunc<false>>::value)) {
+            auto srcHead = (const SrcType*)srcData;
+            auto dstHead = (SrcType*)dstData;
+            std::copy_n(srcHead, width * height, dstHead);
+        }
+        else {
+            auto srcHead = (const SrcType*)srcData;
+            auto dstHead = (DstType*)dstData;
+            for (int y = 0; y < height; ++y) {
+                auto srcLineHead = srcHead + width * y;
+                auto dstLineHead = dstHead + width * y;
+                for (int x = 0; x < width; ++x) {
+                    auto &src = *(srcLineHead + x);
+                    auto &dst = *(dstLineHead + x);
+                    perPixelFunc<ColorSpaceFunc>(src, dst);
+                }
             }
         }
     }
+
+
     
-    LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
-        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat), applyDegamma), m_copyDone(false) {
+    LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
+                                 DataFormat dataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+        Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
+        VLRAssert(dataFormat < DataFormat::BC1 || dataFormat > DataFormat::BC7, "Specified data format is a block compressed format.");
         m_data.resize(getStride() * getWidth() * getHeight());
 
-        switch (dataFormat) {
-        case VLRDataFormat_RGB8x3: {
-            FuncProcessPixel<RGB8x3, RGBA8x4> funcAsIs = [](const RGB8x3 &src, RGBA8x4 &dst) {
-                dst.r = src.r;
-                dst.g = src.g;
-                dst.b = src.b;
-                dst.a = 255;
-            };
-            processAllPixels(linearData, m_data.data(), width, height, funcAsIs);
-            break;
-        }
-        case VLRDataFormat_RGB_8x4: {
-            FuncProcessPixel<RGB_8x4, RGBA8x4> funcAsIs = [](const RGB_8x4 &src, RGBA8x4 &dst) {
-                dst.r = src.r;
-                dst.g = src.g;
-                dst.b = src.b;
-                dst.a = 255;
-            };
-            processAllPixels(linearData, m_data.data(), width, height, funcAsIs);
-            break;
-        }
-        case VLRDataFormat_RGBA8x4: {
-            auto srcHead = (const RGBA8x4*)linearData;
-            auto dstHead = (RGBA8x4*)m_data.data();
-            std::copy_n(srcHead, width * height, dstHead);
-            break;
-        }
-        case VLRDataFormat_RGBA16Fx4: {
-            if (applyDegamma) {
-                FuncProcessPixel<RGBA16Fx4, RGBA16Fx4> funcApplyDegamma = [](const RGBA16Fx4 &src, RGBA16Fx4 &dst) {
-                    dst.r = (half)sRGB_degamma((float)src.r);
-                    dst.g = (half)sRGB_degamma((float)src.g);
-                    dst.b = (half)sRGB_degamma((float)src.b);
-                    dst.a = src.a;
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
+        switch (dataFormat.value) {
+        case DataFormat::RGB8x3: {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            if (spectrumType != VLRSpectrumType_NA) {
+                if (spectrumType == VLRSpectrumType_Reflectance) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB8x3, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB8x3, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else {
+                    VLRAssert_NotImplemented();
+                }
             }
             else {
-                auto srcHead = (const RGBA16Fx4*)linearData;
-                auto dstHead = (RGBA16Fx4*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
+                processAllPixels<RGB8x3, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
             }
+#else
+            processAllPixels<RGB8x3, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+#endif
             break;
         }
-        case VLRDataFormat_RGBA32Fx4: {
-            if (applyDegamma) {
-                FuncProcessPixel<RGBA32Fx4, RGBA32Fx4> funcApplyDegamma = [](const RGBA32Fx4 &src, RGBA32Fx4 &dst) {
-                    dst.r = sRGB_degamma(src.r);
-                    dst.g = sRGB_degamma(src.g);
-                    dst.b = sRGB_degamma(src.b);
-                    dst.a = src.a;
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
+        case DataFormat::RGB_8x4: {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            if (spectrumType != VLRSpectrumType_NA) {
+                if (spectrumType == VLRSpectrumType_Reflectance) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB_8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB_8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else {
+                    VLRAssert_NotImplemented();
+                }
             }
             else {
-                auto srcHead = (const RGBA32Fx4*)linearData;
-                auto dstHead = (RGBA32Fx4*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
+                processAllPixels<RGB_8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
             }
+#else
+            processAllPixels<RGB_8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+#endif
             break;
         }
-        case VLRDataFormat_RG32Fx2: {
-            if (applyDegamma) {
-                FuncProcessPixel<RG32Fx2, RG32Fx2> funcApplyDegamma = [](const RG32Fx2 &src, RG32Fx2 &dst) {
-                    dst.r = sRGB_degamma(src.r);
-                    dst.g = sRGB_degamma(src.g);
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
+        case DataFormat::RGBA8x4: {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            if (spectrumType != VLRSpectrumType_NA) {
+                if (spectrumType == VLRSpectrumType_Reflectance) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGBA8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGBA8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else {
+                    VLRAssert_NotImplemented();
+                }
             }
             else {
-                auto srcHead = (const RG32Fx2*)linearData;
-                auto dstHead = (RG32Fx2*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
+                processAllPixels<RGBA8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
             }
+#else
+            processAllPixels<RGBA8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+#endif
             break;
         }
-        case VLRDataFormat_Gray32F: {
-            if (applyDegamma) {
-                FuncProcessPixel<Gray32F, Gray32F> funcApplyDegamma = [](const Gray32F &src, Gray32F &dst) {
-                    dst.v = sRGB_degamma(src.v);
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
+        case DataFormat::RGBA16Fx4: {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            if (spectrumType != VLRSpectrumType_NA) {
+                if (spectrumType == VLRSpectrumType_Reflectance ||
+                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
+                else {
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+                }
             }
             else {
-                auto srcHead = (const Gray32F*)linearData;
-                auto dstHead = (Gray32F*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
+                if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                    processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                else
+                    processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
             }
+#else
+            if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+            else
+                processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+#endif
             break;
         }
-        case VLRDataFormat_Gray8: {
-            auto srcHead = (const Gray8*)linearData;
-            auto dstHead = (Gray8*)m_data.data();
-            std::copy_n(srcHead, width * height, dstHead);
+        case DataFormat::RGBA32Fx4: {
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+            VLRAssert_NotImplemented();
+#else
+            if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                processAllPixels<RGBA32Fx4, RGBA32Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+            else
+                processAllPixels<RGBA32Fx4, RGBA32Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+#endif
             break;
         }
-        case VLRDataFormat_GrayA8x2: {
-            if (applyDegamma) {
-                FuncProcessPixel<GrayA8x2, GrayA8x2> funcApplyDegamma = [](const GrayA8x2 &src, GrayA8x2 &dst) {
-                    dst.v = std::min<uint32_t>(255, 256 * sRGB_degamma(src.v / 255.0f));
-                    dst.a = src.a;
-                };
-                processAllPixels(linearData, m_data.data(), width, height, funcApplyDegamma);
-            }
-            else {
-                auto srcHead = (const GrayA8x2*)linearData;
-                auto dstHead = (GrayA8x2*)m_data.data();
-                std::copy_n(srcHead, width * height, dstHead);
-            }
+        case DataFormat::RG32Fx2: {
+            if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                processAllPixels<RG32Fx2, RG32Fx2, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+            else
+                processAllPixels<RG32Fx2, RG32Fx2, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
             break;
         }
+        case DataFormat::Gray32F: {
+            if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                processAllPixels<Gray32F, Gray32F, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+            else
+                processAllPixels<Gray32F, Gray32F, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+            break;
+        }
+        case DataFormat::Gray8: {
+            processAllPixels<Gray8, Gray8, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+            break;
+        }
+        case DataFormat::GrayA8x2: {
+            if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                processAllPixels<GrayA8x2, GrayA8x2, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+            else
+                processAllPixels<GrayA8x2, GrayA8x2, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
+            break;
+        }
+        case DataFormat::uvsA8x4:
+        case DataFormat::uvsA16Fx4:
+            std::copy(linearData, linearData + getStride() * width * height, (uint8_t*)m_data.data());
+            break;
         default:
             VLRAssert(false, "Data format is invalid.");
             break;
@@ -361,8 +854,8 @@ namespace VLR {
                     bottom - bottomPix
                 };
 
-                switch (getDataFormat()) {
-                case VLRDataFormat_RGBA16Fx4: {
+                switch (getDataFormat().value) {
+                case DataFormat::RGBA16Fx4: {
                     CompensatedSum<float> sumR(0), sumG(0), sumB(0), sumA(0);
                     RGBA16Fx4 pix;
 
@@ -415,6 +908,59 @@ namespace VLR {
                     *(RGBA16Fx4*)&data[(y * width + x) * stride] = RGBA16Fx4{ half(sumR / area), half(sumG / area), half(sumB / area), half(sumA / area) };
                     break;
                 }
+                case DataFormat::uvsA16Fx4: {
+                    CompensatedSum<float> sum_u(0), sum_v(0), sum_s(0), sumA(0);
+                    uvsA16Fx4 pix;
+
+                    uint32_t corners[] = { leftPix, topPix, rightPix, topPix, leftPix, bottomPix, rightPix, bottomPix };
+                    for (int i = 0; i < 4; ++i) {
+                        pix = get<uvsA16Fx4>(corners[2 * i + 0], corners[2 * i + 1]);
+                        sum_u += weightsCorners[i] * float(pix.u);
+                        sum_v += weightsCorners[i] * float(pix.v);
+                        sum_s += weightsCorners[i] * float(pix.s);
+                        sumA += weightsCorners[i] * float(pix.a);
+                    }
+
+                    for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
+                        pix = get<uvsA16Fx4>(x, topPix);
+                        sum_u += weightsEdges[0] * float(pix.u);
+                        sum_v += weightsEdges[0] * float(pix.v);
+                        sum_s += weightsEdges[0] * float(pix.s);
+                        sumA += weightsEdges[0] * float(pix.a);
+
+                        pix = get<uvsA16Fx4>(x, bottomPix);
+                        sum_u += weightsEdges[3] * float(pix.u);
+                        sum_v += weightsEdges[3] * float(pix.v);
+                        sum_s += weightsEdges[3] * float(pix.s);
+                        sumA += weightsEdges[3] * float(pix.a);
+                    }
+                    for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
+                        pix = get<uvsA16Fx4>(leftPix, y);
+                        sum_u += weightsEdges[1] * float(pix.u);
+                        sum_v += weightsEdges[1] * float(pix.v);
+                        sum_s += weightsEdges[1] * float(pix.s);
+                        sumA += weightsEdges[1] * float(pix.a);
+
+                        pix = get<uvsA16Fx4>(rightPix, y);
+                        sum_u += weightsEdges[2] * float(pix.u);
+                        sum_v += weightsEdges[2] * float(pix.v);
+                        sum_s += weightsEdges[2] * float(pix.s);
+                        sumA += weightsEdges[2] * float(pix.a);
+                    }
+
+                    for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
+                        for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
+                            pix = get<uvsA16Fx4>(x, y);
+                            sum_u += float(pix.u);
+                            sum_v += float(pix.v);
+                            sum_s += float(pix.s);
+                            sumA += float(pix.a);
+                        }
+                    }
+
+                    *(uvsA16Fx4*)&data[(y * width + x) * stride] = uvsA16Fx4{ half(sum_u / area), half(sum_v / area), half(sum_s / area), half(sumA / area) };
+                    break;
+                }
                 default:
                     VLRAssert_ShouldNotBeCalled();
                     break;
@@ -422,18 +968,23 @@ namespace VLR {
             }
         }
 
-        return new LinearImage2D(m_context, data.data(), width, height, getDataFormat(), false);
+        return new LinearImage2D(m_context, data.data(), width, height, getDataFormat(), getSpectrumType(), getColorSpace());
     }
 
     Image2D* LinearImage2D::createLuminanceImage2D() const {
         uint32_t width = getWidth();
         uint32_t height = getHeight();
         uint32_t stride;
-        VLRDataFormat newDataFormat;
-        switch (getDataFormat()) {
-        case VLRDataFormat_RGBA16Fx4: {
+        DataFormat newDataFormat;
+        switch (getDataFormat().value) {
+        case DataFormat::RGBA16Fx4: {
             stride = sizeof(float);
-            newDataFormat = VLRDataFormat_Gray32F;
+            newDataFormat = DataFormat::Gray32F;
+            break;
+        }
+        case DataFormat::uvsA16Fx4: {
+            stride = sizeof(float);
+            newDataFormat = DataFormat::Gray32F;
             break;
         }
         default:
@@ -445,10 +996,20 @@ namespace VLR {
 
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                switch (getDataFormat()) {
-                case VLRDataFormat_RGBA16Fx4: {
+                switch (getDataFormat().value) {
+                case DataFormat::RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
                     float Y = mat_Rec709_D65_to_XYZ[1] * pix.r + mat_Rec709_D65_to_XYZ[4] * pix.g + mat_Rec709_D65_to_XYZ[7] * pix.b;
+                    *(float*)&data[(y * width + x) * stride] = Y;
+                    break;
+                }
+                case DataFormat::uvsA16Fx4: {
+                    uvsA16Fx4 pix = get<uvsA16Fx4>(x, y);
+                    float uv[2] = { pix.u, pix.v };
+                    float xy[2];
+                    UpsampledSpectrum::uv_to_xy(uv, xy);
+                    float b = pix.s/* * UpsampledSpectrum::EqualEnergyReflectance()*/;
+                    float Y = xy[1] * b;
                     *(float*)&data[(y * width + x) * stride] = Y;
                     break;
                 }
@@ -459,7 +1020,7 @@ namespace VLR {
             }
         }
 
-        return new LinearImage2D(m_context, data.data(), width, height, newDataFormat, false);
+        return new LinearImage2D(m_context, data.data(), width, height, newDataFormat, getSpectrumType(), getColorSpace());
     }
 
     void* LinearImage2D::createLinearImageData() const {
@@ -481,9 +1042,10 @@ namespace VLR {
 
 
 
-    BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) :
-        Image2D(context, width, height, Image2D::getInternalFormat(dataFormat), applyDegamma), m_copyDone(false) {
-        VLRAssert(dataFormat >= VLRDataFormat_BC1 && dataFormat <= VLRDataFormat_BC7, "Specified data format is not block compressed format.");
+    BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, 
+                                                   DataFormat dataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+        Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
+        VLRAssert(dataFormat >= DataFormat::BC1 && dataFormat <= DataFormat::BC7, "Specified data format is not block compressed format.");
         m_data.resize(mipCount);
         for (int i = 0; i < mipCount; ++i) {
             m_data[i].resize(sizes[i]);
@@ -538,10 +1100,10 @@ namespace VLR {
 
 
     Shared::ShaderNodeSocketID ShaderNodeSocketIdentifier::getSharedType() const {
-        if (node && socketInfo.type != VLRShaderNodeSocketType_Invalid) {
+        if (node) {
             Shared::ShaderNodeSocketID ret;
             ret.nodeDescIndex = node->getShaderNodeIndex();
-            ret.socketIndex = socketInfo.outputIndex;
+            ret.socketType = socketInfo.outputType;
             ret.option = socketInfo.option;
             ret.isSpectrumNode = node->isSpectrumNode();
             return ret;
@@ -552,15 +1114,18 @@ namespace VLR {
 
 
     // static 
-    void ShaderNode::commonInitializeProcedure(Context &context, const char** identifiers, uint32_t numIDs, OptiXProgramSet* programSet) {
+    void ShaderNode::commonInitializeProcedure(Context &context, const SocketTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
         std::string ptx = readTxtFile(VLR_PTX_DIR"shader_nodes.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
 
         Shared::NodeProcedureSet nodeProcSet;
-        for (int i = 0; i < numIDs; ++i) {
-            programSet->callablePrograms[i] = optixContext->createProgramFromPTXString(ptx, identifiers[i]);
-            nodeProcSet.progs[i] = programSet->callablePrograms[i]->getId();
+        for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
+            nodeProcSet.progs[i] = 0xFFFFFFFF;
+        for (int i = 0; i < numPairs; ++i) {
+            VLRShaderNodeSocketType stype = pairs[i].stype;
+            programSet->callablePrograms[stype] = optixContext->createProgramFromPTXString(ptx, pairs[i].programName);
+            nodeProcSet.progs[stype] = programSet->callablePrograms[stype]->getId();
         }
 
         programSet->nodeProcedureSetIndex = context.allocateNodeProcedureSet();
@@ -634,14 +1199,14 @@ namespace VLR {
 
     // static
     void GeometryShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::GeometryShaderNode_Point3D",
-            "VLR::GeometryShaderNode_Normal3D",
-            "VLR::GeometryShaderNode_Vector3D",
-            "VLR::GeometryShaderNode_textureCoordinates",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Point3D, "VLR::GeometryShaderNode_Point3D",
+            VLRShaderNodeSocketType_Normal3D, "VLR::GeometryShaderNode_Normal3D",
+            VLRShaderNodeSocketType_Vector3D, "VLR::GeometryShaderNode_Vector3D",
+            VLRShaderNodeSocketType_TextureCoordinates, "VLR::GeometryShaderNode_TextureCoordinates",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
 
@@ -684,11 +1249,11 @@ namespace VLR {
 
     // static
     void FloatShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::FloatShaderNode_float",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::FloatShaderNode_float",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -738,12 +1303,12 @@ namespace VLR {
 
     // static
     void Float2ShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::Float2ShaderNode_float",
-            "VLR::Float2ShaderNode_float2",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::Float2ShaderNode_float",
+            VLRShaderNodeSocketType_float2, "VLR::Float2ShaderNode_float2",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -809,13 +1374,13 @@ namespace VLR {
 
     // static
     void Float3ShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::Float3ShaderNode_float",
-            "VLR::Float3ShaderNode_float2",
-            "VLR::Float3ShaderNode_float3",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::Float3ShaderNode_float",
+            VLRShaderNodeSocketType_float2, "VLR::Float3ShaderNode_float2",
+            VLRShaderNodeSocketType_float3, "VLR::Float3ShaderNode_float3",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -896,14 +1461,14 @@ namespace VLR {
 
     // static
     void Float4ShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::Float4ShaderNode_float",
-            "VLR::Float4ShaderNode_float2",
-            "VLR::Float4ShaderNode_float3",
-            "VLR::Float4ShaderNode_float4",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::Float4ShaderNode_float",
+            VLRShaderNodeSocketType_float2, "VLR::Float4ShaderNode_float2",
+            VLRShaderNodeSocketType_float3, "VLR::Float4ShaderNode_float3",
+            VLRShaderNodeSocketType_float4, "VLR::Float4ShaderNode_float4",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -998,11 +1563,11 @@ namespace VLR {
 
     // static
     void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::ScaleAndOffsetFloatShaderNode_float",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::ScaleAndOffsetFloatShaderNode_float",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1076,11 +1641,11 @@ namespace VLR {
 
     // static
     void TripletSpectrumShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::TripletSpectrumShaderNode_spectrum",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Spectrum, "VLR::TripletSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1092,7 +1657,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context, true), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65),
+        ShaderNode(context, true), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -1116,7 +1681,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    void TripletSpectrumShaderNode::setImmediateValueColorSpace(VLRColorSpace colorSpace) {
+    void TripletSpectrumShaderNode::setImmediateValueColorSpace(ColorSpace colorSpace) {
         m_colorSpace = colorSpace;
         setupNodeDescriptor();
     }
@@ -1134,11 +1699,11 @@ namespace VLR {
 
     // static
     void RegularSampledSpectrumShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::RegularSampledSpectrumShaderNode_spectrum",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Spectrum, "VLR::RegularSampledSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1203,11 +1768,11 @@ namespace VLR {
 
     // static
     void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::IrregularSampledSpectrumShaderNode_spectrum",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Spectrum, "VLR::IrregularSampledSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1278,11 +1843,11 @@ namespace VLR {
 
     // static
     void Vector3DToSpectrumShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::Vector3DToSpectrumShaderNode_spectrum",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Spectrum, "VLR::Vector3DToSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1294,7 +1859,7 @@ namespace VLR {
     }
 
     Vector3DToSpectrumShaderNode::Vector3DToSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_immVector3D(Vector3D(0, 0, 0)), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65) {
+        ShaderNode(context), m_immVector3D(Vector3D(0, 0, 0)), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
         setupNodeDescriptor();
     }
 
@@ -1328,7 +1893,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    void Vector3DToSpectrumShaderNode::setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+    void Vector3DToSpectrumShaderNode::setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, ColorSpace colorSpace) {
         m_spectrumType = spectrumType;
         m_colorSpace = colorSpace;
         setupNodeDescriptor();
@@ -1340,11 +1905,11 @@ namespace VLR {
 
     // static
     void ScaleAndOffsetUVTextureMap2DShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_textureCoordinates",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_TextureCoordinates, "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1390,18 +1955,20 @@ namespace VLR {
 
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::Image2DTextureShaderNode_spectrum",
-            "VLR::Image2DTextureShaderNode_float",
-            "VLR::Image2DTextureShaderNode_float2",
-            "VLR::Image2DTextureShaderNode_float3",
-            "VLR::Image2DTextureShaderNode_float4",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_float, "VLR::Image2DTextureShaderNode_float",
+            VLRShaderNodeSocketType_float2, "VLR::Image2DTextureShaderNode_float2",
+            VLRShaderNodeSocketType_float3, "VLR::Image2DTextureShaderNode_float3",
+            VLRShaderNodeSocketType_float4, "VLR::Image2DTextureShaderNode_float4",
+            VLRShaderNodeSocketType_Normal3D, "VLR::Image2DTextureShaderNode_Normal3D",
+            VLRShaderNodeSocketType_Spectrum, "VLR::Image2DTextureShaderNode_Spectrum",
+            VLRShaderNodeSocketType_Alpha, "VLR::Image2DTextureShaderNode_Alpha",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         uint8_t nullData[] = { 255, 0, 255, 255 };
-        LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, VLRDataFormat_RGBA8x4, false);
+        LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, DataFormat::RGBA8x4, VLRSpectrumType_Reflectance, ColorSpace::Rec709_D65);
 
         OptiXProgramSets[context.getID()] = programSet;
         NullImages[context.getID()] = nullImage;
@@ -1416,7 +1983,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(VLRColorSpace_Rec709_D65) {
+        ShaderNode(context), m_image(nullptr) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -1441,21 +2008,32 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.format = m_image ? m_image->getDataFormat() : (VLRDataFormat)0;
-        nodeData.spectrumType = m_spectrumType;
-        nodeData.colorSpace = m_colorSpace;
+        if (m_image) {
+            nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
+            nodeData.spectrumType = m_image->getSpectrumType();
+
+            // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
+            // EN: Data should be regarded as post-degamma in the case that reading with sRGB degamma by HW in a GPU kernel.
+            ColorSpace colorSpace = m_image->getColorSpace();
+            if (m_image->needsHW_sRGB_degamma() && colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                colorSpace = ColorSpace::Rec709_D65;
+            nodeData.colorSpace = (unsigned int)colorSpace;
+        }
+        else {
+            nodeData.dataFormat = 0;
+            nodeData.spectrumType = 0;
+            nodeData.colorSpace = 0;
+        }
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void Image2DTextureShaderNode::setImage(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const Image2D* image) {
-        m_spectrumType = spectrumType;
-        m_colorSpace = colorSpace;
+    void Image2DTextureShaderNode::setImage(const Image2D* image) {
         m_image = image;
         if (m_image) {
             m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
-            m_optixTextureSampler->setReadMode(m_image->needsDegamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
+            m_optixTextureSampler->setReadMode(m_image->needsHW_sRGB_degamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
         }
         else {
             m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -1487,11 +2065,11 @@ namespace VLR {
 
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {
-        const char* identifiers[] = {
-            "VLR::EnvironmentTextureShaderNode_spectrum",
+        const SocketTypeToProgramPair pairs[] = {
+            VLRShaderNodeSocketType_Spectrum, "VLR::EnvironmentTextureShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, lengthof(identifiers), &programSet);
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1503,7 +2081,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr), m_colorSpace(VLRColorSpace_Rec709_D65) {
+        ShaderNode(context), m_image(nullptr) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
@@ -1527,14 +2105,20 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::EnvironmentTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.colorSpace = m_colorSpace;
+        if (m_image) {
+            nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
+            nodeData.colorSpace = (unsigned int)m_image->getColorSpace();
+        }
+        else {
+            nodeData.dataFormat = 0;
+            nodeData.colorSpace = 0;
+        }
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
-    void EnvironmentTextureShaderNode::setImage(VLRColorSpace colorSpace, const Image2D* image) {
-        m_colorSpace = colorSpace;
+    void EnvironmentTextureShaderNode::setImage(const Image2D* image) {
         m_image = image;
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
         setupNodeDescriptor();

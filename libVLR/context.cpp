@@ -183,11 +183,16 @@ namespace VLR {
 
 
 
+        const auto setInt32 = [](optix::Context &optixContext, const char* pvname, int32_t data) {
+            optixContext[pvname]->setUserData(sizeof(data), &data);
+        };
+        
         m_optixContext["VLR::DiscretizedSpectrum_xbar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::xbar);
         m_optixContext["VLR::DiscretizedSpectrum_ybar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::ybar);
         m_optixContext["VLR::DiscretizedSpectrum_zbar"]->setUserData(sizeof(DiscretizedSpectrumAlwaysSpectral::CMF), &DiscretizedSpectrumAlwaysSpectral::zbar);
         m_optixContext["VLR::DiscretizedSpectrum_integralCMF"]->setFloat(DiscretizedSpectrumAlwaysSpectral::integralCMF);
 
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         const uint32_t NumSpectrumGridCells = 168;
         const uint32_t NumSpectrumDataPoints = 186;
         m_optixBufferUpsampledSpectrum_spectrum_grid = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, NumSpectrumGridCells);
@@ -204,8 +209,33 @@ namespace VLR {
             std::copy_n(UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints, values);
             m_optixBufferUpsampledSpectrum_spectrum_data_points->unmap();
         }
-        m_optixContext["VLR::UpsampledSpectrum_spectrum_grid"]->set(m_optixBufferUpsampledSpectrum_spectrum_grid);
-        m_optixContext["VLR::UpsampledSpectrum_spectrum_data_points"]->set(m_optixBufferUpsampledSpectrum_spectrum_data_points);
+        setInt32(m_optixContext, "VLR::UpsampledSpectrum_spectrum_grid", m_optixBufferUpsampledSpectrum_spectrum_grid->getId());
+        setInt32(m_optixContext, "VLR::UpsampledSpectrum_spectrum_data_points", m_optixBufferUpsampledSpectrum_spectrum_data_points->getId());
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        m_optixBufferUpsampledSpectrum_maxBrightnesses = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, UpsampledSpectrum::kTableResolution);
+        {
+            auto values = (float*)m_optixBufferUpsampledSpectrum_maxBrightnesses->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+            std::copy_n(UpsampledSpectrum::maxBrightnesses, UpsampledSpectrum::kTableResolution, values);
+            m_optixBufferUpsampledSpectrum_maxBrightnesses->unmap();
+        }
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65 = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->setElementSize(sizeof(UpsampledSpectrum::PolynomialCoefficients));
+        {
+            auto values = (UpsampledSpectrum::PolynomialCoefficients*)m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+            std::copy_n(UpsampledSpectrum::coefficients_sRGB_D65, 3 * pow3(UpsampledSpectrum::kTableResolution), values);
+            m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->unmap();
+        }
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->setElementSize(sizeof(UpsampledSpectrum::PolynomialCoefficients));
+        {
+            auto values = (UpsampledSpectrum::PolynomialCoefficients*)m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+            std::copy_n(UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution), values);
+            m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->unmap();
+        }
+        setInt32(m_optixContext, "VLR::UpsampledSpectrum_maxBrightnesses", m_optixBufferUpsampledSpectrum_maxBrightnesses->getId());
+        setInt32(m_optixContext, "VLR::UpsampledSpectrum_coefficients_sRGB_D65", m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->getId());
+        setInt32(m_optixContext, "VLR::UpsampledSpectrum_coefficients_sRGB_E", m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->getId());
+#endif
 
 
 
@@ -414,8 +444,14 @@ namespace VLR {
         m_optixMaterialWithAlpha->destroy();
         m_optixMaterialDefault->destroy();
 
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         m_optixBufferUpsampledSpectrum_spectrum_data_points->destroy();
         m_optixBufferUpsampledSpectrum_spectrum_grid->destroy();
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->destroy();
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->destroy();
+        m_optixBufferUpsampledSpectrum_maxBrightnesses->destroy();
+#endif
 
         m_optixProgramConvertToRGB->destroy();
 
@@ -434,6 +470,8 @@ namespace VLR {
         m_optixProgramShadowAnyHitDefault->destroy();
 
         m_optixContext->destroy();
+
+        finalizeColorSystem();
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {
@@ -539,9 +577,40 @@ namespace VLR {
 #endif
 
         optixContext->launch(EntryPoint::PathTracing, imageSize.x, imageSize.y);
-        //Shared::SurfacePointAttribute attr = Shared::SurfacePointAttribute::ShadingFrameOrthogonality;
-        //optixContext["VLR::pv_surfacePointAttribute"]->setUserData(sizeof(attr), &attr);
-        //optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
+
+        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
+    }
+
+    void Context::debugRender(Scene &scene, Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+        optix::Context optixContext = getOptiXContext();
+
+        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
+        if (firstFrame) {
+            scene.set();
+            camera->set();
+
+            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+
+            m_numAccumFrames = 0;
+        }
+
+        ++m_numAccumFrames;
+        *numAccumFrames = m_numAccumFrames;
+        //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
+        optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
+
+#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
+        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+#endif
+
+#if defined(VLR_ENABLE_VALIDATION)
+        optixContext->validate();
+#endif
+
+        auto attr = Shared::DebugRenderingAttribute((Shared::DebugRenderingAttribute::Value)renderMode);
+        optixContext["VLR::pv_debugRenderingAttribute"]->setUserData(sizeof(attr), &attr);
+        optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
+
         optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 

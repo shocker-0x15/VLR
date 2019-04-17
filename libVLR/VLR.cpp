@@ -186,6 +186,14 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCamera camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>())
+        return VLR_ERROR_INVALID_TYPE;
+    context->debugRender(*scene, camera, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 
 
 VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width) {
@@ -215,7 +223,7 @@ VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
 VLR_API VLRResult vlrImage2DGetDataFormat(VLRImage2D image, VLRDataFormat* format) {
     if (!image->isMemberOf<VLR::Image2D>())
         return VLR_ERROR_INVALID_TYPE;
-    *format = image->getDataFormat();
+    *format = (VLRDataFormat)image->getDataFormat();
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -231,8 +239,9 @@ VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha) {
 
 
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                         uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, bool applyDegamma) {
-    *image = new VLR::LinearImage2D(*context, linearData, width, height, format, applyDegamma);
+                                         uint8_t* linearData, uint32_t width, uint32_t height,
+                                         VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+    *image = new VLR::LinearImage2D(*context, linearData, width, height, format, spectrumType, colorSpace);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -248,8 +257,9 @@ VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D i
 
 
 VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
-                                                  uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, bool applyDegamma) {
-    *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height, dataFormat, applyDegamma);
+                                                  uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+                                                  VLRDataFormat dataFormat, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+    *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height, dataFormat, spectrumType, colorSpace);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -752,10 +762,10 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImag
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace, VLRImage2D image) {
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRImage2D image) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    node->setImage(spectrumType, colorSpace, image);
+    node->setImage(image);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -801,10 +811,10 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeDestroy(VLRContext context, VLR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRColorSpace colorSpace, VLRImage2D image) {
+VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRImage2D image) {
     if (!node->is<VLR::EnvironmentTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    node->setImage(colorSpace, image);
+    node->setImage(image);
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -1687,11 +1697,11 @@ VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material) {
+VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material, float rotationPhi) {
     if (!scene->is<VLR::Scene>() || !material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
 
-    scene->setEnvironment(material);
+    scene->setEnvironment(material, rotationPhi);
 
     return VLR_ERROR_NO_ERROR;
 }

@@ -50,9 +50,14 @@ namespace VLR {
     using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
 
 #if defined(VLR_Device)
-    rtBuffer<UpsampledSpectrum::spectrum_grid_cell_t, 1> UpsampledSpectrum_spectrum_grid;
-    rtBuffer<UpsampledSpectrum::spectrum_data_point_t, 1> UpsampledSpectrum_spectrum_data_points;
-
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_grid, , );
+    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_data_points, , );
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+    rtDeclareVariable(int32_t, UpsampledSpectrum_maxBrightnesses, , );
+    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_D65, , );
+    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_E, , );
+#   endif
 
     rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_xbar, , );
     rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_ybar, , );
@@ -60,20 +65,20 @@ namespace VLR {
     rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
 #endif
 
-    RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, VLRColorSpace colorSpace, float e0, float e1, float e2) {
+    RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(VLRSpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
         float XYZ[3];
 
-        switch (colorSpace) {
-        case VLRColorSpace_Rec709_D65_sRGBGamma: {
+        switch (colorSpace.value) {
+        case ColorSpace::Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
             e2 = sRGB_degamma(e2);
             // pass to Rec709 (D65)
         }
-        case VLRColorSpace_Rec709_D65: {
+        case ColorSpace::Rec709_D65: {
             float RGB[3] = { e0, e1, e2 };
             switch (spectrumType) {
             case VLRSpectrumType_Reflectance:
@@ -90,13 +95,13 @@ namespace VLR {
             }
             break;
         }
-        case VLRColorSpace_XYZ: {
+        case ColorSpace::XYZ: {
             XYZ[0] = e0;
             XYZ[1] = e1;
             XYZ[2] = e2;
             break;
         }
-        case VLRColorSpace_xyY: {
+        case ColorSpace::xyY: {
             VLRAssert(e0 >= 0.0f && e1 >= 0.0f && e0 <= 1.0f && e1 <= 1.0f && e2 >= 0.0f,
                       "xy should be in [0, 1], Y should not be negative.");
             if (e1 == 0) {
@@ -120,6 +125,61 @@ namespace VLR {
         return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
 #endif
     }
+
+
+
+    struct DataFormat {
+        enum Value {
+            RGB8x3 = 0,
+            RGB_8x4,
+            RGBA8x4,
+            RGBA16Fx4,
+            RGBA32Fx4,
+            RG32Fx2,
+            Gray32F,
+            Gray8,
+            GrayA8x2,
+            BC1,
+            BC2,
+            BC3,
+            BC4,
+            BC4_Signed,
+            BC5,
+            BC5_Signed,
+            BC6H,
+            BC6H_Signed,
+            BC7,
+            // ---- Internal Formats ----
+            uvsA8x4,
+            uvsA16Fx4,
+            NumDataFormats
+        } value;
+
+        RT_FUNCTION constexpr DataFormat(Value v = RGBA8x4) : value(v) {}
+        RT_FUNCTION constexpr DataFormat(VLRDataFormat v) : value((Value)v) {}
+        RT_FUNCTION explicit operator uint32_t() const {
+            return value;
+        }
+        RT_FUNCTION explicit operator VLRDataFormat() const {
+            return (VLRDataFormat)value;
+        }
+        RT_FUNCTION constexpr bool operator==(Value v) const {
+            return value == v;
+        }
+        RT_FUNCTION constexpr bool operator<(DataFormat v) const {
+            return value < v.value;
+        }
+        RT_FUNCTION constexpr bool operator>(DataFormat v) const {
+            return value >
+ v.value;
+        }
+        RT_FUNCTION constexpr bool operator<=(DataFormat v) const {
+            return value < v.value && value == v.value;
+        }
+        RT_FUNCTION constexpr bool operator>=(DataFormat v) const {
+            return value > v.value && value == v.value;
+        }
+    };
 
 
 
@@ -279,7 +339,7 @@ namespace VLR {
 
 
         struct NodeProcedureSet {
-            int32_t progs[16];
+            int32_t progs[nextPowerOf2(NumVLRShaderNodeSocketTypes)];
         };
 
 
@@ -287,12 +347,16 @@ namespace VLR {
         union ShaderNodeSocketID {
             struct {
                 unsigned int nodeDescIndex : 25;
-                unsigned int socketIndex : 4;
+                unsigned int socketType : 4;
                 unsigned int option : 2;
                 //bool isSpectrumNode : 1; // using bool leads the size of this struct to be 8 in MSVC (C++ spec).
                 unsigned int isSpectrumNode : 1;
             };
             uint32_t asUInt;
+
+            // const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
+            // ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
+            // return program(nodeDesc.data, socket.option, surfPt, wls);
 
             RT_FUNCTION ShaderNodeSocketID() {}
             explicit constexpr ShaderNodeSocketID(uint32_t ui) : asUInt(ui) {}
@@ -380,6 +444,7 @@ namespace VLR {
                 } asMeshLight;
                 struct {
                     uint32_t materialIndex;
+                    float rotationPhi;
                     RegularConstantContinuousDistribution2D importanceMap;
                 } asEnvironmentLight;
 
@@ -445,7 +510,7 @@ namespace VLR {
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
         };
 
-        struct SurfacePointAttribute {
+        struct DebugRenderingAttribute {
             enum Value {
                 GeometricNormal = 0,
                 ShadingTangent,
@@ -453,11 +518,12 @@ namespace VLR {
                 ShadingNormal,
                 TC0Direction,
                 TextureCoordinates,
+                GeometricVsShadingNormal,
                 ShadingFrameLengths,
                 ShadingFrameOrthogonality,
             } value;
 
-            RT_FUNCTION constexpr SurfacePointAttribute(Value v = GeometricNormal) : value(v) {}
+            RT_FUNCTION constexpr DebugRenderingAttribute(Value v = GeometricNormal) : value(v) {}
 
             RT_FUNCTION operator int32_t() const {
                 return value;
@@ -564,7 +630,7 @@ namespace VLR {
             ShaderNodeSocketID nodeVector3D;
             Vector3D immVector3D;
             VLRSpectrumType spectrumType;
-            VLRColorSpace colorSpace;
+            ColorSpace colorSpace;
         };
 
         struct ScaleAndOffsetUVTextureMap2DShaderNode {
@@ -574,16 +640,29 @@ namespace VLR {
 
         struct Image2DTextureShaderNode {
             int32_t textureID;
-            VLRDataFormat format;
-            VLRSpectrumType spectrumType;
-            VLRColorSpace colorSpace;
+            struct {
+                unsigned int dataFormat : 5;
+                unsigned int spectrumType : 3;
+                unsigned int colorSpace : 3;
+            };
             ShaderNodeSocketID nodeTexCoord;
+
+            RT_FUNCTION DataFormat getDataFormat() const { return DataFormat((DataFormat::Value)dataFormat); }
+            RT_FUNCTION VLRSpectrumType getSpectrumType() const { return (VLRSpectrumType)spectrumType; }
+            RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace((ColorSpace::Value)colorSpace); }
         };
+        static_assert(sizeof(Image2DTextureShaderNode) == 12, "Unexpected sizeof(Image2DTextureShaderNode).");
 
         struct EnvironmentTextureShaderNode {
             int32_t textureID;
-            VLRColorSpace colorSpace;
+            struct {
+                unsigned int dataFormat : 5;
+                unsigned int colorSpace : 3;
+            };
             ShaderNodeSocketID nodeTexCoord;
+
+            RT_FUNCTION DataFormat getDataFormat() const { return DataFormat((DataFormat::Value)dataFormat); }
+            RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace((ColorSpace::Value)colorSpace); }
         };
 
         // END: Shader Nodes
@@ -686,3 +765,7 @@ namespace VLR {
         // ----------------------------------------------------------------
     }
 }
+
+#if defined(VLR_Device)
+#include "spectrum_types.cpp"
+#endif

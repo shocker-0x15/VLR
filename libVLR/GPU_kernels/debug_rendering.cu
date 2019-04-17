@@ -6,7 +6,7 @@ namespace VLR {
     };
 
     rtDeclareVariable(DebugRenderingPayload, sm_debugPayload, rtPayload, );
-    rtDeclareVariable(SurfacePointAttribute, pv_surfacePointAttribute, , );
+    rtDeclareVariable(DebugRenderingAttribute, pv_debugRenderingAttribute, , );
 
     // Context-scope Variables
     rtDeclareVariable(optix::uint2, pv_imageSize, , );
@@ -19,54 +19,62 @@ namespace VLR {
 
 
     // for debug rendering
-    RT_FUNCTION TripletSpectrum surfacePointAttributeToSpectrum(const SurfacePoint &surfPt, SurfacePointAttribute attribute) {
-        RGBSpectrum value;
+    RT_FUNCTION TripletSpectrum DebugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
+        TripletSpectrum value;
 
         switch ((int32_t)attribute) {
-        case SurfacePointAttribute::GeometricNormal:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::GeometricNormal:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.geometricNormal.x),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.geometricNormal.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.geometricNormal.z));
             break;
-        case SurfacePointAttribute::ShadingTangent:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::ShadingTangent:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.x.x),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.x.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.x.z));
             break;
-        case SurfacePointAttribute::ShadingBitangent:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::ShadingBitangent:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.y.x),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.y.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.y.z));
             break;
-        case SurfacePointAttribute::ShadingNormal:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::ShadingNormal:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.z.x),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.z.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.z.z));
             break;
-        case SurfacePointAttribute::TC0Direction:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::TC0Direction:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.x),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.z));
             break;
-        case SurfacePointAttribute::TextureCoordinates:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::TextureCoordinates:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           surfPt.texCoord.u - std::floor(surfPt.texCoord.u),
                                           surfPt.texCoord.v - std::floor(surfPt.texCoord.v),
                                           0.0f);
             break;
-        case SurfacePointAttribute::ShadingFrameLengths:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::GeometricVsShadingNormal: {
+            float sim = dot(surfPt.geometricNormal, surfPt.shadingFrame.z);
+            sim = clamp(0.5f + 1 * (sim - 1), 0.0f, 1.0f);
+            //float gLength = clamp(0.5f + 100 * (surfPt.geometricNormal.length() - 1), 0.0f, 1.0f);
+            //float sLength = clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f);
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, sim, sim, sim);
+            break;
+        }
+        case DebugRenderingAttribute::ShadingFrameLengths:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           clamp(0.5f + 100 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
                                           clamp(0.5f + 100 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
                                           clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
             break;
-        case SurfacePointAttribute::ShadingFrameOrthogonality:
-            value = createTripletSpectrum(VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65,
+        case DebugRenderingAttribute::ShadingFrameOrthogonality:
+            value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65,
                                           clamp(0.5f + 100 * dot(surfPt.shadingFrame.x, surfPt.shadingFrame.y), 0.0f, 1.0f),
                                           clamp(0.5f + 100 * dot(surfPt.shadingFrame.y, surfPt.shadingFrame.z), 0.0f, 1.0f),
                                           clamp(0.5f + 100 * dot(surfPt.shadingFrame.z, surfPt.shadingFrame.x), 0.0f, 1.0f));
@@ -86,7 +94,7 @@ namespace VLR {
         float hypAreaPDF;
         calcSurfacePoint(&surfPt, &hypAreaPDF);
 
-        sm_debugPayload.value = surfacePointAttributeToSpectrum(surfPt, pv_surfacePointAttribute);
+        sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute);
     }
 
 
@@ -123,7 +131,7 @@ namespace VLR {
 
         float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
 
-        sm_debugPayload.value = surfacePointAttributeToSpectrum(surfPt, pv_surfacePointAttribute);
+        sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute);
     }
 
 

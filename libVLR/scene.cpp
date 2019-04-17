@@ -569,17 +569,31 @@ namespace VLR {
         bool nodeAlphaIsValid;
 
         m_materials.push_back(material);
-        if (nodeNormal.getType() == VLRShaderNodeSocketType_float3) {
-            m_nodeNormals.push_back(nodeNormal);
-            nodeNormalIsValid = true;
+        if (nodeNormal.node) {
+            if (nodeNormal.getType() == VLRShaderNodeSocketType_Normal3D) {
+                m_nodeNormals.push_back(nodeNormal);
+                nodeNormalIsValid = true;
+            }
+            else {
+                vlrprintf("%s: Invalid socket type for normal is passed.\n", m_name.c_str());
+                m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
+                nodeNormalIsValid = false;
+            }
         }
         else {
             m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
             nodeNormalIsValid = false;
         }
-        if (nodeAlpha.getType() == VLRShaderNodeSocketType_float) {
-            m_nodeAlphas.push_back(nodeAlpha);
-            nodeAlphaIsValid = true;
+        if (nodeAlpha.node) {
+            if (nodeAlpha.getType() == VLRShaderNodeSocketType_Alpha || nodeAlpha.getType() == VLRShaderNodeSocketType_float) {
+                m_nodeAlphas.push_back(nodeAlpha);
+                nodeAlphaIsValid = true;
+            }
+            else {
+                vlrprintf("%s: Invalid socket type for alpha is passed.\n", m_name.c_str());
+                m_nodeAlphas.push_back(ShaderNodeSocketIdentifier());
+                nodeAlphaIsValid = false;
+            }
         }
         else {
             m_nodeAlphas.push_back(ShaderNodeSocketIdentifier());
@@ -1350,8 +1364,9 @@ namespace VLR {
         m_callableProgramSampleInfiniteSphere->destroy();
     }
 
-    void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
+    void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv, float rotationPhi) {
         m_matEnv = matEnv;
+        m_envRotationPhi = rotationPhi;
     }
 
     void Scene::set() {
@@ -1364,6 +1379,7 @@ namespace VLR {
         if (m_matEnv) {
             m_matEnv->getImportanceMap().getInternalType(&envLight.body.asEnvironmentLight.importanceMap);
             envLight.body.asEnvironmentLight.materialIndex = m_matEnv->getMaterialIndex();
+            envLight.body.asEnvironmentLight.rotationPhi = m_envRotationPhi;
             envLight.importance = 1.0f;
             envLight.sampleFunc = m_callableProgramSampleInfiniteSphere->getId();
         }

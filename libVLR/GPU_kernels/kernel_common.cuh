@@ -295,8 +295,10 @@ namespace VLR {
         if (socket.isValid()) {
             using ProgSigT = rtCallableProgramId<T(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
 
+            // TODO: ここでは NodeDescriptor は全バイト読まれている？
+            //       procSetIndex は別で読んで、各シェーダーノード内でノードデータを読んだほうが良いかもしれない。
             const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
-            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
+            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketType];
             return program(nodeDesc.data, socket.option, surfPt, wls);
         }
         else {
@@ -320,7 +322,7 @@ namespace VLR {
                 procSetIndex = nodeDesc.procSetIndex;
                 data = nodeDesc.data;
             }
-            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[procSetIndex].progs[socket.socketIndex];
+            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[procSetIndex].progs[socket.socketType];
             return program(data, socket.option, surfPt, wls);
         }
         else {

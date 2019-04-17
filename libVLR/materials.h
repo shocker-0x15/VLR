@@ -65,7 +65,7 @@ namespace VLR {
         ~MatteSurfaceMaterial();
 
         bool setNodeAlbedo(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueAlbedo(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueAlbedo(ColorSpace colorSpace, float e0, float e1, float e2);
     };
 
 
@@ -93,11 +93,11 @@ namespace VLR {
         ~SpecularReflectionSurfaceMaterial();
 
         bool setNodeCoeffR(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeffR(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueCoeffR(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEta(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValue_k(ColorSpace colorSpace, float e0, float e1, float e2);
     };
 
 
@@ -125,11 +125,11 @@ namespace VLR {
         ~SpecularScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueCoeff(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEtaExt(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEtaInt(ColorSpace colorSpace, float e0, float e1, float e2);
     };
 
 
@@ -159,9 +159,9 @@ namespace VLR {
         ~MicrofacetReflectionSurfaceMaterial();
 
         bool setNodeEta(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEta(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNode_k(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValue_k(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(float value);
         void setImmediateValueAnisotropy(float value);
@@ -197,11 +197,11 @@ namespace VLR {
         ~MicrofacetScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueCoeff(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeEtaExt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEtaExt(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeEtaInt(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEtaInt(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeRoughnessAnisotropyRotation(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueRoughness(float value);
         void setImmediateValueAnisotropy(float value);
@@ -231,7 +231,7 @@ namespace VLR {
         ~LambertianScatteringSurfaceMaterial();
 
         bool setNodeCoeff(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueCoeff(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeF0(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueF0(float value);
     };
@@ -261,7 +261,7 @@ namespace VLR {
         ~UE4SurfaceMaterial();
 
         bool setNodeBaseColor(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueBaseColor(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueBaseColor(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeOcclusionRoughnessMetallic(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueOcclusion(float value);
         void setImmediateValueRoughness(float value);
@@ -293,9 +293,9 @@ namespace VLR {
         ~OldStyleSurfaceMaterial();
 
         bool setNodeDiffuseColor(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueDiffuseColor(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueDiffuseColor(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeSpecularColor(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueSpecularColor(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueSpecularColor(ColorSpace colorSpace, float e0, float e1, float e2);
         bool setNodeGlossiness(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueGlossiness(float value);
     };
@@ -323,7 +323,7 @@ namespace VLR {
         bool isEmitting() const override { return true; }
 
         bool setNodeEmittance(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEmittance(ColorSpace colorSpace, float e0, float e1, float e2);
     };
 
 
@@ -378,7 +378,7 @@ namespace VLR {
 
         bool setNodeEmittanceTextured(const EnvironmentTextureShaderNode* node);
         bool setNodeEmittanceConstant(const ShaderNode* spectrumNode);
-        void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueEmittance(ColorSpace colorSpace, float e0, float e1, float e2);
         void setImmediateValueScale(float value);
 
         const RegularConstantContinuousDistribution2D &getImportanceMap();

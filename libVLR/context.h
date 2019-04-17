@@ -45,8 +45,14 @@ namespace VLR {
 
         optix::Program m_optixProgramConvertToRGB; // ----------- Ray Generation Program (TODO: port to pure CUDA code)
 
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_grid;
         optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_data_points;
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        optix::Buffer m_optixBufferUpsampledSpectrum_maxBrightnesses;
+        optix::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65;
+        optix::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_E;
+#endif
 
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
@@ -114,6 +120,7 @@ namespace VLR {
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
         void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void debugRender(Scene &scene, Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         const optix::Context &getOptiXContext() const {
             return m_optixContext;

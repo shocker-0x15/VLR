@@ -324,8 +324,7 @@ namespace VLR {
 
 
     RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
-        optix::float3 value = calcNode(pv_nodeNormal, optix::make_float3(0.5f, 0.5f, 1.0f), surfPt, sm_payload.wls);
-        Normal3D normalLocal = 2 * Normal3D(value.x, value.y, value.z) - 1.0f;
+        Normal3D normalLocal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPt, sm_payload.wls);
         normalLocal.y *= -1; // for DirectX format normal map
         return normalLocal;
     }

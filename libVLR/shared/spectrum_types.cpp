@@ -1,13 +1,14 @@
 ﻿#include "spectrum_types.h"
 
 namespace VLR {
-#if defined(VLR_Device)
-#   define spectrum_grid UpsampledSpectrum_spectrum_grid
-#   define spectrum_data_points UpsampledSpectrum_spectrum_data_points
-#endif
-
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
     RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
+#   if defined(VLR_Device)
+        const auto spectrum_grid = rtBufferId<spectrum_grid_cell_t, 1>(UpsampledSpectrum_spectrum_grid);
+        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+#   endif
+
         u = clamp<RealType>(u, 0.0f, GridWidth());
         v = clamp<RealType>(v, 0.0f, GridHeight());
 
@@ -77,19 +78,90 @@ namespace VLR {
         }
         VLRAssert((m_adjIndices && 0xFF) != UINT8_MAX, "Adjacent points must be selected at this point.");
     }
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+    template <typename RealType, uint32_t NumSpectralSamples>
+#   if defined(VLR_Host)
+    RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table) {
+#   else
+    RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, rtBufferId<PolynomialCoefficients, 1> table) {
+        const rtBufferId<float, 1> maxBrightnesses = rtBufferId<float, 1>(UpsampledSpectrum_maxBrightnesses);
+#   endif
+
+        RealType maxValue = std::fmax(e0, std::fmax(e1, e2));
+        uint32_t maxComp = 0;
+        if (e1 > e0 && e1 > e2)
+            maxComp = 1;
+        else if (e2 > e0 && e2 > e1)
+            maxComp = 2;
+        maxValue += 1e-10f;
+        RealType nTriplet[3] = { e0 / maxValue, e1 / maxValue, e2 / maxValue };
+        RealType coords[3] = { std::fmax(maxBrightnesses[0], maxValue), nTriplet[(maxComp + 2) % 3], nTriplet[(maxComp + 1) % 3] };
+
+        uint32_t idx = 0;
+        for (int d = prevPowerOf2(kTableResolution - 1); d > 0; d >>= 1) {
+            uint32_t newIdx = idx + d;
+            if (newIdx < kTableResolution && maxBrightnesses[newIdx] < coords[0])
+                idx = newIdx;
+        }
+
+        RealType fBaseYIdx = (kTableResolution - 1) * coords[1];
+        RealType fBaseXIdx = (kTableResolution - 1) * coords[2];
+
+        uint32_t baseBIdx = std::min<uint32_t>(kTableResolution - 2, idx);
+        uint32_t baseYIdx = std::min<uint32_t>(kTableResolution - 2, fBaseYIdx);
+        uint32_t baseXIdx = std::min<uint32_t>(kTableResolution - 2, fBaseXIdx);
+
+        RealType brightnessL = maxBrightnesses[baseBIdx];
+        RealType brightnessU = maxBrightnesses[baseBIdx + 1];
+
+        RealType weightBU = (coords[0] - brightnessL) / (brightnessU - brightnessL);
+        RealType weightXU = fBaseXIdx - baseXIdx;
+        RealType weightYU = fBaseYIdx - baseYIdx;
+        RealType weightBL = 1 - weightBU;
+        RealType weightXL = 1 - weightXU;
+        RealType weightYL = 1 - weightYU;
+
+        constexpr uint32_t k3DSize = pow3(kTableResolution);
+        constexpr uint32_t k2DSize = pow2(kTableResolution);
+        constexpr uint32_t k1DSize = kTableResolution;
+        PolynomialCoefficients vLLL = table[maxComp * k3DSize + (baseBIdx + 0) * k2DSize + (baseYIdx + 0) * k1DSize + (baseXIdx + 0)];
+        PolynomialCoefficients vLLU = table[maxComp * k3DSize + (baseBIdx + 0) * k2DSize + (baseYIdx + 0) * k1DSize + (baseXIdx + 1)];
+        PolynomialCoefficients vLUL = table[maxComp * k3DSize + (baseBIdx + 0) * k2DSize + (baseYIdx + 1) * k1DSize + (baseXIdx + 0)];
+        PolynomialCoefficients vLUU = table[maxComp * k3DSize + (baseBIdx + 0) * k2DSize + (baseYIdx + 1) * k1DSize + (baseXIdx + 1)];
+        PolynomialCoefficients vULL = table[maxComp * k3DSize + (baseBIdx + 1) * k2DSize + (baseYIdx + 0) * k1DSize + (baseXIdx + 0)];
+        PolynomialCoefficients vULU = table[maxComp * k3DSize + (baseBIdx + 1) * k2DSize + (baseYIdx + 0) * k1DSize + (baseXIdx + 1)];
+        PolynomialCoefficients vUUL = table[maxComp * k3DSize + (baseBIdx + 1) * k2DSize + (baseYIdx + 1) * k1DSize + (baseXIdx + 0)];
+        PolynomialCoefficients vUUU = table[maxComp * k3DSize + (baseBIdx + 1) * k2DSize + (baseYIdx + 1) * k1DSize + (baseXIdx + 1)];
+
+        PolynomialCoefficients coeffs =
+            weightBL * weightYL * weightXL * vLLL +
+            weightBL * weightYL * weightXU * vLLU +
+            weightBL * weightYU * weightXL * vLUL +
+            weightBL * weightYU * weightXU * vLUU +
+            weightBU * weightYL * weightXL * vULL +
+            weightBU * weightYL * weightXU * vULU +
+            weightBU * weightYU * weightXL * vUUL +
+            weightBU * weightYU * weightXU * vUUU;
+
+        m_c[0] = coeffs.c0;
+        m_c[1] = coeffs.c1;
+        m_c[2] = coeffs.c2;
+    }
+#endif
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(VLRSpectrumType spType, VLRColorSpace space, RealType e0, RealType e1, RealType e2) {
+    RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(VLRSpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RealType xy[2];
         RealType brightness;
-        switch (space) {
-        case VLRColorSpace_Rec709_D65_sRGBGamma: {
+        switch (space.value) {
+        case ColorSpace::Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
             e2 = sRGB_degamma(e2);
             // pass to Rec709
         }
-        case VLRColorSpace_Rec709_D65: {
+        case ColorSpace::Rec709_D65: {
             RealType RGB[3] = { e0, e1, e2 };
             RealType XYZ[3];
             switch (spType) {
@@ -110,7 +182,7 @@ namespace VLR {
             e2 = XYZ[2];
             // pass to XYZ
         }
-        case VLRColorSpace_XYZ: {
+        case ColorSpace::XYZ: {
             RealType Y = e1;
             RealType b = e0 + e1 + e2;
             e0 = e0 / b;
@@ -118,7 +190,7 @@ namespace VLR {
             e2 = Y;
             // pass to xyY
         }
-        case VLRColorSpace_xyY: {
+        case ColorSpace::xyY: {
             xy[0] = e0;
             xy[1] = e1;
             brightness = e2 / e1;
@@ -142,10 +214,69 @@ namespace VLR {
         VLRAssert(std::isfinite(uv[0]) && std::isfinite(uv[1]) && std::isfinite(m_scale), "Invalid value.");
 
         computeAdjacents(uv[0], uv[1]);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        switch (space.value) {
+        case ColorSpace::Rec709_D65_sRGBGamma: {
+            e0 = sRGB_degamma(e0);
+            e1 = sRGB_degamma(e1);
+            e2 = sRGB_degamma(e2);
+            // pass to Rec709
+        }
+        case ColorSpace::Rec709_D65: {
+            switch (spType) {
+            case VLRSpectrumType_Reflectance: {
+#   if defined(VLR_Host)
+                interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
+#   else
+                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_D65));
+#   endif
+                break;
+            }
+            case VLRSpectrumType_IndexOfRefraction:
+            case VLRSpectrumType_NA: {
+#   if defined(VLR_Host)
+                interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
+#   else
+                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_D65));
+#   endif
+                break;
+            }
+            case VLRSpectrumType_LightSource: {
+#   if defined(VLR_Host)
+                interpolateCoefficients(e0, e1, e2, coefficients_sRGB_E);
+#   else
+                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_E));
+#   endif
+                break;
+            }
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+            break;
+        }
+        case ColorSpace::XYZ: {
+            VLRAssert_NotImplemented();
+            break;
+        }
+        case ColorSpace::xyY: {
+            VLRAssert_NotImplemented();
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
+#endif
     }
 
     template <typename RealType, uint32_t NumSpectralSamples>
     RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+#   if defined(VLR_Device)
+        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+#   endif
+
         uint8_t adjIndices[4];
         adjIndices[0] = (m_adjIndices >> 0) & 0xFF;
         adjIndices[1] = (m_adjIndices >> 8) & 0xFF;
@@ -187,15 +318,67 @@ namespace VLR {
         }
 
         return ret * m_scale;
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        SampledSpectrumTemplate<RealType, NumSpectralSamples> ret(0.0);
+
+        for (int i = 0; i < NumSpectralSamples; ++i) {
+            const auto fmad = [](RealType a, RealType b, RealType c) {
+                return a * b + c;
+            };
+            RealType x = fmad(fmad(m_c[0], wls[i], m_c[1]), wls[i], m_c[2]);
+            ret[i] = fmad((RealType)0.5 * x, 1 / std::sqrt(fmad(x, x, 1)), (RealType)0.5);
+        }
+
+        return ret;
+#endif
     }
+
+#if defined(VLR_Host)
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+    template <typename RealType, uint32_t NumSpectralSamples>
+    float UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::maxBrightnesses[kTableResolution];
+    template <typename RealType, uint32_t NumSpectralSamples>
+    typename UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::PolynomialCoefficients
+        UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::coefficients_sRGB_D65[3 * pow3(kTableResolution)];
+    template <typename RealType, uint32_t NumSpectralSamples>
+    typename UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::PolynomialCoefficients
+        UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::coefficients_sRGB_E[3 * pow3(kTableResolution)];
+#   endif
+
+    template <typename RealType, uint32_t NumSpectralSamples>
+    void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::initialize() {
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        const auto readUpsamplingTable = [](const char* filename, PolynomialCoefficients* coefficients) {
+            const std::string tableDir = "resources/spectral_upsampling_table/";
+            std::ifstream ifs;
+            ifs.open(tableDir + filename, std::ios::in | std::ios::binary);
+            VLRAssert(!ifs.fail(), "failed to open the upsampling table.");
+
+            char magic[5] = "****";
+            ifs.read(magic, 4);
+            VLRAssert(strncmp(magic, "SPEC", 4) == 0, "Invalid file as the upsampling table for sRGB(D65).");
+
+            const uint32_t kTableResolution = 64;
+            int32_t resolution = 0;
+            ifs.read((char*)&resolution, 4);
+            VLRAssert(resolution == kTableResolution, "Table resolution must be %u.", kTableResolution);
+
+            ifs.read((char*)maxBrightnesses, sizeof(float) * kTableResolution);
+
+            const uint32_t tableSize = pow3(kTableResolution);
+            ifs.read((char*)coefficients, sizeof(PolynomialCoefficients) * 3 * tableSize);
+        };
+
+        readUpsamplingTable("sRGB_D65.coeff", coefficients_sRGB_D65);
+        readUpsamplingTable("sRGB_E.coeff", coefficients_sRGB_E);
+#   endif
+    }
+#endif
 
     template class UpsampledSpectrumTemplate<float, NumSpectralSamples>;
     //template class UpsampledSpectrumTemplate<double, NumSpectralSamples>;
-
-#if defined(VLR_Device)
-#   undef spectrum_data_points
-#   undef spectrum_grid
-#endif
 
 
 
@@ -490,6 +673,7 @@ namespace VLR {
 
 
 #if defined(VLR_Host)
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <>
     const UpsampledSpectrumTemplate<float, NumSpectralSamples>::spectrum_grid_cell_t UpsampledSpectrumTemplate<float, NumSpectralSamples>::spectrum_grid[] = {
             { 0, 5, { 148, 110, 0, 12, 111, UINT8_MAX }},
@@ -1215,5 +1399,6 @@ namespace VLR {
             { { -0.027099054061447154, 0.5199805671765496 }, { 5.5, 13.285645507812498 }, { 0.0, 0.0, 6.07265705841e-18, 3.9153869335e-17, 6.83811136486e-17, 0.0, 0.0, 0.0, 3.07346290343e-18, 0.0, 0.0, 5.86640946215e-17, 4.87236563565e-17, 0.0, 2.03692193867e-16, 8.25853813172e-17, 2.05167163295e-16, 0.0, 0.0, 0.0, 9.16487509458e-17, 0.0, 0.0, 0.0, 1.88425216355e-17, 1.48907006499e-16, 5.36069325598e-17, 0.0, 0.00589945366203, 0.0190864839713, 0.0333085268483, 0.0434567619073, 0.0461464975023, 0.0405966566374, 0.02876398135, 0.0145256837616, 0.00290032063089, 0.0, 0.0, 0.0, 0.0, 3.53546675364e-17, 3.50847217616e-17, 0.0, 0.0, 5.99434869722e-17, 0.0, 0.0, 0.0, 8.68237138275e-17, 0.0, 2.41273035908e-17, 0.0, 0.0, 1.80307907587e-17, 3.3243708225e-16, 0.0, 0.0, 7.67709713998e-18, 0.0, 1.32828058609e-18, 3.81245562332e-17, 1.59112225539e-17, 0.0, 3.21069732606e-18, 5.4267112542e-18, 1.50624159284e-18, 1.29172063243e-17, 1.69517555487e-17, 3.03450803994e-18, 0.0, 8.22338766334e-18, 6.03361343313e-18, 5.33292285628e-18, 1.01821259368e-17, 4.40248399964e-18, 1.32481432448e-18, 5.5313309151e-18, 1.42957355822e-17, 1.94896341982e-17, 3.72430681112e-17, 4.72858193556e-17, 5.29088129974e-17, 6.63362919368e-17, 5.75269908697e-17, 7.06090150172e-17, 7.97139783054e-17, 8.93608125852e-17, 9.41070857904e-17, 1.0089581182e-16, 1.24107653141e-16, 1.26196474196e-16, 7.14451389961e-08, 1.42002108992e-16, 1.56143092963e-07 } },
             { { 0.00799213911975501, 0.5124794716350015 }, { 6.147461588541667, 13.151693359374999 }, { 0.0, 0.0, 5.9028150984e-17, 2.4148259161e-17, 7.33782385489e-19, 5.1495633281e-19, 0.0, 0.0, 0.0, 1.24555310684e-16, 0.0, 0.0, 8.0947092227e-17, 0.0, 2.85552942798e-16, 3.79293282628e-17, 1.75439650523e-16, 9.48147955674e-17, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.17570610275e-17, 0.0, 1.89832968732e-16, 3.02236409156e-17, 0.00343331735201, 0.0161116168426, 0.0302737051622, 0.0399553784569, 0.0421084900475, 0.0367704671098, 0.0260161865074, 0.013146818451, 0.00260714356432, 4.87484335223e-17, 1.35130396249e-17, 0.0, 7.0348110131e-17, 0.0, 0.0, 0.0, 0.0, 2.15577648516e-18, 0.0, 3.8542181272e-17, 8.09724774405e-17, 0.0, 5.3705677499e-17, 1.69195129186e-17, 4.95787220673e-17, 0.0, 1.52709578819e-18, 1.20188561418e-16, 1.10149199749e-16, 1.58658682513e-17, 8.50934848694e-17, 1.27212667281e-17, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.44860852869e-19, 0.0, 2.02743838698e-18, 8.07967423944e-19, 0.0, 0.0, 3.38857815821e-18, 4.44598098865e-18, 2.97536332608e-18, 1.21798100383e-18, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.54789701537e-07, 0.0, 9.74875998126e-07, 5.13423710649e-09, 0.0, 1.50355738636e-06, 2.56189755346e-07 } }
     };
+#   endif
 #endif
 }

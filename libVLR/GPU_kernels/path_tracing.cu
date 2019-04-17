@@ -143,6 +143,8 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
+        phi += pv_envLightDescriptor.body.asEnvironmentLight.rotationPhi;
+        phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
 
         float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);

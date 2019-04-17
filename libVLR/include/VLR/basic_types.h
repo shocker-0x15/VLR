@@ -85,8 +85,8 @@ namespace VLR {
             *phi = std::fmod((RealType)(std::atan2(-x, z) + 2 * VLR_M_PI), (RealType)(2 * VLR_M_PI));
         }
 
-        RT_FUNCTION RealType maxValue() const { return fmaxf(x, fmaxf(y, z)); }
-        RT_FUNCTION RealType minValue() const { return fminf(x, fminf(y, z)); }
+        RT_FUNCTION RealType maxValue() const { using std::fmax; return fmax(x, fmax(y, z)); }
+        RT_FUNCTION RealType minValue() const { using std::fmin; return fmin(x, fmin(y, z)); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
 
@@ -335,6 +335,11 @@ namespace VLR {
     template <typename RealType>
     RT_FUNCTION inline RealType dot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
         return vec.x * norm.x + vec.y * norm.y + vec.z * norm.z;
+    }
+
+    template <typename RealType>
+    RT_FUNCTION inline RealType dot(const Normal3DTemplate<RealType> &n1, const Normal3DTemplate<RealType> &n2) {
+        return n1.x * n2.x + n1.y * n2.y + n1.z * n2.z;
     }
 
     template <typename RealType>

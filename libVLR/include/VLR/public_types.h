@@ -7,7 +7,8 @@ enum VLRSpectrumType {
     VLRSpectrumType_Transmittance = VLRSpectrumType_Reflectance,
     VLRSpectrumType_LightSource,
     VLRSpectrumType_IndexOfRefraction,
-    VLRSpectrumType_NA
+    VLRSpectrumType_NA,
+    NumVLRSpectrumTypes
 };
 
 enum VLRColorSpace {
@@ -15,6 +16,7 @@ enum VLRColorSpace {
     VLRColorSpace_Rec709_D65,
     VLRColorSpace_XYZ,
     VLRColorSpace_xyY,
+    NumVLRColorSpaces
 };
 
 
@@ -53,9 +55,9 @@ enum VLRShaderNodeSocketType {
     VLRShaderNodeSocketType_Vector3D,
     VLRShaderNodeSocketType_Normal3D,
     VLRShaderNodeSocketType_Spectrum,
+    VLRShaderNodeSocketType_Alpha,
     VLRShaderNodeSocketType_TextureCoordinates,
-    NumVLRShaderNodeSocketTypes,
-    VLRShaderNodeSocketType_Invalid
+    NumVLRShaderNodeSocketTypes
 };
 
 struct VLRShaderNodeSocketInfo {
@@ -96,6 +98,18 @@ enum VLRNodeType {
 enum VLRCameraType {
     VLRCameraType_Perspective = 0,
     VLRCameraType_Equirectangular,
+};
+
+enum VLRDebugRenderingMode {
+    VLRDebugRenderingMode_GeometricNormal = 0,
+    VLRDebugRenderingMode_ShadingTangent,
+    VLRDebugRenderingMode_ShadingBitangent,
+    VLRDebugRenderingMode_ShadingNormal,
+    VLRDebugRenderingMode_TC0Direction,
+    VLRDebugRenderingMode_TextureCoordinates,
+    VLRDebugRenderingMode_GeometricVsShadingNormal,
+    VLRDebugRenderingMode_ShadingFrameLengths,
+    VLRDebugRenderingMode_ShadingFrameOrthogonality,
 };
 
 

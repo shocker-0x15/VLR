@@ -7,21 +7,7 @@
 #include <ImfRgbaFile.h>
 #include <ImfArray.h>
 
-struct Image2DCacheKey {
-    std::string filepath;
-    bool applyDegamma;
-
-    bool operator<(const Image2DCacheKey &key) const {
-        if (filepath < key.filepath)
-            return true;
-        else if (filepath == key.filepath)
-            if (applyDegamma < key.applyDegamma)
-                return true;
-        return false;
-    }
-};
-
-static std::map<Image2DCacheKey, VLRCpp::Image2DRef> s_image2DCache;
+static std::map<std::tuple<std::string, VLRSpectrumType, VLRColorSpace>, VLRCpp::Image2DRef> s_image2DCache;
 
 namespace DDS {
     enum class Format : uint32_t {
@@ -266,13 +252,14 @@ namespace DDS {
     }
 }
 
-VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, bool applyDegamma) {
+// TODO: colorSpace should be determined from read image?
+VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
     using namespace VLRCpp;
     using namespace VLR;
 
     Image2DRef ret;
 
-    Image2DCacheKey key{ filepath, applyDegamma };
+    auto key = std::make_tuple(filepath, spectrumType, colorSpace);
     if (s_image2DCache.count(key))
         return s_image2DCache.at(key);
 
@@ -332,7 +319,7 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
             curDataHead += width;
         }
 
-        ret = context->createLinearImage2D((uint8_t*)linearImageData, width, height, VLRDataFormat_RGBA16Fx4, applyDegamma);
+        ret = context->createLinearImage2D((uint8_t*)linearImageData, width, height, VLRDataFormat_RGBA16Fx4, spectrumType, colorSpace);
 
         delete[] linearImageData;
     }
@@ -404,7 +391,7 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
         bool needsDegamma;
         translate(format, &vlrFormat, &needsDegamma);
 
-        ret = context->createBlockCompressedImage2D(data, sizes, mipCount, width, height, vlrFormat, needsDegamma);
+        ret = context->createBlockCompressedImage2D(data, sizes, mipCount, width, height, vlrFormat, spectrumType, colorSpace);
         Assert(ret, "failed to load a block compressed texture.");
 
         DDS::free(data, mipCount, sizes);
@@ -413,13 +400,13 @@ VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::str
         int32_t width, height, n;
         uint8_t* linearImageData = stbi_load(filepath.c_str(), &width, &height, &n, 0);
         if (n == 4)
-            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_RGBA8x4, applyDegamma);
+            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_RGBA8x4, spectrumType, colorSpace);
         else if (n == 3)
-            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_RGB8x3, applyDegamma);
+            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_RGB8x3, spectrumType, colorSpace);
         else if (n == 2)
-            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_GrayA8x2, applyDegamma);
+            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_GrayA8x2, spectrumType, colorSpace);
         else if (n == 1)
-            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_Gray8, applyDegamma);
+            ret = context->createLinearImage2D(linearImageData, width, height, VLRDataFormat_Gray8, spectrumType, colorSpace);
         else
             Assert_ShouldNotBeCalled();
         stbi_image_free(linearImageData);
@@ -457,8 +444,8 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
     
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
         texDiffuse = context->createImage2DTextureShaderNode();
-        imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
-        texDiffuse->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imgDiffuse);
+        imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+        texDiffuse->setImage(imgDiffuse);
         mat->setNodeAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
@@ -469,19 +456,16 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
     }
 
     if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-        imgAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+        imgAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
         texAlpha = context->createImage2DTextureShaderNode();
-        texAlpha->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imgAlpha);
+        texAlpha->setImage(imgAlpha);
     }
 
     if (imgAlpha) {
-        socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+        socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_Alpha, 0);
     }
     else if (imgDiffuse && imgDiffuse->hasAlpha()) {
-        if (imgDiffuse->getDataFormat() == VLRDataFormat_GrayA8x2)
-            socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 1);
-        else
-            socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
+        socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
     }
 
     return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
@@ -652,9 +636,9 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         cornellBox->setVertices(vertices.data(), vertices.size());
 
         {
-            Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", true);
+            Image2DRef image = loadImage2D(context, "resources/checkerboard_line.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
-            nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+            nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
             matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
@@ -798,7 +782,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -811,10 +795,10 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
         auto nodeTexCoord = context->createScaleAndOffsetUVTextureMap2DShaderNode();
         nodeTexCoord->setValues(offset, scale);
 
-        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
+        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
-        nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+        nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
@@ -877,9 +861,9 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
             mat = matteMat;
         }
         else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
-            Image2DRef imgNormalAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", true);
+            Image2DRef imgBaseColorAlpha = loadImage2D(context, pathPrefix + "TexturesCom_Leaves0165_1_alphamasked_S.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             Image2DTextureShaderNodeRef nodeBaseColorAlpha = context->createImage2DTextureShaderNode();
-            nodeBaseColorAlpha->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imgNormalAlpha);
+            nodeBaseColorAlpha->setImage(imgBaseColorAlpha);
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
@@ -890,7 +874,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
             mat = ue4Mat;
 
-            socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_float, 3);
+            socketAlpha = nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Alpha, 0);
 
             //auto matteMat = context->createMatteSurfaceMaterial();
             //float lambdas[] = { 360.0, 418.75, 477.5, 536.25, 595.0, 653.75, 712.5, 771.25, 830.0 };
@@ -931,13 +915,13 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, -M_PI / 2);
 
 
 
@@ -949,8 +933,8 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     {
         auto camera = context->createPerspectiveCamera();
 
-        camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
-        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180));
+        camera->setPosition(Point3D(0.0f, 5.0f, 10.0f));
+        camera->setOrientation(qRotateY<float>(M_PI) * qRotateX<float>(18 * M_PI / 180));
 
         camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
 
@@ -967,7 +951,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -980,10 +964,10 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         auto nodeTexCoord = context->createScaleAndOffsetUVTextureMap2DShaderNode();
         nodeTexCoord->setValues(offset, scale);
 
-        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", true);
+        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
-        nodeAlbedo->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, image);
+        nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
         nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
@@ -1040,48 +1024,48 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "_Head1") == 0) {
             Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-            nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", true));
+            nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_BaseColor.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
             Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-            nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", false));
+            nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_OcclusionRoughnessMetallic.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
             Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-            nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", false));
+            nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
             ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
-            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
         }
         else if (strcmp(strValue.C_Str(), "_Body1") == 0) {
             Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-            nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", true));
+            nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_BaseColor.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
             Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-            nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", false));
+            nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_OcclusionRoughnessMetallic.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
             Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-            nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", false));
+            nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
             ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
-            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
         }
         else if (strcmp(strValue.C_Str(), "_Base1") == 0) {
             Image2DTextureShaderNodeRef nodeBaseColor = context->createImage2DTextureShaderNode();
-            nodeBaseColor->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", true));
+            nodeBaseColor->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_BaseColor.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
             Image2DTextureShaderNodeRef nodeORM = context->createImage2DTextureShaderNode();
-            nodeORM->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", false));
+            nodeORM->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_OcclusionRoughnessMetallic.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
             Image2DTextureShaderNodeRef nodeNormal = context->createImage2DTextureShaderNode();
-            nodeNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", false));
+            nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
             ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
             ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
-            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+            socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
         }
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
@@ -1137,13 +1121,13 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, -M_PI / 2);
 
 
 
@@ -1155,8 +1139,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     {
         auto camera = context->createPerspectiveCamera();
 
-        camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
-        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(18 * M_PI / 180));
+        camera->setPosition(Point3D(0.0f, 5.0f, 10.0f));
+        camera->setOrientation(qRotateY<float>(M_PI) * qRotateX<float>(18 * M_PI / 180));
 
         camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
 
@@ -1260,7 +1244,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(M_PI / 2) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -1332,8 +1316,8 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
     {
         auto camera = context->createPerspectiveCamera();
 
-        camera->setPosition(Point3D(1.5f, 0.0f, 0.0f));
-        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(0 * M_PI / 180));
+        camera->setPosition(Point3D(0.0f, 0.0f, 1.5f));
+        camera->setOrientation(qRotateY<float>(M_PI) * qRotateX<float>(0 * M_PI / 180));
 
         camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
 
@@ -1350,7 +1334,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(rotateY<float>(0.2 * M_PI) * translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
 
     InternalNodeRef modelNode;
 
@@ -1411,13 +1395,13 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Playa_Sunrise/Playa_Sunrise.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Playa_Sunrise/Playa_Sunrise.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, -0.2 * M_PI);
 
 
 
@@ -1430,7 +1414,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
         auto camera = context->createPerspectiveCamera();
 
         camera->setPosition(Point3D(10.0f, 5.0f, 0.0f));
-        camera->setOrientation(qRotateY<float>(-M_PI / 2) * qRotateX<float>(30 * M_PI / 180));
+        camera->setOrientation(qRotateY<float>(-M_PI / 2 - 0.2 * M_PI) * qRotateX<float>(30 * M_PI / 180));
 
         camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
 
@@ -1480,13 +1464,13 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, 0.0f);
 
 
 
@@ -1551,24 +1535,24 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
             Image2DTextureShaderNodeRef texAlpha;
 
             if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-                imageDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+                imageDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
                 texDiffuse = context->createImage2DTextureShaderNode();
-                texDiffuse->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imageDiffuse);
+                texDiffuse->setImage(imageDiffuse);
             }
             if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
-                imageSpecular = loadImage2D(context, pathPrefix + strValue.C_Str(), true);
+                imageSpecular = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
                 texSpecular = context->createImage2DTextureShaderNode();
-                texSpecular->setImage(VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65, imageSpecular);
+                texSpecular->setImage(imageSpecular);
             }
             if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
-                imageNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+                imageNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
                 texNormal = context->createImage2DTextureShaderNode();
-                texNormal->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imageNormal);
+                texNormal->setImage(imageNormal);
             }
             if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-                imageAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), false);
+                imageAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
                 texAlpha = context->createImage2DTextureShaderNode();
-                texAlpha->setImage(VLRSpectrumType_NA, VLRColorSpace_Rec709_D65, imageAlpha);
+                texAlpha->setImage(imageAlpha);
             }
 
             if (texDiffuse)
@@ -1585,17 +1569,12 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
             }
 
             if (texNormal)
-                socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_float3, 0);
+                socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
 
-            if (texAlpha) {
+            if (texAlpha)
                 socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
-            }
-            else if (imageDiffuse && imageDiffuse->hasAlpha()) {
-                if (imageDiffuse->getDataFormat() == VLRDataFormat_GrayA8x2)
-                    socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 1);
-                else
-                    socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_float, 3);
-            }
+            else if (imageDiffuse && imageDiffuse->hasAlpha())
+                socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
 
             mat = oldMat;
         }
@@ -1632,13 +1611,13 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     //Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Barcelona_Rooftops/Barce_Rooftop_C_3k.exr", false);
-    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", false);
+    Image2DRef imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     EnvironmentTextureShaderNodeRef nodeEnvTex = context->createEnvironmentTextureShaderNode();
-    nodeEnvTex->setImage(VLRColorSpace_Rec709_D65, imgEnv);
+    nodeEnvTex->setImage(imgEnv);
     EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, 0.0f);
 
 
 
@@ -1824,7 +1803,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     matEnv->setNodeEmittanceConstant(spectrum);
     //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
     matEnv->setImmediateValueScale(envScale);
-    shot->scene->setEnvironment(matEnv);
+    shot->scene->setEnvironment(matEnv, 0.0f);
 
 
 

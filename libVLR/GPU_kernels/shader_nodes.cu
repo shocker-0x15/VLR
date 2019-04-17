@@ -27,7 +27,7 @@ namespace VLR {
         return Vector3D::Zero();
     }
 
-    RT_CALLABLE_PROGRAM Point3D GeometryShaderNode_textureCoordinates(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM Point3D GeometryShaderNode_TextureCoordinates(const uint32_t* rawNodeData, uint32_t option,
                                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const GeometryShaderNode*)rawNodeData;
         return Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0);
@@ -161,13 +161,13 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM SampledSpectrum TripletSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                            const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const TripletSpectrumShaderNode*)rawNodeData;
         return nodeData.value.evaluate(wls);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                                   const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const RegularSampledSpectrumShaderNode*)rawNodeData;
 #if defined(VLR_USE_SPECTRAL_RENDERING)
@@ -177,7 +177,7 @@ namespace VLR {
 #endif
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const IrregularSampledSpectrumShaderNode*)rawNodeData;
 #if defined(VLR_USE_SPECTRAL_RENDERING)
@@ -189,7 +189,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM SampledSpectrum Vector3DToSpectrumShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM SampledSpectrum Vector3DToSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const Vector3DToSpectrumShaderNode*)rawNodeData;
         Vector3D vector = calcNode(nodeData.nodeVector3D, nodeData.immVector3D, surfPt, wls);
@@ -207,7 +207,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM Point3D ScaleAndOffsetUVTextureMap2DShaderNode_textureCoordinates(const uint32_t* rawNodeData, uint32_t option,
+    RT_CALLABLE_PROGRAM Point3D ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates(const uint32_t* rawNodeData, uint32_t option,
                                                                                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const ScaleAndOffsetUVTextureMap2DShaderNode*)rawNodeData;
         return Point3D(nodeData.scale[0] * surfPt.texCoord.u + nodeData.offset[0],
@@ -216,24 +216,6 @@ namespace VLR {
     }
 
 
-
-    RT_CALLABLE_PROGRAM SampledSpectrum Image2DTextureShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                          const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
-
-        Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
-        if (nodeData.format == VLRDataFormat_Gray32F ||
-            nodeData.format == VLRDataFormat_Gray8 ||
-            nodeData.format == VLRDataFormat_GrayA8x2)
-            texValue.z = texValue.y = texValue.x;
-
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-        return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);
-#else
-        return SampledSpectrum(texValue.x, texValue.y, texValue.z); // assume given data is in rendering RGB.
-#endif
-    }
 
     RT_CALLABLE_PROGRAM float Image2DTextureShaderNode_float(const uint32_t* rawNodeData, uint32_t option,
                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
@@ -296,9 +278,82 @@ namespace VLR {
         return texValue;
     }
 
+    RT_CALLABLE_PROGRAM Normal3D Image2DTextureShaderNode_Normal3D(const uint32_t* rawNodeData, uint32_t option,
+                                                                   const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
+
+        Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+
+        if (option == 0)
+            return 2 * Normal3D(texValue.x, texValue.y, texValue.z) - 1.0f;
+        else if (option == 1)
+            return 2 * Normal3D(texValue.y, texValue.z, texValue.w) - 1.0f;
+
+        return Normal3D(0.0f, 0.0f, 1.0f);
+    }
+
+    RT_CALLABLE_PROGRAM SampledSpectrum Image2DTextureShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                          const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
+
+        Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        DataFormat dataFormat = nodeData.getDataFormat();
+        if (dataFormat == DataFormat::Gray32F ||
+            dataFormat == DataFormat::Gray8 ||
+            dataFormat == DataFormat::GrayA8x2)
+            texValue.z = texValue.y = texValue.x;
+
+#if defined(VLR_USE_SPECTRAL_RENDERING)
+        UpsampledSpectrum spectrum;
+        if (dataFormat == DataFormat::uvsA8x4 ||
+            dataFormat == DataFormat::uvsA16Fx4) {
+            float u = texValue.x;
+            float v = texValue.y;
+            float s = texValue.z;
+            if (dataFormat == DataFormat::uvsA8x4) {
+                u *= UpsampledSpectrum::GridWidth();
+                v *= UpsampledSpectrum::GridHeight();
+                s *= 3;
+            }
+            // JP: uvsA16Fの場合もInf回避のために EqualEnergyReflectance で割っていないので
+            //     どちらのフォーマットだとしても割る。
+            // EN: 
+            s /= UpsampledSpectrum::EqualEnergyReflectance();
+            spectrum = UpsampledSpectrum(u, v, s);
+        }
+        else {
+            spectrum = UpsampledSpectrum(nodeData.getSpectrumType(), nodeData.getColorSpace(), texValue.x, texValue.y, texValue.z);
+        }
+        return spectrum.evaluate(wls);
+#else
+        return SampledSpectrum(texValue.x, texValue.y, texValue.z); // assume given data is in rendering RGB.
+#endif
+    }
+
+    RT_CALLABLE_PROGRAM float Image2DTextureShaderNode_Alpha(const uint32_t* rawNodeData, uint32_t option,
+                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        auto &nodeData = *(const Image2DTextureShaderNode*)rawNodeData;
+
+        Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
+        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+
+        if (option == 0)
+            return texValue.x;
+        else if (option == 1)
+            return texValue.y;
+        else if (option == 2)
+            return texValue.z;
+        else if (option == 3)
+            return texValue.w;
+
+        return 0.0f;
+    }
 
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EnvironmentTextureShaderNode_spectrum(const uint32_t* rawNodeData, uint32_t option,
+
+    RT_CALLABLE_PROGRAM SampledSpectrum EnvironmentTextureShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
                                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *(const EnvironmentTextureShaderNode*)rawNodeData;
 
@@ -306,7 +361,20 @@ namespace VLR {
         optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        return UpsampledSpectrum(VLRSpectrumType_LightSource, nodeData.colorSpace, texValue.x, texValue.y, texValue.z).evaluate(wls);
+        DataFormat dataFormat = nodeData.getDataFormat();
+
+        UpsampledSpectrum spectrum;
+        if (dataFormat == DataFormat::uvsA16Fx4) {
+            float u = texValue.x;
+            float v = texValue.y;
+            float s = texValue.z;
+            s /= UpsampledSpectrum::EqualEnergyReflectance();
+            spectrum = UpsampledSpectrum(u, v, s);
+        }
+        else {
+            spectrum = UpsampledSpectrum(VLRSpectrumType_LightSource, nodeData.getColorSpace(), texValue.x, texValue.y, texValue.z);
+        }
+        return spectrum.evaluate(wls);
 #else
         return SampledSpectrum(texValue.x, texValue.y, texValue.z); // assume given data is in rendering RGB.
 #endif

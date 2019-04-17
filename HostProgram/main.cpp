@@ -71,6 +71,9 @@ double g_mouseY;
 
 
 
+bool g_enableDebugRendering;
+VLRDebugRenderingMode g_debugRenderingMode;
+
 VLR::Point3D g_cameraPosition;
 VLR::Quaternion g_cameraOrientation;
 VLR::Quaternion g_tempCameraOrientation;
@@ -357,6 +360,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     g_cameraPositionalMovingSpeed = 0.01f;
     g_cameraDirectionalMovingSpeed = 0.0015f;
     g_cameraTiltSpeed = 0.025f;
+
+    g_enableDebugRendering = false;
+    g_debugRenderingMode = VLRDebugRenderingMode_GeometricNormal;
 
 
 
@@ -672,6 +678,20 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                     cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&g_cameraPosition);
                     cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)&g_cameraOrientation);
+
+                    const char* debugRenderModes[] = {
+                        "GeometricNormal",
+                        "ShadingTangent",
+                        "ShadingBitangent",
+                        "ShadingNormal",
+                        "TC0Direction",
+                        "TextureCoordinates",
+                        "GeometricVsShadingNormal",
+                        "ShadingFrameLengths",
+                        "ShadingFrameOrthogonality",
+                    };
+                    cameraSettingsChanged |= ImGui::Checkbox("Debug Render", &g_enableDebugRendering);
+                    cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)&g_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
                     ImGui::SliderFloat("Brightness", &g_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
 
                     if (ImGui::InputInt("Viewport", &g_presetViewportIndex)) {
@@ -903,7 +923,10 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     accumFrameTimes = 0;
                 else
                     sw.start();
-                context->render(shot.scene, g_camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
+                if (g_enableDebugRendering)
+                    context->debugRender(shot.scene, g_camera, g_debugRenderingMode, shrinkCoeff, firstFrame, &g_numAccumFrames);
+                else
+                    context->render(shot.scene, g_camera, shrinkCoeff, firstFrame, &g_numAccumFrames);
                 if (!firstFrame)
                     accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 

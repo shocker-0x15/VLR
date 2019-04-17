@@ -195,6 +195,7 @@ namespace VLR {
 
     void initializeColorSystem() {
         if (!s_initialized) {
+            UpsampledSpectrumTemplate<float, NumSpectralSamples>::initialize();
             DiscretizedSpectrumTemplate<float, NumStrataForStorage>::initialize();
 
             CompensatedSum<float> cum(0);
@@ -203,6 +204,12 @@ namespace VLR {
             integralCMF = cum;
 
             s_initialized = true;
+        }
+    }
+
+    void finalizeColorSystem() {
+        if (s_initialized) {
+            s_initialized = false;
         }
     }
 }

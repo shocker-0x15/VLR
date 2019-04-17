@@ -298,19 +298,50 @@ namespace VLR {
 
     template <typename RealType, uint32_t NumSpectralSamples>
     class UpsampledSpectrumTemplate {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         uint32_t m_adjIndices;
         uint16_t m_s, m_t;
         RealType m_scale;
 
         RT_FUNCTION void computeAdjacents(RealType u, RealType v);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+    public:
+        struct PolynomialCoefficients {
+            float c0, c1, c2;
+
+            RT_FUNCTION friend inline PolynomialCoefficients operator*(RealType s, const PolynomialCoefficients &v) {
+                return PolynomialCoefficients{ s * v.c0, s * v.c1, s * v.c2 };
+            }
+            RT_FUNCTION PolynomialCoefficients operator+(const PolynomialCoefficients &v) const {
+                return PolynomialCoefficients{ c0 + v.c0, c1 + v.c1, c2 + v.c2 };
+            }
+        };
+
+    private:
+        RealType m_c[3];
+
+#   if defined(VLR_Host)
+        RT_FUNCTION void interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table);
+#   else
+        RT_FUNCTION void interpolateCoefficients(RealType e0, RealType e1, RealType e2, rtBufferId<PolynomialCoefficients, 1> table);
+#   endif
+#endif
 
     public:
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+        RT_FUNCTION UpsampledSpectrumTemplate(RealType u, RealType v, RealType scale) {
+            computeAdjacents(u, v);
+            m_scale = scale;
+        }
         RT_FUNCTION constexpr UpsampledSpectrumTemplate(uint32_t adjIndices, uint16_t s, uint16_t t, RealType scale) :
         m_adjIndices(adjIndices), m_s((RealType)s / (UINT16_MAX - 1)), m_t((RealType)t / (UINT16_MAX - 1)), m_scale(scale) {}
-        RT_FUNCTION constexpr UpsampledSpectrumTemplate(VLRSpectrumType spType, VLRColorSpace space, RealType e0, RealType e1, RealType e2);
+#endif
+        RT_FUNCTION UpsampledSpectrumTemplate() {}
+        RT_FUNCTION constexpr UpsampledSpectrumTemplate(VLRSpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 
         RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
 
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RT_FUNCTION static constexpr RealType MinWavelength() { return 360.0; }
         RT_FUNCTION static constexpr RealType MaxWavelength() { return 830.0; }
         RT_FUNCTION static constexpr uint32_t NumWavelengthSamples() { return 95; }
@@ -332,10 +363,12 @@ namespace VLR {
             float spectrum[95]; // X+Y+Z = 1
         };
 
-#if defined(VLR_Host)
+#   if defined(VLR_Host)
         static const spectrum_grid_cell_t spectrum_grid[];
         static const spectrum_data_point_t spectrum_data_points[];
-#endif
+
+        static void initialize();
+#   endif
 
         // This is 1 over the integral over either CMF.
         // Spectra can be mapped so that xyz=(1,1,1) is converted to constant 1 by
@@ -351,6 +384,16 @@ namespace VLR {
             xy[0] = 0.0491440520940413 * uv[0] - 0.02361291916573777 * uv[1] + 0.13292069743203658;
             xy[1] = 0.022853819546830627 * uv[0] + 0.05077639329371236 * uv[1] - 0.006895157122499944;
         }
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        static const uint32_t kTableResolution = 64;
+#   if defined(VLR_Host)
+        static float maxBrightnesses[kTableResolution];
+        static PolynomialCoefficients coefficients_sRGB_D65[3 * pow3(kTableResolution)];
+        static PolynomialCoefficients coefficients_sRGB_E[3 * pow3(kTableResolution)];
+
+        static void initialize();
+#   endif
+#endif
     };
 
 
@@ -395,7 +438,7 @@ namespace VLR {
 
 
     template <typename RealType, uint32_t NumStrataForStorage>
-    struct DiscretizedSpectrumTemplate {
+    class DiscretizedSpectrumTemplate {
         RealType values[NumStrataForStorage];
 
     public:
@@ -585,7 +628,3 @@ namespace VLR {
     using RegularSampledSpectrum = RegularSampledSpectrumTemplate<float, NumSpectralSamples>;
     using IrregularSampledSpectrum = IrregularSampledSpectrumTemplate<float, NumSpectralSamples>;
 }
-
-#if defined(VLR_Device)
-#include "spectrum_types.cpp"
-#endif

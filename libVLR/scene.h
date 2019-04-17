@@ -420,6 +420,7 @@ namespace VLR {
         RootNode m_rootNode;
         optix::Program m_callableProgramSampleInfiniteSphere;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
+        float m_envRotationPhi;
 
     public:
         static const ClassIdentifier ClassID;
@@ -446,7 +447,7 @@ namespace VLR {
         }
 
         // TODO: 内部実装をInfiniteSphereSurfaceNode + EnvironmentEmitterMaterialを使ったものに変えられないかを考える。
-        void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
+        void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv, float rotationPhi);
 
         void set();
     };

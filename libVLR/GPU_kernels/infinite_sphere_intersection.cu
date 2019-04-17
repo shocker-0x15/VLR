@@ -67,13 +67,16 @@ namespace VLR {
         float phi = 2 * M_PIf * u;
         float theta = M_PIf * v;
 
+        float posPhi = phi - desc.asEnvironmentLight.rotationPhi;
+        posPhi = posPhi - std::floor(posPhi / (2 * M_PIf)) * 2 * M_PIf;
+
         result->materialIndex = desc.asEnvironmentLight.materialIndex;
 
-        Vector3D direction = Vector3D::fromPolarYUp(phi, theta);
+        Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
 
         float sinPhi, cosPhi;
-        VLR::sincos(phi, &sinPhi, &cosPhi);
+        VLR::sincos(posPhi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         Normal3D geometricNormal = -(Vector3D)position;
@@ -92,7 +95,7 @@ namespace VLR {
         surfPt.atInfinity = true;
 
         surfPt.geometricNormal = geometricNormal;
-        surfPt.u = phi;
+        surfPt.u = posPhi;
         surfPt.v = theta;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
 

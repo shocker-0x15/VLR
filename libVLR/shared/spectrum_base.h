@@ -13,9 +13,30 @@ namespace VLR {
     extern const float ybar_CIE1931_2deg[NumCMFSamples];
     extern const float zbar_CIE1931_2deg[NumCMFSamples];
     extern float integralCMF;
+    extern float integralCMF;
 
     void initializeColorSystem();
+    void finalizeColorSystem();
 #endif
+
+    struct ColorSpace {
+        enum Value {
+            Rec709_D65_sRGBGamma = 0,
+            Rec709_D65,
+            XYZ,
+            xyY,
+            NumColorSpaces
+        } value;
+
+        RT_FUNCTION constexpr ColorSpace(Value v = Rec709_D65) : value(v) {}
+        RT_FUNCTION constexpr ColorSpace(VLRColorSpace v) : value((Value)v) {}
+        RT_FUNCTION constexpr bool operator==(Value v) const {
+            return value == v;
+        }
+        RT_FUNCTION explicit operator uint32_t() const {
+            return value;
+        }
+    };
 
     template <typename RealType>
     RT_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
@@ -152,20 +173,20 @@ namespace VLR {
     }
 
     template <typename RealType>
-    inline constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, VLRColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
+    inline constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, ColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
         RealType srcTriplet[3] = { src[0], src[1], src[2] };
-        switch (srcSpace) {
-        case VLRColorSpace_Rec709_D65_sRGBGamma:
+        switch (srcSpace.value) {
+        case ColorSpace::Rec709_D65_sRGBGamma:
             dstRGB[0] = sRGB_degamma(srcTriplet[0]);
             dstRGB[1] = sRGB_degamma(srcTriplet[1]);
             dstRGB[2] = sRGB_degamma(srcTriplet[2]);
             break;
-        case VLRColorSpace_Rec709_D65:
+        case ColorSpace::Rec709_D65:
             dstRGB[0] = srcTriplet[0];
             dstRGB[1] = srcTriplet[1];
             dstRGB[2] = srcTriplet[2];
             break;
-        case VLRColorSpace_xyY: {
+        case ColorSpace::xyY: {
             if (srcTriplet[1] == 0) {
                 dstRGB[0] = dstRGB[1] = dstRGB[2] = 0.0f;
                 break;
@@ -177,7 +198,7 @@ namespace VLR {
             srcTriplet[2] = z * b;
             // pass to XYZ
         }
-        case VLRColorSpace_XYZ:
+        case ColorSpace::XYZ:
             switch (spectrumType) {
             case VLRSpectrumType_Reflectance:
             case VLRSpectrumType_IndexOfRefraction:
@@ -219,17 +240,17 @@ namespace VLR {
     }
 
     template <typename RealType>
-    constexpr RealType calcLuminance(VLRColorSpace colorSpace, RealType e0, RealType e1, RealType e2) {
-        switch (colorSpace) {
-        case VLRColorSpace_Rec709_D65_sRGBGamma:
+    constexpr RealType calcLuminance(ColorSpace colorSpace, RealType e0, RealType e1, RealType e2) {
+        switch (colorSpace.value) {
+        case ColorSpace::Rec709_D65_sRGBGamma:
             VLRAssert_NotImplemented();
             break;
-        case VLRColorSpace_Rec709_D65:
+        case ColorSpace::Rec709_D65:
             VLRAssert_NotImplemented();
             break;
-        case VLRColorSpace_XYZ:
+        case ColorSpace::XYZ:
             return e1;
-        case VLRColorSpace_xyY:
+        case ColorSpace::xyY:
             return e2;
         default:
             VLRAssert_ShouldNotBeCalled();
