@@ -121,6 +121,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
     <ClCompile Include="shared\spectrum_types.cpp" />
     <ClCompile Include="vlrDevPrintf.cpp" />
@@ -136,6 +137,7 @@
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
     <ClInclude Include="GPU_kernels\random_distributions.cuh" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
     <ClInclude Include="include\VLR\VLR.h" />

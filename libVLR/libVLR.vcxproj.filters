@@ -16,6 +16,7 @@
     <ClCompile Include="shared\spectrum_types.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
+    <ClCompile Include="image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -68,6 +69,7 @@
     <ClInclude Include="shared\basic_types_internal.h">
       <Filter>Shared</Filter>
     </ClInclude>
+    <ClInclude Include="image.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
