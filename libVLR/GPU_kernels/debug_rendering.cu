@@ -104,9 +104,6 @@ namespace VLR {
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
     RT_PROGRAM void debugRenderingMiss() {
-        if (pv_envLightDescriptor.importance == 0)
-            return;
-
         Vector3D direction = asVector3D(sm_ray.direction);
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
