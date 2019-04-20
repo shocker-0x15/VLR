@@ -253,7 +253,7 @@ namespace DDS {
 }
 
 // TODO: colorSpace should be determined from read image?
-VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
     using namespace VLRCpp;
     using namespace VLR;
 
@@ -922,6 +922,293 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->scene->setEnvironment(matEnv, -M_PI / 2);
+
+
+
+    shot->renderTargetSizeX = 1280;
+    shot->renderTargetSizeY = 720;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createPerspectiveCamera();
+
+        camera->setPosition(Point3D(0.0f, 5.0f, 10.0f));
+        camera->setOrientation(qRotateY<float>(M_PI) * qRotateX<float>(18 * M_PI / 180));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
+void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+
+    const float ColorCheckerLambdas[] = {
+        380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730
+    };
+    const float ColorCheckerSpectrumValues[24][36] = {
+        { 0.055, 0.058, 0.061, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.063, 0.065, 0.070, 0.076, 0.079, 0.081, 0.084, 0.091, 0.103, 0.119, 0.134, 0.143, 0.147, 0.151, 0.158, 0.168, 0.179, 0.188, 0.190, 0.186, 0.181, 0.182, 0.187, 0.196, 0.209 }, // dark skin
+        { 0.117, 0.143, 0.175, 0.191, 0.196, 0.199, 0.204, 0.213, 0.228, 0.251, 0.280, 0.309, 0.329, 0.333, 0.315, 0.286, 0.273, 0.276, 0.277, 0.289, 0.339, 0.420, 0.488, 0.525, 0.546, 0.562, 0.578, 0.595, 0.612, 0.625, 0.638, 0.656, 0.678, 0.700, 0.717, 0.734 }, // light skin
+        { 0.130, 0.177, 0.251, 0.306, 0.324, 0.330, 0.333, 0.331, 0.323, 0.311, 0.298, 0.285, 0.269, 0.250, 0.231, 0.214, 0.199, 0.185, 0.169, 0.157, 0.149, 0.145, 0.142, 0.141, 0.141, 0.141, 0.143, 0.147, 0.152, 0.154, 0.150, 0.144, 0.136, 0.132, 0.135, 0.147 }, // blue sky
+        { 0.051, 0.054, 0.056, 0.057, 0.058, 0.059, 0.060, 0.061, 0.062, 0.063, 0.065, 0.067, 0.075, 0.101, 0.145, 0.178, 0.184, 0.170, 0.149, 0.133, 0.122, 0.115, 0.109, 0.105, 0.104, 0.106, 0.109, 0.112, 0.114, 0.114, 0.112, 0.112, 0.115, 0.120, 0.125, 0.130 }, // foliage
+        { 0.144, 0.198, 0.294, 0.375, 0.408, 0.421, 0.426, 0.426, 0.419, 0.403, 0.379, 0.346, 0.311, 0.281, 0.254, 0.229, 0.214, 0.208, 0.202, 0.194, 0.193, 0.200, 0.214, 0.230, 0.241, 0.254, 0.279, 0.313, 0.348, 0.366, 0.366, 0.359, 0.358, 0.365, 0.377, 0.398 }, // blue flower
+        { 0.136, 0.179, 0.247, 0.297, 0.320, 0.337, 0.355, 0.381, 0.419, 0.466, 0.510, 0.546, 0.567, 0.574, 0.569, 0.551, 0.524, 0.488, 0.445, 0.400, 0.350, 0.299, 0.252, 0.221, 0.204, 0.196, 0.191, 0.188, 0.191, 0.199, 0.212, 0.223, 0.232, 0.233, 0.229, 0.229 }, // bluish green
+        { 0.054, 0.054, 0.053, 0.054, 0.054, 0.055, 0.055, 0.055, 0.056, 0.057, 0.058, 0.061, 0.068, 0.089, 0.125, 0.154, 0.174, 0.199, 0.248, 0.335, 0.444, 0.538, 0.587, 0.595, 0.591, 0.587, 0.584, 0.584, 0.590, 0.603, 0.620, 0.639, 0.655, 0.663, 0.663, 0.667 }, // orange
+        { 0.122, 0.164, 0.229, 0.286, 0.327, 0.361, 0.388, 0.400, 0.392, 0.362, 0.316, 0.260, 0.209, 0.168, 0.138, 0.117, 0.104, 0.096, 0.090, 0.086, 0.084, 0.084, 0.084, 0.084, 0.084, 0.085, 0.090, 0.098, 0.109, 0.123, 0.143, 0.169, 0.205, 0.244, 0.287, 0.332 }, // purplish blue
+        { 0.096, 0.115, 0.131, 0.135, 0.133, 0.132, 0.130, 0.128, 0.125, 0.120, 0.115, 0.110, 0.105, 0.100, 0.095, 0.093, 0.092, 0.093, 0.096, 0.108, 0.156, 0.265, 0.399, 0.500, 0.556, 0.579, 0.588, 0.591, 0.593, 0.594, 0.598, 0.602, 0.607, 0.609, 0.609, 0.610 }, // moderate red
+        { 0.092, 0.116, 0.146, 0.169, 0.178, 0.173, 0.158, 0.139, 0.119, 0.101, 0.087, 0.075, 0.066, 0.060, 0.056, 0.053, 0.051, 0.051, 0.052, 0.052, 0.051, 0.052, 0.058, 0.073, 0.096, 0.119, 0.141, 0.166, 0.194, 0.227, 0.265, 0.309, 0.355, 0.396, 0.436, 0.478 }, // purple
+        { 0.061, 0.061, 0.062, 0.063, 0.064, 0.066, 0.069, 0.075, 0.085, 0.105, 0.139, 0.192, 0.271, 0.376, 0.476, 0.531, 0.549, 0.546, 0.528, 0.504, 0.471, 0.428, 0.381, 0.347, 0.327, 0.318, 0.312, 0.310, 0.314, 0.327, 0.345, 0.363, 0.376, 0.381, 0.378, 0.379 }, // yellow green
+        { 0.063, 0.063, 0.063, 0.064, 0.064, 0.064, 0.065, 0.066, 0.067, 0.068, 0.071, 0.076, 0.087, 0.125, 0.206, 0.305, 0.383, 0.431, 0.469, 0.518, 0.568, 0.607, 0.628, 0.637, 0.640, 0.642, 0.645, 0.648, 0.651, 0.653, 0.657, 0.664, 0.673, 0.680, 0.684, 0.688 }, // orange yellow
+        { 0.066, 0.079, 0.102, 0.146, 0.200, 0.244, 0.282, 0.309, 0.308, 0.278, 0.231, 0.178, 0.130, 0.094, 0.070, 0.054, 0.046, 0.042, 0.039, 0.038, 0.038, 0.038, 0.038, 0.039, 0.039, 0.040, 0.041, 0.042, 0.044, 0.045, 0.046, 0.046, 0.048, 0.052, 0.057, 0.065 }, // blue
+        { 0.052, 0.053, 0.054, 0.055, 0.057, 0.059, 0.061, 0.066, 0.075, 0.093, 0.125, 0.178, 0.246, 0.307, 0.337, 0.334, 0.317, 0.293, 0.262, 0.230, 0.198, 0.165, 0.135, 0.115, 0.104, 0.098, 0.094, 0.092, 0.093, 0.097, 0.102, 0.108, 0.113, 0.115, 0.114, 0.114 }, // green
+        { 0.050, 0.049, 0.048, 0.047, 0.047, 0.047, 0.047, 0.047, 0.046, 0.045, 0.044, 0.044, 0.045, 0.046, 0.047, 0.048, 0.049, 0.050, 0.054, 0.060, 0.072, 0.104, 0.178, 0.312, 0.467, 0.581, 0.644, 0.675, 0.690, 0.698, 0.706, 0.715, 0.724, 0.730, 0.734, 0.738 }, // red
+        { 0.058, 0.054, 0.052, 0.052, 0.053, 0.054, 0.056, 0.059, 0.067, 0.081, 0.107, 0.152, 0.225, 0.336, 0.462, 0.559, 0.616, 0.650, 0.672, 0.694, 0.710, 0.723, 0.731, 0.739, 0.746, 0.752, 0.758, 0.764, 0.769, 0.771, 0.776, 0.782, 0.790, 0.796, 0.799, 0.804 }, // yellow
+        { 0.145, 0.195, 0.283, 0.346, 0.362, 0.354, 0.334, 0.306, 0.276, 0.248, 0.218, 0.190, 0.168, 0.149, 0.127, 0.107, 0.100, 0.102, 0.104, 0.109, 0.137, 0.200, 0.290, 0.400, 0.516, 0.615, 0.687, 0.732, 0.760, 0.774, 0.783, 0.793, 0.803, 0.812, 0.817, 0.825 }, // magenta
+        { 0.108, 0.141, 0.192, 0.236, 0.261, 0.286, 0.317, 0.353, 0.390, 0.426, 0.446, 0.444, 0.423, 0.385, 0.337, 0.283, 0.231, 0.185, 0.146, 0.118, 0.101, 0.090, 0.082, 0.076, 0.074, 0.073, 0.073, 0.074, 0.076, 0.077, 0.076, 0.075, 0.073, 0.072, 0.074, 0.079 }, // cyan
+        { 0.189, 0.255, 0.423, 0.660, 0.811, 0.862, 0.877, 0.884, 0.891, 0.896, 0.899, 0.904, 0.907, 0.909, 0.911, 0.910, 0.911, 0.914, 0.913, 0.916, 0.915, 0.916, 0.914, 0.915, 0.918, 0.919, 0.921, 0.923, 0.924, 0.922, 0.922, 0.925, 0.927, 0.930, 0.930, 0.933 }, // white 9.5 (.05 D)
+        { 0.171, 0.232, 0.365, 0.507, 0.567, 0.583, 0.588, 0.590, 0.591, 0.590, 0.588, 0.588, 0.589, 0.589, 0.591, 0.590, 0.590, 0.590, 0.589, 0.591, 0.590, 0.590, 0.587, 0.585, 0.583, 0.580, 0.578, 0.576, 0.574, 0.572, 0.571, 0.569, 0.568, 0.568, 0.566, 0.566 }, // neutral 8 (.23 D)
+        { 0.144, 0.192, 0.272, 0.331, 0.350, 0.357, 0.361, 0.363, 0.363, 0.361, 0.359, 0.358, 0.358, 0.359, 0.360, 0.360, 0.361, 0.361, 0.360, 0.362, 0.362, 0.361, 0.359, 0.358, 0.355, 0.352, 0.350, 0.348, 0.345, 0.343, 0.340, 0.338, 0.335, 0.334, 0.332, 0.331 }, // neutral 6.5 (.44 D)
+        { 0.105, 0.131, 0.163, 0.180, 0.186, 0.190, 0.193, 0.194, 0.194, 0.192, 0.191, 0.191, 0.191, 0.192, 0.192, 0.192, 0.192, 0.192, 0.192, 0.193, 0.192, 0.192, 0.191, 0.189, 0.188, 0.186, 0.184, 0.182, 0.181, 0.179, 0.178, 0.176, 0.174, 0.173, 0.172, 0.171 }, // neutral 5 (.70 D)
+        { 0.068, 0.077, 0.084, 0.087, 0.089, 0.090, 0.092, 0.092, 0.091, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.089, 0.089, 0.088, 0.087, 0.086, 0.086, 0.085, 0.084, 0.084, 0.083, 0.083, 0.082, 0.081, 0.081, 0.081 }, // neutral 3.5 (1.05 D)
+        { 0.031, 0.032, 0.032, 0.033, 0.033, 0.033, 0.033, 0.033, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.033 }, // black 2 (1.5 D)
+    };
+
+    TriangleMeshSurfaceNodeRef colorChecker = context->createTriangleMeshSurfaceNode("ColorChecker");
+    {
+        std::vector<Vertex> vertices;
+        for (int i = 0; i < 24; ++i) {
+            int32_t x = i % 6;
+            int32_t z = i / 6;
+            vertices.push_back(Vertex{ Point3D(0.0f + x, 0.0f, 0.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+            vertices.push_back(Vertex{ Point3D(0.0f + x, 0.0f, 1.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+            vertices.push_back(Vertex{ Point3D(1.0f + x, 0.0f, 1.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+            vertices.push_back(Vertex{ Point3D(1.0f + x, 0.0f, 0.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+        }
+        colorChecker->setVertices(vertices.data(), vertices.size());
+
+        const float MinLambda = ColorCheckerLambdas[0];
+        const float MaxLambda = ColorCheckerLambdas[lengthof(ColorCheckerLambdas) - 1];
+        for (int i = 0; i < 24; ++i) {
+            auto spectrum = context->createRegularSampledSpectrumShaderNode();
+            spectrum->setImmediateValueSpectrum(VLRSpectrumType_Reflectance, MinLambda, MaxLambda, ColorCheckerSpectrumValues[i], lengthof(ColorCheckerLambdas));
+
+            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
+            matMatte->setNodeAlbedo(spectrum->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+            uint32_t indexOffset = 4 * i;
+            std::vector<uint32_t> matGroup = {
+                indexOffset + 0, indexOffset + 1, indexOffset + 2,
+                indexOffset + 0, indexOffset + 2, indexOffset + 3
+            };
+            colorChecker->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+        }
+    }
+    InternalNodeRef colorCheckerNode = context->createInternalNode("ColorChecker", context->createStaticTransform(translate<float>(-3.0f, 2.0f, 0.0f) * rotateX<float>(M_PI / 2)));
+    colorCheckerNode->addChild(colorChecker);
+    shot->scene->addChild(colorCheckerNode);
+
+    //TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
+    //{
+    //    std::vector<Vertex> vertices;
+
+    //    // Light
+    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+    //    light->setVertices(vertices.data(), vertices.size());
+
+    //    {
+    //        DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
+    //        matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
+
+    //        std::vector<uint32_t> matGroup = {
+    //            0, 1, 2, 0, 2, 3
+    //        };
+    //        light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+    //    }
+    //}
+    //InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
+    //lightNode->addChild(light);
+    //shot->scene->addChild(lightNode);
+
+    //const float IlluminantD50SpectrumValues[] = {
+    //    23.942, 26.961, 24.488, 29.871, 49.308, 56.513, 60.034, 57.818, 74.825, 87.247,
+    //    90.612, 91.368, 95.109, 91.963, 95.724, 96.613, 97.129, 102.099, 100.755, 102.317,
+    //    100, 97.735, 98.918, 93.499, 97.688, 99.269, 99.042, 95.722, 98.857, 95.667,
+    //    98.19, 103.003, 99.133, 87.381, 91.604, 92.889, 76.854, 86.511, 92.58, 78.23,
+    //    57.692, 82.923, 78.274,
+    //}; // 360-780[nm]
+    //const float* Values = IlluminantD50SpectrumValues;
+    //const float MinLambda = 360;
+    //const float MaxLambda = 780;
+    //const uint32_t NumLambdas = lengthof(IlluminantD50SpectrumValues);
+    const float IlluminantD65SpectrumValues[] = {
+        46.6383, 52.0891, 49.9755, 54.6482, 82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008,
+        117.812, 114.861, 115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
+        100, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886, 83.6992, 80.0268,
+        80.2146, 82.2778, 78.2842, 69.7213, 71.6091, 74.349, 61.604, 69.8856, 75.087, 63.5927,
+        46.4182, 66.8054, 63.3828, 64.304, 59.4519, 51.959, 57.4406, 60.3125,
+    }; // 360-830
+    const float* Values = IlluminantD65SpectrumValues;
+    const float MinLambda = 360;
+    const float MaxLambda = 830;
+    const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
+    auto spectrum = context->createRegularSampledSpectrumShaderNode();
+    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
+    float envScale = 0.02f;
+    //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
+    //auto spectrum = context->createRegularSampledSpectrumShaderNode();
+    //spectrum->setImmediateValueSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
+    //float envScale = 1.0f;
+    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+    matEnv->setNodeEmittanceConstant(spectrum);
+    //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
+    matEnv->setImmediateValueScale(envScale);
+    shot->scene->setEnvironment(matEnv, 0.0f);
+
+
+
+    shot->renderTargetSizeX = 1280;
+    shot->renderTargetSizeY = 720;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createPerspectiveCamera();
+
+        camera->setPosition(Point3D(0, 0, 6.0f));
+        camera->setOrientation(qRotateY<float>(M_PI));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
+void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+
+    InternalNodeRef modelNode;
+
+    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        float offset[2] = { 0, 0 };
+        float scale[2] = { 10, 20 };
+        auto nodeTexCoord = context->createScaleAndOffsetUVTextureMap2DShaderNode();
+        nodeTexCoord->setValues(offset, scale);
+
+        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+
+        Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
+        nodeAlbedo->setImage(image);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
+
+        MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
+        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
+        });
+    shot->scene->addChild(modelNode);
+
+
+
+    TriangleMeshSurfaceNodeRef colorTestPlate = context->createTriangleMeshSurfaceNode("color_test_plate");
+    {
+        std::vector<Vertex> vertices;
+
+        // Light
+        vertices.push_back(Vertex{ Point3D(-1.0f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.0f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.0f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.0f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+        colorTestPlate->setVertices(vertices.data(), vertices.size());
+
+        {
+            auto image = loadImage2D(context, "resources/material_test/jumping_colors.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+            auto nodeAlbedo = context->createImage2DTextureShaderNode();
+            nodeAlbedo->setImage(image);
+            nodeAlbedo->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
+            auto mat = context->createMatteSurfaceMaterial();
+            mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+            //auto image = loadImage2D(context, "resources/material_test/jumping_colors.png", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65_sRGBGamma);
+            //auto nodeEmittance = context->createImage2DTextureShaderNode();
+            //nodeEmittance->setImage(image);
+            //nodeEmittance->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
+            //auto mat = context->createDiffuseEmitterSurfaceMaterial();
+            //mat->setNodeEmittance(nodeEmittance->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            //mat->setImmediateValueScale(10.0f);
+
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3
+            };
+            colorTestPlate->addMaterialGroup(matGroup.data(), matGroup.size(), mat, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+        }
+    }
+    auto colorTestPlateNode = context->createInternalNode("colorTestPlateNode", context->createStaticTransform(translate<float>(0.0f, 1.5f, 0.0f) * scale(3.0f) * rotateX<float>(M_PI / 4)));
+    colorTestPlateNode->addChild(colorTestPlate);
+    shot->scene->addChild(colorTestPlateNode);
+
+
+
+    //const float IlluminantD50SpectrumValues[] = {
+    //    23.942, 26.961, 24.488, 29.871, 49.308, 56.513, 60.034, 57.818, 74.825, 87.247,
+    //    90.612, 91.368, 95.109, 91.963, 95.724, 96.613, 97.129, 102.099, 100.755, 102.317,
+    //    100, 97.735, 98.918, 93.499, 97.688, 99.269, 99.042, 95.722, 98.857, 95.667,
+    //    98.19, 103.003, 99.133, 87.381, 91.604, 92.889, 76.854, 86.511, 92.58, 78.23,
+    //    57.692, 82.923, 78.274,
+    //}; // 360-780[nm]
+    //const float* Values = IlluminantD50SpectrumValues;
+    //const float MinLambda = 360;
+    //const float MaxLambda = 780;
+    //const uint32_t NumLambdas = lengthof(IlluminantD50SpectrumValues);
+    const float IlluminantD65SpectrumValues[] = {
+        46.6383, 52.0891, 49.9755, 54.6482, 82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008,
+        117.812, 114.861, 115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
+        100, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886, 83.6992, 80.0268,
+        80.2146, 82.2778, 78.2842, 69.7213, 71.6091, 74.349, 61.604, 69.8856, 75.087, 63.5927,
+        46.4182, 66.8054, 63.3828, 64.304, 59.4519, 51.959, 57.4406, 60.3125,
+    }; // 360-830
+    const float* Values = IlluminantD65SpectrumValues;
+    const float MinLambda = 360;
+    const float MaxLambda = 830;
+    const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
+    auto spectrum = context->createRegularSampledSpectrumShaderNode();
+    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
+    float envScale = 0.02f;
+    //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
+    //auto spectrum = context->createRegularSampledSpectrumShaderNode();
+    //spectrum->setImmediateValueSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
+    //float envScale = 1.0f;
+    auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+    matEnv->setNodeEmittanceConstant(spectrum);
+    //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
+    matEnv->setImmediateValueScale(envScale);
+    shot->scene->setEnvironment(matEnv, 0.0f);
 
 
 
@@ -1674,169 +1961,15 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
-
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
-
-    const float ColorCheckerLambdas[] = {
-        380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730
-    };
-    const float ColorCheckerSpectrumValues[24][36] = {
-        { 0.055, 0.058, 0.061, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.062, 0.063, 0.065, 0.070, 0.076, 0.079, 0.081, 0.084, 0.091, 0.103, 0.119, 0.134, 0.143, 0.147, 0.151, 0.158, 0.168, 0.179, 0.188, 0.190, 0.186, 0.181, 0.182, 0.187, 0.196, 0.209 }, // dark skin
-        { 0.117, 0.143, 0.175, 0.191, 0.196, 0.199, 0.204, 0.213, 0.228, 0.251, 0.280, 0.309, 0.329, 0.333, 0.315, 0.286, 0.273, 0.276, 0.277, 0.289, 0.339, 0.420, 0.488, 0.525, 0.546, 0.562, 0.578, 0.595, 0.612, 0.625, 0.638, 0.656, 0.678, 0.700, 0.717, 0.734 }, // light skin
-        { 0.130, 0.177, 0.251, 0.306, 0.324, 0.330, 0.333, 0.331, 0.323, 0.311, 0.298, 0.285, 0.269, 0.250, 0.231, 0.214, 0.199, 0.185, 0.169, 0.157, 0.149, 0.145, 0.142, 0.141, 0.141, 0.141, 0.143, 0.147, 0.152, 0.154, 0.150, 0.144, 0.136, 0.132, 0.135, 0.147 }, // blue sky
-        { 0.051, 0.054, 0.056, 0.057, 0.058, 0.059, 0.060, 0.061, 0.062, 0.063, 0.065, 0.067, 0.075, 0.101, 0.145, 0.178, 0.184, 0.170, 0.149, 0.133, 0.122, 0.115, 0.109, 0.105, 0.104, 0.106, 0.109, 0.112, 0.114, 0.114, 0.112, 0.112, 0.115, 0.120, 0.125, 0.130 }, // foliage
-        { 0.144, 0.198, 0.294, 0.375, 0.408, 0.421, 0.426, 0.426, 0.419, 0.403, 0.379, 0.346, 0.311, 0.281, 0.254, 0.229, 0.214, 0.208, 0.202, 0.194, 0.193, 0.200, 0.214, 0.230, 0.241, 0.254, 0.279, 0.313, 0.348, 0.366, 0.366, 0.359, 0.358, 0.365, 0.377, 0.398 }, // blue flower
-        { 0.136, 0.179, 0.247, 0.297, 0.320, 0.337, 0.355, 0.381, 0.419, 0.466, 0.510, 0.546, 0.567, 0.574, 0.569, 0.551, 0.524, 0.488, 0.445, 0.400, 0.350, 0.299, 0.252, 0.221, 0.204, 0.196, 0.191, 0.188, 0.191, 0.199, 0.212, 0.223, 0.232, 0.233, 0.229, 0.229 }, // bluish green
-        { 0.054, 0.054, 0.053, 0.054, 0.054, 0.055, 0.055, 0.055, 0.056, 0.057, 0.058, 0.061, 0.068, 0.089, 0.125, 0.154, 0.174, 0.199, 0.248, 0.335, 0.444, 0.538, 0.587, 0.595, 0.591, 0.587, 0.584, 0.584, 0.590, 0.603, 0.620, 0.639, 0.655, 0.663, 0.663, 0.667 }, // orange
-        { 0.122, 0.164, 0.229, 0.286, 0.327, 0.361, 0.388, 0.400, 0.392, 0.362, 0.316, 0.260, 0.209, 0.168, 0.138, 0.117, 0.104, 0.096, 0.090, 0.086, 0.084, 0.084, 0.084, 0.084, 0.084, 0.085, 0.090, 0.098, 0.109, 0.123, 0.143, 0.169, 0.205, 0.244, 0.287, 0.332 }, // purplish blue
-        { 0.096, 0.115, 0.131, 0.135, 0.133, 0.132, 0.130, 0.128, 0.125, 0.120, 0.115, 0.110, 0.105, 0.100, 0.095, 0.093, 0.092, 0.093, 0.096, 0.108, 0.156, 0.265, 0.399, 0.500, 0.556, 0.579, 0.588, 0.591, 0.593, 0.594, 0.598, 0.602, 0.607, 0.609, 0.609, 0.610 }, // moderate red
-        { 0.092, 0.116, 0.146, 0.169, 0.178, 0.173, 0.158, 0.139, 0.119, 0.101, 0.087, 0.075, 0.066, 0.060, 0.056, 0.053, 0.051, 0.051, 0.052, 0.052, 0.051, 0.052, 0.058, 0.073, 0.096, 0.119, 0.141, 0.166, 0.194, 0.227, 0.265, 0.309, 0.355, 0.396, 0.436, 0.478 }, // purple
-        { 0.061, 0.061, 0.062, 0.063, 0.064, 0.066, 0.069, 0.075, 0.085, 0.105, 0.139, 0.192, 0.271, 0.376, 0.476, 0.531, 0.549, 0.546, 0.528, 0.504, 0.471, 0.428, 0.381, 0.347, 0.327, 0.318, 0.312, 0.310, 0.314, 0.327, 0.345, 0.363, 0.376, 0.381, 0.378, 0.379 }, // yellow green
-        { 0.063, 0.063, 0.063, 0.064, 0.064, 0.064, 0.065, 0.066, 0.067, 0.068, 0.071, 0.076, 0.087, 0.125, 0.206, 0.305, 0.383, 0.431, 0.469, 0.518, 0.568, 0.607, 0.628, 0.637, 0.640, 0.642, 0.645, 0.648, 0.651, 0.653, 0.657, 0.664, 0.673, 0.680, 0.684, 0.688 }, // orange yellow
-        { 0.066, 0.079, 0.102, 0.146, 0.200, 0.244, 0.282, 0.309, 0.308, 0.278, 0.231, 0.178, 0.130, 0.094, 0.070, 0.054, 0.046, 0.042, 0.039, 0.038, 0.038, 0.038, 0.038, 0.039, 0.039, 0.040, 0.041, 0.042, 0.044, 0.045, 0.046, 0.046, 0.048, 0.052, 0.057, 0.065 }, // blue
-        { 0.052, 0.053, 0.054, 0.055, 0.057, 0.059, 0.061, 0.066, 0.075, 0.093, 0.125, 0.178, 0.246, 0.307, 0.337, 0.334, 0.317, 0.293, 0.262, 0.230, 0.198, 0.165, 0.135, 0.115, 0.104, 0.098, 0.094, 0.092, 0.093, 0.097, 0.102, 0.108, 0.113, 0.115, 0.114, 0.114 }, // green
-        { 0.050, 0.049, 0.048, 0.047, 0.047, 0.047, 0.047, 0.047, 0.046, 0.045, 0.044, 0.044, 0.045, 0.046, 0.047, 0.048, 0.049, 0.050, 0.054, 0.060, 0.072, 0.104, 0.178, 0.312, 0.467, 0.581, 0.644, 0.675, 0.690, 0.698, 0.706, 0.715, 0.724, 0.730, 0.734, 0.738 }, // red
-        { 0.058, 0.054, 0.052, 0.052, 0.053, 0.054, 0.056, 0.059, 0.067, 0.081, 0.107, 0.152, 0.225, 0.336, 0.462, 0.559, 0.616, 0.650, 0.672, 0.694, 0.710, 0.723, 0.731, 0.739, 0.746, 0.752, 0.758, 0.764, 0.769, 0.771, 0.776, 0.782, 0.790, 0.796, 0.799, 0.804 }, // yellow
-        { 0.145, 0.195, 0.283, 0.346, 0.362, 0.354, 0.334, 0.306, 0.276, 0.248, 0.218, 0.190, 0.168, 0.149, 0.127, 0.107, 0.100, 0.102, 0.104, 0.109, 0.137, 0.200, 0.290, 0.400, 0.516, 0.615, 0.687, 0.732, 0.760, 0.774, 0.783, 0.793, 0.803, 0.812, 0.817, 0.825 }, // magenta
-        { 0.108, 0.141, 0.192, 0.236, 0.261, 0.286, 0.317, 0.353, 0.390, 0.426, 0.446, 0.444, 0.423, 0.385, 0.337, 0.283, 0.231, 0.185, 0.146, 0.118, 0.101, 0.090, 0.082, 0.076, 0.074, 0.073, 0.073, 0.074, 0.076, 0.077, 0.076, 0.075, 0.073, 0.072, 0.074, 0.079 }, // cyan
-        { 0.189, 0.255, 0.423, 0.660, 0.811, 0.862, 0.877, 0.884, 0.891, 0.896, 0.899, 0.904, 0.907, 0.909, 0.911, 0.910, 0.911, 0.914, 0.913, 0.916, 0.915, 0.916, 0.914, 0.915, 0.918, 0.919, 0.921, 0.923, 0.924, 0.922, 0.922, 0.925, 0.927, 0.930, 0.930, 0.933 }, // white 9.5 (.05 D)
-        { 0.171, 0.232, 0.365, 0.507, 0.567, 0.583, 0.588, 0.590, 0.591, 0.590, 0.588, 0.588, 0.589, 0.589, 0.591, 0.590, 0.590, 0.590, 0.589, 0.591, 0.590, 0.590, 0.587, 0.585, 0.583, 0.580, 0.578, 0.576, 0.574, 0.572, 0.571, 0.569, 0.568, 0.568, 0.566, 0.566 }, // neutral 8 (.23 D)
-        { 0.144, 0.192, 0.272, 0.331, 0.350, 0.357, 0.361, 0.363, 0.363, 0.361, 0.359, 0.358, 0.358, 0.359, 0.360, 0.360, 0.361, 0.361, 0.360, 0.362, 0.362, 0.361, 0.359, 0.358, 0.355, 0.352, 0.350, 0.348, 0.345, 0.343, 0.340, 0.338, 0.335, 0.334, 0.332, 0.331 }, // neutral 6.5 (.44 D)
-        { 0.105, 0.131, 0.163, 0.180, 0.186, 0.190, 0.193, 0.194, 0.194, 0.192, 0.191, 0.191, 0.191, 0.192, 0.192, 0.192, 0.192, 0.192, 0.192, 0.193, 0.192, 0.192, 0.191, 0.189, 0.188, 0.186, 0.184, 0.182, 0.181, 0.179, 0.178, 0.176, 0.174, 0.173, 0.172, 0.171 }, // neutral 5 (.70 D)
-        { 0.068, 0.077, 0.084, 0.087, 0.089, 0.090, 0.092, 0.092, 0.091, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.090, 0.089, 0.089, 0.088, 0.087, 0.086, 0.086, 0.085, 0.084, 0.084, 0.083, 0.083, 0.082, 0.081, 0.081, 0.081 }, // neutral 3.5 (1.05 D)
-        { 0.031, 0.032, 0.032, 0.033, 0.033, 0.033, 0.033, 0.033, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.032, 0.033 }, // black 2 (1.5 D)
-    };
-
-    TriangleMeshSurfaceNodeRef colorChecker = context->createTriangleMeshSurfaceNode("ColorChecker");
-    {
-        std::vector<Vertex> vertices;
-        for (int i = 0; i < 24; ++i) {
-            int32_t x = i % 6;
-            int32_t z = i / 6;
-            vertices.push_back(Vertex{ Point3D(0.0f + x, 0.0f, 0.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
-            vertices.push_back(Vertex{ Point3D(0.0f + x, 0.0f, 1.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
-            vertices.push_back(Vertex{ Point3D(1.0f + x, 0.0f, 1.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
-            vertices.push_back(Vertex{ Point3D(1.0f + x, 0.0f, 0.0f + z), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
-        }
-        colorChecker->setVertices(vertices.data(), vertices.size());
-
-        const float MinLambda = ColorCheckerLambdas[0];
-        const float MaxLambda = ColorCheckerLambdas[lengthof(ColorCheckerLambdas) - 1];
-        for (int i = 0; i < 24; ++i) {
-            auto spectrum = context->createRegularSampledSpectrumShaderNode();
-            spectrum->setImmediateValueSpectrum(VLRSpectrumType_Reflectance, MinLambda, MaxLambda, ColorCheckerSpectrumValues[i], lengthof(ColorCheckerLambdas));
-
-            MatteSurfaceMaterialRef matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setNodeAlbedo(spectrum->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-
-            uint32_t indexOffset = 4 * i;
-            std::vector<uint32_t> matGroup = {
-                indexOffset + 0, indexOffset + 1, indexOffset + 2,
-                indexOffset + 0, indexOffset + 2, indexOffset + 3
-            };
-            colorChecker->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
-        }
-    }
-    InternalNodeRef colorCheckerNode = context->createInternalNode("ColorChecker", context->createStaticTransform(translate<float>(-3.0f, 2.0f, 0.0f) * rotateX<float>(M_PI / 2)));
-    colorCheckerNode->addChild(colorChecker);
-    shot->scene->addChild(colorCheckerNode);
-
-    //TriangleMeshSurfaceNodeRef light = context->createTriangleMeshSurfaceNode("light");
-    //{
-    //    std::vector<Vertex> vertices;
-
-    //    // Light
-    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
-    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
-    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
-    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
-
-    //    light->setVertices(vertices.data(), vertices.size());
-
-    //    {
-    //        DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-    //        matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
-
-    //        std::vector<uint32_t> matGroup = {
-    //            0, 1, 2, 0, 2, 3
-    //        };
-    //        light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodeSocket(), ShaderNodeSocket(), VLRTangentType_TC0Direction);
-    //    }
-    //}
-    //InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
-    //lightNode->addChild(light);
-    //shot->scene->addChild(lightNode);
-
-    //const float IlluminantD50SpectrumValues[] = {
-    //    23.942, 26.961, 24.488, 29.871, 49.308, 56.513, 60.034, 57.818, 74.825, 87.247,
-    //    90.612, 91.368, 95.109, 91.963, 95.724, 96.613, 97.129, 102.099, 100.755, 102.317,
-    //    100, 97.735, 98.918, 93.499, 97.688, 99.269, 99.042, 95.722, 98.857, 95.667,
-    //    98.19, 103.003, 99.133, 87.381, 91.604, 92.889, 76.854, 86.511, 92.58, 78.23,
-    //    57.692, 82.923, 78.274,
-    //}; // 360-780[nm]
-    //const float* Values = IlluminantD50SpectrumValues;
-    //const float MinLambda = 360;
-    //const float MaxLambda = 780;
-    //const uint32_t NumLambdas = lengthof(IlluminantD50SpectrumValues);
-    const float IlluminantD65SpectrumValues[] = {
-        46.6383, 52.0891, 49.9755, 54.6482, 82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008,
-        117.812, 114.861, 115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
-        100, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886, 83.6992, 80.0268,
-        80.2146, 82.2778, 78.2842, 69.7213, 71.6091, 74.349, 61.604, 69.8856, 75.087, 63.5927,
-        46.4182, 66.8054, 63.3828, 64.304, 59.4519, 51.959, 57.4406, 60.3125,
-    }; // 360-830
-    const float* Values = IlluminantD65SpectrumValues;
-    const float MinLambda = 360;
-    const float MaxLambda = 830;
-    const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
-    auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
-    float envScale = 0.02f;
-    //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
-    //auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    //spectrum->setImmediateValueSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
-    //float envScale = 1.0f;
-    EnvironmentEmitterSurfaceMaterialRef matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceConstant(spectrum);
-    //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
-    matEnv->setImmediateValueScale(envScale);
-    shot->scene->setEnvironment(matEnv, 0.0f);
-
-
-
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
-
-    shot->brightnessCoeff = 1.0f;
-
-    {
-        auto camera = context->createPerspectiveCamera();
-
-        camera->setPosition(Point3D(0, 0, 6.0f));
-        camera->setOrientation(qRotateY<float>(M_PI));
-
-        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
-
-        camera->setSensitivity(1.0f);
-        camera->setFovY(40 * M_PI / 180);
-        camera->setLensRadius(0.0f);
-        camera->setObjectPlaneDistance(1.0f);
-
-        shot->viewpoints.push_back(camera);
-    }
-}
-
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
     createMaterialTestScene(context, shot);
+    //createColorCheckerScene(context, shot);
+    //createColorInterpolationTestScene(context, shot);
     //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
     //createRungholtScene(context, shot);
     //createPowerplantScene(context, shot);
     //createAmazonBistroScene(context, shot);
-    //createColorCheckerScene(context, shot);
 }

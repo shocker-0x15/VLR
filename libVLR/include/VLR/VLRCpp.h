@@ -842,6 +842,9 @@ namespace VLRCpp {
         void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2) {
             errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
         }
+        void setImmediateValueScale(float value) {
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueScale((VLRDiffuseEmitterSurfaceMaterial)m_raw, value));
+        }
     };
 
 

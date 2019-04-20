@@ -8,8 +8,6 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
-VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, bool applyDegamma);
-
 struct SurfaceMaterialAttributeTuple {
     VLRCpp::SurfaceMaterialRef material;
     VLRCpp::ShaderNodeSocket nodeNormal;

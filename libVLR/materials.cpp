@@ -916,7 +916,7 @@ namespace VLR {
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, M_PI, M_PI, M_PI)) {
+        SurfaceMaterial(context), m_immEmittance(createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, M_PI, M_PI, M_PI)), m_immScale(1.0f) {
         setupMaterialDescriptor();
     }
 
@@ -931,6 +931,7 @@ namespace VLR {
         auto &mat = *matDesc.getData<Shared::DiffuseEmitterSurfaceMaterial>();
         mat.nodeEmittance = m_nodeEmittance.getSharedType();
         mat.immEmittance = m_immEmittance;
+        mat.immScale = m_immScale;
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
@@ -945,6 +946,11 @@ namespace VLR {
 
     void DiffuseEmitterSurfaceMaterial::setImmediateValueEmittance(ColorSpace colorSpace, float e0, float e1, float e2) {
         m_immEmittance = createTripletSpectrum(VLRSpectrumType_LightSource, colorSpace, e0, e1, e2);
+        setupMaterialDescriptor();
+    }
+
+    void DiffuseEmitterSurfaceMaterial::setImmediateValueScale(float value) {
+        m_immScale = value;
         setupMaterialDescriptor();
     }
 

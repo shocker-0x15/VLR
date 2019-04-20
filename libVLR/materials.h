@@ -307,6 +307,7 @@ namespace VLR {
 
         ShaderNodeSocketIdentifier m_nodeEmittance;
         TripletSpectrum m_immEmittance;
+        float m_immScale;
 
         void setupMaterialDescriptor() const;
 
@@ -324,6 +325,7 @@ namespace VLR {
 
         bool setNodeEmittance(const ShaderNodeSocketIdentifier &outputSocket);
         void setImmediateValueEmittance(ColorSpace colorSpace, float e0, float e1, float e2);
+        void setImmediateValueScale(float value);
     };
 
 

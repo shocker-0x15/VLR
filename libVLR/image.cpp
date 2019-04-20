@@ -273,20 +273,11 @@ namespace VLR {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
             switch (inputFormat.value) {
             case DataFormat::RGB8x3:
-                if (spectrumType == VLRSpectrumType_Reflectance)
-                    return DataFormat::uvsA8x4;
-                else
-                    return DataFormat::uvsA16Fx4;
+                return DataFormat::uvsA8x4;
             case DataFormat::RGB_8x4:
-                if (spectrumType == VLRSpectrumType_Reflectance)
-                    return DataFormat::uvsA8x4;
-                else
-                    return DataFormat::uvsA16Fx4;
+                return DataFormat::uvsA8x4;
             case DataFormat::RGBA8x4:
-                if (spectrumType == VLRSpectrumType_Reflectance)
-                    return DataFormat::uvsA8x4;
-                else
-                    return DataFormat::uvsA16Fx4;
+                return DataFormat::uvsA8x4;
             case DataFormat::RGBA16Fx4:
                 return DataFormat::uvsA16Fx4;
             case DataFormat::RGBA32Fx4:
@@ -660,20 +651,18 @@ namespace VLR {
         case DataFormat::RGB8x3: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
             if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance) {
+                if (spectrumType == VLRSpectrumType_Reflectance ||
+                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
                         processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
-                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB8x3, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB8x3, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
                 else {
-                    VLRAssert_NotImplemented();
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB8x3, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB8x3, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
             }
             else {
@@ -687,20 +676,18 @@ namespace VLR {
         case DataFormat::RGB_8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
             if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance) {
+                if (spectrumType == VLRSpectrumType_Reflectance ||
+                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
                         processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
-                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB_8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB_8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
                 else {
-                    VLRAssert_NotImplemented();
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
             }
             else {
@@ -714,20 +701,18 @@ namespace VLR {
         case DataFormat::RGBA8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
             if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance) {
+                if (spectrumType == VLRSpectrumType_Reflectance ||
+                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
                         processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
-                else if (spectrumType == VLRSpectrumType_IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGBA8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGBA8x4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
                 else {
-                    VLRAssert_NotImplemented();
+                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
+                    else
+                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
                 }
             }
             else {

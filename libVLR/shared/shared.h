@@ -748,6 +748,7 @@ namespace VLR {
         struct DiffuseEmitterSurfaceMaterial {
             ShaderNodeSocketID nodeEmittance;
             TripletSpectrum immEmittance;
+            float immScale;
         };
 
         struct MultiSurfaceMaterial {

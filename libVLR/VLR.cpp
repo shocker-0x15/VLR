@@ -1412,6 +1412,14 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(VLR
     return VLR_ERROR_NO_ERROR;
 }
 
+VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueScale(VLRDiffuseEmitterSurfaceMaterial material, float value) {
+    if (!material->is<VLR::DiffuseEmitterSurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
+    material->setImmediateValueScale(value);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
 
 
 VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material) {
