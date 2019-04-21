@@ -885,7 +885,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr) {
+        ShaderNode(context), m_image(NullImages.at(m_context.getID())) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -910,37 +910,23 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
-        if (m_image) {
-            nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
-            nodeData.spectrumType = m_image->getSpectrumType();
-
-            // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
-            // EN: Data should be regarded as post-degamma in the case that reading with sRGB degamma by HW in a GPU kernel.
-            ColorSpace colorSpace = m_image->getColorSpace();
-            if (m_image->needsHW_sRGB_degamma() && colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                colorSpace = ColorSpace::Rec709_D65;
-            nodeData.colorSpace = (unsigned int)colorSpace;
-        }
-        else {
-            nodeData.dataFormat = 0;
-            nodeData.spectrumType = 0;
-            nodeData.colorSpace = 0;
-        }
+        nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
+        nodeData.spectrumType = m_image->getSpectrumType();
+        // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
+        // EN: Data should be regarded as post-degamma in the case that reading with sRGB degamma by HW in a GPU kernel.
+        ColorSpace colorSpace = m_image->getColorSpace();
+        if (m_image->needsHW_sRGB_degamma() && colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+            colorSpace = ColorSpace::Rec709_D65;
+        nodeData.colorSpace = (unsigned int)colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     void Image2DTextureShaderNode::setImage(const Image2D* image) {
-        m_image = image;
-        if (m_image) {
-            m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
-            m_optixTextureSampler->setReadMode(m_image->needsHW_sRGB_degamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
-        }
-        else {
-            m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
-            m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
-        }
+        m_image = image ? image : NullImages.at(m_context.getID());
+        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
+        m_optixTextureSampler->setReadMode(m_image->needsHW_sRGB_degamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
         setupNodeDescriptor();
     }
 
@@ -964,6 +950,7 @@ namespace VLR {
 
 
     std::map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, LinearImage2D*> EnvironmentTextureShaderNode::NullImages;
 
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {
@@ -973,17 +960,23 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
+        half nullData[] = { (half)1.0f, (half)0.0f, (half)1.0f, (half)1.0f };
+        LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, VLRSpectrumType_LightSource, ColorSpace::Rec709_D65);
+
         OptiXProgramSets[context.getID()] = programSet;
+        NullImages[context.getID()] = nullImage;
     }
 
     // static
     void EnvironmentTextureShaderNode::finalize(Context &context) {
+        delete NullImages.at(context.getID());
+
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(nullptr) {
+        ShaderNode(context), m_image(NullImages.at(m_context.getID())) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
@@ -1007,21 +1000,15 @@ namespace VLR {
         nodeDesc.procSetIndex = progSet.nodeProcedureSetIndex;
         auto &nodeData = *nodeDesc.getData<Shared::EnvironmentTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
-        if (m_image) {
-            nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
-            nodeData.colorSpace = (unsigned int)m_image->getColorSpace();
-        }
-        else {
-            nodeData.dataFormat = 0;
-            nodeData.colorSpace = 0;
-        }
+        nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
+        nodeData.colorSpace = (unsigned int)m_image->getColorSpace();
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
     }
 
     void EnvironmentTextureShaderNode::setImage(const Image2D* image) {
-        m_image = image;
+        m_image = image ? image : NullImages.at(m_context.getID());
         m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
         setupNodeDescriptor();
     }
@@ -1044,8 +1031,8 @@ namespace VLR {
     }
 
     void EnvironmentTextureShaderNode::createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const {
-        uint32_t mapWidth = m_image->getWidth() / 4;
-        uint32_t mapHeight = m_image->getHeight() / 4;
+        uint32_t mapWidth = std::max<uint32_t>(1, m_image->getWidth() / 4);
+        uint32_t mapHeight = std::max<uint32_t>(1, m_image->getHeight() / 4);
         Image2D* shrinkedImage = m_image->createShrinkedImage2D(mapWidth, mapHeight);
         Image2D* shrinkedYImage = shrinkedImage->createLuminanceImage2D();
         delete shrinkedImage;

@@ -503,7 +503,7 @@ namespace VLRCpp {
 
         void setImage(const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, (VLRImage2D)m_image->get()));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, m_image ? (VLRImage2D)m_image->get() : nullptr));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
             errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));

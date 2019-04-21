@@ -804,7 +804,7 @@ namespace VLR {
         uint32_t orgWidth = getWidth();
         uint32_t orgHeight = getHeight();
         uint32_t stride = getStride();
-        VLRAssert(width < orgWidth && height < orgHeight, "Image size must be smaller than the original.");
+        VLRAssert(width <= orgWidth && height <= orgHeight, "Image size must be smaller than the original.");
         std::vector<uint8_t> data;
         data.resize(stride * width * height);
 
@@ -822,7 +822,8 @@ namespace VLR {
                 uint32_t leftPix = (uint32_t)left;
                 uint32_t rightPix = (uint32_t)ceilf(right) - 1;
 
-                float area = (bottom - top) * (right - left);
+                CompensatedSum<float> sumWeight(0);
+                //float area = (bottom - top) * (right - left);
 
                 // UL, UR, LL, LR
                 float weightsCorners[] = {
@@ -847,38 +848,48 @@ namespace VLR {
                     uint32_t corners[] = { leftPix, topPix, rightPix, topPix, leftPix, bottomPix, rightPix, bottomPix };
                     for (int i = 0; i < 4; ++i) {
                         pix = get<RGBA16Fx4>(corners[2 * i + 0], corners[2 * i + 1]);
-                        sumR += weightsCorners[i] * float(pix.r);
-                        sumG += weightsCorners[i] * float(pix.g);
-                        sumB += weightsCorners[i] * float(pix.b);
-                        sumA += weightsCorners[i] * float(pix.a);
+                        float weight = weightsCorners[i];
+                        sumR += weight * float(pix.r);
+                        sumG += weight * float(pix.g);
+                        sumB += weight * float(pix.b);
+                        sumA += weight * float(pix.a);
+                        sumWeight += weight;
                     }
 
                     for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
                         pix = get<RGBA16Fx4>(x, topPix);
-                        sumR += weightsEdges[0] * float(pix.r);
-                        sumG += weightsEdges[0] * float(pix.g);
-                        sumB += weightsEdges[0] * float(pix.b);
-                        sumA += weightsEdges[0] * float(pix.a);
+                        float weightT = weightsEdges[0];
+                        sumR += weightT * float(pix.r);
+                        sumG += weightT * float(pix.g);
+                        sumB += weightT * float(pix.b);
+                        sumA += weightT * float(pix.a);
 
                         pix = get<RGBA16Fx4>(x, bottomPix);
-                        sumR += weightsEdges[3] * float(pix.r);
-                        sumG += weightsEdges[3] * float(pix.g);
-                        sumB += weightsEdges[3] * float(pix.b);
-                        sumA += weightsEdges[3] * float(pix.a);
+                        float weightB = weightsEdges[3];
+                        sumR += weightB * float(pix.r);
+                        sumG += weightB * float(pix.g);
+                        sumB += weightB * float(pix.b);
+                        sumA += weightB * float(pix.a);
                     }
+                    if (rightPix > (leftPix + 1))
+                        sumWeight += 2 * (rightPix - leftPix - 1);
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         pix = get<RGBA16Fx4>(leftPix, y);
-                        sumR += weightsEdges[1] * float(pix.r);
-                        sumG += weightsEdges[1] * float(pix.g);
-                        sumB += weightsEdges[1] * float(pix.b);
-                        sumA += weightsEdges[1] * float(pix.a);
+                        float weightL = weightsEdges[1];
+                        sumR += weightL * float(pix.r);
+                        sumG += weightL * float(pix.g);
+                        sumB += weightL * float(pix.b);
+                        sumA += weightL * float(pix.a);
 
                         pix = get<RGBA16Fx4>(rightPix, y);
-                        sumR += weightsEdges[2] * float(pix.r);
-                        sumG += weightsEdges[2] * float(pix.g);
-                        sumB += weightsEdges[2] * float(pix.b);
-                        sumA += weightsEdges[2] * float(pix.a);
+                        float weightR = weightsEdges[2];
+                        sumR += weightR * float(pix.r);
+                        sumG += weightR * float(pix.g);
+                        sumB += weightR * float(pix.b);
+                        sumA += weightR * float(pix.a);
                     }
+                    if (bottomPix > (topPix + 1))
+                        sumWeight += 2 * (bottomPix - topPix - 1);
 
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
@@ -889,8 +900,10 @@ namespace VLR {
                             sumA += float(pix.a);
                         }
                     }
+                    if (bottomPix > topPix && rightPix > leftPix)
+                        sumWeight += (bottomPix - topPix - 1) * (rightPix - leftPix - 1);
 
-                    *(RGBA16Fx4*)&data[(y * width + x) * stride] = RGBA16Fx4{ half(sumR / area), half(sumG / area), half(sumB / area), half(sumA / area) };
+                    *(RGBA16Fx4*)&data[(y * width + x) * stride] = RGBA16Fx4{ half(sumR / sumWeight), half(sumG / sumWeight), half(sumB / sumWeight), half(sumA / sumWeight) };
                     break;
                 }
                 case DataFormat::uvsA16Fx4: {
@@ -900,38 +913,48 @@ namespace VLR {
                     uint32_t corners[] = { leftPix, topPix, rightPix, topPix, leftPix, bottomPix, rightPix, bottomPix };
                     for (int i = 0; i < 4; ++i) {
                         pix = get<uvsA16Fx4>(corners[2 * i + 0], corners[2 * i + 1]);
+                        float weight = weightsCorners[i];
                         sum_u += weightsCorners[i] * float(pix.u);
                         sum_v += weightsCorners[i] * float(pix.v);
                         sum_s += weightsCorners[i] * float(pix.s);
                         sumA += weightsCorners[i] * float(pix.a);
+                        sumWeight += weight;
                     }
 
                     for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
                         pix = get<uvsA16Fx4>(x, topPix);
-                        sum_u += weightsEdges[0] * float(pix.u);
-                        sum_v += weightsEdges[0] * float(pix.v);
-                        sum_s += weightsEdges[0] * float(pix.s);
-                        sumA += weightsEdges[0] * float(pix.a);
+                        float weightT = weightsEdges[0];
+                        sum_u += weightT * float(pix.u);
+                        sum_v += weightT * float(pix.v);
+                        sum_s += weightT * float(pix.s);
+                        sumA += weightT * float(pix.a);
 
                         pix = get<uvsA16Fx4>(x, bottomPix);
-                        sum_u += weightsEdges[3] * float(pix.u);
-                        sum_v += weightsEdges[3] * float(pix.v);
-                        sum_s += weightsEdges[3] * float(pix.s);
-                        sumA += weightsEdges[3] * float(pix.a);
+                        float weightB = weightsEdges[3];
+                        sum_u += weightB * float(pix.u);
+                        sum_v += weightB * float(pix.v);
+                        sum_s += weightB * float(pix.s);
+                        sumA += weightB * float(pix.a);
                     }
+                    if (rightPix > (leftPix + 1))
+                        sumWeight += 2 * (rightPix - leftPix - 1);
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         pix = get<uvsA16Fx4>(leftPix, y);
-                        sum_u += weightsEdges[1] * float(pix.u);
-                        sum_v += weightsEdges[1] * float(pix.v);
-                        sum_s += weightsEdges[1] * float(pix.s);
-                        sumA += weightsEdges[1] * float(pix.a);
+                        float weightL = weightsEdges[1];
+                        sum_u += weightL * float(pix.u);
+                        sum_v += weightL * float(pix.v);
+                        sum_s += weightL * float(pix.s);
+                        sumA += weightL * float(pix.a);
 
                         pix = get<uvsA16Fx4>(rightPix, y);
-                        sum_u += weightsEdges[2] * float(pix.u);
-                        sum_v += weightsEdges[2] * float(pix.v);
-                        sum_s += weightsEdges[2] * float(pix.s);
-                        sumA += weightsEdges[2] * float(pix.a);
+                        float weightR = weightsEdges[2];
+                        sum_u += weightR * float(pix.u);
+                        sum_v += weightR * float(pix.v);
+                        sum_s += weightR * float(pix.s);
+                        sumA += weightR * float(pix.a);
                     }
+                    if (bottomPix > (topPix + 1))
+                        sumWeight += 2 * (bottomPix - topPix - 1);
 
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
@@ -942,8 +965,10 @@ namespace VLR {
                             sumA += float(pix.a);
                         }
                     }
+                    if (bottomPix > topPix && rightPix > leftPix)
+                        sumWeight += (bottomPix - topPix - 1) * (rightPix - leftPix - 1);
 
-                    *(uvsA16Fx4*)&data[(y * width + x) * stride] = uvsA16Fx4{ half(sum_u / area), half(sum_v / area), half(sum_s / area), half(sumA / area) };
+                    *(uvsA16Fx4*)&data[(y * width + x) * stride] = uvsA16Fx4{ half(sum_u / sumWeight), half(sum_v / sumWeight), half(sum_s / sumWeight), half(sumA / sumWeight) };
                     break;
                 }
                 default:

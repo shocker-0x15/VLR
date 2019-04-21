@@ -7,7 +7,7 @@
 #include <ImfRgbaFile.h>
 #include <ImfArray.h>
 
-static std::map<std::tuple<std::string, VLRSpectrumType, VLRColorSpace>, VLRCpp::Image2DRef> s_image2DCache;
+
 
 namespace DDS {
     enum class Format : uint32_t {
@@ -251,6 +251,10 @@ namespace DDS {
         delete[] data;
     }
 }
+
+
+
+static std::map<std::tuple<std::string, VLRSpectrumType, VLRColorSpace>, VLRCpp::Image2DRef> s_image2DCache;
 
 // TODO: colorSpace should be determined from read image?
 static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
@@ -565,6 +569,7 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
     const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace | (flipV ? aiProcess_FlipUVs : 0));
     if (!scene) {
         hpprintf("Failed to load %s.\n", filePath.c_str());
+        *nodeOut = nullptr;
         return;
     }
     hpprintf("Reading: %s done.\n", filePath.c_str());

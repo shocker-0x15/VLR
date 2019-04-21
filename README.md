@@ -16,7 +16,8 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
     * Ideal Specular BRDF/BSDF
     * Microfacet (GGX) BRDF/BSDF
     * Fresnel-blended Lambertian BSDF
-    * UE4- or Frostbite-like BRDF \[Karis2013, Lagarde2014\]
+    * UE4- or Frostbite-like BRDF \[Karis2013, Lagarde2014\]  
+      Parameters can be specified using UE4 style (base color, roughness/metallic) or old style (diffuse, specular, glossiness).
     * Mixed BSDF
 * Shader Node System
 * Bump Mapping (Normal Map)
@@ -39,8 +40,9 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
 現状以下の環境で動作を確認しています。  
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1809) & Visual Studio 2017 (15.9.8)
+* Windows 10 (1809) & Visual Studio 2017 (15.9.11)
 * Core i9-9900K, 32GB, RTX 2070 8GB
+* NVIDIA Driver 425.31
 
 動作させるにあたっては以下のライブラリが必要です。  
 It requires the following libraries.
@@ -52,7 +54,7 @@ It requires the following libraries.
 
 ### Q&A
 Q. Program crashes or produces a wierd image. What's going on?  
-A. First try to launch the program with --logging option and check if it reports stack overflow error. If it does, try the --stacksize option (e.g. --stacksize 3072). You will see the stack size actually used at the early phase of standard output.
+A. First try to launch the program with --logging option and check if it reports stack overflow error. If it does, try the --maxcallabledepth option (e.g. --maxcallabledepth 8) on RTX-enabled environment, the --stacksize option (e.g. --stacksize 3072) on non-RTX environment. You will see the stack size actually used at the early phase of standard output in the non-RTX case.
 
 ## 注意 / Note
 モデルデータやテクスチャーを読み込むシーンファイルがありますが、それらアセットはリポジトリには含まれていません。
@@ -67,7 +69,7 @@ There are some scene files loading model data and textures, but those assets are
 
 ## ギャラリー / Gallery
 <img src = "CornellBox_var.png" width = "512px" alt = "CornellBox_var.png">
-A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis.
+A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis (roughness is smoother along tangent, rougher along bitangent).
 <br><br>
 <img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png">
 An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.  

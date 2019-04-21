@@ -520,6 +520,7 @@ namespace VLR {
 
     class EnvironmentTextureShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, LinearImage2D*> NullImages;
 
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
