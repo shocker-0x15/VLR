@@ -68,6 +68,7 @@ There are some scene files loading model data and textures, but those assets are
 ## ギャラリー / Gallery
 <img src = "CornellBox_var.png" width = "512px" alt = "CornellBox_var.png">
 A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis.
+<br><br>
 <img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png">
 An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.  
 
