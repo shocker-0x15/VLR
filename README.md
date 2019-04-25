@@ -68,20 +68,20 @@ There are some scene files loading model data and textures, but those assets are
 [Veach1996] "Non-symmetric Scattering in Light Transport Algorithms"  
 
 ## ギャラリー / Gallery
-<img src = "CornellBox_var.png" width = "512px" alt = "CornellBox_var.png">
+<img src = "CornellBox_var.png" width = "512px" alt = "CornellBox_var.png"><br>
 A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis (roughness is smoother along tangent, rougher along bitangent).
 <br><br>
-<img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png">
+<img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png"><br>
 An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.  
 
 Model: Substance Painter  
-IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)  
+IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 <br><br>
-<img src = "Rungholt.png" width = "768px" alt = "Rungholt.png">
+<img src = "Rungholt.png" width = "768px" alt = "Rungholt.png"><br>
 Rungholt model illuminated by outdoor environment light.  
 
 Model: Rungholt from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)  
-IBL image: [Direct HDR Capture of the Sun and Sky](http://gl.ict.usc.edu/Data/SkyProbes/)  
+IBL image: [Direct HDR Capture of the Sun and Sky](http://gl.ict.usc.edu/Data/SkyProbes/)
 
 ----
 2019 [@Shocker_0x15](https://twitter.com/Shocker_0x15)
