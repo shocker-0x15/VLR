@@ -100,6 +100,8 @@ VLRCameraType g_cameraType;
 
 int32_t g_presetViewportIndex;
 
+float g_environmentRotation;
+
 
 
 static std::string readTxtFile(const std::string& filepath) {
@@ -363,6 +365,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     g_enableDebugRendering = false;
     g_debugRenderingMode = VLRDebugRenderingMode_GeometricNormal;
+
+    g_environmentRotation = shot.environmentRotation * 180 / M_PI;
+    g_environmentRotation = g_environmentRotation - std::floor(g_environmentRotation / 360) * 360;
 
 
 
@@ -732,35 +737,75 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     ImGui::End();
                 }
 
+                bool sceneChanged = false;
                 {
                     ImGui::Begin("Scene");
 
-                    ImGui::BeginChild("Hierarchy", ImVec2(-1, 300), false);
+                    if (ImGui::SliderFloat("Env Rotation", &g_environmentRotation, 0, 360, "%.3f")) {
+                        shot.scene->setEnvironmentRotation(g_environmentRotation * M_PI / 180);
+                        sceneChanged |= true;
+                    }
 
-                    struct SelectedChild {
-                        InternalNodeRef parent;
-                        int32_t childIndex;
+                    if (ImGui::CollapsingHeader("Scene Outline", ImGuiTreeNodeFlags_DefaultOpen)) {
+                        ImGui::BeginChild("Hierarchy", ImVec2(-1, 300), false);
 
-                        bool operator<(const SelectedChild &v) const {
-                            if (parent < v.parent) {
-                                return true;
-                            }
-                            else if (parent == v.parent) {
-                                if (childIndex < v.childIndex)
+                        struct SelectedChild {
+                            InternalNodeRef parent;
+                            int32_t childIndex;
+
+                            bool operator<(const SelectedChild &v) const {
+                                if (parent < v.parent) {
                                     return true;
+                                }
+                                else if (parent == v.parent) {
+                                    if (childIndex < v.childIndex)
+                                        return true;
+                                }
+                                return false;
                             }
-                            return false;
-                        }
-                    };
+                        };
 
-                    static std::set<SelectedChild> g_selectedNodes;
+                        static std::set<SelectedChild> g_selectedNodes;
 
-                    const std::function<SelectedChild(InternalNodeRef)> recursiveBuild = [&recursiveBuild](InternalNodeRef parent) {
+                        const std::function<SelectedChild(InternalNodeRef)> recursiveBuild = [&recursiveBuild](InternalNodeRef parent) {
+                            SelectedChild clickedChild{ nullptr, -1 };
+
+                            for (int i = 0; i < parent->getNumChildren(); ++i) {
+                                NodeRef child = parent->getChildAt(i);
+                                SelectedChild curChild{ parent, i };
+
+                                ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+                                if (g_selectedNodes.count(curChild))
+                                    node_flags |= ImGuiTreeNodeFlags_Selected;
+                                if (child->getNodeType() == VLRNodeType_InternalNode) {
+                                    bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
+                                    bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
+                                    if (ImGui::IsItemClicked() && mouseOnLabel)
+                                        clickedChild = curChild;
+                                    if (nodeOpen) {
+                                        SelectedChild cSelectedChild = recursiveBuild(std::dynamic_pointer_cast<InternalNodeHolder>(child));
+                                        if (cSelectedChild.childIndex != -1)
+                                            clickedChild = cSelectedChild;
+                                    }
+                                }
+                                else {
+                                    node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
+                                    ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
+                                    if (ImGui::IsItemClicked())
+                                        clickedChild = curChild;
+                                }
+                            }
+
+                            ImGui::TreePop();
+
+                            return clickedChild;
+                        };
+
                         SelectedChild clickedChild{ nullptr, -1 };
 
-                        for (int i = 0; i < parent->getNumChildren(); ++i) {
-                            NodeRef child = parent->getChildAt(i);
-                            SelectedChild curChild{ parent, i };
+                        for (int i = 0; i < shot.scene->getNumChildren(); ++i) {
+                            NodeRef child = shot.scene->getChildAt(i);
+                            SelectedChild curChild{ nullptr, i };
 
                             ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
                             if (g_selectedNodes.count(curChild))
@@ -784,109 +829,77 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                             }
                         }
 
-                        ImGui::TreePop();
-
-                        return clickedChild;
-                    };
-
-                    SelectedChild clickedChild{ nullptr, -1 };
-
-                    for (int i = 0; i < shot.scene->getNumChildren(); ++i) {
-                        NodeRef child = shot.scene->getChildAt(i);
-                        SelectedChild curChild{ nullptr, i };
-
-                        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-                        if (g_selectedNodes.count(curChild))
-                            node_flags |= ImGuiTreeNodeFlags_Selected;
-                        if (child->getNodeType() == VLRNodeType_InternalNode) {
-                            bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
-                            bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
-                            if (ImGui::IsItemClicked() && mouseOnLabel)
-                                clickedChild = curChild;
-                            if (nodeOpen) {
-                                SelectedChild cSelectedChild = recursiveBuild(std::dynamic_pointer_cast<InternalNodeHolder>(child));
-                                if (cSelectedChild.childIndex != -1)
-                                    clickedChild = cSelectedChild;
-                            }
-                        }
-                        else {
-                            node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
-                            ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
-                            if (ImGui::IsItemClicked())
-                                clickedChild = curChild;
-                        }
-                    }
-
-                    // JP: 何かクリックした要素がある場合。
-                    bool newOnlyOneSelected = false;
-                    if (clickedChild.childIndex != -1) {
-                        if (ImGui::GetIO().KeyCtrl) {
-                            // JP: Ctrlキーを押しながら選択した場合は追加選択or選択解除。
-                            if (g_selectedNodes.count(clickedChild))
-                                g_selectedNodes.erase(clickedChild);
-                            else
-                                g_selectedNodes.insert(clickedChild);
-                        }
-                        else {
-                            if (g_selectedNodes.count(clickedChild)) {
-                                // JP: クリックした要素を既に選択リストに持っていた場合は全ての選択状態を解除する。
-                                //     このとき他に選択要素を持っていた場合はクリックした要素だけを選択状態にする。
-                                bool multiplySelected = g_selectedNodes.size() > 1;
-                                g_selectedNodes.clear();
-                                if (multiplySelected)
+                        // JP: 何かクリックした要素がある場合。
+                        bool newOnlyOneSelected = false;
+                        if (clickedChild.childIndex != -1) {
+                            if (ImGui::GetIO().KeyCtrl) {
+                                // JP: Ctrlキーを押しながら選択した場合は追加選択or選択解除。
+                                if (g_selectedNodes.count(clickedChild))
+                                    g_selectedNodes.erase(clickedChild);
+                                else
                                     g_selectedNodes.insert(clickedChild);
                             }
                             else {
-                                // JP: 全ての選択状態を解除してクリックした要素だけを選択状態にする。
-                                g_selectedNodes.clear();
-                                g_selectedNodes.insert(clickedChild);
+                                if (g_selectedNodes.count(clickedChild)) {
+                                    // JP: クリックした要素を既に選択リストに持っていた場合は全ての選択状態を解除する。
+                                    //     このとき他に選択要素を持っていた場合はクリックした要素だけを選択状態にする。
+                                    bool multiplySelected = g_selectedNodes.size() > 1;
+                                    g_selectedNodes.clear();
+                                    if (multiplySelected)
+                                        g_selectedNodes.insert(clickedChild);
+                                }
+                                else {
+                                    // JP: 全ての選択状態を解除してクリックした要素だけを選択状態にする。
+                                    g_selectedNodes.clear();
+                                    g_selectedNodes.insert(clickedChild);
+                                }
                             }
+
+                            // JP: クリック時には必ず選択状態に何らかの変化が起きるので、
+                            //     クリック後に選択要素数が1であれば、必ずそれは新たにひとつだけ選択された要素となる。
+                            if (g_selectedNodes.size() == 1)
+                                newOnlyOneSelected = true;
                         }
 
-                        // JP: クリック時には必ず選択状態に何らかの変化が起きるので、
-                        //     クリック後に選択要素数が1であれば、必ずそれは新たにひとつだけ選択された要素となる。
-                        if (g_selectedNodes.size() == 1)
-                            newOnlyOneSelected = true;
-                    }
+                        ImGui::EndChild();
 
-                    ImGui::EndChild();
+                        ImGui::Separator();
 
-                    ImGui::Separator();
+                        NodeRef node;
 
-                    NodeRef node;
-
-                    if (g_selectedNodes.size() == 1) {
-                        const SelectedChild &sc = *g_selectedNodes.cbegin();
-                        if (sc.parent)
-                            node = sc.parent->getChildAt(sc.childIndex);
-                        else
-                            node = shot.scene->getChildAt(sc.childIndex);
-                    }
-
-                    static char g_nodeName[256];
-                    if (newOnlyOneSelected) {
-                        size_t copySize = std::min(std::strlen(node->getName()), sizeof(g_nodeName) - 1);
-                        std::memcpy(g_nodeName, node->getName(), copySize);
-                        g_nodeName[copySize] = '\0';
-                    }
-                    else if (g_selectedNodes.size() != 1) {
-                        g_nodeName[0] = '\0';
-                    }
-
-                    if (node) {
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("Name:"); ImGui::SameLine();
-                        ImGui::PushID("NameTextBox");
-                        if (ImGui::InputText("", g_nodeName, sizeof(g_nodeName), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                            node->setName(g_nodeName);
+                        if (g_selectedNodes.size() == 1) {
+                            const SelectedChild &sc = *g_selectedNodes.cbegin();
+                            if (sc.parent)
+                                node = sc.parent->getChildAt(sc.childIndex);
+                            else
+                                node = shot.scene->getChildAt(sc.childIndex);
                         }
-                        ImGui::PopID();
 
-                        if (node->getNodeType() == VLRNodeType_InternalNode) {
-
+                        static char g_nodeName[256];
+                        if (newOnlyOneSelected) {
+                            size_t copySize = std::min(std::strlen(node->getName()), sizeof(g_nodeName) - 1);
+                            std::memcpy(g_nodeName, node->getName(), copySize);
+                            g_nodeName[copySize] = '\0';
                         }
-                        else {
+                        else if (g_selectedNodes.size() != 1) {
+                            g_nodeName[0] = '\0';
+                        }
 
+                        if (node) {
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("Name:"); ImGui::SameLine();
+                            ImGui::PushID("NameTextBox");
+                            if (ImGui::InputText("", g_nodeName, sizeof(g_nodeName), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                                node->setName(g_nodeName);
+                            }
+                            ImGui::PopID();
+
+                            if (node->getNodeType() == VLRNodeType_InternalNode) {
+
+                            }
+                            else {
+
+                            }
                         }
                     }
 
@@ -916,7 +929,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 static bool g_operatedCameraOnPrevFrame = false;
                 uint32_t shrinkCoeff = (operatingCamera || g_forceLowResolution) ? 4 : 1;
 
-                bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || outputBufferSizeChanged || cameraSettingsChanged;
+                bool firstFrame = cameraIsActuallyMoving || (g_operatedCameraOnPrevFrame ^ operatingCamera) || outputBufferSizeChanged || cameraSettingsChanged || sceneChanged;
                 if (g_frameIndex == 0)
                     firstFrame = true;
                 if (firstFrame)

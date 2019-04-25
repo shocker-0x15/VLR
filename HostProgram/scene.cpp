@@ -768,6 +768,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->renderTargetSizeY = 720;
 
     shot->brightnessCoeff = 1.0f;
+    shot->environmentRotation = 0.0f;
 
     {
         auto camera = context->createPerspectiveCamera();
@@ -929,7 +930,8 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv, -M_PI / 2);
+    shot->environmentRotation = -M_PI / 2;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1084,7 +1086,8 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     matEnv->setNodeEmittanceConstant(spectrum);
     //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
     matEnv->setImmediateValueScale(envScale);
-    shot->scene->setEnvironment(matEnv, 0.0f);
+    shot->environmentRotation = 0.0f;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1216,7 +1219,8 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
     matEnv->setNodeEmittanceConstant(spectrum);
     //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
     matEnv->setImmediateValueScale(envScale);
-    shot->scene->setEnvironment(matEnv, 0.0f);
+    shot->environmentRotation = 0.0f;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1422,7 +1426,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv, -M_PI / 2);
+    shot->environmentRotation = -M_PI / 2;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1517,6 +1522,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->renderTargetSizeY = 720;
 
     shot->brightnessCoeff = 1.0f;
+    shot->environmentRotation = 0.0f;
     
     {
         auto camera = context->createPerspectiveCamera();
@@ -1607,6 +1613,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
     shot->renderTargetSizeY = 1024;
 
     shot->brightnessCoeff = 1.0f;
+    shot->environmentRotation = 0.0f;
     
     {
         auto camera = context->createPerspectiveCamera();
@@ -1722,7 +1729,8 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv, -0.2 * M_PI);
+    shot->environmentRotation = -0.2 * M_PI;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1791,7 +1799,8 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv, 0.0f);
+    shot->environmentRotation = 0.0f;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 
@@ -1939,7 +1948,8 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
     matEnv->setNodeEmittanceTextured(nodeEnvTex);
     //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
-    shot->scene->setEnvironment(matEnv, 0.0f);
+    shot->environmentRotation = 0.0f;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
 
 

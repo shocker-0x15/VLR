@@ -43,6 +43,7 @@ struct Shot {
     uint32_t renderTargetSizeY;
 
     float brightnessCoeff;
+    float environmentRotation;
 
     std::vector<VLRCpp::CameraRef> viewpoints;
 };

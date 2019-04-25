@@ -293,6 +293,7 @@ namespace VLR {
         sm_shadowPayload.fractionalVisibility *= (1 - alpha);
         if (sm_shadowPayload.fractionalVisibility == 0.0f)
             rtTerminateRay();
+        rtIgnoreIntersection();
     }
 
 

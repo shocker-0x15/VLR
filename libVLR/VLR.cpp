@@ -1705,11 +1705,20 @@ VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material, float rotationPhi) {
+VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material) {
     if (!scene->is<VLR::Scene>() || !material->is<VLR::EnvironmentEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
 
-    scene->setEnvironment(material, rotationPhi);
+    scene->setEnvironment(material);
+
+    return VLR_ERROR_NO_ERROR;
+}
+
+VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationPhi) {
+    if (!scene->is<VLR::Scene>())
+        return VLR_ERROR_INVALID_TYPE;
+
+    scene->setEnvironmentRotation(rotationPhi);
 
     return VLR_ERROR_NO_ERROR;
 }

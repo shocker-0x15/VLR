@@ -447,7 +447,8 @@ namespace VLR {
         }
 
         // TODO: 内部実装をInfiniteSphereSurfaceNode + EnvironmentEmitterMaterialを使ったものに変えられないかを考える。
-        void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv, float rotationPhi);
+        void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
+        void setEnvironmentRotation(float rotationPhi);
 
         void set();
     };

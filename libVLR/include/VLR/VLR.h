@@ -312,7 +312,8 @@ extern "C" {
     VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransform localToWorld);
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child);
-    VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material, float rotationPhi);
+    VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material);
+    VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationPhi);
 
 
 

@@ -1082,7 +1082,11 @@ namespace VLRCpp {
 
         void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv, float rotationPhi) {
             m_matEnv = matEnv;
-            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get(), rotationPhi));
+            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get()));
+            errorCheck(vlrSceneSetEnvironmentRotation((VLRScene)m_raw, rotationPhi));
+        }
+        void setEnvironmentRotation(float rotationPhi) {
+            errorCheck(vlrSceneSetEnvironmentRotation((VLRScene)m_raw, rotationPhi));
         }
     };
 

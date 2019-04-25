@@ -1352,7 +1352,7 @@ namespace VLR {
 
 
     Scene::Scene(Context &context, const Transform* localToWorld) : 
-    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr) {
+    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr), m_envRotationPhi(0) {
         std::string ptx = readTxtFile(VLR_PTX_DIR"infinite_sphere_intersection.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
@@ -1364,8 +1364,11 @@ namespace VLR {
         m_callableProgramSampleInfiniteSphere->destroy();
     }
 
-    void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv, float rotationPhi) {
+    void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
         m_matEnv = matEnv;
+    }
+
+    void Scene::setEnvironmentRotation(float rotationPhi) {
         m_envRotationPhi = rotationPhi;
     }
 
