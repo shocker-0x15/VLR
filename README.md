@@ -76,6 +76,12 @@ An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Subst
 
 Model: Substance Painter  
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)  
+<br><br>
+<img src = "Rungholt.png" width = "768px" alt = "Rungholt.png">
+Rungholt model illuminated by outdoor environment light.  
+
+Model: Rungholt from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)  
+IBL image: [Direct HDR Capture of the Sun and Sky](http://gl.ict.usc.edu/Data/SkyProbes/)  
 
 ----
 2019 [@Shocker_0x15](https://twitter.com/Shocker_0x15)
