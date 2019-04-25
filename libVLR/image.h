@@ -55,15 +55,18 @@ namespace VLR {
         DataFormat getDataFormat() const {
             return m_dataFormat;
         }
-        bool hasAlpha() const {
-            return (m_dataFormat == DataFormat::RGBA8x4 ||
-                    m_dataFormat == DataFormat::RGBA16Fx4 ||
-                    m_dataFormat == DataFormat::RGBA32Fx4 ||
-                    m_dataFormat == DataFormat::GrayA8x2 ||
-                    m_dataFormat == DataFormat::BC1 ||
-                    m_dataFormat == DataFormat::BC2 ||
-                    m_dataFormat == DataFormat::BC3 ||
-                    m_dataFormat == DataFormat::BC7);
+        DataFormat getOriginalDataFormat() const {
+          return m_originalDataFormat;
+        }
+        bool originalHasAlpha() const {
+            return (m_originalDataFormat == DataFormat::RGBA8x4 ||
+                    m_originalDataFormat == DataFormat::RGBA16Fx4 ||
+                    m_originalDataFormat == DataFormat::RGBA32Fx4 ||
+                    m_originalDataFormat == DataFormat::GrayA8x2 ||
+                    m_originalDataFormat == DataFormat::BC1 ||
+                    m_originalDataFormat == DataFormat::BC2 ||
+                    m_originalDataFormat == DataFormat::BC3 ||
+                    m_originalDataFormat == DataFormat::BC7);
         }
         bool needsHW_sRGB_degamma() const {
             return m_needsHW_sRGB_degamma;

@@ -84,8 +84,8 @@ extern "C" {
     VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width);
     VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height);
     VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride);
-    VLR_API VLRResult vlrImage2DGetDataFormat(VLRImage2D image, VLRDataFormat* format);
-    VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha);
+    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2D image, VLRDataFormat* format);
+    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint8_t* linearData, uint32_t width, uint32_t height,

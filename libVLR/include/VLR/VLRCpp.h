@@ -105,14 +105,14 @@ namespace VLRCpp {
             errorCheck(vlrImage2DGetStride((VLRImage2D)m_raw, &stride));
             return stride;
         }
-        VLRDataFormat getDataFormat() const {
+        VLRDataFormat getOriginalDataFormat() const {
             VLRDataFormat format;
-            errorCheck(vlrImage2DGetDataFormat((VLRImage2D)m_raw, &format));
+            errorCheck(vlrImage2DGetOriginalDataFormat((VLRImage2D)m_raw, &format));
             return format;
         }
-        bool hasAlpha() const {
+        bool originalHasAlpha() const {
             bool hasAlpha;
-            errorCheck(vlrImage2DHasAlpha((VLRImage2D)m_raw, &hasAlpha));
+            errorCheck(vlrImage2DOriginalHasAlpha((VLRImage2D)m_raw, &hasAlpha));
             return hasAlpha;
         }
     };

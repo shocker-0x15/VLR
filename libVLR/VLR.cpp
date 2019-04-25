@@ -220,18 +220,18 @@ VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DGetDataFormat(VLRImage2D image, VLRDataFormat* format) {
+VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2D image, VLRDataFormat* format) {
     if (!image->isMemberOf<VLR::Image2D>())
         return VLR_ERROR_INVALID_TYPE;
-    *format = (VLRDataFormat)image->getDataFormat();
+    *format = (VLRDataFormat)image->getOriginalDataFormat();
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DHasAlpha(VLRImage2D image, bool* hasAlpha) {
+VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha) {
     if (!image->isMemberOf<VLR::Image2D>())
         return VLR_ERROR_INVALID_TYPE;
-    *hasAlpha = image->hasAlpha();
+    *hasAlpha = image->originalHasAlpha();
 
     return VLR_ERROR_NO_ERROR;
 }
