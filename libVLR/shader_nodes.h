@@ -417,11 +417,11 @@ namespace VLR {
 
 
 
-    class Vector3DToSpectrumShaderNode : public ShaderNode {
+    class Float3ToSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        ShaderNodeSocketIdentifier m_nodeVector3D;
-        Vector3D m_immVector3D;
+        ShaderNodeSocketIdentifier m_nodeFloat3;
+        float m_immFloat3[3];
         VLRSpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
 
@@ -434,8 +434,8 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        Vector3DToSpectrumShaderNode(Context &context);
-        ~Vector3DToSpectrumShaderNode();
+        Float3ToSpectrumShaderNode(Context &context);
+        ~Float3ToSpectrumShaderNode();
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
@@ -445,8 +445,8 @@ namespace VLR {
             return ShaderNodeSocketIdentifier();
         }
 
-        bool setNodeVector3D(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValueVector3D(const Vector3D &value);
+        bool setNodeFloat3(const ShaderNodeSocketIdentifier &outputSocket);
+        void setImmediateValueFloat3(const float value[3]);
         void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, ColorSpace colorSpace);
     };
 

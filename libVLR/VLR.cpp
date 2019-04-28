@@ -20,7 +20,7 @@ typedef VLR::ScaleAndOffsetFloatShaderNode* VLRScaleAndOffsetFloatShaderNode;
 typedef VLR::TripletSpectrumShaderNode* VLRTripletSpectrumShaderNode;
 typedef VLR::RegularSampledSpectrumShaderNode* VLRRegularSampledSpectrumShaderNode;
 typedef VLR::IrregularSampledSpectrumShaderNode* VLRIrregularSampledSpectrumShaderNode;
-typedef VLR::Vector3DToSpectrumShaderNode* VLRVector3DToSpectrumShaderNode;
+typedef VLR::Float3ToSpectrumShaderNode* VLRFloat3ToSpectrumShaderNode;
 typedef VLR::ScaleAndOffsetUVTextureMap2DShaderNode* VLRScaleAndOffsetUVTextureMap2DShaderNode;
 typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
 typedef VLR::EnvironmentTextureShaderNode* VLREnvironmentTextureShaderNode;
@@ -683,39 +683,39 @@ VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum
 
 
 
-VLR_API VLRResult vlrVector3DToSpectrumShaderNodeCreate(VLRContext context, VLRVector3DToSpectrumShaderNode* node) {
-    *node = new VLR::Vector3DToSpectrumShaderNode(*context);
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeCreate(VLRContext context, VLRFloat3ToSpectrumShaderNode* node) {
+    *node = new VLR::Float3ToSpectrumShaderNode(*context);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrVector3DToSpectrumShaderNodeDestroy(VLRContext context, VLRVector3DToSpectrumShaderNode node) {
-    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeDestroy(VLRContext context, VLRFloat3ToSpectrumShaderNode node) {
+    if (!node->is<VLR::Float3ToSpectrumShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     delete node;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetNodeVector3D(VLRVector3DToSpectrumShaderNode node, VLRShaderNode nodeVector3D, VLRShaderNodeSocketInfo socketInfo) {
-    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(VLRFloat3ToSpectrumShaderNode node, VLRShaderNode nodeFloat3, VLRShaderNodeSocketInfo socketInfo) {
+    if (!node->is<VLR::Float3ToSpectrumShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeVector3D(VLR::ShaderNodeSocketIdentifier(nodeVector3D, socketInfo)))
+    if (!node->setNodeFloat3(VLR::ShaderNodeSocketIdentifier(nodeFloat3, socketInfo)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value) {
-    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D(VLRFloat3ToSpectrumShaderNode node, const float value[3]) {
+    if (!node->is<VLR::Float3ToSpectrumShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    node->setImmediateValueVector3D(VLR::Vector3D(value->x, value->y, value->z));
+    node->setImmediateValueFloat3(value);
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRVector3DToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
-    if (!node->is<VLR::Vector3DToSpectrumShaderNode>())
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRFloat3ToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+    if (!node->is<VLR::Float3ToSpectrumShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     node->setImmediateValueSpectrumTypeAndColorSpace(spectrumType, colorSpace);
 

@@ -3,12 +3,14 @@
 #if defined(__CUDACC__)
 #   define VLR_Device
 #   define RT_FUNCTION __forceinline__ __device__
+#   define RT_FUNCTION_NOINLINE __noinline__ __device__
 #   define RT_VARIABLE __constant__
 #   define HOST_INLINE
 #   define HOST_STATIC_CONSTEXPR
 #else
 #   define VLR_Host
 #   define RT_FUNCTION
+#   define RT_FUNCTION_NOINLINE
 #   define RT_VARIABLE
 #   define HOST_INLINE inline
 #   define HOST_STATIC_CONSTEXPR static constexpr

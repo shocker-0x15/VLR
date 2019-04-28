@@ -570,7 +570,7 @@ namespace VLR {
 
         m_materials.push_back(material);
         if (nodeNormal.node) {
-            if (nodeNormal.getType() == VLRShaderNodeSocketType_Normal3D) {
+            if (Shared::NodeTypeInfo<Normal3D>::ConversionIsDefinedFor(nodeNormal.getType())) {
                 m_nodeNormals.push_back(nodeNormal);
                 nodeNormalIsValid = true;
             }
@@ -585,7 +585,7 @@ namespace VLR {
             nodeNormalIsValid = false;
         }
         if (nodeAlpha.node) {
-            if (nodeAlpha.getType() == VLRShaderNodeSocketType_Alpha || nodeAlpha.getType() == VLRShaderNodeSocketType_float) {
+            if (Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(nodeAlpha.getType())) {
                 m_nodeAlphas.push_back(nodeAlpha);
                 nodeAlphaIsValid = true;
             }

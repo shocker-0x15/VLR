@@ -189,19 +189,20 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM SampledSpectrum Vector3DToSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
-                                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        auto &nodeData = *(const Vector3DToSpectrumShaderNode*)rawNodeData;
-        Vector3D vector = calcNode(nodeData.nodeVector3D, nodeData.immVector3D, surfPt, wls);
+    RT_CALLABLE_PROGRAM SampledSpectrum Float3ToSpectrumShaderNode_Spectrum(const uint32_t* rawNodeData, uint32_t option,
+                                                                            const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        auto &nodeData = *(const Float3ToSpectrumShaderNode*)rawNodeData;
+        auto defaultValue = optix::make_float3(nodeData.immFloat3[0], nodeData.immFloat3[1], nodeData.immFloat3[2]);
+        optix::float3 f3Value = calcNode(nodeData.nodeFloat3, defaultValue, surfPt, wls);
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace,
-                                 clamp(0.5f * vector.x + 0.5f, 0.0f, 1.0f),
-                                 clamp(0.5f * vector.y + 0.5f, 0.0f, 1.0f),
-                                 clamp(0.5f * vector.z + 0.5f, 0.0f, 1.0f)).evaluate(wls);
+                                 clamp(0.5f * f3Value.x + 0.5f, 0.0f, 1.0f),
+                                 clamp(0.5f * f3Value.y + 0.5f, 0.0f, 1.0f),
+                                 clamp(0.5f * f3Value.z + 0.5f, 0.0f, 1.0f)).evaluate(wls);
 #else
-        return SampledSpectrum(clamp(0.5f * vector.x + 0.5f, 0.0f, 1.0f),
-                               clamp(0.5f * vector.y + 0.5f, 0.0f, 1.0f),
-                               clamp(0.5f * vector.z + 0.5f, 0.0f, 1.0f));
+        return SampledSpectrum(clamp(0.5f * f3Value.x + 0.5f, 0.0f, 1.0f),
+                               clamp(0.5f * f3Value.y + 0.5f, 0.0f, 1.0f),
+                               clamp(0.5f * f3Value.z + 0.5f, 0.0f, 1.0f));
 #endif
     }
 

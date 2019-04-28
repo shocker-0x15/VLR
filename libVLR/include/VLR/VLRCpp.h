@@ -26,7 +26,7 @@ namespace VLRCpp {
     VLR_DECLARE_HOLDER_AND_REFERENCE(TripletSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(RegularSampledSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(IrregularSampledSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Vector3DToSpectrumShaderNode);
+    VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ToSpectrumShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(ScaleAndOffsetUVTextureMap2DShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentTextureShaderNode);
@@ -417,27 +417,26 @@ namespace VLRCpp {
 
 
 
-    class Vector3DToSpectrumShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeSocket m_nodeVector3D;
+    class Float3ToSpectrumShaderNodeHolder : public ShaderNodeHolder {
+        ShaderNodeSocket m_nodeFloat3;
 
     public:
-        Vector3DToSpectrumShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
-            errorCheck(vlrVector3DToSpectrumShaderNodeCreate(getRaw(m_context), (VLRVector3DToSpectrumShaderNode*)&m_raw));
+        Float3ToSpectrumShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
+            errorCheck(vlrFloat3ToSpectrumShaderNodeCreate(getRaw(m_context), (VLRFloat3ToSpectrumShaderNode*)&m_raw));
         }
-        ~Vector3DToSpectrumShaderNodeHolder() {
-            errorCheck(vlrVector3DToSpectrumShaderNodeDestroy(getRaw(m_context), (VLRVector3DToSpectrumShaderNode)m_raw));
+        ~Float3ToSpectrumShaderNodeHolder() {
+            errorCheck(vlrFloat3ToSpectrumShaderNodeDestroy(getRaw(m_context), (VLRFloat3ToSpectrumShaderNode)m_raw));
         }
 
-        void setNodeVector3D(const ShaderNodeSocket &nodeVector3D) {
-            m_nodeVector3D = nodeVector3D;
-            errorCheck(vlrVector3DToSpectrumShaderNodeSetNodeVector3D((VLRVector3DToSpectrumShaderNode)m_raw, m_nodeVector3D.getNode(), m_nodeVector3D.socketInfo));
+        void setNodeFloat3(const ShaderNodeSocket &nodeFloat3) {
+            m_nodeFloat3 = nodeFloat3;
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetNodeVector3D((VLRFloat3ToSpectrumShaderNode)m_raw, m_nodeFloat3.getNode(), m_nodeFloat3.socketInfo));
         }
-        void setImmediateValueVector3D(const VLR::Vector3D &value) {
-            VLRVector3D v{ value.x, value.y, value.z };
-            errorCheck(vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D((VLRVector3DToSpectrumShaderNode)m_raw, &v));
+        void setImmediateValueFloat3(const float value[3]) {
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D((VLRFloat3ToSpectrumShaderNode)m_raw, value));
         }
         void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
-            errorCheck(vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace((VLRVector3DToSpectrumShaderNode)m_raw, spectrumType, colorSpace));
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace((VLRFloat3ToSpectrumShaderNode)m_raw, spectrumType, colorSpace));
         }
     };
 
@@ -1303,8 +1302,8 @@ namespace VLRCpp {
             return std::make_shared<IrregularSampledSpectrumShaderNodeHolder>(shared_from_this());
         }
 
-        Vector3DToSpectrumShaderNodeRef createVector3DToSpectrumShaderNode() const {
-            return std::make_shared<Vector3DToSpectrumShaderNodeHolder>(shared_from_this());
+        Float3ToSpectrumShaderNodeRef createFloat3ToSpectrumShaderNode() const {
+            return std::make_shared<Float3ToSpectrumShaderNodeHolder>(shared_from_this());
         }
 
         ScaleAndOffsetUVTextureMap2DShaderNodeRef createScaleAndOffsetUVTextureMap2DShaderNode() const {

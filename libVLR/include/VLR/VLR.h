@@ -29,7 +29,7 @@ extern "C" {
     typedef struct VLRTripletSpectrumShaderNode_API* VLRTripletSpectrumShaderNode;
     typedef struct VLRRegularSampledSpectrumShaderNode_API* VLRRegularSampledSpectrumShaderNode;
     typedef struct VLRIrregularSampledSpectrumShaderNode_API* VLRIrregularSampledSpectrumShaderNode;
-    typedef struct VLRVector3DToSpectrumShaderNode_API* VLRVector3DToSpectrumShaderNode;
+    typedef struct VLRFloat3ToSpectrumShaderNode_API* VLRFloat3ToSpectrumShaderNode;
     typedef struct VLRScaleAndOffsetUVTextureMap2DShaderNode_API* VLRScaleAndOffsetUVTextureMap2DShaderNode;
     typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
     typedef struct VLREnvironmentTextureShaderNode_API* VLREnvironmentTextureShaderNode;
@@ -159,11 +159,11 @@ extern "C" {
     VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeDestroy(VLRContext context, VLRIrregularSampledSpectrumShaderNode node);
     VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum(VLRIrregularSampledSpectrumShaderNode node, VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
 
-    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeCreate(VLRContext context, VLRVector3DToSpectrumShaderNode* node);
-    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeDestroy(VLRContext context, VLRVector3DToSpectrumShaderNode node);
-    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetNodeVector3D(VLRVector3DToSpectrumShaderNode node, VLRShaderNode nodeVector3D, VLRShaderNodeSocketInfo socketInfo);
-    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueVector3D(VLRVector3DToSpectrumShaderNode node, const VLRVector3D* value);
-    VLR_API VLRResult vlrVector3DToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRVector3DToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
+    VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeCreate(VLRContext context, VLRFloat3ToSpectrumShaderNode* node);
+    VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeDestroy(VLRContext context, VLRFloat3ToSpectrumShaderNode node);
+    VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(VLRFloat3ToSpectrumShaderNode node, VLRShaderNode nodeFloat3, VLRShaderNodeSocketInfo socketInfo);
+    VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D(VLRFloat3ToSpectrumShaderNode node, const float value[3]);
+    VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(VLRFloat3ToSpectrumShaderNode node, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
 
     VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeCreate(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode* node);
     VLR_API VLRResult vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(VLRContext context, VLRScaleAndOffsetUVTextureMap2DShaderNode node);

@@ -1665,6 +1665,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             texDiffuse = context->createImage2DTextureShaderNode();
             imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             texDiffuse->setImage(imgDiffuse);
+            texDiffuse->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             mat->setNodeAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
         }
         else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
@@ -1723,7 +1724,9 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Playa_Sunrise/Playa_Sunrise.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    //auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Playa_Sunrise/Playa_Sunrise.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    //auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/Direct_HDR_Capture_of_the_Sun_and_Sky/1400/probe_14-00_latlongmap.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
@@ -1891,13 +1894,8 @@ void createAmazonBistroScene(const VLRCpp::ContextRef &context, Shot* shot) {
             if (texSpecular)
                 oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
-            if (imageSpecular && imageSpecular->originalHasAlpha()) {
-                // TODO: データをアルファとして取得してGlossinessとして設定できれば楽。
-                if (imageSpecular->getOriginalDataFormat() == VLRDataFormat_GrayA8x2)
-                    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_float, 1));
-                else
-                    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_float, 3));
-            }
+            if (imageSpecular && imageSpecular->originalHasAlpha())
+                oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
 
             if (texNormal)
                 socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);

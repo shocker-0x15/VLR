@@ -396,6 +396,85 @@ namespace VLR {
 
 
 
+        template <typename Type>
+        struct NodeTypeInfo {
+            template <typename SrcType>
+            RT_FUNCTION static constexpr bool ConversionIsDefinedFor() {
+                return false;
+            }
+            RT_FUNCTION static constexpr bool ConversionIsDefinedFor(VLRShaderNodeSocketType socketType);
+            template <typename SrcType>
+            RT_FUNCTION static Type convertFrom(const SrcType &) {
+                return Type();
+            }
+        };
+
+#define VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(DstType, SrcType) \
+    template <> template <> HOST_INLINE constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFor<SrcType>() { return true; } \
+    template <> template <> HOST_INLINE DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, optix::float2) { return srcValue; }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, optix::float3) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Point3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Vector3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Normal3D) { return asOptiXType(srcValue); }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, optix::float4) { return srcValue; }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Point3D) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, optix::float3) { return asPoint3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Vector3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Normal3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Vector3D) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, optix::float3) { return asVector3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Point3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Normal3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Normal3D) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, optix::float3) { return asNormal3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Point3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Vector3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
+
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(SampledSpectrum, SampledSpectrum) { return srcValue; }
+
+#undef VLR_NODE_TYPE_INFO_DEFINE_CONVERSION
+
+        template <typename Type>
+        RT_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFor(VLRShaderNodeSocketType socketType) {
+            switch (socketType) {
+            case VLRShaderNodeSocketType_float:
+                return ConversionIsDefinedFor<float>();
+            case VLRShaderNodeSocketType_float2:
+                return ConversionIsDefinedFor<optix::float2>();
+            case VLRShaderNodeSocketType_float3:
+                return ConversionIsDefinedFor<optix::float3>();
+            case VLRShaderNodeSocketType_float4:
+                return ConversionIsDefinedFor<optix::float4>();
+            case VLRShaderNodeSocketType_Point3D:
+                return ConversionIsDefinedFor<Point3D>();
+            case VLRShaderNodeSocketType_Vector3D:
+                return ConversionIsDefinedFor<Vector3D>();
+            case VLRShaderNodeSocketType_Normal3D:
+                return ConversionIsDefinedFor<Normal3D>();
+            case VLRShaderNodeSocketType_Spectrum:
+                return ConversionIsDefinedFor<SampledSpectrum>();
+            case VLRShaderNodeSocketType_Alpha:
+                return ConversionIsDefinedFor<float>();
+            case VLRShaderNodeSocketType_TextureCoordinates:
+                return ConversionIsDefinedFor<Point3D>();
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
+            }
+            return false;
+        }
+
+
+
         struct BSDFProcedureSet {
             int32_t progGetBaseColor;
             int32_t progMatches;
@@ -626,9 +705,9 @@ namespace VLR {
         };
 #endif
 
-        struct Vector3DToSpectrumShaderNode {
-            ShaderNodeSocketID nodeVector3D;
-            Vector3D immVector3D;
+        struct Float3ToSpectrumShaderNode {
+            ShaderNodeSocketID nodeFloat3;
+            float immFloat3[3];
             VLRSpectrumType spectrumType;
             ColorSpace colorSpace;
         };
