@@ -416,13 +416,16 @@ namespace VLR {
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, optix::float2) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, float) { return optix::make_float2(srcValue); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, optix::float3) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, float) { return optix::make_float3(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Point3D) { return asOptiXType(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Vector3D) { return asOptiXType(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Normal3D) { return asOptiXType(srcValue); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, optix::float4) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, float) { return optix::make_float4(srcValue); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Point3D) { return srcValue; }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, optix::float3) { return asPoint3D(srcValue); }
@@ -435,7 +438,7 @@ namespace VLR {
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Normal3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Normal3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, optix::float3) { return asNormal3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, optix::float3) { return asNormal3D(srcValue).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Point3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Vector3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
 

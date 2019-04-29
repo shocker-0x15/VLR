@@ -68,17 +68,17 @@ There are some scene files loading model data and textures, but those assets are
 [Veach1996] "Non-symmetric Scattering in Light Transport Algorithms"  
 
 ## ギャラリー / Gallery
-<img src = "CornellBox_var.png" width = "512px" alt = "CornellBox_var.png"><br>
+<img src = "gallery/CornellBox_var.png" width = "512px" alt = "CornellBox_var.png"><br>
 A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis (roughness is smoother along tangent, rougher along bitangent).
 <br><br>
-<img src = "UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png"><br>
+<img src = "gallery/UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png"><br>
 An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.  
 
 Model: Substance Painter  
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 <br><br>
-<img src = "Rungholt_view1.png" width = "768px" alt = "Rungholt_view1.png"><br>
-<img src = "Rungholt_view2.png" width = "768px" alt = "Rungholt_view2.png"><br>
+<img src = "gallery/Rungholt_view1.png" width = "768px" alt = "Rungholt_view1.png"><br>
+<img src = "gallery/Rungholt_view2.png" width = "768px" alt = "Rungholt_view2.png"><br>
 Rungholt model illuminated by outdoor environment light.  
 
 Model: Rungholt from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)  
