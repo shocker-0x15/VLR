@@ -283,7 +283,7 @@ namespace VLR {
     // Context-scope Variables
     rtBuffer<NodeProcedureSet, 1> pv_nodeProcedureSetBuffer;
     rtBuffer<NodeDescriptor, 1> pv_nodeDescriptorBuffer;
-    rtBuffer<SpectrumNodeDescriptor, 1> pv_spectrumNodeDescriptorBuffer;
+    rtBuffer<LargeNodeDescriptor, 1> pv_largeNodeDescriptorBuffer;
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
@@ -293,21 +293,17 @@ namespace VLR {
     template <typename T>
     RT_FUNCTION T calcNode(ShaderNodeSocketID socket, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
-            // TODO: ここでは NodeDescriptor は全バイト読まれている？
-            //       procSetIndex は別で読んで、各シェーダーノード内でノードデータを読んだほうが良いかもしれない。
-            //       読む量は減るかもしれないが、読み込みがダイバージェントになるというリスクもある。
-            const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
-            int32_t programID = pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketType];
+            int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
 
             bool conversionDefined = false;
             T ret = T();
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocketID &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFor<ReturnType>(); \
-        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(nodeDesc.data, socket.option, surfPt, wls)); \
+        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
         break; \
     }
             switch (socket.socketType) {
@@ -335,25 +331,40 @@ namespace VLR {
 
     RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocketID socket, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
-            using ProgSigT = rtCallableProgramId<SampledSpectrum(const uint32_t*, uint32_t, const SurfacePoint &, const WavelengthSamples &)>;
+            int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
 
-            uint32_t procSetIndex;
-            const uint32_t* data;
-            if (socket.isSpectrumNode) {
-                const SpectrumNodeDescriptor &nodeDesc = pv_spectrumNodeDescriptorBuffer[socket.nodeDescIndex];
-                procSetIndex = nodeDesc.procSetIndex;
-                data = nodeDesc.data;
+            bool conversionDefined = false;
+            SampledSpectrum ret = SampledSpectrum::Zero();
+
+#define VLR_DEFINE_CASE(ReturnType, EnumName) \
+    case EnumName: { \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocketID &, const SurfacePoint &, const WavelengthSamples &)>; \
+        ProgSigT program = (ProgSigT)programID; \
+        conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor<ReturnType>(); \
+        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
+        break; \
+    }
+            switch (socket.socketType) {
+                //VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_float);
+                //VLR_DEFINE_CASE(optix::float2, VLRShaderNodeSocketType_float2);
+                //VLR_DEFINE_CASE(optix::float3, VLRShaderNodeSocketType_float3);
+                //VLR_DEFINE_CASE(optix::float4, VLRShaderNodeSocketType_float4);
+                //VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_Point3D);
+                //VLR_DEFINE_CASE(Vector3D, VLRShaderNodeSocketType_Vector3D);
+                //VLR_DEFINE_CASE(Normal3D, VLRShaderNodeSocketType_Normal3D);
+                VLR_DEFINE_CASE(SampledSpectrum, VLRShaderNodeSocketType_Spectrum);
+                //VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_Alpha);
+                //VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_TextureCoordinates);
+            default:
+                VLRAssert_ShouldNotBeCalled();
+                break;
             }
-            else {
-                const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
-                procSetIndex = nodeDesc.procSetIndex;
-                data = nodeDesc.data;
-            }
-            ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[procSetIndex].progs[socket.socketType];
-            return program(data, socket.option, surfPt, wls);
+
+#undef VLR_DEFINE_CASE
+
+            if (conversionDefined)
+                return ret;
         }
-        else {
-            return defaultValue.evaluate(wls);
-        }
+        return defaultValue.evaluate(wls);
     }
 }

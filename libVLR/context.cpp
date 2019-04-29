@@ -257,7 +257,7 @@ namespace VLR {
 
 
 
-        m_maxNumNodeProcSet = 64;
+        m_maxNumNodeProcSet = 256;
         m_optixNodeProcedureSetBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeProcSet);
         m_optixNodeProcedureSetBuffer->setElementSize(sizeof(Shared::NodeProcedureSet));
         m_nodeProcSetSlotManager.initialize(m_maxNumNodeProcSet);
@@ -274,12 +274,12 @@ namespace VLR {
 
 
 
-        m_maxNumSpectrumNodeDescriptors = 1024;
-        m_optixSpectrumNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumSpectrumNodeDescriptors);
-        m_optixSpectrumNodeDescriptorBuffer->setElementSize(sizeof(Shared::SpectrumNodeDescriptor));
-        m_spectrumNodeDescSlotManager.initialize(m_maxNumSpectrumNodeDescriptors);
+        m_maxNumLargeNodeDescriptors = 1024;
+        m_optixLargeNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumLargeNodeDescriptors);
+        m_optixLargeNodeDescriptorBuffer->setElementSize(sizeof(Shared::LargeNodeDescriptor));
+        m_largeNodeDescSlotManager.initialize(m_maxNumLargeNodeDescriptors);
 
-        m_optixContext["VLR::pv_spectrumNodeDescriptorBuffer"]->set(m_optixSpectrumNodeDescriptorBuffer);
+        m_optixContext["VLR::pv_largeNodeDescriptorBuffer"]->set(m_optixLargeNodeDescriptorBuffer);
 
 
 
@@ -432,8 +432,8 @@ namespace VLR {
         m_bsdfProcSetSlotManager.finalize();
         m_optixBSDFProcedureSetBuffer->destroy();
 
-        m_spectrumNodeDescSlotManager.finalize();
-        m_optixSpectrumNodeDescriptorBuffer->destroy();
+        m_largeNodeDescSlotManager.finalize();
+        m_optixLargeNodeDescriptorBuffer->destroy();
 
         m_nodeDescSlotManager.finalize();
         m_optixNodeDescriptorBuffer->destroy();
@@ -656,22 +656,22 @@ namespace VLR {
 
 
 
-    uint32_t Context::allocateSpectrumNodeDescriptor() {
-        uint32_t index = m_spectrumNodeDescSlotManager.getFirstAvailableSlot();
-        m_spectrumNodeDescSlotManager.setInUse(index);
+    uint32_t Context::allocateLargeNodeDescriptor() {
+        uint32_t index = m_largeNodeDescSlotManager.getFirstAvailableSlot();
+        m_largeNodeDescSlotManager.setInUse(index);
         return index;
     }
 
-    void Context::releaseSpectrumNodeDescriptor(uint32_t index) {
-        VLRAssert(m_spectrumNodeDescSlotManager.getUsage(index), "Invalid index.");
-        m_spectrumNodeDescSlotManager.setNotInUse(index);
+    void Context::releaseLargeNodeDescriptor(uint32_t index) {
+        VLRAssert(m_largeNodeDescSlotManager.getUsage(index), "Invalid index.");
+        m_largeNodeDescSlotManager.setNotInUse(index);
     }
 
-    void Context::updateSpectrumNodeDescriptor(uint32_t index, const Shared::SpectrumNodeDescriptor &nodeDesc) {
-        VLRAssert(m_spectrumNodeDescSlotManager.getUsage(index), "Invalid index.");
-        auto nodeDescs = (Shared::SpectrumNodeDescriptor*)m_optixSpectrumNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
+    void Context::updateLargeNodeDescriptor(uint32_t index, const Shared::LargeNodeDescriptor &nodeDesc) {
+        VLRAssert(m_largeNodeDescSlotManager.getUsage(index), "Invalid index.");
+        auto nodeDescs = (Shared::LargeNodeDescriptor*)m_optixLargeNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
         nodeDescs[index] = nodeDesc;
-        m_optixSpectrumNodeDescriptorBuffer->unmap();
+        m_optixLargeNodeDescriptorBuffer->unmap();
     }
 
 

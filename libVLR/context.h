@@ -65,9 +65,9 @@ namespace VLR {
         uint32_t m_maxNumNodeDescriptors;
         SlotManager m_nodeDescSlotManager;
 
-        optix::Buffer m_optixSpectrumNodeDescriptorBuffer;
-        uint32_t m_maxNumSpectrumNodeDescriptors;
-        SlotManager m_spectrumNodeDescSlotManager;
+        optix::Buffer m_optixLargeNodeDescriptorBuffer;
+        uint32_t m_maxNumLargeNodeDescriptors;
+        SlotManager m_largeNodeDescSlotManager;
 
         optix::Buffer m_optixBSDFProcedureSetBuffer;
         uint32_t m_maxNumBSDFProcSet;
@@ -141,9 +141,9 @@ namespace VLR {
         void releaseNodeDescriptor(uint32_t index);
         void updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc);
 
-        uint32_t allocateSpectrumNodeDescriptor();
-        void releaseSpectrumNodeDescriptor(uint32_t index);
-        void updateSpectrumNodeDescriptor(uint32_t index, const Shared::SpectrumNodeDescriptor &nodeDesc);
+        uint32_t allocateLargeNodeDescriptor();
+        void releaseLargeNodeDescriptor(uint32_t index);
+        void updateLargeNodeDescriptor(uint32_t index, const Shared::LargeNodeDescriptor &nodeDesc);
 
         uint32_t allocateBSDFProcedureSet();
         void releaseBSDFProcedureSet(uint32_t index);

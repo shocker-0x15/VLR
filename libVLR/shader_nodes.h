@@ -52,7 +52,7 @@ namespace VLR {
         };
 
         uint32_t m_nodeIndex;
-        const bool m_isSpectrumNode;
+        const bool m_isLargeNode;
 
         struct SocketTypeToProgramPair {
             VLRShaderNodeSocketType stype;
@@ -72,9 +72,9 @@ namespace VLR {
         virtual ~ShaderNode();
 
         virtual ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const = 0;
+        virtual uint32_t getProcedureSetIndex() const = 0;
 
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
-        bool isSpectrumNode() const { return m_isSpectrumNode; }
     };
 
 
@@ -100,13 +100,16 @@ namespace VLR {
         // 1 (Normal3D) |   0, 1 | Geometric Normal, Shading Normal
         // 2 (Vector3D) |   0, 1 | Shading Tangent, Shading Bitangent
         // 3 (Point3D)  |      0 | Texture Coordinates
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if ((stype == VLRShaderNodeSocketType_Point3D && index < 1) ||
                 (stype == VLRShaderNodeSocketType_Normal3D && index < 2) ||
                 (stype == VLRShaderNodeSocketType_Vector3D && index < 2) ||
                 (stype == VLRShaderNodeSocketType_TextureCoordinates && index < 1))
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         static GeometryShaderNode* getInstance(Context &context);
@@ -134,10 +137,13 @@ namespace VLR {
 
         // Out Socket | option |
         // float      |      0 | s0
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_float && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
@@ -169,11 +175,14 @@ namespace VLR {
         // Out Socket | option |
         // float      |    0-1 | s0, s1
         // float2     |      0 | (s0, s1)
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if ((stype == VLRShaderNodeSocketType_float && index < 2) ||
                 (stype == VLRShaderNodeSocketType_float2 && index < 1))
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
@@ -210,12 +219,15 @@ namespace VLR {
         // float      |    0-2 | s0, s1, s2
         // float2     |    0-1 | (s0, s1), (s1, s2)
         // float3     |      0 | (s0, s1, s2)
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if ((stype == VLRShaderNodeSocketType_float && index < 3) ||
                 (stype == VLRShaderNodeSocketType_float2 && index < 2) ||
                 (stype == VLRShaderNodeSocketType_float3 && index < 1))
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
@@ -257,13 +269,16 @@ namespace VLR {
         // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
         // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
         // float4     |      0 | (s0, s1, s2, s3)
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if ((stype == VLRShaderNodeSocketType_float && index < 4) ||
                 (stype == VLRShaderNodeSocketType_float2 && index < 3) ||
                 (stype == VLRShaderNodeSocketType_float3 && index < 2) ||
                 (stype == VLRShaderNodeSocketType_float4 && index < 1))
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
@@ -301,10 +316,13 @@ namespace VLR {
 
         // Out Socket | option |
         // float      |      0 | s0
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_float && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNodeValue(const ShaderNodeSocketIdentifier &outputSocket);
@@ -337,10 +355,13 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setImmediateValueSpectrumType(VLRSpectrumType spectrumType);
@@ -373,10 +394,13 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
@@ -406,10 +430,13 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
@@ -439,10 +466,13 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         bool setNodeFloat3(const ShaderNodeSocketIdentifier &outputSocket);
@@ -472,10 +502,13 @@ namespace VLR {
 
         // Out Socket  | option |
         // TexCoord    |      0 | TexCoord
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_TextureCoordinates && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setValues(const float offset[2], const float scale[2]);
@@ -503,11 +536,14 @@ namespace VLR {
         Image2DTextureShaderNode(Context &context);
         ~Image2DTextureShaderNode();
 
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), stype, index);
             if (cIndex != 0xFFFFFFFF)
                 return ShaderNodeSocketIdentifier(this, stype, cIndex);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setImage(const Image2D* image);
@@ -540,10 +576,13 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const {
+        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t index) const override {
             if (stype == VLRShaderNodeSocketType_Spectrum && index < 1)
                 return ShaderNodeSocketIdentifier(this, stype, index);
             return ShaderNodeSocketIdentifier();
+        }
+        uint32_t getProcedureSetIndex() const override {
+            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
         void setImage(const Image2D* image);

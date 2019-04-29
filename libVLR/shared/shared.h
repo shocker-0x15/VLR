@@ -346,17 +346,12 @@ namespace VLR {
 
         union ShaderNodeSocketID {
             struct {
-                unsigned int nodeDescIndex : 25;
+                unsigned int nodeType : 8;
                 unsigned int socketType : 4;
+                unsigned int nodeDescIndex : 18;
                 unsigned int option : 2;
-                //bool isSpectrumNode : 1; // using bool leads the size of this struct to be 8 in MSVC (C++ spec).
-                unsigned int isSpectrumNode : 1;
             };
             uint32_t asUInt;
-
-            // const NodeDescriptor &nodeDesc = pv_nodeDescriptorBuffer[socket.nodeDescIndex];
-            // ProgSigT program = (ProgSigT)pv_nodeProcedureSetBuffer[nodeDesc.procSetIndex].progs[socket.socketIndex];
-            // return program(nodeDesc.data, socket.option, surfPt, wls);
 
             RT_FUNCTION ShaderNodeSocketID() {}
             explicit constexpr ShaderNodeSocketID(uint32_t ui) : asUInt(ui) {}
@@ -367,28 +362,22 @@ namespace VLR {
         static_assert(sizeof(ShaderNodeSocketID) == 4, "Unexpected Size");
 
         struct NodeDescriptor {
-            uint32_t procSetIndex;
-#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (15)
+#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (16)
             uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
 
             template <typename T>
-            T* getData() const {
+            RT_FUNCTION T* getData() const {
                 static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
         };
 
-        struct SpectrumNodeDescriptor {
-            uint32_t procSetIndex;
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-#   define VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS (63)
-#else
-#   define VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS (3)
-#endif
-            uint32_t data[VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS];
+        struct LargeNodeDescriptor {
+#   define VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS (64)
+            uint32_t data[VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS];
 
             template <typename T>
-            T* getData() const {
+            RT_FUNCTION T* getData() const {
                 static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
@@ -396,6 +385,10 @@ namespace VLR {
 
 
 
+        // ----------------------------------------------------------------
+        // JP: シェーダーノードソケット間の暗黙的な型キャストを定義する。
+        // EN: Define implicit type casting between shader node sockets.
+        
         template <typename Type>
         struct NodeTypeInfo {
             template <typename SrcType>
@@ -475,6 +468,9 @@ namespace VLR {
             }
             return false;
         }
+
+        // END: Define implicit type casting between shader node sockets.
+        // ----------------------------------------------------------------
 
 
 
@@ -685,13 +681,13 @@ namespace VLR {
         struct RegularSampledSpectrumShaderNode {
             float minLambda;
             float maxLambda;
-            float values[VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 3];
+            float values[VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 3];
             uint32_t numSamples;
         };
 
         struct IrregularSampledSpectrumShaderNode {
-            float lambdas[(VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
-            float values[(VLR_MAX_NUM_SPECTRUM_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float lambdas[(VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float values[(VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 1) / 2];
             uint32_t numSamples;
         };
 #else
