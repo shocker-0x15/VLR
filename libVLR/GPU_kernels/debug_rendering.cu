@@ -162,7 +162,7 @@ namespace VLR {
 
         if (pv_numAccumFrames == 1)
             pv_outputBuffer[sm_launchIndex].reset();
-        pv_outputBuffer[sm_launchIndex].add(wls, payload.value.evaluate(wls));
+        pv_outputBuffer[sm_launchIndex].add(wls, payload.value.evaluate(wls) / selectWLPDF);
     }
 
 

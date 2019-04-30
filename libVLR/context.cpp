@@ -265,12 +265,21 @@ namespace VLR {
 
 
 
-        m_maxNumNodeDescriptors = 8192;
-        m_optixNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumNodeDescriptors);
-        m_optixNodeDescriptorBuffer->setElementSize(sizeof(Shared::NodeDescriptor));
-        m_nodeDescSlotManager.initialize(m_maxNumNodeDescriptors);
+        m_maxNumSmallNodeDescriptors = 8192;
+        m_optixSmallNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumSmallNodeDescriptors);
+        m_optixSmallNodeDescriptorBuffer->setElementSize(sizeof(Shared::SmallNodeDescriptor));
+        m_smallNodeDescSlotManager.initialize(m_maxNumSmallNodeDescriptors);
 
-        m_optixContext["VLR::pv_nodeDescriptorBuffer"]->set(m_optixNodeDescriptorBuffer);
+        m_optixContext["VLR::pv_smallNodeDescriptorBuffer"]->set(m_optixSmallNodeDescriptorBuffer);
+
+
+
+        m_maxNumMediumNodeDescriptors = 8192;
+        m_optixMediumNodeDescriptorBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_maxNumMediumNodeDescriptors);
+        m_optixMediumNodeDescriptorBuffer->setElementSize(sizeof(Shared::MediumNodeDescriptor));
+        m_mediumNodeDescSlotManager.initialize(m_maxNumMediumNodeDescriptors);
+
+        m_optixContext["VLR::pv_mediumNodeDescriptorBuffer"]->set(m_optixMediumNodeDescriptorBuffer);
 
 
 
@@ -435,8 +444,8 @@ namespace VLR {
         m_largeNodeDescSlotManager.finalize();
         m_optixLargeNodeDescriptorBuffer->destroy();
 
-        m_nodeDescSlotManager.finalize();
-        m_optixNodeDescriptorBuffer->destroy();
+        m_smallNodeDescSlotManager.finalize();
+        m_optixSmallNodeDescriptorBuffer->destroy();
 
         m_nodeProcSetSlotManager.finalize();
         m_optixNodeProcedureSetBuffer->destroy();
@@ -636,22 +645,42 @@ namespace VLR {
 
 
 
-    uint32_t Context::allocateNodeDescriptor() {
-        uint32_t index = m_nodeDescSlotManager.getFirstAvailableSlot();
-        m_nodeDescSlotManager.setInUse(index);
+    uint32_t Context::allocateSmallNodeDescriptor() {
+        uint32_t index = m_smallNodeDescSlotManager.getFirstAvailableSlot();
+        m_smallNodeDescSlotManager.setInUse(index);
         return index;
     }
 
-    void Context::releaseNodeDescriptor(uint32_t index) {
-        VLRAssert(m_nodeDescSlotManager.getUsage(index), "Invalid index.");
-        m_nodeDescSlotManager.setNotInUse(index);
+    void Context::releaseSmallNodeDescriptor(uint32_t index) {
+        VLRAssert(m_smallNodeDescSlotManager.getUsage(index), "Invalid index.");
+        m_smallNodeDescSlotManager.setNotInUse(index);
     }
 
-    void Context::updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc) {
-        VLRAssert(m_nodeDescSlotManager.getUsage(index), "Invalid index.");
-        auto nodeDescs = (Shared::NodeDescriptor*)m_optixNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
+    void Context::updateSmallNodeDescriptor(uint32_t index, const Shared::SmallNodeDescriptor &nodeDesc) {
+        VLRAssert(m_smallNodeDescSlotManager.getUsage(index), "Invalid index.");
+        auto nodeDescs = (Shared::SmallNodeDescriptor*)m_optixSmallNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
         nodeDescs[index] = nodeDesc;
-        m_optixNodeDescriptorBuffer->unmap();
+        m_optixSmallNodeDescriptorBuffer->unmap();
+    }
+
+
+
+    uint32_t Context::allocateMediumNodeDescriptor() {
+        uint32_t index = m_mediumNodeDescSlotManager.getFirstAvailableSlot();
+        m_mediumNodeDescSlotManager.setInUse(index);
+        return index;
+    }
+
+    void Context::releaseMediumNodeDescriptor(uint32_t index) {
+        VLRAssert(m_mediumNodeDescSlotManager.getUsage(index), "Invalid index.");
+        m_mediumNodeDescSlotManager.setNotInUse(index);
+    }
+
+    void Context::updateMediumNodeDescriptor(uint32_t index, const Shared::MediumNodeDescriptor &nodeDesc) {
+        VLRAssert(m_mediumNodeDescSlotManager.getUsage(index), "Invalid index.");
+        auto nodeDescs = (Shared::MediumNodeDescriptor*)m_optixMediumNodeDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE);
+        nodeDescs[index] = nodeDesc;
+        m_optixMediumNodeDescriptorBuffer->unmap();
     }
 
 

@@ -282,7 +282,8 @@ namespace VLR {
 
     // Context-scope Variables
     rtBuffer<NodeProcedureSet, 1> pv_nodeProcedureSetBuffer;
-    rtBuffer<NodeDescriptor, 1> pv_nodeDescriptorBuffer;
+    rtBuffer<SmallNodeDescriptor, 1> pv_smallNodeDescriptorBuffer;
+    rtBuffer<MediumNodeDescriptor, 1> pv_mediumNodeDescriptorBuffer;
     rtBuffer<LargeNodeDescriptor, 1> pv_largeNodeDescriptorBuffer;
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;

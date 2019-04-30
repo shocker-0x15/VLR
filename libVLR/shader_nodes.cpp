@@ -44,6 +44,17 @@ namespace VLR {
         }
     }
 
+    void ShaderNode::updateNodeDescriptor() const {
+        if (m_nodeSizeClass == 0)
+            m_context.updateSmallNodeDescriptor(m_nodeIndex, smallNodeDesc);
+        else if (m_nodeSizeClass == 1)
+            m_context.updateMediumNodeDescriptor(m_nodeIndex, mediumNodeDesc);
+        else if (m_nodeSizeClass == 2)
+            m_context.updateLargeNodeDescriptor(m_nodeIndex, largeNodeDesc);
+        else
+            VLRAssert_ShouldNotBeCalled();
+    }
+
     // static
     void ShaderNode::initialize(Context &context) {
         GeometryShaderNode::initialize(context);
@@ -78,19 +89,31 @@ namespace VLR {
         GeometryShaderNode::finalize(context);
     }
 
-    ShaderNode::ShaderNode(Context &context, bool isSpectrumNode) : Object(context), m_isLargeNode(isSpectrumNode) {
-        if (m_isLargeNode)
+    ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Object(context) {
+        size_t sizeOfNodeInDW = sizeOfNode / 4;
+        if (sizeOfNodeInDW <= VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS) {
+            m_nodeSizeClass = 0;
+            m_nodeIndex = m_context.allocateSmallNodeDescriptor();
+        }
+        else if (sizeOfNodeInDW <= VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS) {
+            m_nodeSizeClass = 1;
+            m_nodeIndex = m_context.allocateMediumNodeDescriptor();
+        }
+        else if (sizeOfNodeInDW <= VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS) {
+            m_nodeSizeClass = 2;
             m_nodeIndex = m_context.allocateLargeNodeDescriptor();
-        else
-            m_nodeIndex = m_context.allocateNodeDescriptor();
+        }
     }
 
     ShaderNode::~ShaderNode() {
-        if (m_nodeIndex != 0xFFFFFFFF)
-            if (m_isLargeNode)
+        if (m_nodeIndex != 0xFFFFFFFF) {
+            if (m_nodeSizeClass == 0)
+                m_context.releaseSmallNodeDescriptor(m_nodeIndex);
+            else if (m_nodeSizeClass == 1)
+                m_context.releaseMediumNodeDescriptor(m_nodeIndex);
+            else if (m_nodeSizeClass == 2)
                 m_context.releaseLargeNodeDescriptor(m_nodeIndex);
-            else
-                m_context.releaseNodeDescriptor(m_nodeIndex);
+        }
         m_nodeIndex = 0xFFFFFFFF;
     }
 
@@ -124,7 +147,7 @@ namespace VLR {
     }
 
     GeometryShaderNode::GeometryShaderNode(Context &context) :
-        ShaderNode(context) {
+        ShaderNode(context, sizeof(Shared::GeometryShaderNode)) {
         setupNodeDescriptor();
     }
 
@@ -134,10 +157,9 @@ namespace VLR {
     void GeometryShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::GeometryShaderNode>();
+        auto &nodeData = *getData<Shared::GeometryShaderNode>();
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
@@ -166,7 +188,7 @@ namespace VLR {
     }
 
     FloatShaderNode::FloatShaderNode(Context &context) :
-        ShaderNode(context), m_imm0(0.0f) {
+        ShaderNode(context, sizeof(Shared::FloatShaderNode)), m_imm0(0.0f) {
         setupNodeDescriptor();
     }
 
@@ -176,12 +198,11 @@ namespace VLR {
     void FloatShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::FloatShaderNode>();
+        auto &nodeData = *getData<Shared::FloatShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.imm0 = m_imm0;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool FloatShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -220,7 +241,7 @@ namespace VLR {
     }
 
     Float2ShaderNode::Float2ShaderNode(Context &context) :
-        ShaderNode(context),
+        ShaderNode(context, sizeof(Shared::Float2ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f) {
         setupNodeDescriptor();
     }
@@ -231,14 +252,13 @@ namespace VLR {
     void Float2ShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::Float2ShaderNode>();
+        auto &nodeData = *getData<Shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool Float2ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -291,7 +311,7 @@ namespace VLR {
     }
 
     Float3ShaderNode::Float3ShaderNode(Context &context) :
-        ShaderNode(context),
+        ShaderNode(context, sizeof(Shared::Float3ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f) {
         setupNodeDescriptor();
     }
@@ -302,8 +322,7 @@ namespace VLR {
     void Float3ShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::Float3ShaderNode>();
+        auto &nodeData = *getData<Shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -311,7 +330,7 @@ namespace VLR {
         nodeData.imm1 = m_imm1;
         nodeData.imm2 = m_imm2;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool Float3ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -378,7 +397,8 @@ namespace VLR {
     }
 
     Float4ShaderNode::Float4ShaderNode(Context &context) :
-        ShaderNode(context), m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f), m_imm3(0.0f) {
+        ShaderNode(context, sizeof(Shared::Float4ShaderNode)),
+        m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f), m_imm3(0.0f) {
         setupNodeDescriptor();
     }
 
@@ -388,8 +408,7 @@ namespace VLR {
     void Float4ShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::Float4ShaderNode>();
+        auto &nodeData = *getData<Shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -399,7 +418,7 @@ namespace VLR {
         nodeData.imm2 = m_imm2;
         nodeData.imm3 = m_imm3;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool Float4ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -476,7 +495,7 @@ namespace VLR {
     }
 
     ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
-        ShaderNode(context), m_immScale(1.0f), m_immOffset(0.0f) {
+        ShaderNode(context, sizeof(Shared::ScaleAndOffsetFloatShaderNode)), m_immScale(1.0f), m_immOffset(0.0f) {
         setupNodeDescriptor();
     }
 
@@ -486,15 +505,14 @@ namespace VLR {
     void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::ScaleAndOffsetFloatShaderNode>();
+        auto &nodeData = *getData<Shared::ScaleAndOffsetFloatShaderNode>();
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
         nodeData.nodeOffset = m_nodeOffset.getSharedType();
         nodeData.immScale = m_immScale;
         nodeData.immOffset = m_immOffset;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool ScaleAndOffsetFloatShaderNode::setNodeValue(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -553,7 +571,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context, false), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
+        ShaderNode(context, sizeof(Shared::TripletSpectrumShaderNode)), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -564,11 +582,10 @@ namespace VLR {
     void TripletSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::TripletSpectrumShaderNode>();
+        auto &nodeData = *getData<Shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     void TripletSpectrumShaderNode::setImmediateValueSpectrumType(VLRSpectrumType spectrumType) {
@@ -610,11 +627,7 @@ namespace VLR {
     }
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-        ShaderNode(context, true),
-#else
-        ShaderNode(context, false),
-#endif
+        ShaderNode(context, sizeof(Shared::RegularSampledSpectrumShaderNode)),
         m_spectrumType(VLRSpectrumType_NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
         m_values = new float[2];
         m_values[0] = m_values[1] = 1.0f;
@@ -629,30 +642,22 @@ namespace VLR {
     void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
+        auto &nodeData = *getData<Shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        Shared::LargeNodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::RegularSampledSpectrumShaderNode>();
-
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         nodeData.minLambda = m_minLambda;
         nodeData.maxLambda = m_maxLambda;
         std::copy_n(m_values, m_numSamples, nodeData.values);
         nodeData.numSamples = m_numSamples;
-
-        m_context.updateLargeNodeDescriptor(m_nodeIndex, nodeDesc);
 #else
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::RegularSampledSpectrumShaderNode>();
-
         RegularSampledSpectrum spectrum(m_minLambda, m_maxLambda, m_values, m_numSamples);
         float XYZ[3];
         spectrum.toXYZ(XYZ);
         float RGB[3];
         transformToRenderingRGB(m_spectrumType, XYZ, RGB);
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
-
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
 #endif
+        updateNodeDescriptor();
     }
 
     void RegularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
@@ -689,11 +694,7 @@ namespace VLR {
     }
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-        ShaderNode(context, true),
-#else
-        ShaderNode(context, false),
-#endif
+        ShaderNode(context, sizeof(Shared::IrregularSampledSpectrumShaderNode)),
         m_spectrumType(VLRSpectrumType_NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
         m_lambdas = new float[2];
         m_values = new float[2];
@@ -713,29 +714,21 @@ namespace VLR {
     void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
+        auto &nodeData = *getData<Shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-        Shared::LargeNodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::IrregularSampledSpectrumShaderNode>();
-
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         std::copy_n(m_lambdas, m_numSamples, nodeData.lambdas);
         std::copy_n(m_values, m_numSamples, nodeData.values);
         nodeData.numSamples = m_numSamples;
-
-        m_context.updateLargeNodeDescriptor(m_nodeIndex, nodeDesc);
 #else
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::IrregularSampledSpectrumShaderNode>();
-
         IrregularSampledSpectrum spectrum(m_lambdas, m_values, m_numSamples);
         float XYZ[3];
         spectrum.toXYZ(XYZ);
         float RGB[3];
         transformToRenderingRGB(m_spectrumType, XYZ, RGB);
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
-
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
 #endif
+        updateNodeDescriptor();
     }
 
     void IrregularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
@@ -774,7 +767,7 @@ namespace VLR {
     }
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
-        ShaderNode(context), m_immFloat3{ 0, 0, 0 }, m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
+        ShaderNode(context, sizeof(Shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
         setupNodeDescriptor();
     }
 
@@ -784,8 +777,7 @@ namespace VLR {
     void Float3ToSpectrumShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::Float3ToSpectrumShaderNode>();
+        auto &nodeData = *getData<Shared::Float3ToSpectrumShaderNode>();
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
         nodeData.immFloat3[1] = m_immFloat3[1];
@@ -793,7 +785,7 @@ namespace VLR {
         nodeData.spectrumType = m_spectrumType;
         nodeData.colorSpace = m_colorSpace;
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     bool Float3ToSpectrumShaderNode::setNodeFloat3(const ShaderNodeSocketIdentifier &outputSocket) {
@@ -839,7 +831,7 @@ namespace VLR {
     }
 
     ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
-        ShaderNode(context), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
+        ShaderNode(context, sizeof(Shared::ScaleAndOffsetUVTextureMap2DShaderNode)), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
         setupNodeDescriptor();
     }
 
@@ -849,14 +841,13 @@ namespace VLR {
     void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
+        auto &nodeData = *getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
         nodeData.scale[1] = m_scale[1];
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     void ScaleAndOffsetUVTextureMap2DShaderNode::setValues(const float offset[2], const float scale[2]) {
@@ -900,7 +891,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(NullImages.at(m_context.getID())) {
+        ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -921,8 +912,7 @@ namespace VLR {
     void Image2DTextureShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::Image2DTextureShaderNode>();
+        auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
         nodeData.spectrumType = m_image->getSpectrumType();
@@ -934,7 +924,7 @@ namespace VLR {
         nodeData.colorSpace = (unsigned int)colorSpace;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     void Image2DTextureShaderNode::setImage(const Image2D* image) {
@@ -990,7 +980,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context), m_image(NullImages.at(m_context.getID())) {
+        ShaderNode(context, sizeof(Shared::EnvironmentTextureShaderNode)), m_image(NullImages.at(m_context.getID())) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
@@ -1010,14 +1000,13 @@ namespace VLR {
     void EnvironmentTextureShaderNode::setupNodeDescriptor() const {
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
-        Shared::NodeDescriptor nodeDesc;
-        auto &nodeData = *nodeDesc.getData<Shared::EnvironmentTextureShaderNode>();
+        auto &nodeData = *getData<Shared::EnvironmentTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
         nodeData.colorSpace = (unsigned int)m_image->getColorSpace();
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
-        m_context.updateNodeDescriptor(m_nodeIndex, nodeDesc);
+        updateNodeDescriptor();
     }
 
     void EnvironmentTextureShaderNode::setImage(const Image2D* image) {

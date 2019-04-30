@@ -361,13 +361,24 @@ namespace VLR {
         };
         static_assert(sizeof(ShaderNodeSocketID) == 4, "Unexpected Size");
 
-        struct NodeDescriptor {
-#define VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS (16)
-            uint32_t data[VLR_MAX_NUM_NODE_DESCRIPTOR_SLOTS];
+        struct SmallNodeDescriptor {
+#define VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS (4)
+            uint32_t data[VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS];
 
             template <typename T>
             RT_FUNCTION T* getData() const {
-                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return (T*)data;
+            }
+        };
+
+        struct MediumNodeDescriptor {
+#define VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS (16)
+            uint32_t data[VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS];
+
+            template <typename T>
+            RT_FUNCTION T* getData() const {
+                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
         };
@@ -378,7 +389,7 @@ namespace VLR {
 
             template <typename T>
             RT_FUNCTION T* getData() const {
-                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
         };

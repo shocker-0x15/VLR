@@ -274,11 +274,11 @@ VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockC
 
 
 
-VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t index,
+VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t option,
                                          VLRShaderNodeSocketInfo* socketInfo) {
     if (!node->isMemberOf<VLR::ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    VLR::ShaderNodeSocketIdentifier socketID = node->getSocket(socketType, index);
+    VLR::ShaderNodeSocketIdentifier socketID = node->getSocket(socketType, option);
     *socketInfo = socketID.getSocketInfo();
 
     return VLR_ERROR_NO_ERROR;

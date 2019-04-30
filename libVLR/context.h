@@ -61,9 +61,13 @@ namespace VLR {
         uint32_t m_maxNumNodeProcSet;
         SlotManager m_nodeProcSetSlotManager;
 
-        optix::Buffer m_optixNodeDescriptorBuffer;
-        uint32_t m_maxNumNodeDescriptors;
-        SlotManager m_nodeDescSlotManager;
+        optix::Buffer m_optixSmallNodeDescriptorBuffer;
+        uint32_t m_maxNumSmallNodeDescriptors;
+        SlotManager m_smallNodeDescSlotManager;
+
+        optix::Buffer m_optixMediumNodeDescriptorBuffer;
+        uint32_t m_maxNumMediumNodeDescriptors;
+        SlotManager m_mediumNodeDescSlotManager;
 
         optix::Buffer m_optixLargeNodeDescriptorBuffer;
         uint32_t m_maxNumLargeNodeDescriptors;
@@ -137,9 +141,13 @@ namespace VLR {
         void releaseNodeProcedureSet(uint32_t index);
         void updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet);
 
-        uint32_t allocateNodeDescriptor();
-        void releaseNodeDescriptor(uint32_t index);
-        void updateNodeDescriptor(uint32_t index, const Shared::NodeDescriptor &nodeDesc);
+        uint32_t allocateSmallNodeDescriptor();
+        void releaseSmallNodeDescriptor(uint32_t index);
+        void updateSmallNodeDescriptor(uint32_t index, const Shared::SmallNodeDescriptor &nodeDesc);
+
+        uint32_t allocateMediumNodeDescriptor();
+        void releaseMediumNodeDescriptor(uint32_t index);
+        void updateMediumNodeDescriptor(uint32_t index, const Shared::MediumNodeDescriptor &nodeDesc);
 
         uint32_t allocateLargeNodeDescriptor();
         void releaseLargeNodeDescriptor(uint32_t index);

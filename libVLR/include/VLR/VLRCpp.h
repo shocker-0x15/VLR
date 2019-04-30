@@ -162,9 +162,9 @@ namespace VLRCpp {
     public:
         ShaderNodeHolder(const ContextConstRef &context) : Object(context) {}
 
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType socketType, uint32_t index) {
+        ShaderNodeSocket getSocket(VLRShaderNodeSocketType socketType, uint32_t option) {
             VLRShaderNodeSocketInfo socketInfo;
-            errorCheck(vlrShaderNodeGetSocket((VLRShaderNode)m_raw, socketType, index, &socketInfo));
+            errorCheck(vlrShaderNodeGetSocket((VLRShaderNode)m_raw, socketType, option, &socketInfo));
             return ShaderNodeSocket(std::dynamic_pointer_cast<ShaderNodeHolder>(shared_from_this()), socketInfo);
         }
     };
