@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="scene.cpp" />
-    <ClCompile Include="slot_manager.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="VLR.cpp">
@@ -17,6 +16,7 @@
       <Filter>Shared</Filter>
     </ClCompile>
     <ClCompile Include="image.cpp" />
+    <ClCompile Include="slot_finder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -25,7 +25,6 @@
     <ClInclude Include="GPU_kernels\random_distributions.cuh">
       <Filter>GPU Kernels</Filter>
     </ClInclude>
-    <ClInclude Include="slot_manager.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="context.h" />
@@ -70,6 +69,7 @@
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="image.h" />
+    <ClInclude Include="slot_finder.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

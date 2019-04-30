@@ -76,7 +76,7 @@ namespace VLR {
                 break;
             }
         }
-        VLRAssert((m_adjIndices && 0xFF) != UINT8_MAX, "Adjacent points must be selected at this point.");
+        VLRAssert((m_adjIndices & 0xFF) != UINT8_MAX, "Adjacent points must be selected at this point.");
     }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>

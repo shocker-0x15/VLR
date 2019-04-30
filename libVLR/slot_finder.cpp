@@ -1,7 +1,7 @@
-﻿#include "slot_manager.h"
+﻿#include "slot_finder.h"
 
 namespace VLR {
-    void SlotManager::initialize(uint32_t numSlots) {
+    void SlotFinder::initialize(uint32_t numSlots) {
         m_numLayers = 1;
         m_numLowestFlagBins = nextMultiplierForPowOf2(numSlots, 32);
 
@@ -64,11 +64,11 @@ namespace VLR {
         std::fill_n(m_numUsedFlagsUnderBinList, m_numLowestFlagBins + m_numTotalCompiledFlagBins / 2, 0);
     }
 
-    void SlotManager::finalize() {
+    void SlotFinder::finalize() {
         free(m_flagBins);
     }
 
-    void SlotManager::setInUse(uint32_t slotIdx) {
+    void SlotFinder::setInUse(uint32_t slotIdx) {
         bool setANDFlag;
         uint32_t flagIdxInLayer = slotIdx;
 
@@ -112,7 +112,7 @@ namespace VLR {
         }
     }
 
-    void SlotManager::setNotInUse(uint32_t slotIdx) {
+    void SlotFinder::setNotInUse(uint32_t slotIdx) {
         bool resetORFlag;
         uint32_t flagIdxInLayer = slotIdx;
 
@@ -160,7 +160,7 @@ namespace VLR {
             debugPrint();
     }
 
-    uint32_t SlotManager::getFirstAvailableSlot() const {
+    uint32_t SlotFinder::getFirstAvailableSlot() const {
         uint32_t startBinIdx = 0;
         for (int layer = m_numLayers - 1; layer > 0; --layer) {
             uint32_t ANDFlagBinOffset = m_offsetsToOR_AND[2 * (layer - 1) + 1];
@@ -205,7 +205,7 @@ namespace VLR {
         return slot;
     }
 
-    uint32_t SlotManager::getFirstUsedSlot() const {
+    uint32_t SlotFinder::getFirstUsedSlot() const {
         uint32_t startBinIdx = 0;
         for (int layer = m_numLayers - 1; layer > 0; --layer) {
             uint32_t ORFlagBinOffset = m_offsetsToOR_AND[2 * (layer - 1) + 0];
@@ -250,7 +250,7 @@ namespace VLR {
         return slot;
     }
 
-    uint32_t SlotManager::find_nthUsedSlot(uint32_t n) const {
+    uint32_t SlotFinder::find_nthUsedSlot(uint32_t n) const {
         if (n >= getNumUsed())
             return 0xFFFFFFFF;
 
@@ -290,7 +290,7 @@ namespace VLR {
         return slot;
     }
 
-    void SlotManager::debugPrint() const {
+    void SlotFinder::debugPrint() const {
         uint32_t numLowestFlagBins = nextMultiplierForPowOf2(m_numFlagsInLayerList[0], 32);
         vlrprintf("----");
         for (int binIdx = 0; binIdx < numLowestFlagBins; ++binIdx) {

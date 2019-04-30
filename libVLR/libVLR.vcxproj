@@ -127,7 +127,7 @@
     <ClCompile Include="vlrDevPrintf.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
-    <ClCompile Include="slot_manager.cpp" />
+    <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
@@ -151,7 +151,7 @@
     <ClInclude Include="shared\shared.h" />
     <ClInclude Include="shared\spectrum_base.h" />
     <ClInclude Include="shared\spectrum_types.h" />
-    <ClInclude Include="slot_manager.h" />
+    <ClInclude Include="slot_finder.h" />
     <ClInclude Include="shader_nodes.h" />
   </ItemGroup>
   <ItemGroup>

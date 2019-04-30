@@ -155,8 +155,6 @@ namespace VLR {
     }
 
     void GeometryShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::GeometryShaderNode>();
 
         updateNodeDescriptor();
@@ -196,8 +194,6 @@ namespace VLR {
     }
 
     void FloatShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::FloatShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.imm0 = m_imm0;
@@ -250,8 +246,6 @@ namespace VLR {
     }
 
     void Float2ShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -320,8 +314,6 @@ namespace VLR {
     }
 
     void Float3ShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -406,8 +398,6 @@ namespace VLR {
     }
 
     void Float4ShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -503,8 +493,6 @@ namespace VLR {
     }
 
     void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::ScaleAndOffsetFloatShaderNode>();
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
@@ -580,8 +568,6 @@ namespace VLR {
     }
 
     void TripletSpectrumShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
@@ -640,8 +626,6 @@ namespace VLR {
     }
 
     void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -712,8 +696,6 @@ namespace VLR {
     }
 
     void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -775,8 +757,6 @@ namespace VLR {
     }
 
     void Float3ToSpectrumShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::Float3ToSpectrumShaderNode>();
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
@@ -839,8 +819,6 @@ namespace VLR {
     }
 
     void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
@@ -910,8 +888,6 @@ namespace VLR {
     }
 
     void Image2DTextureShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
@@ -998,8 +974,6 @@ namespace VLR {
     }
 
     void EnvironmentTextureShaderNode::setupNodeDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
-
         auto &nodeData = *getData<Shared::EnvironmentTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.dataFormat = (unsigned int)m_image->getDataFormat();

@@ -3,7 +3,7 @@
 #include "shared/common_internal.h"
 
 namespace VLR {
-    class SlotManager {
+    class SlotFinder {
         uint32_t m_numLayers;
         uint32_t m_numLowestFlagBins;
         uint32_t m_numTotalCompiledFlagBins;
@@ -14,13 +14,13 @@ namespace VLR {
         uint32_t* m_numFlagsInLayerList;
 
     public:
-        SlotManager() :
+        SlotFinder() :
             m_numLayers(0), m_numLowestFlagBins(0), m_numTotalCompiledFlagBins(0),
             m_flagBins(nullptr), m_offsetsToOR_AND(nullptr),
             m_numUsedFlagsUnderBinList(nullptr), m_offsetsToNumUsedFlags(nullptr),
             m_numFlagsInLayerList(nullptr) {
         }
-        ~SlotManager() {
+        ~SlotFinder() {
         }
 
         void initialize(uint32_t numSlots);

@@ -196,9 +196,9 @@ namespace VLR {
     };
 
 #if defined(VLR_Host)
-    inline uint32_t nthSetBit(uint32_t value, uint32_t n) {
+    inline uint32_t nthSetBit(uint32_t value, int32_t n) {
         uint32_t idx = 0;
-        uint32_t count;
+        int32_t count;
         if (n >= _mm_popcnt_u32(value))
             return 0xFFFFFFFF;
 

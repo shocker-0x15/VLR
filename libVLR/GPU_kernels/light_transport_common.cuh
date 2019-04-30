@@ -181,9 +181,9 @@ namespace VLR {
         constexpr float kIntScale = 256.0f;
 
         int32_t offsetInInt[] = {
-            kIntScale * geometricNormal.x,
-            kIntScale * geometricNormal.y,
-            kIntScale * geometricNormal.z
+            (int32_t)(kIntScale * geometricNormal.x),
+            (int32_t)(kIntScale * geometricNormal.y),
+            (int32_t)(kIntScale * geometricNormal.z)
         };
 
         // JP: 数学的な衝突点の座標と、実際の座標の誤差は原点からの距離に比例する。

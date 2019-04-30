@@ -3,7 +3,7 @@
 #include <public_types.h>
 #include "shared/shared.h"
 
-#include "slot_manager.h"
+#include "slot_finder.h"
 
 #if defined(DEBUG)
 #   define VLR_PTX_DIR "resources/ptxes/Debug/"
@@ -59,27 +59,27 @@ namespace VLR {
 
         optix::Buffer m_optixNodeProcedureSetBuffer;
         uint32_t m_maxNumNodeProcSet;
-        SlotManager m_nodeProcSetSlotManager;
+        SlotFinder m_nodeProcSetSlotFinder;
 
         optix::Buffer m_optixSmallNodeDescriptorBuffer;
         uint32_t m_maxNumSmallNodeDescriptors;
-        SlotManager m_smallNodeDescSlotManager;
+        SlotFinder m_smallNodeDescSlotFinder;
 
         optix::Buffer m_optixMediumNodeDescriptorBuffer;
         uint32_t m_maxNumMediumNodeDescriptors;
-        SlotManager m_mediumNodeDescSlotManager;
+        SlotFinder m_mediumNodeDescSlotFinder;
 
         optix::Buffer m_optixLargeNodeDescriptorBuffer;
         uint32_t m_maxNumLargeNodeDescriptors;
-        SlotManager m_largeNodeDescSlotManager;
+        SlotFinder m_largeNodeDescSlotFinder;
 
         optix::Buffer m_optixBSDFProcedureSetBuffer;
         uint32_t m_maxNumBSDFProcSet;
-        SlotManager m_bsdfProcSetSlotManager;
+        SlotFinder m_bsdfProcSetSlotFinder;
 
         optix::Buffer m_optixEDFProcedureSetBuffer;
         uint32_t m_maxNumEDFProcSet;
-        SlotManager m_edfProcSetSlotManager;
+        SlotFinder m_edfProcSetSlotFinder;
 
         optix::Program m_optixCallableProgramNullBSDF_setupBSDF;
         optix::Program m_optixCallableProgramNullBSDF_getBaseColor;
@@ -97,7 +97,7 @@ namespace VLR {
 
         optix::Buffer m_optixSurfaceMaterialDescriptorBuffer;
         uint32_t m_maxNumSurfaceMaterialDescriptors;
-        SlotManager m_surfMatDescSlotManager;
+        SlotFinder m_surfMatDescSlotFinder;
 
         optix::Buffer m_rawOutputBuffer;
         optix::Buffer m_outputBuffer;
