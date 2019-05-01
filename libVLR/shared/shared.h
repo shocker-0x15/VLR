@@ -174,10 +174,10 @@ namespace VLR {
  v.value;
         }
         RT_FUNCTION constexpr bool operator<=(DataFormat v) const {
-            return value < v.value && value == v.value;
+            return value < v.value || value == v.value;
         }
         RT_FUNCTION constexpr bool operator>=(DataFormat v) const {
-            return value > v.value && value == v.value;
+            return value > v.value || value == v.value;
         }
     };
 

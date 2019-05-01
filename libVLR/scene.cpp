@@ -615,7 +615,6 @@ namespace VLR {
                 optixGeomInst->setGeometryTriangles(geom.optixGeometryTriangles);
             else
                 optixGeomInst->setGeometry(geom.optixGeometry);
-            optixGeomInst->setMaterialCount(1);
 
             optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);
             optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
@@ -632,6 +631,7 @@ namespace VLR {
                 sNodeNormal = nodeNormal.getSharedType();
             optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
 
+            optixGeomInst->setMaterialCount(1);
             Shared::ShaderNodeSocketID sNodeAlpha = Shared::ShaderNodeSocketID::Invalid();
             if (nodeAlphaIsValid) {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());

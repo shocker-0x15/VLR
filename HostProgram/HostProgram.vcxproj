@@ -70,8 +70,6 @@
 
 copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
 
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optixu.6.0.0.dll" "$(OutDir)"
-
 echo copy assimp dll
 
 copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
@@ -98,8 +96,6 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
       <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
 
 copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
-
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optixu.6.0.0.dll" "$(OutDir)"
 
 echo copy assimp dll
 
