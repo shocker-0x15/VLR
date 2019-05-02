@@ -1439,6 +1439,8 @@ VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSur
 VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterial mat) {
     if (!material->is<VLR::MultiSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
+    if (!mat->isMemberOf<VLR::SurfaceMaterial>())
+        return VLR_ERROR_INVALID_TYPE;
     material->setSubMaterial(index, mat);
 
     return VLR_ERROR_NO_ERROR;

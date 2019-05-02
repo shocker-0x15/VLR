@@ -101,7 +101,8 @@ enum VLRCameraType {
 };
 
 enum VLRDebugRenderingMode {
-    VLRDebugRenderingMode_GeometricNormal = 0,
+    VLRDebugRenderingMode_BaseColor = 0,
+    VLRDebugRenderingMode_GeometricNormal,
     VLRDebugRenderingMode_ShadingTangent,
     VLRDebugRenderingMode_ShadingBitangent,
     VLRDebugRenderingMode_ShadingNormal,

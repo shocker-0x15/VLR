@@ -68,11 +68,11 @@ namespace VLR {
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
         const Vertex &v2 = pv_vertexBuffer[triangle.index2];
 
-        Normal3D geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
+        Vector3D e1 = transform(RT_OBJECT_TO_WORLD, v1.position - v0.position);
+        Vector3D e2 = transform(RT_OBJECT_TO_WORLD, v2.position - v0.position);
+        Normal3D geometricNormal = cross(e1, e2);
         float area = geometricNormal.length() / 2;
         geometricNormal /= 2 * area;
-
-        geometricNormal = normalize(transform(RT_OBJECT_TO_WORLD, geometricNormal));
 
         // JP: プログラムがこの点を光源としてサンプルする場合の面積に関する(仮想的な)PDFを求める。
         // EN: calculate a hypothetical area PDF value in the case where the program sample this point as light.
@@ -133,11 +133,11 @@ namespace VLR {
         const Vertex &v1 = desc.asMeshLight.vertexBuffer[triangle.index1];
         const Vertex &v2 = desc.asMeshLight.vertexBuffer[triangle.index2];
 
-        Normal3D geometricNormal = cross(v1.position - v0.position, v2.position - v0.position);
+        Vector3D e1 = desc.asMeshLight.transform * (v1.position - v0.position);
+        Vector3D e2 = desc.asMeshLight.transform * (v2.position - v0.position);
+        Normal3D geometricNormal = cross(e1, e2);
         float area = geometricNormal.length() / 2;
         geometricNormal /= 2 * area;
-
-        geometricNormal = normalize(desc.asMeshLight.transform * geometricNormal);
 
         result->areaPDF = primProb / area;
         result->posType = DirectionType::Emission() | DirectionType::LowFreq();

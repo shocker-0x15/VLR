@@ -823,7 +823,7 @@ namespace VLR {
         SurfaceMaterial(context),
         m_immDiffuseColor(createTripletSpectrum(VLRSpectrumType_Reflectance, ColorSpace::Rec709_D65, 0.18f, 0.18f, 0.18f)),
         m_immSpecularColor(createTripletSpectrum(VLRSpectrumType_Reflectance, ColorSpace::Rec709_D65, 0.04f, 0.04f, 0.04f)),
-        m_immGlossiness(0.9f) {
+        m_immGlossiness(0.6f) {
         setupMaterialDescriptor();
     }
 
@@ -986,6 +986,7 @@ namespace VLR {
 
     MultiSurfaceMaterial::MultiSurfaceMaterial(Context &context) :
         SurfaceMaterial(context), m_numSubMaterials(0) {
+        std::fill_n(m_subMaterials, lengthof(m_subMaterials), nullptr);
         setupMaterialDescriptor();
     }
 
@@ -999,17 +1000,22 @@ namespace VLR {
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
         auto &mat = *matDesc.getData<Shared::MultiSurfaceMaterial>();
 
-        for (int i = 0; i < lengthof(m_subMaterials); ++i)
-            mat.subMatIndices[i] = m_subMaterials[i]->getMaterialIndex();
-        mat.numSubMaterials = m_numSubMaterials;
+        mat.numSubMaterials = 0;
+        std::fill_n(mat.subMatIndices, lengthof(mat.subMatIndices), 0xFFFFFFFF);
+        for (int i = 0; i < lengthof(m_subMaterials); ++i) {
+            if (m_subMaterials[i])
+                mat.subMatIndices[mat.numSubMaterials++] = m_subMaterials[i]->getMaterialIndex();
+        }
 
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
     bool MultiSurfaceMaterial::isEmitting() const {
-        for (int i = 0; i < m_numSubMaterials; ++i) {
-            if (m_subMaterials[i]->isEmitting())
-                return true;
+        for (int i = 0; i < lengthof(m_subMaterials); ++i) {
+            if (m_subMaterials[i]) {
+                if (m_subMaterials[i]->isEmitting())
+                    return true;
+            }
         }
         return false;
     }
@@ -1021,6 +1027,7 @@ namespace VLR {
         for (int i = 0; i < lengthof(m_subMaterials); ++i)
             if (m_subMaterials[i] != nullptr)
                 ++m_numSubMaterials;
+        setupMaterialDescriptor();
     }
 
 

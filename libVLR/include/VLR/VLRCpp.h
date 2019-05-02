@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <set>
 #include <memory>
 
 #include "VLR.h"
@@ -849,7 +850,7 @@ namespace VLRCpp {
 
 
     class MultiSurfaceMaterialHolder : public SurfaceMaterialHolder {
-        std::vector<SurfaceMaterialRef> m_materials;
+        SurfaceMaterialRef m_materials[4];
 
     public:
         MultiSurfaceMaterialHolder(const ContextConstRef &context) : SurfaceMaterialHolder(context) {
@@ -859,8 +860,11 @@ namespace VLRCpp {
             errorCheck(vlrMultiSurfaceMaterialDestroy(getRaw(m_context), (VLRMultiSurfaceMaterial)m_raw));
         }
 
-        void setSubMaterial(uint32_t index, VLRSurfaceMaterial mat) {
-            errorCheck(vlrMultiSurfaceMaterialSetSubMaterial((VLRMultiSurfaceMaterial)m_raw, index, mat));
+        void setSubMaterial(uint32_t index, const SurfaceMaterialRef &mat) {
+            if (!mat)
+                return;
+            m_materials[index] = mat;
+            errorCheck(vlrMultiSurfaceMaterialSetSubMaterial((VLRMultiSurfaceMaterial)m_raw, index, (VLRSurfaceMaterial)mat->get()));
         }
     };
 

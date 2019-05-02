@@ -601,7 +601,8 @@ namespace VLR {
 
         struct DebugRenderingAttribute {
             enum Value {
-                GeometricNormal = 0,
+                BaseColor = 0,
+                GeometricNormal,
                 ShadingTangent,
                 ShadingBitangent,
                 ShadingNormal,
@@ -612,7 +613,7 @@ namespace VLR {
                 ShadingFrameOrthogonality,
             } value;
 
-            RT_FUNCTION constexpr DebugRenderingAttribute(Value v = GeometricNormal) : value(v) {}
+            RT_FUNCTION constexpr DebugRenderingAttribute(Value v = BaseColor) : value(v) {}
 
             RT_FUNCTION operator int32_t() const {
                 return value;

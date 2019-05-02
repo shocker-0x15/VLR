@@ -2,7 +2,8 @@
 
 namespace VLR {
     struct DebugRenderingPayload {
-        TripletSpectrum value;
+        WavelengthSamples wls;
+        SampledSpectrum value;
     };
 
     rtDeclareVariable(DebugRenderingPayload, sm_debugPayload, rtPayload, );
@@ -62,7 +63,7 @@ namespace VLR {
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
             float sim = dot(surfPt.geometricNormal, surfPt.shadingFrame.z);
             bool opposite = sim < 0.0f;
-            sim = clamp(1 * std::fabs(sim), 0.0f, 1.0f);
+            sim = clamp(0.5f * std::fabs(sim), 0.0f, 1.0f);
             //float gLength = clamp(0.5f + 100 * (surfPt.geometricNormal.length() - 1), 0.0f, 1.0f);
             //float sLength = clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f);
             value = createTripletSpectrum(VLRSpectrumType_LightSource, ColorSpace::Rec709_D65, sim, opposite ? 0 : sim, opposite ? 0 : sim);
@@ -91,11 +92,24 @@ namespace VLR {
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingClosestHit() {
+        WavelengthSamples &wls = sm_payload.wls;
+
         SurfacePoint surfPt;
         float hypAreaPDF;
         calcSurfacePoint(&surfPt, &hypAreaPDF);
 
-        sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute);
+        if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
+            const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
+            BSDF bsdf(matDesc, surfPt, wls);
+
+            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+            auto progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
+
+            sm_debugPayload.value = progGetBaseColor((const uint32_t*)&bsdf);
+        }
+        else {
+            sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+        }
     }
 
 
@@ -104,6 +118,8 @@ namespace VLR {
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
     RT_PROGRAM void debugRenderingMiss() {
+        WavelengthSamples &wls = sm_payload.wls;
+
         Vector3D direction = asVector3D(sm_ray.direction);
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
@@ -129,7 +145,12 @@ namespace VLR {
         phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
 
-        sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute);
+        if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
+            sm_debugPayload.value = SampledSpectrum::Zero();
+        }
+        else {
+            sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+        }
     }
 
 
@@ -157,12 +178,13 @@ namespace VLR {
         optix::Ray ray = optix::make_Ray(asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), RayType::DebugPrimary, 0.0f, FLT_MAX);
 
         DebugRenderingPayload payload;
+        payload.wls = wls;
         rtTrace(pv_topGroup, ray, payload);
         pv_rngBuffer[sm_launchIndex] = rng;
 
         if (pv_numAccumFrames == 1)
             pv_outputBuffer[sm_launchIndex].reset();
-        pv_outputBuffer[sm_launchIndex].add(wls, payload.value.evaluate(wls) / selectWLPDF);
+        pv_outputBuffer[sm_launchIndex].add(wls, payload.value / selectWLPDF);
     }
 
 

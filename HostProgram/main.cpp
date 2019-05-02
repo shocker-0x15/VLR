@@ -364,7 +364,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     g_cameraTiltSpeed = 0.025f;
 
     g_enableDebugRendering = false;
-    g_debugRenderingMode = VLRDebugRenderingMode_GeometricNormal;
+    g_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
 
     g_environmentRotation = shot.environmentRotation * 180 / M_PI;
     g_environmentRotation = g_environmentRotation - std::floor(g_environmentRotation / 360) * 360;
@@ -685,6 +685,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)&g_cameraOrientation);
 
                     const char* debugRenderModes[] = {
+                        "BaseColor",
                         "GeometricNormal",
                         "ShadingTangent",
                         "ShadingBitangent",
@@ -987,10 +988,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     drawOptiXResultShader.useProgram();
 
                     glUniform1i(0, (int32_t)g_renderTargetSizeX); GLTK::errorCheck();
-
                     glUniform1f(1, (float)shrinkCoeff); GLTK::errorCheck();
-
                     glUniform1f(2, g_brightnessCoeff); GLTK::errorCheck();
+                    glUniform1i(3, (int32_t)g_enableDebugRendering); GLTK::errorCheck();
 
                     glActiveTexture(GL_TEXTURE0); GLTK::errorCheck();
                     outputTexture.bind();

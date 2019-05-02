@@ -1330,6 +1330,8 @@ namespace VLR {
                 for (auto it = m_surfaceLights.cbegin(); it != m_surfaceLights.cend(); ++it) {
                     uint32_t index = std::distance(m_surfaceLights.cbegin(), it);
                     const Shared::SurfaceLightDescriptor &lightDesc = it->second;
+                    if (lightDesc.importance > 0)
+                        vlrDevPrintf("Light %u: %g\n", index, lightDesc.importance);
                     descs[index] = lightDesc;
                     importances[index] = lightDesc.importance;
                 }
