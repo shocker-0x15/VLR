@@ -1,11 +1,12 @@
 #version 400
-#extension GL_ARB_explicit_uniform_location : enable // required in version lower4.3
+#extension GL_ARB_explicit_uniform_location : enable // required in version lower 4.3
 #extension GL_ARB_shading_language_420pack : enable // required in version lower 4.2
 
 layout(location = 0) uniform int srcFullWidth;
 layout(location = 1) uniform float shrinkCoeff;
 layout(location = 2) uniform float brightness;
-layout(location = 3, binding = 0) uniform samplerBuffer srcTexture;
+layout(location = 3) uniform int enableDebugRendering;
+layout(location = 4, binding = 0) uniform samplerBuffer srcTexture;
 
 layout(origin_upper_left) in vec4 gl_FragCoord;
 
@@ -22,9 +23,14 @@ vec3 sRGB_gamma(vec3 v) {
 void main(void) {
     vec2 srcPixel = gl_FragCoord.xy / shrinkCoeff;
     vec4 opResult = texelFetch(srcTexture, int(srcPixel.y) * srcFullWidth + int(srcPixel.x));
-    opResult.rgb *= brightness;
     opResult.rgb = max(opResult.rgb, 0.0f);
-    opResult.rgb = 1 - exp(-opResult.rgb);
-    opResult.rgb = sRGB_gamma(opResult.rgb);
+    if (bool(enableDebugRendering)) {
+        opResult.rgb = min(opResult.rgb, 1.0f);
+    }
+    else {
+        opResult.rgb *= brightness;
+        opResult.rgb = 1 - exp(-opResult.rgb);
+        opResult.rgb = sRGB_gamma(opResult.rgb);
+    }
     color = opResult;
 }

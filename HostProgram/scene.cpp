@@ -1856,63 +1856,93 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         aiMat->Get(AI_MATKEY_NAME, strValue);
         hpprintf("Material: %s\n", strValue.C_Str());
-        //if (strcmp(strValue.C_Str(), "MASTER_Forge_Metal") == 0)
+        //if (strcmp(strValue.C_Str(), "Metal_Chrome1") == 0)
         //    printf("");
 
         SurfaceMaterialRef mat;
         ShaderNodeSocket socketNormal;
         ShaderNodeSocket socketAlpha;
         {
-            auto oldMat = context->createOldStyleSurfaceMaterial();
-
-            Image2DRef imageDiffuse;
-            Image2DRef imageSpecular;
-            Image2DRef imageNormal;
-            Image2DRef imageAlpha;
-            Image2DTextureShaderNodeRef texDiffuse;
-            Image2DTextureShaderNodeRef texSpecular;
-            Image2DTextureShaderNodeRef texNormal;
-            Image2DTextureShaderNodeRef texAlpha;
-
-            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
-                imageDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
-                texDiffuse = context->createImage2DTextureShaderNode();
-                texDiffuse->setImage(imageDiffuse);
-            }
-            if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
-                imageSpecular = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
-                texSpecular = context->createImage2DTextureShaderNode();
-                texSpecular->setImage(imageSpecular);
-            }
-            if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
-                imageNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
-                texNormal = context->createImage2DTextureShaderNode();
-                texNormal->setImage(imageNormal);
-            }
-            if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
-                imageAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
-                texAlpha = context->createImage2DTextureShaderNode();
-                texAlpha->setImage(imageAlpha);
+            if (aiMat->Get(AI_MATKEY_COLOR_TRANSPARENT, color, nullptr) != aiReturn_SUCCESS) {
+                color[0] = color[1] = color[2] = 1;
             }
 
-            if (texDiffuse)
-                oldMat->setNodeDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            if (color[0] < 1 && color[1] < 1 && color[2] < 1) {
+                auto glassMat = context->createSpecularScatteringSurfaceMaterial();
+                glassMat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 1 - color[0], 1 - color[1], 1 - color[2]);
+                glassMat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.0f, 1.0f, 1.0f);
+                glassMat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 1.5f, 1.5f, 1.5f);
 
-            if (texSpecular)
-                oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                mat = glassMat;
+            }
+            else {
+                auto oldMat = context->createOldStyleSurfaceMaterial();
 
-            if (imageSpecular && imageSpecular->originalHasAlpha())
-                oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
+                oldMat->setImmediateValueGlossiness(0.7f);
 
-            if (texNormal)
-                socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
+                Image2DRef imageDiffuse;
+                Image2DRef imageSpecular;
+                Image2DRef imageNormal;
+                Image2DRef imageAlpha;
+                Image2DTextureShaderNodeRef texDiffuse;
+                Image2DTextureShaderNodeRef texSpecular;
+                Image2DTextureShaderNodeRef texNormal;
+                Image2DTextureShaderNodeRef texAlpha;
 
-            if (texAlpha)
-                socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
-            else if (imageDiffuse && imageDiffuse->originalHasAlpha())
-                socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
+                if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                    imageDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+                    texDiffuse = context->createImage2DTextureShaderNode();
+                    texDiffuse->setImage(imageDiffuse);
+                }
+                if (aiMat->Get(AI_MATKEY_TEXTURE_SPECULAR(0), strValue) == aiReturn_SUCCESS) {
+                    imageSpecular = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+                    texSpecular = context->createImage2DTextureShaderNode();
+                    texSpecular->setImage(imageSpecular);
+                }
+                if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
+                    imageNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+                    texNormal = context->createImage2DTextureShaderNode();
+                    texNormal->setImage(imageNormal);
+                }
+                if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+                    imageAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+                    texAlpha = context->createImage2DTextureShaderNode();
+                    texAlpha->setImage(imageAlpha);
+                }
 
-            mat = oldMat;
+                if (texDiffuse)
+                    oldMat->setNodeDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+                if (texSpecular)
+                    oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+                //if (imageSpecular && imageSpecular->originalHasAlpha())
+                //    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
+
+                if (texNormal)
+                    socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
+
+                if (texAlpha)
+                    socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+                else if (imageDiffuse && imageDiffuse->originalHasAlpha())
+                    socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
+
+                mat = oldMat;
+
+                if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color, nullptr) == aiReturn_SUCCESS) {
+                    if (color[0] > 0.0f && color[1] > 0.0f && color[2] > 0.0f) {
+                        auto emitter = context->createDiffuseEmitterSurfaceMaterial();
+                        emitter->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+                        emitter->setImmediateValueScale(30);
+
+                        auto mMat = context->createMultiSurfaceMaterial();
+                        mMat->setSubMaterial(0, oldMat);
+                        mMat->setSubMaterial(1, emitter);
+
+                        mat = mMat;
+                    }
+                }
+            }
         }
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
