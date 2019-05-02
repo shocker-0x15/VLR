@@ -45,12 +45,12 @@ struct KeyState {
     }
 
     bool getState(int32_t goBack = 0) const {
-        VLRAssert(goBack >= -4 && goBack <= 0, "goBack must be in the range [-4, 0].");
+        Assert(goBack >= -4 && goBack <= 0, "goBack must be in the range [-4, 0].");
         return statesLastChanged[(lastIndex + goBack + 5) % 5];
     }
 
     uint64_t getTime(int32_t goBack = 0) const {
-        VLRAssert(goBack >= -4 && goBack <= 0, "goBack must be in the range [-4, 0].");
+        Assert(goBack >= -4 && goBack <= 0, "goBack must be in the range [-4, 0].");
         return timesLastChanged[(lastIndex + goBack + 5) % 5];
     }
 };
@@ -119,7 +119,7 @@ static std::string readTxtFile(const std::string& filepath) {
 
 
 float sRGB_gamma_s(float value) {
-    VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
+    Assert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
     if (value <= 0.0031308f)
         return 12.92f * value;
     return 1.055f * std::pow(value, 1.0f / 2.4f) - 0.055f;
@@ -180,7 +180,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
             uint32_t &pix = data[y * width + x];
 
             if (srcPix.r < 0.0f || srcPix.g < 0.0f || srcPix.b < 0.0f)
-                vlrprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
+                hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
             srcPix *= g_brightnessCoeff;
             srcPix = max(srcPix, 0.0f);
             srcPix = RGB::One() - exp(-srcPix);
@@ -192,7 +192,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
             //srcPix.g = srcPix.g / b;
             //srcPix.b = Y * 0.6f;
             //if (srcPix.r > 1.0f || srcPix.g > 1.0f || srcPix.b > 1.0f)
-            //    vlrprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
+            //    hpprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
             //srcPix = min(srcPix, 1.0f);
 
             Assert(srcPix.r <= 1.0f && srcPix.g <= 1.0f && srcPix.b <= 1.0f, "Pixel value should not be greater than 1.0.");
@@ -1063,7 +1063,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         context->bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, 0);
 
-        vlrprintf("Setup: %g[s]\n", swGlobal.elapsed(StopWatch::Milliseconds) * 1e-3f);
+        hpprintf("Setup: %g[s]\n", swGlobal.elapsed(StopWatch::Milliseconds) * 1e-3f);
         swGlobal.start();
 
         uint32_t numAccumFrames = 0;
@@ -1101,7 +1101,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 //stbi_write_png(filename, renderTargetSizeX, renderTargetSizeY, 4, data, sizeof(data[0]) * renderTargetSizeX);
                 sprintf(filename, "%03u.bmp", imgIndex++);
                 stbi_write_bmp(filename, renderTargetSizeX, renderTargetSizeY, 4, data);
-                vlrprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
+                hpprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 
                 context->unmapOutputBuffer();
 
@@ -1116,7 +1116,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         swGlobal.stop();
 
-        vlrprintf("Finish!!: %g[s]\n", swGlobal.stop(StopWatch::Milliseconds) * 1e-3f);
+        hpprintf("Finish!!: %g[s]\n", swGlobal.stop(StopWatch::Milliseconds) * 1e-3f);
     }
 
     return 0;
@@ -1127,7 +1127,7 @@ int32_t main(int32_t argc, const char* argv[]) {
         mainFunc(argc, argv);
     }
     catch (optix::Exception ex) {
-        vlrprintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
+        hpprintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
     }
 
     return 0;

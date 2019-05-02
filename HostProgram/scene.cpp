@@ -563,13 +563,17 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
     }
 }
 
-void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
+void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
                CreateMaterialFunction matFunc, PerMeshFunction meshFunc) {
     using namespace VLRCpp;
     using namespace VLR;
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_CalcTangentSpace | (flipV ? aiProcess_FlipUVs : 0));
+    const aiScene* scene = importer.ReadFile(filePath, 
+        aiProcess_Triangulate |
+        aiProcess_CalcTangentSpace |
+        (flipWinding ? aiProcess_FlipWindingOrder : 0) |
+        (flipV ? aiProcess_FlipUVs : 0));
     if (!scene) {
         hpprintf("Failed to load %s.\n", filePath.c_str());
         *nodeOut = nullptr;
@@ -717,7 +721,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     InternalNodeRef sphereNode;
-    construct(context, "resources/sphere/sphere.obj", false, &sphereNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/sphere/sphere.obj", false, false, &sphereNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -802,7 +806,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -855,7 +859,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, "resources/material_test/mitsuba_knob.obj", false, &modelNode, 
+    construct(context, "resources/material_test/mitsuba_knob.obj", false, false, &modelNode, 
               [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
@@ -1128,7 +1132,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -1261,7 +1265,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -1314,7 +1318,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, ASSETS_DIR"spman2/spman2.obj", true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, ASSETS_DIR"spman2/spman2.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -1385,7 +1389,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, "resources/sphere/sphere.obj", false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    construct(context, "resources/sphere/sphere.obj", false, false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
 
@@ -1519,7 +1523,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     };
-    construct(context, ASSETS_DIR"gallery/gallery.obj", true, &modelNode, createMaterialDefaultFunction);
+    construct(context, ASSETS_DIR"gallery/gallery.obj", false, true, &modelNode, createMaterialDefaultFunction);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.5f)));
 
@@ -1584,7 +1588,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, ASSETS_DIR"hairball/hairball.obj", false, &modelNode,
+    construct(context, ASSETS_DIR"hairball/hairball.obj", true, false, &modelNode,
               [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
@@ -1697,7 +1701,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     };
-    construct(context, ASSETS_DIR"rungholt/rungholt.obj", true, &modelNode, rungholtMaterialFunc);
+    construct(context, ASSETS_DIR"rungholt/rungholt.obj", false, true, &modelNode, rungholtMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.04f)));
 
@@ -1797,7 +1801,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     };
-    construct(context, ASSETS_DIR"powerplant/powerplant.obj", true, &modelNode, createMaterialDefaultFunction);
+    construct(context, ASSETS_DIR"powerplant/powerplant.obj", false, true, &modelNode, createMaterialDefaultFunction);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.0001f)));
 
@@ -1970,7 +1974,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", true, &modelNode, bistroMaterialFunc);
+    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 
@@ -2175,7 +2179,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior_corrected.obj", true, &modelNode, bistroMaterialFunc);
+    construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior_corrected.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 

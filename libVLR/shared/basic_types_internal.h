@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include <optix_world.h>
 #include "common_internal.h"
+#include <optix_world.h>
 #include "../include/VLR/basic_types.h"
 
 namespace VLR {

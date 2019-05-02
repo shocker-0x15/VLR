@@ -31,7 +31,7 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 
 MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh);
 
-static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
+static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
                       CreateMaterialFunction matFunc = createMaterialDefaultFunction, PerMeshFunction meshFunc = perMeshDefaultFunction);
 
 

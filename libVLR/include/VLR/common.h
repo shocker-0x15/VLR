@@ -31,17 +31,21 @@
 #if defined(VLR_Platform_Windows_MSVC)
 #   define NOMINMAX
 #   define _USE_MATH_DEFINES
-#   if defined(VLR_API_EXPORTS)
-#       define VLR_API __declspec(dllexport)
-#   else
-#       define VLR_API __declspec(dllimport)
-#   endif
 #   include <Windows.h>
 #   undef near
 #   undef far
 #   undef RGB
+#   if defined(VLR_Platform_Windows_MSVC)
+#      if defined(VLR_API_EXPORTS)
+#          define VLR_CPP_API __declspec(dllexport)
+#      else
+#          define VLR_CPP_API __declspec(dllimport)
+#      endif
+#   else
+#      define VLR_CPP_API
+#   endif
 #else
-#   define VLR_API
+#   define VLR_CPP_API
 #endif
 
 #define VLR_M_PI 3.14159265358979323846f
@@ -56,13 +60,14 @@
 #if defined(VLR_Host)
 
 #include <cstdio>
-#include <cstdint>
 #include <cstdlib>
 #include <cstdarg>
-#include <cmath>
-#include <cfloat>
 
 #endif
+
+#include <cstdint>
+#include <cmath>
+#include <cfloat>
 
 #if defined(DEBUG)
 #   define ENABLE_ASSERT
@@ -71,7 +76,7 @@
 // vlrDevPrintf
 #if defined(VLR_Host)
 #   if defined(VLR_Platform_Windows_MSVC)
-VLR_API void vlrDevPrintf(const char* fmt, ...);
+VLR_CPP_API void vlrDevPrintf(const char* fmt, ...);
 #   else
 #       define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif

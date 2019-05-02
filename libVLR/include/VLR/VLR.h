@@ -2,12 +2,36 @@
 
 #include "public_types.h"
 
+// Platform defines
+#if defined(_WIN32) || defined(_WIN64)
+#    define VLR_API_Platform_Windows
+#    if defined(_MSC_VER)
+#        define VLR_API_Platform_Windows_MSVC
+#    endif
+#elif defined(__APPLE__)
+#    define VLR_API_Platform_macOS
+#endif
+
+#if defined(VLR_API_Platform_Windows_MSVC)
+#   if defined(VLR_API_EXPORTS)
+#       define VLR_API __declspec(dllexport)
+#   else
+#       define VLR_API __declspec(dllimport)
+#   endif
+#else
+#   define VLR_API
+#endif
+
+
+
 #define VLR_ERROR_NO_ERROR               0x80000000
 #define VLR_ERROR_INVALID_CONTEXT        0x80000001
 #define VLR_ERROR_INVALID_TYPE           0x80000002
 #define VLR_ERROR_INCOMPATIBLE_NODE_TYPE 0x80000003
 
+#if defined(__cplusplus)
 extern "C" {
+#endif
     typedef uint32_t VLRResult;
 
 #if !defined(VLR_API_EXPORTS)
@@ -346,4 +370,6 @@ extern "C" {
     VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCamera camera, VLRQuaternion* orientation);
     VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCamera camera, float* sensitivity);
     VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCamera camera, float* phiAngle, float* thetaAngle);
+#if defined(__cplusplus)
 }
+#endif
