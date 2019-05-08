@@ -38,14 +38,6 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM float FloatShaderNode_float(const ShaderNodeSocketID &socket,
-                                                    const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        auto &nodeData = *getData<FloatShaderNode>(socket.nodeDescIndex);
-        return calcNode(nodeData.node0, nodeData.imm0, surfPt, wls);
-    }
-
-
-
     RT_CALLABLE_PROGRAM float Float2ShaderNode_float(const ShaderNodeSocketID &socket,
                                                      const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float2ShaderNode>(socket.nodeDescIndex);

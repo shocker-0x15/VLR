@@ -136,41 +136,6 @@ namespace VLR {
 
 
 
-    class FloatShaderNode : public ShaderNode {
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
-
-        ShaderNodeSocketIdentifier m_node0;
-        float m_imm0;
-
-        void setupNodeDescriptor() const;
-
-    public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
-
-        static void initialize(Context &context);
-        static void finalize(Context &context);
-
-        FloatShaderNode(Context &context);
-        ~FloatShaderNode();
-
-        // Out Socket | option |
-        // float      |      0 | s0
-        ShaderNodeSocketIdentifier getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_float && option < 1)
-                return ShaderNodeSocketIdentifier(this, stype, option);
-            return ShaderNodeSocketIdentifier();
-        }
-        uint32_t getProcedureSetIndex() const override {
-            return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
-        }
-
-        bool setNode0(const ShaderNodeSocketIdentifier &outputSocket);
-        void setImmediateValue0(float value);
-    };
-
-
-
     class Float2ShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 

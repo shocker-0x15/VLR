@@ -58,7 +58,6 @@ namespace VLR {
     // static
     void ShaderNode::initialize(Context &context) {
         GeometryShaderNode::initialize(context);
-        FloatShaderNode::initialize(context);
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
@@ -85,7 +84,6 @@ namespace VLR {
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
-        FloatShaderNode::finalize(context);
         GeometryShaderNode::finalize(context);
     }
 
@@ -162,56 +160,6 @@ namespace VLR {
 
     GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
         return Instances.at(context.getID());
-    }
-
-
-
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> FloatShaderNode::OptiXProgramSets;
-
-    // static
-    void FloatShaderNode::initialize(Context &context) {
-        const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::FloatShaderNode_float",
-        };
-        OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
-
-        OptiXProgramSets[context.getID()] = programSet;
-    }
-
-    // static
-    void FloatShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-        commonFinalizeProcedure(context, programSet);
-    }
-
-    FloatShaderNode::FloatShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::FloatShaderNode)), m_imm0(0.0f) {
-        setupNodeDescriptor();
-    }
-
-    FloatShaderNode::~FloatShaderNode() {
-    }
-
-    void FloatShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::FloatShaderNode>();
-        nodeData.node0 = m_node0.getSharedType();
-        nodeData.imm0 = m_imm0;
-
-        updateNodeDescriptor();
-    }
-
-    bool FloatShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
-            return false;
-        m_node0 = outputSocket;
-        setupNodeDescriptor();
-        return true;
-    }
-
-    void FloatShaderNode::setImmediateValue0(float value) {
-        m_imm0 = value;
-        setupNodeDescriptor();
     }
 
 

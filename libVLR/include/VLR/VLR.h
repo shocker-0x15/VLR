@@ -35,55 +35,56 @@ extern "C" {
     typedef uint32_t VLRResult;
 
 #if !defined(VLR_API_EXPORTS)
-    typedef struct VLRObject_API* VLRObject;
+#   define VLR_DEFINE_OPAQUE_TYPE(name) typedef struct VLR ## name ## _API* VLR ## name
 
-    typedef struct VLRContext_API* VLRContext;
+    VLR_DEFINE_OPAQUE_TYPE(Object);
 
-    typedef struct VLRImage2D_API* VLRImage2D;
-    typedef struct VLRLinearImage2D_API* VLRLinearImage2D;
-    typedef struct VLRBlockCompressedImage2D_API* VLRBlockCompressedImage2D;
+    VLR_DEFINE_OPAQUE_TYPE(Context);
 
-    typedef struct VLRShaderNode_API* VLRShaderNode;
-    typedef struct VLRGeometryShaderNode_API* VLRGeometryShaderNode;
-    typedef struct VLRFloatShaderNode_API* VLRFloatShaderNode;
-    typedef struct VLRFloat2ShaderNode_API* VLRFloat2ShaderNode;
-    typedef struct VLRFloat3ShaderNode_API* VLRFloat3ShaderNode;
-    typedef struct VLRFloat4ShaderNode_API* VLRFloat4ShaderNode;
-    typedef struct VLRScaleAndOffsetFloatShaderNode_API* VLRScaleAndOffsetFloatShaderNode;
-    typedef struct VLRTripletSpectrumShaderNode_API* VLRTripletSpectrumShaderNode;
-    typedef struct VLRRegularSampledSpectrumShaderNode_API* VLRRegularSampledSpectrumShaderNode;
-    typedef struct VLRIrregularSampledSpectrumShaderNode_API* VLRIrregularSampledSpectrumShaderNode;
-    typedef struct VLRFloat3ToSpectrumShaderNode_API* VLRFloat3ToSpectrumShaderNode;
-    typedef struct VLRScaleAndOffsetUVTextureMap2DShaderNode_API* VLRScaleAndOffsetUVTextureMap2DShaderNode;
-    typedef struct VLRImage2DTextureShaderNode_API* VLRImage2DTextureShaderNode;
-    typedef struct VLREnvironmentTextureShaderNode_API* VLREnvironmentTextureShaderNode;
+    VLR_DEFINE_OPAQUE_TYPE(Image2D);
+    VLR_DEFINE_OPAQUE_TYPE(LinearImage2D);
+    VLR_DEFINE_OPAQUE_TYPE(BlockCompressedImage2D);
 
-    typedef struct VLRSurfaceMaterial_API* VLRSurfaceMaterial;
-    typedef struct VLRMatteSurfaceMaterial_API* VLRMatteSurfaceMaterial;
-    typedef struct VLRSpecularReflectionSurfaceMaterial_API* VLRSpecularReflectionSurfaceMaterial;
-    typedef struct VLRSpecularScatteringSurfaceMaterial_API* VLRSpecularScatteringSurfaceMaterial;
-    typedef struct VLRMicrofacetReflectionSurfaceMaterial_API* VLRMicrofacetReflectionSurfaceMaterial;
-    typedef struct VLRMicrofacetScatteringSurfaceMaterial_API* VLRMicrofacetScatteringSurfaceMaterial;
-    typedef struct VLRLambertianScatteringSurfaceMaterial_API* VLRLambertianScatteringSurfaceMaterial;
-    typedef struct VLRUE4SurfaceMaterial_API* VLRUE4SurfaceMaterial;
-    typedef struct VLROldStyleSurfaceMaterial_API* VLROldStyleSurfaceMaterial;
-    typedef struct VLRDiffuseEmitterSurfaceMaterial_API* VLRDiffuseEmitterSurfaceMaterial;
-    typedef struct VLRMultiSurfaceMaterial_API* VLRMultiSurfaceMaterial;
-    typedef struct VLREnvironmentEmitterSurfaceMaterial_API* VLREnvironmentEmitterSurfaceMaterial;
+    VLR_DEFINE_OPAQUE_TYPE(ShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(GeometryShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(Float2ShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(Float3ShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(Float4ShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(ScaleAndOffsetFloatShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(TripletSpectrumShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(RegularSampledSpectrumShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(IrregularSampledSpectrumShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(Float3ToSpectrumShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(ScaleAndOffsetUVTextureMap2DShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(Image2DTextureShaderNode);
+    VLR_DEFINE_OPAQUE_TYPE(EnvironmentTextureShaderNode);
 
-    typedef struct VLRTransform_API* VLRTransform;
+    VLR_DEFINE_OPAQUE_TYPE(SurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(MatteSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(SpecularReflectionSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(SpecularScatteringSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(MicrofacetReflectionSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(MicrofacetScatteringSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(LambertianScatteringSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(UE4SurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(OldStyleSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(DiffuseEmitterSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(MultiSurfaceMaterial);
+    VLR_DEFINE_OPAQUE_TYPE(EnvironmentEmitterSurfaceMaterial);
+
+    VLR_DEFINE_OPAQUE_TYPE(Transform);
     typedef const struct VLRTransform_API* VLRTransformConst;
-    typedef struct VLRStaticTransform_API* VLRStaticTransform;
+    VLR_DEFINE_OPAQUE_TYPE(StaticTransform);
 
-    typedef struct VLRNode_API* VLRNode;
-    typedef struct VLRSurfaceNode_API* VLRSurfaceNode;
-    typedef struct VLRTriangleMeshSurfaceNode_API* VLRTriangleMeshSurfaceNode;
-    typedef struct VLRInternalNode_API* VLRInternalNode;
-    typedef struct VLRScene_API* VLRScene;
+    VLR_DEFINE_OPAQUE_TYPE(Node);
+    VLR_DEFINE_OPAQUE_TYPE(SurfaceNode);
+    VLR_DEFINE_OPAQUE_TYPE(TriangleMeshSurfaceNode);
+    VLR_DEFINE_OPAQUE_TYPE(InternalNode);
+    VLR_DEFINE_OPAQUE_TYPE(Scene);
 
-    typedef struct VLRCamera_API* VLRCamera;
-    typedef struct VLRPerspectiveCamera_API* VLRPerspectiveCamera;
-    typedef struct VLREquirectangularCamera_API* VLREquirectangularCamera;
+    VLR_DEFINE_OPAQUE_TYPE(Camera);
+    VLR_DEFINE_OPAQUE_TYPE(PerspectiveCamera);
+    VLR_DEFINE_OPAQUE_TYPE(EquirectangularCamera);
 #endif
 
 
@@ -128,11 +129,6 @@ extern "C" {
 
     VLR_API VLRResult vlrGeometryShaderNodeCreate(VLRContext context, VLRGeometryShaderNode* node);
     VLR_API VLRResult vlrGeometryShaderNodeDestroy(VLRContext context, VLRGeometryShaderNode node);
-
-    VLR_API VLRResult vlrFloatShaderNodeCreate(VLRContext context, VLRFloatShaderNode* node);
-    VLR_API VLRResult vlrFloatShaderNodeDestroy(VLRContext context, VLRFloatShaderNode node);
-    VLR_API VLRResult vlrFloatShaderNodeSetNode0(VLRFloatShaderNode node, VLRShaderNode node0, VLRShaderNodeSocketInfo socketInfo);
-    VLR_API VLRResult vlrFloatShaderNodeSetImmediateValue0(VLRFloatShaderNode node, float value);
 
     VLR_API VLRResult vlrFloat2ShaderNodeCreate(VLRContext context, VLRFloat2ShaderNode* node);
     VLR_API VLRResult vlrFloat2ShaderNodeDestroy(VLRContext context, VLRFloat2ShaderNode node);

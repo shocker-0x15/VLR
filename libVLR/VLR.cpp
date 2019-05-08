@@ -2,55 +2,56 @@
 
 #include "scene.h"
 
-typedef VLR::Object* VLRObject;
+#define VLR_DEFINE_C_ALIAS(name) typedef VLR::name* VLR ## name
 
-typedef VLR::Context* VLRContext;
+VLR_DEFINE_C_ALIAS(Object);
 
-typedef VLR::Image2D* VLRImage2D;
-typedef VLR::LinearImage2D* VLRLinearImage2D;
-typedef VLR::BlockCompressedImage2D* VLRBlockCompressedImage2D;
+VLR_DEFINE_C_ALIAS(Context);
 
-typedef VLR::ShaderNode* VLRShaderNode;
-typedef VLR::GeometryShaderNode* VLRGeometryShaderNode;
-typedef VLR::FloatShaderNode* VLRFloatShaderNode;
-typedef VLR::Float2ShaderNode* VLRFloat2ShaderNode;
-typedef VLR::Float3ShaderNode* VLRFloat3ShaderNode;
-typedef VLR::Float4ShaderNode* VLRFloat4ShaderNode;
-typedef VLR::ScaleAndOffsetFloatShaderNode* VLRScaleAndOffsetFloatShaderNode;
-typedef VLR::TripletSpectrumShaderNode* VLRTripletSpectrumShaderNode;
-typedef VLR::RegularSampledSpectrumShaderNode* VLRRegularSampledSpectrumShaderNode;
-typedef VLR::IrregularSampledSpectrumShaderNode* VLRIrregularSampledSpectrumShaderNode;
-typedef VLR::Float3ToSpectrumShaderNode* VLRFloat3ToSpectrumShaderNode;
-typedef VLR::ScaleAndOffsetUVTextureMap2DShaderNode* VLRScaleAndOffsetUVTextureMap2DShaderNode;
-typedef VLR::Image2DTextureShaderNode* VLRImage2DTextureShaderNode;
-typedef VLR::EnvironmentTextureShaderNode* VLREnvironmentTextureShaderNode;
+VLR_DEFINE_C_ALIAS(Image2D);
+VLR_DEFINE_C_ALIAS(LinearImage2D);
+VLR_DEFINE_C_ALIAS(BlockCompressedImage2D);
 
-typedef VLR::SurfaceMaterial* VLRSurfaceMaterial;
-typedef VLR::MatteSurfaceMaterial* VLRMatteSurfaceMaterial;
-typedef VLR::SpecularReflectionSurfaceMaterial* VLRSpecularReflectionSurfaceMaterial;
-typedef VLR::SpecularScatteringSurfaceMaterial* VLRSpecularScatteringSurfaceMaterial;
-typedef VLR::MicrofacetReflectionSurfaceMaterial* VLRMicrofacetReflectionSurfaceMaterial;
-typedef VLR::MicrofacetScatteringSurfaceMaterial* VLRMicrofacetScatteringSurfaceMaterial;
-typedef VLR::LambertianScatteringSurfaceMaterial* VLRLambertianScatteringSurfaceMaterial;
-typedef VLR::UE4SurfaceMaterial* VLRUE4SurfaceMaterial;
-typedef VLR::OldStyleSurfaceMaterial* VLROldStyleSurfaceMaterial;
-typedef VLR::DiffuseEmitterSurfaceMaterial* VLRDiffuseEmitterSurfaceMaterial;
-typedef VLR::MultiSurfaceMaterial* VLRMultiSurfaceMaterial;
-typedef VLR::EnvironmentEmitterSurfaceMaterial* VLREnvironmentEmitterSurfaceMaterial;
+VLR_DEFINE_C_ALIAS(ShaderNode);
+VLR_DEFINE_C_ALIAS(GeometryShaderNode);
+VLR_DEFINE_C_ALIAS(Float2ShaderNode);
+VLR_DEFINE_C_ALIAS(Float3ShaderNode);
+VLR_DEFINE_C_ALIAS(Float4ShaderNode);
+VLR_DEFINE_C_ALIAS(ScaleAndOffsetFloatShaderNode);
+VLR_DEFINE_C_ALIAS(TripletSpectrumShaderNode);
+VLR_DEFINE_C_ALIAS(RegularSampledSpectrumShaderNode);
+VLR_DEFINE_C_ALIAS(IrregularSampledSpectrumShaderNode);
+VLR_DEFINE_C_ALIAS(Float3ToSpectrumShaderNode);
+VLR_DEFINE_C_ALIAS(ScaleAndOffsetUVTextureMap2DShaderNode);
+VLR_DEFINE_C_ALIAS(Image2DTextureShaderNode);
+VLR_DEFINE_C_ALIAS(EnvironmentTextureShaderNode);
 
-typedef VLR::Transform* VLRTransform;
+VLR_DEFINE_C_ALIAS(SurfaceMaterial);
+VLR_DEFINE_C_ALIAS(MatteSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(SpecularReflectionSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(SpecularScatteringSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(MicrofacetReflectionSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(MicrofacetScatteringSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(LambertianScatteringSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(UE4SurfaceMaterial);
+VLR_DEFINE_C_ALIAS(OldStyleSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(DiffuseEmitterSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(MultiSurfaceMaterial);
+VLR_DEFINE_C_ALIAS(EnvironmentEmitterSurfaceMaterial);
+
+VLR_DEFINE_C_ALIAS(Transform);
 typedef VLR::Transform const* VLRTransformConst;
-typedef VLR::StaticTransform* VLRStaticTransform;
+VLR_DEFINE_C_ALIAS(StaticTransform);
 
-typedef VLR::Node* VLRNode;
-typedef VLR::SurfaceNode* VLRSurfaceNode;
-typedef VLR::TriangleMeshSurfaceNode* VLRTriangleMeshSurfaceNode;
-typedef VLR::InternalNode* VLRInternalNode;
-typedef VLR::Scene* VLRScene;
+VLR_DEFINE_C_ALIAS(Node);
+VLR_DEFINE_C_ALIAS(SurfaceNode);
+VLR_DEFINE_C_ALIAS(TriangleMeshSurfaceNode);
+VLR_DEFINE_C_ALIAS(InternalNode);
+VLR_DEFINE_C_ALIAS(Scene);
 
-typedef VLR::Camera* VLRCamera;
-typedef VLR::PerspectiveCamera* VLRPerspectiveCamera;
-typedef VLR::EquirectangularCamera* VLREquirectangularCamera;
+VLR_DEFINE_C_ALIAS(Camera);
+VLR_DEFINE_C_ALIAS(PerspectiveCamera);
+VLR_DEFINE_C_ALIAS(EquirectangularCamera);
 
 #include <VLR.h>
 
@@ -296,39 +297,6 @@ VLR_API VLRResult vlrGeometryShaderNodeDestroy(VLRContext context, VLRGeometrySh
     if (!node->is<VLR::GeometryShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
     //delete node;
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-
-
-VLR_API VLRResult vlrFloatShaderNodeCreate(VLRContext context, VLRFloatShaderNode* node) {
-    *node = new VLR::FloatShaderNode(*context);
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrFloatShaderNodeDestroy(VLRContext context, VLRFloatShaderNode node) {
-    if (!node->is<VLR::FloatShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    delete node;
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrFloatShaderNodeSetNode0(VLRFloatShaderNode node, VLRShaderNode node0, VLRShaderNodeSocketInfo socketInfo) {
-    if (!node->is<VLR::FloatShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode0(VLR::ShaderNodeSocketIdentifier(node0, socketInfo)))
-        return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
-
-    return VLR_ERROR_NO_ERROR;
-}
-
-VLR_API VLRResult vlrFloatShaderNodeSetImmediateValue0(VLRFloatShaderNode node, float value) {
-    if (!node->is<VLR::FloatShaderNode>())
-        return VLR_ERROR_INVALID_TYPE;
-    node->setImmediateValue0(value);
 
     return VLR_ERROR_NO_ERROR;
 }

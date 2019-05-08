@@ -19,7 +19,6 @@ namespace VLRCpp {
 
     VLR_DECLARE_HOLDER_AND_REFERENCE(ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(GeometryShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(FloatShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float2ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ShaderNode);
     VLR_DECLARE_HOLDER_AND_REFERENCE(Float4ShaderNode);
@@ -188,28 +187,6 @@ namespace VLRCpp {
         }
         ~GeometryShaderNodeHolder() {
             errorCheck(vlrGeometryShaderNodeDestroy(getRaw(m_context), (VLRGeometryShaderNode)m_raw));
-        }
-    };
-
-
-
-    class FloatShaderNodeHolder : public ShaderNodeHolder {
-        ShaderNodeSocket m_node0;
-
-    public:
-        FloatShaderNodeHolder(const ContextConstRef &context) : ShaderNodeHolder(context) {
-            errorCheck(vlrFloatShaderNodeCreate(getRaw(m_context), (VLRFloatShaderNode*)&m_raw));
-        }
-        ~FloatShaderNodeHolder() {
-            errorCheck(vlrFloatShaderNodeDestroy(getRaw(m_context), (VLRFloatShaderNode)m_raw));
-        }
-
-        void setNode0(const ShaderNodeSocket &node0) {
-            m_node0 = node0;
-            errorCheck(vlrFloatShaderNodeSetNode0((VLRFloatShaderNode)m_raw, m_node0.getNode(), m_node0.socketInfo));
-        }
-        void setImmediateValue0(float value) {
-            errorCheck(vlrFloatShaderNodeSetImmediateValue0((VLRFloatShaderNode)m_raw, value));
         }
     };
 
@@ -1272,10 +1249,6 @@ namespace VLRCpp {
 
         GeometryShaderNodeRef createGeometryShaderNode() const {
             return m_geomShaderNode;
-        }
-
-        FloatShaderNodeRef createFloatShaderNode() const {
-            return std::make_shared<FloatShaderNodeHolder>(shared_from_this());
         }
 
         Float2ShaderNodeRef createFloat2ShaderNode() const {

@@ -34,7 +34,6 @@ namespace VLR {
 
     defineClassID(Object, ShaderNode);
     defineClassID(ShaderNode, GeometryShaderNode);
-    defineClassID(ShaderNode, FloatShaderNode);
     defineClassID(ShaderNode, Float2ShaderNode);
     defineClassID(ShaderNode, Float3ShaderNode);
     defineClassID(ShaderNode, Float4ShaderNode);
