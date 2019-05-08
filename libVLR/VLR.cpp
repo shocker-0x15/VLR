@@ -276,11 +276,10 @@ VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockC
 
 
 VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t option,
-                                         VLRShaderNodeSocketInfo* socketInfo) {
+                                         VLRShaderNodeSocket* socket) {
     if (!node->isMemberOf<VLR::ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    VLR::ShaderNodeSocketIdentifier socketID = node->getSocket(socketType, option);
-    *socketInfo = socketID.getSocketInfo();
+    *socket = node->getSocket(socketType, option).getOpaqueType();
 
     return VLR_ERROR_NO_ERROR;
 }
@@ -317,10 +316,10 @@ VLR_API VLRResult vlrFloat2ShaderNodeDestroy(VLRContext context, VLRFloat2Shader
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat2ShaderNodeSetNode0(VLRFloat2ShaderNode node, VLRShaderNode node0, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat2ShaderNodeSetNode0(VLRFloat2ShaderNode node, VLRShaderNodeSocket node0) {
     if (!node->is<VLR::Float2ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode0(VLR::ShaderNodeSocketIdentifier(node0, socketInfo)))
+    if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -334,10 +333,10 @@ VLR_API VLRResult vlrFloat2ShaderNodeSetImmediateValue0(VLRFloat2ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat2ShaderNodeSetNode1(VLRFloat2ShaderNode node, VLRShaderNode node1, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat2ShaderNodeSetNode1(VLRFloat2ShaderNode node, VLRShaderNodeSocket node1) {
     if (!node->is<VLR::Float2ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode1(VLR::ShaderNodeSocketIdentifier(node1, socketInfo)))
+    if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -367,10 +366,10 @@ VLR_API VLRResult vlrFloat3ShaderNodeDestroy(VLRContext context, VLRFloat3Shader
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat3ShaderNodeSetNode0(VLRFloat3ShaderNode node, VLRShaderNode node0, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat3ShaderNodeSetNode0(VLRFloat3ShaderNode node, VLRShaderNodeSocket node0) {
     if (!node->is<VLR::Float3ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode0(VLR::ShaderNodeSocketIdentifier(node0, socketInfo)))
+    if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -384,10 +383,10 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue0(VLRFloat3ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat3ShaderNodeSetNode1(VLRFloat3ShaderNode node, VLRShaderNode node1, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat3ShaderNodeSetNode1(VLRFloat3ShaderNode node, VLRShaderNodeSocket node1) {
     if (!node->is<VLR::Float3ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode1(VLR::ShaderNodeSocketIdentifier(node1, socketInfo)))
+    if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -401,10 +400,10 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue1(VLRFloat3ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat3ShaderNodeSetNode2(VLRFloat3ShaderNode node, VLRShaderNode node2, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat3ShaderNodeSetNode2(VLRFloat3ShaderNode node, VLRShaderNodeSocket node2) {
     if (!node->is<VLR::Float3ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode2(VLR::ShaderNodeSocketIdentifier(node2, socketInfo)))
+    if (!node->setNode2(VLR::ShaderNodeSocket(node2)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -434,10 +433,10 @@ VLR_API VLRResult vlrFloat4ShaderNodeDestroy(VLRContext context, VLRFloat4Shader
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat4ShaderNodeSetNode0(VLRFloat4ShaderNode node, VLRShaderNode node0, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat4ShaderNodeSetNode0(VLRFloat4ShaderNode node, VLRShaderNodeSocket node0) {
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode0(VLR::ShaderNodeSocketIdentifier(node0, socketInfo)))
+    if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -451,10 +450,10 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue0(VLRFloat4ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat4ShaderNodeSetNode1(VLRFloat4ShaderNode node, VLRShaderNode node1, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat4ShaderNodeSetNode1(VLRFloat4ShaderNode node, VLRShaderNodeSocket node1) {
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode1(VLR::ShaderNodeSocketIdentifier(node1, socketInfo)))
+    if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -468,10 +467,10 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue1(VLRFloat4ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat4ShaderNodeSetNode2(VLRFloat4ShaderNode node, VLRShaderNode node2, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat4ShaderNodeSetNode2(VLRFloat4ShaderNode node, VLRShaderNodeSocket node2) {
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode2(VLR::ShaderNodeSocketIdentifier(node2, socketInfo)))
+    if (!node->setNode2(VLR::ShaderNodeSocket(node2)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -485,10 +484,10 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue2(VLRFloat4ShaderNode node
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShaderNode node3, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShaderNodeSocket node3) {
     if (!node->is<VLR::Float4ShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNode3(VLR::ShaderNodeSocketIdentifier(node3, socketInfo)))
+    if (!node->setNode3(VLR::ShaderNodeSocket(node3)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -518,28 +517,28 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeDestroy(VLRContext context, VL
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeValue(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeValue, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeValue(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNodeSocket nodeValue) {
     if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeValue(VLR::ShaderNodeSocketIdentifier(nodeValue, socketInfo)))
+    if (!node->setNodeValue(VLR::ShaderNodeSocket(nodeValue)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeScale(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeScale, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeScale(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNodeSocket nodeScale) {
     if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeScale(VLR::ShaderNodeSocketIdentifier(nodeScale, socketInfo)))
+    if (!node->setNodeScale(VLR::ShaderNodeSocket(nodeScale)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNode nodeOffset, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(VLRScaleAndOffsetFloatShaderNode node, VLRShaderNodeSocket nodeOffset) {
     if (!node->is<VLR::ScaleAndOffsetFloatShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeOffset(VLR::ShaderNodeSocketIdentifier(nodeOffset, socketInfo)))
+    if (!node->setNodeOffset(VLR::ShaderNodeSocket(nodeOffset)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -665,10 +664,10 @@ VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeDestroy(VLRContext context, VLRFl
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(VLRFloat3ToSpectrumShaderNode node, VLRShaderNode nodeFloat3, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(VLRFloat3ToSpectrumShaderNode node, VLRShaderNodeSocket nodeFloat3) {
     if (!node->is<VLR::Float3ToSpectrumShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeFloat3(VLR::ShaderNodeSocketIdentifier(nodeFloat3, socketInfo)))
+    if (!node->setNodeFloat3(VLR::ShaderNodeSocket(nodeFloat3)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -754,10 +753,10 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeSetWrapMode(VLRImage2DTextureShader
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetNodeTexCoord(VLRImage2DTextureShaderNode node, VLRShaderNode nodeTexCoord, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetNodeTexCoord(VLRImage2DTextureShaderNode node, VLRShaderNodeSocket nodeTexCoord) {
     if (!node->is<VLR::Image2DTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeTexCoord(VLR::ShaderNodeSocketIdentifier(nodeTexCoord, socketInfo)))
+    if (!node->setNodeTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -803,10 +802,10 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetWrapMode(VLREnvironmentTextu
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetNodeTexCoord(VLREnvironmentTextureShaderNode node, VLRShaderNode nodeTexCoord, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetNodeTexCoord(VLREnvironmentTextureShaderNode node, VLRShaderNodeSocket nodeTexCoord) {
     if (!node->is<VLR::EnvironmentTextureShaderNode>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!node->setNodeTexCoord(VLR::ShaderNodeSocketIdentifier(nodeTexCoord, socketInfo)))
+    if (!node->setNodeTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -828,10 +827,10 @@ VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSur
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MatteSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeAlbedo(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeAlbedo(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -861,10 +860,10 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialDestroy(VLRContext context
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeCoeffR(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeCoeffR(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -878,10 +877,10 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(VL
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeEta(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeEta(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEta(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEta(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -895,11 +894,11 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(VLRSp
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNode_k(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo)
+VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNode_k(VLRSpecularReflectionSurfaceMaterial material, VLRShaderNodeSocket node)
 {
     if (!material->is<VLR::SpecularReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNode_k(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNode_k(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -930,10 +929,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialDestroy(VLRContext context
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeCoeff(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -947,10 +946,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(VLR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEtaExt(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEtaExt(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -964,10 +963,10 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(VL
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(VLRSpecularScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::SpecularScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEtaInt(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEtaInt(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -997,10 +996,10 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialDestroy(VLRContext conte
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEta(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEta(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1014,10 +1013,10 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(VLR
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNode_k(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNode_k(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNode_k(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNode_k(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1031,10 +1030,10 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRM
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetReflectionSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetReflectionSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1080,10 +1079,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialDestroy(VLRContext conte
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeCoeff(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1097,10 +1096,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(V
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEtaExt(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEtaExt(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1114,10 +1113,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEtaInt(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEtaInt(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1131,10 +1130,10 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation(VLRMicrofacetScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::MicrofacetScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1180,10 +1179,10 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialDestroy(VLRContext conte
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::LambertianScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeCoeff(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1197,10 +1196,10 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(V
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeF0(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeF0(VLRLambertianScatteringSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::LambertianScatteringSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeF0(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeF0(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1230,10 +1229,10 @@ VLR_API VLRResult vlrUE4SurfaceMaterialDestroy(VLRContext context, VLRUE4Surface
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrUE4SufaceMaterialSetNodeBaseColor(VLRUE4SurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrUE4SufaceMaterialSetNodeBaseColor(VLRUE4SurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::UE4SurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeBaseColor(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeBaseColor(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1247,10 +1246,10 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueBaseColor(VLRUE4SurfaceMa
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic(VLRUE4SurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic(VLRUE4SurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::UE4SurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeOcclusionRoughnessMetallic(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeOcclusionRoughnessMetallic(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1296,10 +1295,10 @@ VLR_API VLRResult vlrOldStyleSurfaceMaterialDestroy(VLRContext context, VLROldSt
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeDiffuseColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeDiffuseColor(VLROldStyleSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::OldStyleSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeDiffuseColor(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeDiffuseColor(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1313,10 +1312,10 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor(VLROldS
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeSpecularColor(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeSpecularColor(VLROldStyleSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::OldStyleSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeSpecularColor(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeSpecularColor(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1330,10 +1329,10 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor(VLROld
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeGlossiness(VLROldStyleSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeGlossiness(VLROldStyleSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::OldStyleSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeGlossiness(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeGlossiness(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1363,10 +1362,10 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialDestroy(VLRContext context, VL
     return VLR_ERROR_NO_ERROR;
 }
 
-VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(VLRDiffuseEmitterSurfaceMaterial material, VLRShaderNode node, VLRShaderNodeSocketInfo socketInfo) {
+VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(VLRDiffuseEmitterSurfaceMaterial material, VLRShaderNodeSocket node) {
     if (!material->is<VLR::DiffuseEmitterSurfaceMaterial>())
         return VLR_ERROR_INVALID_TYPE;
-    if (!material->setNodeEmittance(VLR::ShaderNodeSocketIdentifier(node, socketInfo)))
+    if (!material->setNodeEmittance(VLR::ShaderNodeSocket(node)))
         return VLR_ERROR_INCOMPATIBLE_NODE_TYPE;
 
     return VLR_ERROR_NO_ERROR;
@@ -1539,9 +1538,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
 }
 
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
-                                                             VLRSurfaceMaterial material,
-                                                             VLRShaderNode nodeNormal, VLRShaderNodeSocketInfo nodeNormalSocketInfo,
-                                                             VLRShaderNode nodeAlpha, VLRShaderNodeSocketInfo nodeAlphaSocketInfo,
+                                                             VLRSurfaceMaterial material, VLRShaderNodeSocket nodeNormal, VLRShaderNodeSocket nodeAlpha,
                                                              VLRTangentType tangentType) {
     if (!surfaceNode->is<VLR::TriangleMeshSurfaceNode>())
         return VLR_ERROR_INVALID_TYPE;
@@ -1554,8 +1551,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
         return VLR_ERROR_INVALID_TYPE;
 
     surfaceNode->addMaterialGroup(std::move(vecIndices), material, 
-                                  VLR::ShaderNodeSocketIdentifier(nodeNormal, nodeNormalSocketInfo),
-                                  VLR::ShaderNodeSocketIdentifier(nodeAlpha, nodeAlphaSocketInfo),
+                                  VLR::ShaderNodeSocket(nodeNormal),
+                                  VLR::ShaderNodeSocket(nodeAlpha),
                                   tangentType);
 
     return VLR_ERROR_NO_ERROR;

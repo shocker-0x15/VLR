@@ -508,7 +508,7 @@ namespace VLR {
     }
 
     void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                                                   const ShaderNodeSocketIdentifier &nodeNormal, const ShaderNodeSocketIdentifier &nodeAlpha, VLRTangentType tangentType) {
+                                                   const ShaderNodeSocket &nodeNormal, const ShaderNodeSocket &nodeAlpha, VLRTangentType tangentType) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -576,12 +576,12 @@ namespace VLR {
             }
             else {
                 vlrprintf("%s: Invalid socket type for normal is passed.\n", m_name.c_str());
-                m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
+                m_nodeNormals.push_back(ShaderNodeSocket());
                 nodeNormalIsValid = false;
             }
         }
         else {
-            m_nodeNormals.push_back(ShaderNodeSocketIdentifier());
+            m_nodeNormals.push_back(ShaderNodeSocket());
             nodeNormalIsValid = false;
         }
         if (nodeAlpha.node) {
@@ -591,12 +591,12 @@ namespace VLR {
             }
             else {
                 vlrprintf("%s: Invalid socket type for alpha is passed.\n", m_name.c_str());
-                m_nodeAlphas.push_back(ShaderNodeSocketIdentifier());
+                m_nodeAlphas.push_back(ShaderNodeSocket());
                 nodeAlphaIsValid = false;
             }
         }
         else {
-            m_nodeAlphas.push_back(ShaderNodeSocketIdentifier());
+            m_nodeAlphas.push_back(ShaderNodeSocket());
             nodeAlphaIsValid = false;
         }
 
@@ -626,13 +626,13 @@ namespace VLR {
             Shared::TangentType sTangentType = (Shared::TangentType::Value)tangentType;
             optixGeomInst["VLR::pv_tangentType"]->setUserData(sizeof(tangentType), &tangentType);
 
-            Shared::ShaderNodeSocketID sNodeNormal = Shared::ShaderNodeSocketID::Invalid();
+            Shared::ShaderNodeSocket sNodeNormal = Shared::ShaderNodeSocket::Invalid();
             if (nodeNormalIsValid)
                 sNodeNormal = nodeNormal.getSharedType();
             optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
 
             optixGeomInst->setMaterialCount(1);
-            Shared::ShaderNodeSocketID sNodeAlpha = Shared::ShaderNodeSocketID::Invalid();
+            Shared::ShaderNodeSocket sNodeAlpha = Shared::ShaderNodeSocket::Invalid();
             if (nodeAlphaIsValid) {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
                 sNodeAlpha = nodeAlpha.getSharedType();

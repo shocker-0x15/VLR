@@ -292,7 +292,7 @@ namespace VLR {
 
     
     template <typename T>
-    RT_FUNCTION T calcNode(ShaderNodeSocketID socket, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_FUNCTION T calcNode(ShaderNodeSocket socket, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
 
@@ -301,7 +301,7 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocketID &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFor<ReturnType>(); \
         ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
@@ -330,7 +330,7 @@ namespace VLR {
         return defaultValue;
     }
 
-    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocketID socket, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocket socket, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (socket.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
 
@@ -339,7 +339,7 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocketID &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor<ReturnType>(); \
         ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \

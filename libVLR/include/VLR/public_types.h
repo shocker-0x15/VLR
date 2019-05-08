@@ -65,8 +65,9 @@ enum VLRShaderNodeSocketType {
     NumVLRShaderNodeSocketTypes
 };
 
-struct VLRShaderNodeSocketInfo {
-    uint32_t dummy;
+struct VLRShaderNodeSocket {
+    uintptr_t nodeRef;
+    uint32_t info;
 };
 
 

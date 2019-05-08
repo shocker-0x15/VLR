@@ -1,16 +1,16 @@
 ﻿#include "shader_nodes.h"
 
 namespace VLR {
-    Shared::ShaderNodeSocketID ShaderNodeSocketIdentifier::getSharedType() const {
+    Shared::ShaderNodeSocket ShaderNodeSocket::getSharedType() const {
         if (node) {
-            Shared::ShaderNodeSocketID ret;
+            Shared::ShaderNodeSocket ret;
             ret.nodeType = node->getProcedureSetIndex();
-            ret.socketType = socketInfo.outputType;
+            ret.socketType = info.outputType;
             ret.nodeDescIndex = node->getShaderNodeIndex();
-            ret.option = socketInfo.option;
+            ret.option = info.option;
             return ret;
         }
-        return Shared::ShaderNodeSocketID::Invalid();
+        return Shared::ShaderNodeSocket::Invalid();
     }
 
 
@@ -203,7 +203,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    bool Float2ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float2ShaderNode::setNode0(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
@@ -216,7 +216,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float2ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float2ShaderNode::setNode1(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
@@ -273,7 +273,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    bool Float3ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float3ShaderNode::setNode0(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
@@ -286,7 +286,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float3ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float3ShaderNode::setNode1(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
@@ -299,7 +299,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float3ShaderNode::setNode2(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float3ShaderNode::setNode2(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node2 = outputSocket;
@@ -359,7 +359,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    bool Float4ShaderNode::setNode0(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float4ShaderNode::setNode0(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
@@ -372,7 +372,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float4ShaderNode::setNode1(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float4ShaderNode::setNode1(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
@@ -385,7 +385,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float4ShaderNode::setNode2(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float4ShaderNode::setNode2(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node2 = outputSocket;
@@ -398,7 +398,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    bool Float4ShaderNode::setNode3(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float4ShaderNode::setNode3(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_node3 = outputSocket;
@@ -451,7 +451,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    bool ScaleAndOffsetFloatShaderNode::setNodeValue(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool ScaleAndOffsetFloatShaderNode::setNodeValue(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeValue = outputSocket;
@@ -459,7 +459,7 @@ namespace VLR {
         return true;
     }
 
-    bool ScaleAndOffsetFloatShaderNode::setNodeScale(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool ScaleAndOffsetFloatShaderNode::setNodeScale(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeScale = outputSocket;
@@ -467,7 +467,7 @@ namespace VLR {
         return true;
     }
 
-    bool ScaleAndOffsetFloatShaderNode::setNodeOffset(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool ScaleAndOffsetFloatShaderNode::setNodeOffset(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeOffset = outputSocket;
@@ -716,7 +716,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    bool Float3ToSpectrumShaderNode::setNodeFloat3(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Float3ToSpectrumShaderNode::setNodeFloat3(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeFloat3 = outputSocket;
@@ -867,7 +867,7 @@ namespace VLR {
         m_optixTextureSampler->setWrapMode(1, (RTwrapmode)y);
     }
 
-    bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool Image2DTextureShaderNode::setNodeTexCoord(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeTexCoord = outputSocket;
@@ -946,7 +946,7 @@ namespace VLR {
         m_optixTextureSampler->setWrapMode(1, (RTwrapmode)y);
     }
 
-    bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocketIdentifier &outputSocket) {
+    bool EnvironmentTextureShaderNode::setNodeTexCoord(const ShaderNodeSocket &outputSocket) {
         if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFor(outputSocket.getType()))
             return false;
         m_nodeTexCoord = outputSocket;
