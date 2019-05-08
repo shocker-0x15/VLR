@@ -24,15 +24,16 @@
 
 
 
-#define VLR_ERROR_NO_ERROR               0x80000000
-#define VLR_ERROR_INVALID_CONTEXT        0x80000001
-#define VLR_ERROR_INVALID_TYPE           0x80000002
-#define VLR_ERROR_INCOMPATIBLE_NODE_TYPE 0x80000003
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
-    typedef uint32_t VLRResult;
+    enum VLRResult {
+        VLRResult_NoError = 0,
+        VLRResult_InvalidContext,
+        VLRResult_InvalidInstance,
+        VLRResult_InvalidArgument,
+        VLRResult_IncompatibleNodeType,
+    };
 
 #if !defined(VLR_API_EXPORTS)
 #   define VLR_DEFINE_OPAQUE_TYPE(name) typedef struct VLR ## name ## _API* VLR ## name

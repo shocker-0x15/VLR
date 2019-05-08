@@ -504,21 +504,21 @@ namespace VLR {
             m_data.orientation = orientation;
         }
         void setAspectRatio(float aspect) {
-            m_data.aspect = aspect;
+            m_data.aspect = std::max(0.001f, aspect);
             m_data.setImagePlaneArea();
         }
         void setSensitivity(float sensitivity) {
-            m_data.sensitivity = sensitivity;
+            m_data.sensitivity = std::max(0.0f, sensitivity);
         }
         void setFovY(float fovY) {
-            m_data.fovY = fovY;
+            m_data.fovY = VLR::clamp<float>(fovY, 0.0001f, M_PI * 0.999f);
             m_data.setImagePlaneArea();
         }
         void setLensRadius(float lensRadius) {
-            m_data.lensRadius = lensRadius;
+            m_data.lensRadius = std::max(0.0f, lensRadius);
         }
         void setObjectPlaneDistance(float distance) {
-            m_data.objPlaneDistance = distance;
+            m_data.objPlaneDistance = std::max(0.0f, distance);
             m_data.setImagePlaneArea();
         }
 
@@ -578,11 +578,11 @@ namespace VLR {
             m_data.orientation = orientation;
         }
         void setSensitivity(float sensitivity) {
-            m_data.sensitivity = sensitivity;
+            m_data.sensitivity = std::max(0.0f, sensitivity);
         }
         void setAngles(float phiAngle, float thetaAngle) {
-            m_data.phiAngle = phiAngle;
-            m_data.thetaAngle = thetaAngle;
+            m_data.phiAngle = VLR::clamp<float>(phiAngle, 0.01f, 2 * M_PI);
+            m_data.thetaAngle = VLR::clamp<float>(thetaAngle, 0.01f, M_PI);
         }
 
         void getPosition(Point3D* position) {

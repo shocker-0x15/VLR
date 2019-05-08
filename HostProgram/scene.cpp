@@ -756,8 +756,8 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         //auto matB = context->createDiffuseEmitterSurfaceMaterial();
         //matB->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 1, 1, 1);
 
-        ////auto matB = context->createMatteSurfaceMaterial();
-        ////matB->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.3f, 0.05f);
+        //auto matB = context->createMatteSurfaceMaterial();
+        //matB->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.3f, 0.05f);
 
         //auto mat = context->createMultiSurfaceMaterial();
         //mat->setSubMaterial(0, matA);

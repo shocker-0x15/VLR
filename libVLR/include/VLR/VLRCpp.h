@@ -64,7 +64,7 @@ namespace VLRCpp {
 
 
     static inline void errorCheck(VLRResult errorCode) {
-        if (errorCode != VLR_ERROR_NO_ERROR)
+        if (errorCode != VLRResult_NoError)
             throw std::runtime_error(vlrGetErrorMessage(errorCode));
     }
 
