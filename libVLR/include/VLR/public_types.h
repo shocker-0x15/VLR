@@ -124,7 +124,7 @@ typedef enum VLRSpectrumType VLRSpectrumType;
 typedef enum VLRColorSpace VLRColorSpace;
 typedef enum VLRDataFormat VLRDataFormat;
 typedef enum VLRShaderNodeSocketType VLRShaderNodeSocketType;
-typedef struct VLRShaderNodeSocketInfo VLRShaderNodeSocketInfo;
+typedef struct VLRShaderNodeSocket VLRShaderNodeSocket;
 typedef enum VLRTextureFilter VLRTextureFilter;
 typedef enum VLRTextureWrapMode VLRTextureWrapMode;
 typedef enum VLRTangentType VLRTangentType;

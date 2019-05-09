@@ -35,6 +35,10 @@ extern "C" {
         VLRResult_IncompatibleNodeType,
     };
 
+#if !defined(__cplusplus)
+    typedef enum VLRResult VLRResult;
+#endif
+
 #if !defined(VLR_API_EXPORTS)
 #   define VLR_DEFINE_OPAQUE_TYPE(name) typedef struct VLR ## name ## _API* VLR ## name
 
