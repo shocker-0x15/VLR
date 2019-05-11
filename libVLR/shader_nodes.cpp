@@ -17,7 +17,7 @@ namespace VLR {
 
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const SocketTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"shader_nodes.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
 

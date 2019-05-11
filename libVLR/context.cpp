@@ -5,11 +5,13 @@
 #include "scene.h"
 
 namespace VLR {
-    std::string readTxtFile(const std::string& filepath) {
+    std::string readTxtFile(const filesystem::path& filepath) {
         std::ifstream ifs;
         ifs.open(filepath, std::ios::in);
-        if (ifs.fail())
+        if (ifs.fail()) {
+            vlrprintf("Failed to read the text file: %s", filepath.c_str());
             return "";
+        }
 
         std::stringstream sstream;
         sstream << ifs.rdbuf();
@@ -144,8 +146,10 @@ namespace VLR {
         m_optixContext->setEntryPointCount(EntryPoint::NumEntryPoints);
         m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
 
+        const filesystem::path exeDir = getExecutableDirectory();
+
         {
-            std::string ptx = readTxtFile(VLR_PTX_DIR"path_tracing.ptx");
+            std::string ptx = readTxtFile(exeDir / "ptxes/path_tracing.ptx");
 
             m_optixProgramShadowAnyHitDefault = m_optixContext->createProgramFromPTXString(ptx, "VLR::shadowAnyHitDefault");
             m_optixProgramAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::anyHitWithAlpha");
@@ -160,7 +164,7 @@ namespace VLR {
         m_optixContext->setExceptionProgram(EntryPoint::PathTracing, m_optixProgramException);
 
         {
-            std::string ptx = readTxtFile(VLR_PTX_DIR"debug_rendering.ptx");
+            std::string ptx = readTxtFile(exeDir / "ptxes/debug_rendering.ptx");
 
             m_optixProgramDebugRenderingClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingClosestHit");
             m_optixProgramDebugRenderingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingMiss");
@@ -171,7 +175,7 @@ namespace VLR {
         m_optixContext->setExceptionProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingException);
 
         {
-            std::string ptx = readTxtFile(VLR_PTX_DIR"convert_to_rgb.ptx");
+            std::string ptx = readTxtFile(exeDir / "ptxes/convert_to_rgb.ptx");
             m_optixProgramConvertToRGB = m_optixContext->createProgramFromPTXString(ptx, "VLR::convertToRGB");
         }
         m_optixContext->setRayGenerationProgram(EntryPoint::ConvertToRGB, m_optixProgramConvertToRGB);
@@ -304,7 +308,7 @@ namespace VLR {
         m_optixContext["VLR::pv_edfProcedureSetBuffer"]->set(m_optixEDFProcedureSetBuffer);
 
         {
-            std::string ptx = readTxtFile(VLR_PTX_DIR"materials.ptx");
+            std::string ptx = readTxtFile(exeDir / "ptxes/materials.ptx");
 
             m_optixCallableProgramNullBSDF_setupBSDF = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_setupBSDF");
             m_optixCallableProgramNullBSDF_getBaseColor = m_optixContext->createProgramFromPTXString(ptx, "VLR::NullBSDF_getBaseColor");

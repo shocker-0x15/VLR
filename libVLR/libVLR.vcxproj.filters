@@ -8,7 +8,6 @@
       <Filter>API</Filter>
     </ClCompile>
     <ClCompile Include="shader_nodes.cpp" />
-    <ClCompile Include="vlrDevPrintf.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
@@ -17,6 +16,7 @@
     </ClCompile>
     <ClCompile Include="image.cpp" />
     <ClCompile Include="slot_finder.cpp" />
+    <ClCompile Include="common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">

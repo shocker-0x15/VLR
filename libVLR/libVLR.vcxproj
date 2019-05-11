@@ -46,10 +46,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
+    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
+    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -62,7 +64,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <CudaCompile>
-      <CompileOut>$(SolutionDir)HostProgram\resources\ptxes\$(Configuration)\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -78,11 +80,20 @@
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
     </CudaCompile>
     <Link>
-      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
     </CudaLink>
+    <PostBuildEvent>
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+
+echo copy spectral upsampling tables
+
+xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampling_tables"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -99,10 +110,10 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64\optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
-      <CompileOut>$(SolutionDir)HostProgram\resources\ptxes\$(Configuration)\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -118,13 +129,22 @@
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
     </CudaLink>
+    <PostBuildEvent>
+      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+
+copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+
+echo copy spectral upsampling tables
+
+xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampling_tables"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
     <ClCompile Include="shared\spectrum_types.cpp" />
-    <ClCompile Include="vlrDevPrintf.cpp" />
+    <ClCompile Include="common.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="slot_finder.cpp" />

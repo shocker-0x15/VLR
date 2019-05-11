@@ -44,6 +44,7 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <filesystem>
 
 #include <array>
 #include <vector>
@@ -61,6 +62,8 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <immintrin.h>
 
 #endif
+
+#include <optix_world.h>
 
 
 
@@ -82,14 +85,6 @@ inline void* VLR_memalign(size_t size, size_t alignment) {
 }
 #   define VLR_freealign(ptr) ::free(ptr)
 #   define VLR_alignof(T) alignof(T)
-#endif
-
-// For getcwd
-#if defined(VLR_Platform_Windows_MSVC)
-#   define VLR_getcwd(size, buf) GetCurrentDirectory(size, buf)
-#elif defined(VLR_Platform_macOS)
-#   include <unistd.h>
-#   define VLR_getcwd(size, buf) getcwd(buf, size)
 #endif
 
 
@@ -239,3 +234,18 @@ namespace VLR {
 
 // END: define fundamental functions often used.
 // ----------------------------------------------------------------
+
+
+
+// filesystem
+#if defined(VLR_Host)
+namespace VLR {
+#   if defined(VLR_Platform_Windows_MSVC)
+    namespace filesystem = std::experimental::filesystem;
+#   else
+    namespace filesystem = std::filesystem;
+#   endif
+
+    filesystem::path getExecutableDirectory();
+}
+#endif

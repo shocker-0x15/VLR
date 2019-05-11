@@ -86,8 +86,8 @@ VLR_CPP_API void vlrDevPrintf(const char* fmt, ...);
 
 // vlrprintf
 #if defined(VLR_Host)
-#   if defined(VLR_USE_DEVPRINTF)
-#       define vlrprintf vlrDevPrintf
+#   if defined(VLR_USE_DEVPRINTF) && defined(VLR_Platform_Windows_MSVC)
+#       define vlrprintf(fmt, ...) do { vlrDevPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
 #   else
 #       define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif

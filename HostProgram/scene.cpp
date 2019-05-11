@@ -280,7 +280,7 @@ static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const s
     }
 
     std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
-    std::transform(ext.begin(), ext.end(), ext.begin(), std::tolower);
+    std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
 //#define OVERRIDE_BY_DDS
 

@@ -1,20 +1,6 @@
 ﻿#include "scene.h"
 
 namespace VLR {
-    static std::string readTxtFile(const std::string& filepath) {
-        std::ifstream ifs;
-        ifs.open(filepath, std::ios::in);
-        if (ifs.fail())
-            return "";
-
-        std::stringstream sstream;
-        sstream << ifs.rdbuf();
-
-        return std::string(sstream.str());
-    };
-
-
-
     // ----------------------------------------------------------------
     // Shallow Hierarchy
 
@@ -410,7 +396,7 @@ namespace VLR {
 
     // static
     void TriangleMeshSurfaceNode::initialize(Context &context) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"triangle_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/triangle_intersection.ptx");
 
         OptiXProgramSet programSet;
 
@@ -663,7 +649,7 @@ namespace VLR {
 
     // static
     void InfiniteSphereSurfaceNode::initialize(Context &context) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere_intersection.ptx");
 
         OptiXProgramSet programSet;
 
@@ -1355,7 +1341,7 @@ namespace VLR {
 
     Scene::Scene(Context &context, const Transform* localToWorld) : 
     Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr), m_envRotationPhi(0) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere_intersection.ptx");
 
         optix::Context optixContext = context.getOptiXContext();
 
@@ -1412,7 +1398,7 @@ namespace VLR {
 
     // static
     void PerspectiveCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"cameras.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
 
         OptiXProgramSet programSet;
 
@@ -1461,7 +1447,7 @@ namespace VLR {
 
     // static
     void EquirectangularCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile(VLR_PTX_DIR"cameras.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
 
         OptiXProgramSet programSet;
 

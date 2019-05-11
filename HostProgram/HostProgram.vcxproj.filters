@@ -64,16 +64,16 @@
     <ClInclude Include="common.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\shaders\scale.frag">
+    <None Include="shaders\scale.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="resources\shaders\scale.vert">
+    <None Include="shaders\scale.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="resources\shaders\drawOptiXResult.frag">
+    <None Include="shaders\drawOptiXResult.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="resources\shaders\drawOptiXResult.vert">
+    <None Include="shaders\drawOptiXResult.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

@@ -351,9 +351,9 @@ namespace VLR {
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
 #   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
         const auto readUpsamplingTable = [](const char* filename, PolynomialCoefficients* coefficients) {
-            const std::string tableDir = "resources/spectral_upsampling_table/";
+            const filesystem::path tableDir = getExecutableDirectory() / "spectral_upsampling_table/";
             std::ifstream ifs;
-            ifs.open(tableDir + filename, std::ios::in | std::ios::binary);
+            ifs.open(tableDir / filename, std::ios::in | std::ios::binary);
             VLRAssert(!ifs.fail(), "failed to open the upsampling table.");
 
             char magic[5] = "****";

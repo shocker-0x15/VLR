@@ -10,21 +10,21 @@
 
 // Platform defines
 #if defined(_WIN32) || defined(_WIN64)
-#   define Platform_Windows
+#   define GLTKPlatform_Windows
 #   if defined(__MINGW32__) // Defined for both 32 bit/64 bit MinGW
-#       define Platform_Windows_MinGW
+#       define GLTKPlatform_Windows_MinGW
 #   elif defined(_MSC_VER)
-#       define Platform_Windows_MSVC
+#       define GLTKPlatform_Windows_MSVC
 #   endif
 #elif defined(__linux__)
-#   define Platform_Linux
+#   define GLTKPlatform_Linux
 #elif defined(__APPLE__)
-#   define Platform_macOS
+#   define GLTKPlatform_macOS
 #elif defined(__OpenBSD__)
-#   define Platform_OpenBSD
+#   define GLTKPlatform_OpenBSD
 #endif
 
-#ifdef Platform_Windows_MSVC
+#ifdef GLTKPlatform_Windows_MSVC
 #   define NOMINMAX
 #   define _USE_MATH_DEFINES
 #   include <Windows.h>
@@ -32,7 +32,7 @@
 #   undef far
 #endif
 
-#ifdef Platform_Windows_MSVC
+#ifdef GLTKPlatform_Windows_MSVC
 static void GLTKDebugPrintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);

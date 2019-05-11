@@ -44,12 +44,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_1)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files\Assimp\lib\x64;C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <IncludePath>C:\Users\shocker_0x15\Desktop\libraries\install\include\OpenEXR;$(CUDA_PATH_V10_1)\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\Program Files\Assimp\include;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files\Assimp\lib\x64;C:\Users\shocker_0x15\Desktop\libraries\install\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -62,17 +62,28 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+      <Command>echo OpenEXR dlls
 
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Half.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Iex-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IexMath-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImf-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImfUtil-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmThread-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Imath-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\bin\zlib.dll" "$(OutDir)"
 
 echo copy assimp dll
 
-copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
+copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"
+
+echo copy shaders
+
+xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -90,16 +101,27 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;C:\Program Files\Assimp\lib\x64\assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
+      <Command>echo OpenEXR dlls
 
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Half.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Iex-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IexMath-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImf-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImfUtil-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmThread-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Imath-2_2.dll" "$(OutDir)"
+copy "C:\Users\shocker_0x15\Desktop\libraries\install\bin\zlib.dll" "$(OutDir)"
 
 echo copy assimp dll
 
-copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
+copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"
+
+echo copy shaders
+
+xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -127,10 +149,10 @@ copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"</Command>
     <ClInclude Include="StopWatch.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\shaders\drawOptiXResult.frag" />
-    <None Include="resources\shaders\drawOptiXResult.vert" />
-    <None Include="resources\shaders\scale.frag" />
-    <None Include="resources\shaders\scale.vert" />
+    <None Include="shaders\drawOptiXResult.frag" />
+    <None Include="shaders\drawOptiXResult.vert" />
+    <None Include="shaders\scale.frag" />
+    <None Include="shaders\scale.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

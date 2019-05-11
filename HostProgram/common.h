@@ -10,6 +10,7 @@
 #include <functional>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 
 // Platform defines
 #if defined(_WIN32) || defined(_WIN64)
