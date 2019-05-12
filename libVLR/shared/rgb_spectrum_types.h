@@ -186,7 +186,7 @@ namespace VLR {
 
         RT_FUNCTION void toXYZ(RealType XYZ[3]) const {
             const RealType RGB[3] = { r, g, b };
-            transformFromRenderingRGB(VLRSpectrumType_LightSource, RGB, XYZ);
+            transformFromRenderingRGB(SpectrumType::LightSource, RGB, XYZ);
         }
 
 #if defined(VLR_Host)

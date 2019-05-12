@@ -406,7 +406,7 @@ namespace VLR {
             spectrum = UpsampledSpectrum(u, v, s);
         }
         else {
-            spectrum = UpsampledSpectrum(VLRSpectrumType_LightSource, nodeData.getColorSpace(), texValue.x, texValue.y, texValue.z);
+            spectrum = UpsampledSpectrum(SpectrumType::LightSource, nodeData.getColorSpace(), texValue.x, texValue.y, texValue.z);
         }
         return spectrum.evaluate(wls);
 #else

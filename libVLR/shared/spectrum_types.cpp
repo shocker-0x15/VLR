@@ -150,11 +150,11 @@ namespace VLR {
 #endif
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(VLRSpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
+    RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RealType xy[2];
         RealType brightness;
-        switch (space.value) {
+        switch (space) {
         case ColorSpace::Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
@@ -165,12 +165,12 @@ namespace VLR {
             RealType RGB[3] = { e0, e1, e2 };
             RealType XYZ[3];
             switch (spType) {
-            case VLRSpectrumType_Reflectance:
-            case VLRSpectrumType_IndexOfRefraction:
-            case VLRSpectrumType_NA:
+            case SpectrumType::Reflectance:
+            case SpectrumType::IndexOfRefraction:
+            case SpectrumType::NA:
                 transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
                 break;
-            case VLRSpectrumType_LightSource:
+            case SpectrumType::LightSource:
                 transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
                 break;
             default:
@@ -206,7 +206,7 @@ namespace VLR {
             break;
         }
         // TODO: Contain a factor for solid of natural reflectance.
-        //if (spType == VLRSpectrumType_Reflectance)
+        //if (spType == SpectrumType::Reflectance)
         //    brightness = std::min(brightness, evaluateMaximumBrightness(x, y));
         m_scale = brightness / EqualEnergyReflectance();
         RealType uv[2];
@@ -215,7 +215,7 @@ namespace VLR {
 
         computeAdjacents(uv[0], uv[1]);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        switch (space.value) {
+        switch (space) {
         case ColorSpace::Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
             e1 = sRGB_degamma(e1);
@@ -224,7 +224,7 @@ namespace VLR {
         }
         case ColorSpace::Rec709_D65: {
             switch (spType) {
-            case VLRSpectrumType_Reflectance: {
+            case SpectrumType::Reflectance: {
 #   if defined(VLR_Host)
                 interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
 #   else
@@ -232,8 +232,8 @@ namespace VLR {
 #   endif
                 break;
             }
-            case VLRSpectrumType_IndexOfRefraction:
-            case VLRSpectrumType_NA: {
+            case SpectrumType::IndexOfRefraction:
+            case SpectrumType::NA: {
 #   if defined(VLR_Host)
                 interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
 #   else
@@ -241,7 +241,7 @@ namespace VLR {
 #   endif
                 break;
             }
-            case VLRSpectrumType_LightSource: {
+            case SpectrumType::LightSource: {
 #   if defined(VLR_Host)
                 interpolateCoefficients(e0, e1, e2, coefficients_sRGB_E);
 #   else

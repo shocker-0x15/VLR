@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#if defined(__cplusplus) || defined(__CUDACC__)
+#if defined(__cplusplus)
 #include <cstdint>
 #else
 #include <stdbool.h>
@@ -52,7 +52,7 @@ enum VLRDataFormat {
 
 
 enum VLRShaderNodeSocketType {
-    VLRShaderNodeSocketType_float = 0,
+    VLRShaderNodeSocketType_float1 = 0,
     VLRShaderNodeSocketType_float2,
     VLRShaderNodeSocketType_float3,
     VLRShaderNodeSocketType_float4,
@@ -96,6 +96,10 @@ enum VLRTangentType {
 
 
 
+enum VLRTransformType {
+    VLRTransformType_Static = 0,
+};
+
 enum VLRNodeType {
     VLRNodeType_TriangleMeshSurfaceNode = 0,
     VLRNodeType_InternalNode,
@@ -119,7 +123,7 @@ enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_ShadingFrameOrthogonality,
 };
 
-#if !defined(__cplusplus) && !defined(__CUDACC__)
+#if !defined(__cplusplus)
 typedef enum VLRSpectrumType VLRSpectrumType;
 typedef enum VLRColorSpace VLRColorSpace;
 typedef enum VLRDataFormat VLRDataFormat;
@@ -128,6 +132,7 @@ typedef struct VLRShaderNodeSocket VLRShaderNodeSocket;
 typedef enum VLRTextureFilter VLRTextureFilter;
 typedef enum VLRTextureWrapMode VLRTextureWrapMode;
 typedef enum VLRTangentType VLRTangentType;
+typedef enum VLRTransformType VLRTransformType;
 typedef enum VLRNodeType VLRNodeType;
 typedef enum VLRCameraType VLRCameraType;
 typedef enum VLRDebugRenderingMode VLRDebugRenderingMode;
@@ -155,7 +160,7 @@ struct VLRQuaternion {
     float x, y, z, w;
 };
 
-#if !defined(__cplusplus) && !defined(__CUDACC__)
+#if !defined(__cplusplus)
 typedef struct VLRPoint3D VLRPoint3D;
 typedef struct VLRNormal3D VLRNormal3D;
 typedef struct VLRVector3D VLRVector3D;
@@ -172,6 +177,6 @@ struct VLRVertex {
     VLRTexCoord2D texCoord;
 };
 
-#if !defined(__cplusplus) && !defined(__CUDACC__)
+#if !defined(__cplusplus)
 typedef struct VLRVertex VLRVertex;
 #endif

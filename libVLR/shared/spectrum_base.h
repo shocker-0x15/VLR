@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "../include/VLR/public_types.h"
 #include "common_internal.h"
 
 namespace VLR {
@@ -19,23 +18,21 @@ namespace VLR {
     void finalizeColorSystem();
 #endif
 
-    struct ColorSpace {
-        enum Value {
-            Rec709_D65_sRGBGamma = 0,
-            Rec709_D65,
-            XYZ,
-            xyY,
-            NumColorSpaces
-        } value;
+    enum class SpectrumType {
+        Reflectance = 0,
+        Transmittance = Reflectance,
+        LightSource,
+        IndexOfRefraction,
+        NA,
+        NumTypes
+    };
 
-        RT_FUNCTION constexpr ColorSpace(Value v = Rec709_D65) : value(v) {}
-        RT_FUNCTION constexpr ColorSpace(VLRColorSpace v) : value((Value)v) {}
-        RT_FUNCTION constexpr bool operator==(Value v) const {
-            return value == v;
-        }
-        RT_FUNCTION explicit operator uint32_t() const {
-            return value;
-        }
+    enum class ColorSpace {
+        Rec709_D65_sRGBGamma = 0,
+        Rec709_D65,
+        XYZ,
+        xyY,
+        NumSpaces
     };
 
     template <typename RealType>
@@ -139,14 +136,14 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
+    RT_FUNCTION constexpr void transformToRenderingRGB(SpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
         switch (spectrumType) {
-        case VLRSpectrumType_Reflectance:
-        case VLRSpectrumType_IndexOfRefraction:
-        case VLRSpectrumType_NA:
+        case SpectrumType::Reflectance:
+        case SpectrumType::IndexOfRefraction:
+        case SpectrumType::NA:
             transformTristimulus(mat_XYZ_to_Rec709_E, XYZ, RGB);
             break;
-        case VLRSpectrumType_LightSource:
+        case SpectrumType::LightSource:
             transformTristimulus(mat_XYZ_to_Rec709_D65, XYZ, RGB);
             break;
         default:
@@ -156,14 +153,14 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void transformFromRenderingRGB(VLRSpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
+    RT_FUNCTION constexpr void transformFromRenderingRGB(SpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
         switch (spectrumType) {
-        case VLRSpectrumType_Reflectance:
-        case VLRSpectrumType_IndexOfRefraction:
-        case VLRSpectrumType_NA:
+        case SpectrumType::Reflectance:
+        case SpectrumType::IndexOfRefraction:
+        case SpectrumType::NA:
             transformTristimulus(mat_Rec709_E_to_XYZ, RGB, XYZ);
             break;
-        case VLRSpectrumType_LightSource:
+        case SpectrumType::LightSource:
             transformTristimulus(mat_Rec709_D65_to_XYZ, RGB, XYZ);
             break;
         default:
@@ -173,7 +170,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    inline constexpr void transformToRenderingRGB(VLRSpectrumType spectrumType, ColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
+    inline constexpr void transformToRenderingRGB(SpectrumType spectrumType, ColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
         RealType srcTriplet[3] = { src[0], src[1], src[2] };
         switch (srcSpace.value) {
         case ColorSpace::Rec709_D65_sRGBGamma:
@@ -200,12 +197,12 @@ namespace VLR {
         }
         case ColorSpace::XYZ:
             switch (spectrumType) {
-            case VLRSpectrumType_Reflectance:
-            case VLRSpectrumType_IndexOfRefraction:
-            case VLRSpectrumType_NA:
+            case SpectrumType::Reflectance:
+            case SpectrumType::IndexOfRefraction:
+            case SpectrumType::NA:
                 transformTristimulus(mat_XYZ_to_Rec709_E, srcTriplet, dstRGB);
                 break;
-            case VLRSpectrumType_LightSource:
+            case SpectrumType::LightSource:
                 transformTristimulus(mat_XYZ_to_Rec709_D65, srcTriplet, dstRGB);
                 break;
             default:

@@ -1,7 +1,7 @@
 ﻿#include "image.h"
 
 namespace VLR {
-    const size_t sizesOfDataFormats[DataFormat::NumDataFormats] = {
+    const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats] = {
     sizeof(RGB8x3),
     sizeof(RGB_8x4),
     sizeof(RGBA8x4),
@@ -25,10 +25,10 @@ namespace VLR {
     sizeof(uvsA16Fx4),
     };
 
-    uint32_t getComponentStartIndex(DataFormat dataFormat, VLRShaderNodeSocketType stype, uint32_t index) {
+    uint32_t getComponentStartIndex(DataFormat dataFormat, ShaderNodeSocketType stype, uint32_t index) {
         uint32_t ret = 0xFFFFFFFF;
 
-        switch (dataFormat.value) {
+        switch (dataFormat) {
         case DataFormat::RGBA8x4:
         case DataFormat::RGBA16Fx4:
         case DataFormat::RGBA32Fx4:
@@ -37,43 +37,43 @@ namespace VLR {
         case DataFormat::BC3:
         case DataFormat::BC7: {
             switch (stype) {
-            case VLRShaderNodeSocketType_float:
+            case ShaderNodeSocketType::float1:
                 if (index < 4)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float2:
+            case ShaderNodeSocketType::float2:
                 if (index < 3)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float3:
+            case ShaderNodeSocketType::float3:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float4:
+            case ShaderNodeSocketType::float4:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Point3D:
+            case ShaderNodeSocketType::Point3D:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Vector3D:
+            case ShaderNodeSocketType::Vector3D:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Normal3D:
+            case ShaderNodeSocketType::Normal3D:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Spectrum:
+            case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Alpha:
+            case ShaderNodeSocketType::Alpha:
                 if (index < 1)
                     ret = 3;
                 break;
-            case VLRShaderNodeSocketType_TextureCoordinates:
+            case ShaderNodeSocketType::TextureCoordinates:
                 if (index < 3)
                     ret = index;
                 break;
@@ -85,35 +85,35 @@ namespace VLR {
         case DataFormat::BC6H:
         case DataFormat::BC6H_Signed: {
             switch (stype) {
-            case VLRShaderNodeSocketType_float:
+            case ShaderNodeSocketType::float1:
                 if (index < 3)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float2:
+            case ShaderNodeSocketType::float2:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float3:
+            case ShaderNodeSocketType::float3:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Point3D:
+            case ShaderNodeSocketType::Point3D:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Vector3D:
+            case ShaderNodeSocketType::Vector3D:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Normal3D:
+            case ShaderNodeSocketType::Normal3D:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Spectrum:
+            case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_TextureCoordinates:
+            case ShaderNodeSocketType::TextureCoordinates:
                 if (index < 2)
                     ret = index;
                 break;
@@ -126,15 +126,15 @@ namespace VLR {
         case DataFormat::BC5:
         case DataFormat::BC5_Signed: {
             switch (stype) {
-            case VLRShaderNodeSocketType_float:
+            case ShaderNodeSocketType::float1:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float2:
+            case ShaderNodeSocketType::float2:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_TextureCoordinates:
+            case ShaderNodeSocketType::TextureCoordinates:
                 if (index < 1)
                     ret = index;
                 break;
@@ -148,11 +148,11 @@ namespace VLR {
         case DataFormat::BC4:
         case DataFormat::BC4_Signed: {
             switch (stype) {
-            case VLRShaderNodeSocketType_float:
+            case ShaderNodeSocketType::float1:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Spectrum:
+            case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
@@ -163,23 +163,23 @@ namespace VLR {
         }
         case DataFormat::GrayA8x2: {
             switch (stype) {
-            case VLRShaderNodeSocketType_float:
+            case ShaderNodeSocketType::float1:
                 if (index < 2)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_float2:
+            case ShaderNodeSocketType::float2:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Spectrum:
+            case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Alpha:
+            case ShaderNodeSocketType::Alpha:
                 if (index < 1)
                     ret = 1;
                 break;
-            case VLRShaderNodeSocketType_TextureCoordinates:
+            case ShaderNodeSocketType::TextureCoordinates:
                 if (index < 1)
                     ret = index;
                 break;
@@ -191,11 +191,11 @@ namespace VLR {
         case DataFormat::uvsA8x4:
         case DataFormat::uvsA16Fx4: {
             switch (stype) {
-            case VLRShaderNodeSocketType_Spectrum:
+            case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case VLRShaderNodeSocketType_Alpha:
+            case ShaderNodeSocketType::Alpha:
                 if (index < 1)
                     ret = 3;
                 break;
@@ -214,9 +214,9 @@ namespace VLR {
 
 
 
-    DataFormat Image2D::getInternalFormat(DataFormat inputFormat, VLRSpectrumType spectrumType) {
+    DataFormat Image2D::getInternalFormat(DataFormat inputFormat, SpectrumType spectrumType) {
         const auto asis = [](DataFormat inputFormat) {
-            switch (inputFormat.value) {
+            switch (inputFormat) {
             case DataFormat::RGB8x3:
                 return DataFormat::RGBA8x4;
             case DataFormat::RGB_8x4:
@@ -263,15 +263,15 @@ namespace VLR {
                 VLRAssert(false, "Data format is invalid.");
                 break;
             }
-            return (DataFormat::Value)0;
+            return DataFormat(0);
         };
 
-        if (spectrumType == VLRSpectrumType_NA) {
+        if (spectrumType == SpectrumType::NA) {
             return asis(inputFormat);
         }
         else {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            switch (inputFormat.value) {
+            switch (inputFormat) {
             case DataFormat::RGB8x3:
                 return DataFormat::uvsA8x4;
             case DataFormat::RGB_8x4:
@@ -291,11 +291,11 @@ namespace VLR {
             return asis(inputFormat);
 #endif
         }
-        return DataFormat((DataFormat::Value)0);
+        return DataFormat(0);
     }
 
     Image2D::Image2D(Context &context, uint32_t width, uint32_t height,
-                     DataFormat originalDataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+                     DataFormat originalDataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Object(context), m_width(width), m_height(height), 
         m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace),
         m_initOptiXObject(false)
@@ -333,7 +333,7 @@ namespace VLR {
             uint32_t widthInBlocks = nextMultiplierForPowOf2(m_width, 4);
             uint32_t heightInBlocks = nextMultiplierForPowOf2(m_height, 4);
 
-            switch (m_dataFormat.value) {
+            switch (m_dataFormat) {
             case DataFormat::BC1:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, widthInBlocks, heightInBlocks);
                 break;
@@ -370,7 +370,7 @@ namespace VLR {
             }
         }
         else {
-            switch (m_dataFormat.value) {
+            switch (m_dataFormat) {
             case DataFormat::RGB8x3:
                 m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
                 break;
@@ -642,17 +642,17 @@ namespace VLR {
 
     
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
-                                 DataFormat dataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+                                 DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
         VLRAssert(dataFormat < DataFormat::BC1 || dataFormat > DataFormat::BC7, "Specified data format is a block compressed format.");
         m_data.resize(getStride() * getWidth() * getHeight());
 
-        switch (dataFormat.value) {
+        switch (dataFormat) {
         case DataFormat::RGB8x3: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance ||
-                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
+            if (spectrumType != SpectrumType::NA) {
+                if (spectrumType == SpectrumType::Reflectance ||
+                    spectrumType == SpectrumType::IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
@@ -675,9 +675,9 @@ namespace VLR {
         }
         case DataFormat::RGB_8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance ||
-                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
+            if (spectrumType != SpectrumType::NA) {
+                if (spectrumType == SpectrumType::Reflectance ||
+                    spectrumType == SpectrumType::IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
@@ -700,9 +700,9 @@ namespace VLR {
         }
         case DataFormat::RGBA8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance ||
-                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
+            if (spectrumType != SpectrumType::NA) {
+                if (spectrumType == SpectrumType::Reflectance ||
+                    spectrumType == SpectrumType::IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
@@ -725,9 +725,9 @@ namespace VLR {
         }
         case DataFormat::RGBA16Fx4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != VLRSpectrumType_NA) {
-                if (spectrumType == VLRSpectrumType_Reflectance ||
-                    spectrumType == VLRSpectrumType_IndexOfRefraction) {
+            if (spectrumType != SpectrumType::NA) {
+                if (spectrumType == SpectrumType::Reflectance ||
+                    spectrumType == SpectrumType::IndexOfRefraction) {
                     if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                         processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
                     else
@@ -840,7 +840,7 @@ namespace VLR {
                     bottom - bottomPix
                 };
 
-                switch (getDataFormat().value) {
+                switch (getDataFormat()) {
                 case DataFormat::RGBA16Fx4: {
                     CompensatedSum<float> sumR(0), sumG(0), sumB(0), sumA(0);
                     RGBA16Fx4 pix;
@@ -986,7 +986,7 @@ namespace VLR {
         uint32_t height = getHeight();
         uint32_t stride;
         DataFormat newDataFormat;
-        switch (getDataFormat().value) {
+        switch (getDataFormat()) {
         case DataFormat::RGBA16Fx4: {
             stride = sizeof(float);
             newDataFormat = DataFormat::Gray32F;
@@ -1006,7 +1006,7 @@ namespace VLR {
 
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                switch (getDataFormat().value) {
+                switch (getDataFormat()) {
                 case DataFormat::RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
                     float Y = mat_Rec709_D65_to_XYZ[1] * pix.r + mat_Rec709_D65_to_XYZ[4] * pix.g + mat_Rec709_D65_to_XYZ[7] * pix.b;
@@ -1053,7 +1053,7 @@ namespace VLR {
 
 
     BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, 
-                                                   DataFormat dataFormat, VLRSpectrumType spectrumType, ColorSpace colorSpace) :
+                                                   DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
         VLRAssert(dataFormat >= DataFormat::BC1 && dataFormat <= DataFormat::BC7, "Specified data format is not block compressed format.");
         m_data.resize(mipCount);

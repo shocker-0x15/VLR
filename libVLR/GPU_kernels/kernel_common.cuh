@@ -307,16 +307,16 @@ namespace VLR {
         ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
         break; \
     }
-            switch (socket.socketType) {
-                VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_float);
-                VLR_DEFINE_CASE(optix::float2, VLRShaderNodeSocketType_float2);
-                VLR_DEFINE_CASE(optix::float3, VLRShaderNodeSocketType_float3);
-                VLR_DEFINE_CASE(optix::float4, VLRShaderNodeSocketType_float4);
-                VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_Point3D);
-                VLR_DEFINE_CASE(Vector3D, VLRShaderNodeSocketType_Vector3D);
-                VLR_DEFINE_CASE(Normal3D, VLRShaderNodeSocketType_Normal3D);
-                VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_Alpha);
-                VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_TextureCoordinates);
+            switch ((ShaderNodeSocketType)socket.socketType) {
+                VLR_DEFINE_CASE(float, ShaderNodeSocketType::float1);
+                VLR_DEFINE_CASE(optix::float2, ShaderNodeSocketType::float2);
+                VLR_DEFINE_CASE(optix::float3, ShaderNodeSocketType::float3);
+                VLR_DEFINE_CASE(optix::float4, ShaderNodeSocketType::float4);
+                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::Point3D);
+                VLR_DEFINE_CASE(Vector3D, ShaderNodeSocketType::Vector3D);
+                VLR_DEFINE_CASE(Normal3D, ShaderNodeSocketType::Normal3D);
+                VLR_DEFINE_CASE(float, ShaderNodeSocketType::Alpha);
+                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::TextureCoordinates);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
@@ -345,17 +345,17 @@ namespace VLR {
         ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
         break; \
     }
-            switch (socket.socketType) {
-                //VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_float);
-                //VLR_DEFINE_CASE(optix::float2, VLRShaderNodeSocketType_float2);
-                //VLR_DEFINE_CASE(optix::float3, VLRShaderNodeSocketType_float3);
-                //VLR_DEFINE_CASE(optix::float4, VLRShaderNodeSocketType_float4);
-                //VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_Point3D);
-                //VLR_DEFINE_CASE(Vector3D, VLRShaderNodeSocketType_Vector3D);
-                //VLR_DEFINE_CASE(Normal3D, VLRShaderNodeSocketType_Normal3D);
-                VLR_DEFINE_CASE(SampledSpectrum, VLRShaderNodeSocketType_Spectrum);
-                //VLR_DEFINE_CASE(float, VLRShaderNodeSocketType_Alpha);
-                //VLR_DEFINE_CASE(Point3D, VLRShaderNodeSocketType_TextureCoordinates);
+            switch ((ShaderNodeSocketType)socket.socketType) {
+                VLR_DEFINE_CASE(float, ShaderNodeSocketType::float1);
+                VLR_DEFINE_CASE(optix::float2, ShaderNodeSocketType::float2);
+                VLR_DEFINE_CASE(optix::float3, ShaderNodeSocketType::float3);
+                VLR_DEFINE_CASE(optix::float4, ShaderNodeSocketType::float4);
+                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::Point3D);
+                VLR_DEFINE_CASE(Vector3D, ShaderNodeSocketType::Vector3D);
+                VLR_DEFINE_CASE(Normal3D, ShaderNodeSocketType::Normal3D);
+                VLR_DEFINE_CASE(SampledSpectrum, ShaderNodeSocketType::Spectrum);
+                VLR_DEFINE_CASE(float, ShaderNodeSocketType::Alpha);
+                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::TextureCoordinates);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;

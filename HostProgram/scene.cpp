@@ -467,7 +467,7 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 
     if (imgAlpha) {
         if (imgAlpha->getOriginalDataFormat() == VLRDataFormat_Gray8)
-            socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+            socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float1, 0);
         else
             socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_Alpha, 0);
     }
@@ -1693,7 +1693,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
         //}
 
         /*if (imgAlpha) {
-            socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+            socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float1, 0);
         }
         else*/ if (imgDiffuse && imgDiffuse->originalHasAlpha()) {
             socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
@@ -1927,7 +1927,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                     socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
 
                 if (texAlpha)
-                    socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+                    socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float1, 0);
                 else if (imageDiffuse && imageDiffuse->originalHasAlpha())
                     socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
 
@@ -2132,7 +2132,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                     socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
 
                 if (texAlpha)
-                    socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float, 0);
+                    socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float1, 0);
                 else if (imageDiffuse && imageDiffuse->originalHasAlpha())
                     socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
 

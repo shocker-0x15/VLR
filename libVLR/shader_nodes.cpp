@@ -25,7 +25,7 @@ namespace VLR {
         for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
             nodeProcSet.progs[i] = 0xFFFFFFFF;
         for (int i = 0; i < numPairs; ++i) {
-            VLRShaderNodeSocketType stype = pairs[i].stype;
+            uint32_t stype = (uint32_t)pairs[i].stype;
             programSet->callablePrograms[stype] = optixContext->createProgramFromPTXString(ptx, pairs[i].programName);
             nodeProcSet.progs[stype] = programSet->callablePrograms[stype]->getId();
         }
@@ -123,10 +123,10 @@ namespace VLR {
     // static
     void GeometryShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Point3D, "VLR::GeometryShaderNode_Point3D",
-            VLRShaderNodeSocketType_Normal3D, "VLR::GeometryShaderNode_Normal3D",
-            VLRShaderNodeSocketType_Vector3D, "VLR::GeometryShaderNode_Vector3D",
-            VLRShaderNodeSocketType_TextureCoordinates, "VLR::GeometryShaderNode_TextureCoordinates",
+            ShaderNodeSocketType::Point3D, "VLR::GeometryShaderNode_Point3D",
+            ShaderNodeSocketType::Normal3D, "VLR::GeometryShaderNode_Normal3D",
+            ShaderNodeSocketType::Vector3D, "VLR::GeometryShaderNode_Vector3D",
+            ShaderNodeSocketType::TextureCoordinates, "VLR::GeometryShaderNode_TextureCoordinates",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -169,8 +169,8 @@ namespace VLR {
     // static
     void Float2ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::Float2ShaderNode_float",
-            VLRShaderNodeSocketType_float2, "VLR::Float2ShaderNode_float2",
+            ShaderNodeSocketType::float1, "VLR::Float2ShaderNode_float",
+            ShaderNodeSocketType::float2, "VLR::Float2ShaderNode_float2",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -236,9 +236,9 @@ namespace VLR {
     // static
     void Float3ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::Float3ShaderNode_float",
-            VLRShaderNodeSocketType_float2, "VLR::Float3ShaderNode_float2",
-            VLRShaderNodeSocketType_float3, "VLR::Float3ShaderNode_float3",
+            ShaderNodeSocketType::float1, "VLR::Float3ShaderNode_float",
+            ShaderNodeSocketType::float2, "VLR::Float3ShaderNode_float2",
+            ShaderNodeSocketType::float3, "VLR::Float3ShaderNode_float3",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -319,10 +319,10 @@ namespace VLR {
     // static
     void Float4ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::Float4ShaderNode_float",
-            VLRShaderNodeSocketType_float2, "VLR::Float4ShaderNode_float2",
-            VLRShaderNodeSocketType_float3, "VLR::Float4ShaderNode_float3",
-            VLRShaderNodeSocketType_float4, "VLR::Float4ShaderNode_float4",
+            ShaderNodeSocketType::float1, "VLR::Float4ShaderNode_float",
+            ShaderNodeSocketType::float2, "VLR::Float4ShaderNode_float2",
+            ShaderNodeSocketType::float3, "VLR::Float4ShaderNode_float3",
+            ShaderNodeSocketType::float4, "VLR::Float4ShaderNode_float4",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -418,7 +418,7 @@ namespace VLR {
     // static
     void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::ScaleAndOffsetFloatShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::ScaleAndOffsetFloatShaderNode_float",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -492,7 +492,7 @@ namespace VLR {
     // static
     void TripletSpectrumShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Spectrum, "VLR::TripletSpectrumShaderNode_Spectrum",
+            ShaderNodeSocketType::Spectrum, "VLR::TripletSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -507,7 +507,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::TripletSpectrumShaderNode)), m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
+        ShaderNode(context, sizeof(Shared::TripletSpectrumShaderNode)), m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -522,7 +522,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    void TripletSpectrumShaderNode::setImmediateValueSpectrumType(VLRSpectrumType spectrumType) {
+    void TripletSpectrumShaderNode::setImmediateValueSpectrumType(SpectrumType spectrumType) {
         m_spectrumType = spectrumType;
         setupNodeDescriptor();
     }
@@ -546,7 +546,7 @@ namespace VLR {
     // static
     void RegularSampledSpectrumShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Spectrum, "VLR::RegularSampledSpectrumShaderNode_Spectrum",
+            ShaderNodeSocketType::Spectrum, "VLR::RegularSampledSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -562,7 +562,7 @@ namespace VLR {
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::RegularSampledSpectrumShaderNode)),
-        m_spectrumType(VLRSpectrumType_NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
+        m_spectrumType(SpectrumType::NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
         m_values = new float[2];
         m_values[0] = m_values[1] = 1.0f;
         setupNodeDescriptor();
@@ -592,7 +592,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    void RegularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
+    void RegularSampledSpectrumShaderNode::setImmediateValueSpectrum(SpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
         if (m_values)
             delete[] m_values;
         m_spectrumType = spectrumType;
@@ -611,7 +611,7 @@ namespace VLR {
     // static
     void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Spectrum, "VLR::IrregularSampledSpectrumShaderNode_Spectrum",
+            ShaderNodeSocketType::Spectrum, "VLR::IrregularSampledSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -627,7 +627,7 @@ namespace VLR {
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::IrregularSampledSpectrumShaderNode)),
-        m_spectrumType(VLRSpectrumType_NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
+        m_spectrumType(SpectrumType::NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
         m_lambdas = new float[2];
         m_values = new float[2];
         m_lambdas[0] = 0.0f;
@@ -661,7 +661,7 @@ namespace VLR {
         updateNodeDescriptor();
     }
 
-    void IrregularSampledSpectrumShaderNode::setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
+    void IrregularSampledSpectrumShaderNode::setImmediateValueSpectrum(SpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
         if (m_values) {
             delete[] m_lambdas;
             delete[] m_values;
@@ -682,7 +682,7 @@ namespace VLR {
     // static
     void Float3ToSpectrumShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Spectrum, "VLR::Float3ToSpectrumShaderNode_Spectrum",
+            ShaderNodeSocketType::Spectrum, "VLR::Float3ToSpectrumShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -697,7 +697,7 @@ namespace VLR {
     }
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(VLRSpectrumType_Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
+        ShaderNode(context, sizeof(Shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
         setupNodeDescriptor();
     }
 
@@ -731,7 +731,7 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    void Float3ToSpectrumShaderNode::setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, ColorSpace colorSpace) {
+    void Float3ToSpectrumShaderNode::setImmediateValueSpectrumTypeAndColorSpace(SpectrumType spectrumType, ColorSpace colorSpace) {
         m_spectrumType = spectrumType;
         m_colorSpace = colorSpace;
         setupNodeDescriptor();
@@ -744,7 +744,7 @@ namespace VLR {
     // static
     void ScaleAndOffsetUVTextureMap2DShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_TextureCoordinates, "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates",
+            ShaderNodeSocketType::TextureCoordinates, "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -790,19 +790,19 @@ namespace VLR {
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_float, "VLR::Image2DTextureShaderNode_float",
-            VLRShaderNodeSocketType_float2, "VLR::Image2DTextureShaderNode_float2",
-            VLRShaderNodeSocketType_float3, "VLR::Image2DTextureShaderNode_float3",
-            VLRShaderNodeSocketType_float4, "VLR::Image2DTextureShaderNode_float4",
-            VLRShaderNodeSocketType_Normal3D, "VLR::Image2DTextureShaderNode_Normal3D",
-            VLRShaderNodeSocketType_Spectrum, "VLR::Image2DTextureShaderNode_Spectrum",
-            VLRShaderNodeSocketType_Alpha, "VLR::Image2DTextureShaderNode_Alpha",
+            ShaderNodeSocketType::float1, "VLR::Image2DTextureShaderNode_float",
+            ShaderNodeSocketType::float2, "VLR::Image2DTextureShaderNode_float2",
+            ShaderNodeSocketType::float3, "VLR::Image2DTextureShaderNode_float3",
+            ShaderNodeSocketType::float4, "VLR::Image2DTextureShaderNode_float4",
+            ShaderNodeSocketType::Normal3D, "VLR::Image2DTextureShaderNode_Normal3D",
+            ShaderNodeSocketType::Spectrum, "VLR::Image2DTextureShaderNode_Spectrum",
+            ShaderNodeSocketType::Alpha, "VLR::Image2DTextureShaderNode_Alpha",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         uint8_t nullData[] = { 255, 0, 255, 255 };
-        LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, DataFormat::RGBA8x4, VLRSpectrumType_Reflectance, ColorSpace::Rec709_D65);
+        LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, DataFormat::RGBA8x4, SpectrumType::Reflectance, ColorSpace::Rec709_D65);
 
         OptiXProgramSets[context.getID()] = programSet;
         NullImages[context.getID()] = nullImage;
@@ -839,7 +839,7 @@ namespace VLR {
         auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
         nodeData.textureID = m_optixTextureSampler->getId();
         nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
-        nodeData.spectrumType = m_image->getSpectrumType();
+        nodeData.spectrumType = (unsigned int)m_image->getSpectrumType();
         // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
         // EN: Data should be regarded as post-degamma in the case that reading with sRGB degamma by HW in a GPU kernel.
         ColorSpace colorSpace = m_image->getColorSpace();
@@ -883,13 +883,13 @@ namespace VLR {
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            VLRShaderNodeSocketType_Spectrum, "VLR::EnvironmentTextureShaderNode_Spectrum",
+            ShaderNodeSocketType::Spectrum, "VLR::EnvironmentTextureShaderNode_Spectrum",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
         half nullData[] = { (half)1.0f, (half)0.0f, (half)1.0f, (half)1.0f };
-        LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, VLRSpectrumType_LightSource, ColorSpace::Rec709_D65);
+        LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, SpectrumType::LightSource, ColorSpace::Rec709_D65);
 
         OptiXProgramSets[context.getID()] = programSet;
         NullImages[context.getID()] = nullImage;

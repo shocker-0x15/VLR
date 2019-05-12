@@ -337,7 +337,7 @@ namespace VLR {
         m_adjIndices(adjIndices), m_s((RealType)s / (UINT16_MAX - 1)), m_t((RealType)t / (UINT16_MAX - 1)), m_scale(scale) {}
 #endif
         RT_FUNCTION UpsampledSpectrumTemplate() {}
-        RT_FUNCTION constexpr UpsampledSpectrumTemplate(VLRSpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
+        RT_FUNCTION constexpr UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 
         RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
 

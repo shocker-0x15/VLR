@@ -20,17 +20,17 @@ namespace VLR {
             info.outputType = 0;
         }
         // used in this file
-        ShaderNodeSocket(const ShaderNode* _node, VLRShaderNodeSocketType _socketType, uint32_t _option) :
+        ShaderNodeSocket(const ShaderNode* _node, ShaderNodeSocketType _socketType, uint32_t _option) :
             node(_node) {
-            info.outputType = _socketType;
+            info.outputType = (unsigned int)_socketType;
             info.option = _option;
         }
         // used in VLR.cpp
         ShaderNodeSocket(const VLRShaderNodeSocket &_socket) :
             node((const ShaderNode*)_socket.nodeRef), socketInfoAsUInt(_socket.info) {}
 
-        VLRShaderNodeSocketType getType() const {
-            return (VLRShaderNodeSocketType)info.outputType;
+        ShaderNodeSocketType getType() const {
+            return (ShaderNodeSocketType)info.outputType;
         }
 
         VLRShaderNodeSocket getOpaqueType() const {
@@ -48,7 +48,7 @@ namespace VLR {
     class ShaderNode : public Object {
     protected:
         struct OptiXProgramSet {
-            optix::Program callablePrograms[nextPowerOf2(NumVLRShaderNodeSocketTypes)];
+            optix::Program callablePrograms[nextPowerOf2((uint32_t)ShaderNodeSocketType::NumTypes)];
             uint32_t nodeProcedureSetIndex;
         };
 
@@ -61,7 +61,7 @@ namespace VLR {
         int32_t m_nodeSizeClass;
 
         struct SocketTypeToProgramPair {
-            VLRShaderNodeSocketType stype;
+            ShaderNodeSocketType stype;
             const char* programName;
         };
         static void commonInitializeProcedure(Context &context, const SocketTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
@@ -91,7 +91,7 @@ namespace VLR {
         ShaderNode(Context &context, size_t sizeOfNode);
         virtual ~ShaderNode();
 
-        virtual ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const = 0;
+        virtual ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const = 0;
         virtual uint32_t getProcedureSetIndex() const = 0;
 
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
@@ -120,11 +120,11 @@ namespace VLR {
         // 1 (Normal3D) |   0, 1 | Geometric Normal, Shading Normal
         // 2 (Vector3D) |   0, 1 | Shading Tangent, Shading Bitangent
         // 3 (Point3D)  |      0 | Texture Coordinates
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == VLRShaderNodeSocketType_Point3D && option < 1) ||
-                (stype == VLRShaderNodeSocketType_Normal3D && option < 2) ||
-                (stype == VLRShaderNodeSocketType_Vector3D && option < 2) ||
-                (stype == VLRShaderNodeSocketType_TextureCoordinates && option < 1))
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if ((stype == ShaderNodeSocketType::Point3D && option < 1) ||
+                (stype == ShaderNodeSocketType::Normal3D && option < 2) ||
+                (stype == ShaderNodeSocketType::Vector3D && option < 2) ||
+                (stype == ShaderNodeSocketType::TextureCoordinates && option < 1))
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -160,9 +160,9 @@ namespace VLR {
         // Out Socket | option |
         // float      |    0-1 | s0, s1
         // float2     |      0 | (s0, s1)
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == VLRShaderNodeSocketType_float && option < 2) ||
-                (stype == VLRShaderNodeSocketType_float2 && option < 1))
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if ((stype == ShaderNodeSocketType::float1 && option < 2) ||
+                (stype == ShaderNodeSocketType::float2 && option < 1))
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -204,10 +204,10 @@ namespace VLR {
         // float      |    0-2 | s0, s1, s2
         // float2     |    0-1 | (s0, s1), (s1, s2)
         // float3     |      0 | (s0, s1, s2)
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == VLRShaderNodeSocketType_float && option < 3) ||
-                (stype == VLRShaderNodeSocketType_float2 && option < 2) ||
-                (stype == VLRShaderNodeSocketType_float3 && option < 1))
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if ((stype == ShaderNodeSocketType::float1 && option < 3) ||
+                (stype == ShaderNodeSocketType::float2 && option < 2) ||
+                (stype == ShaderNodeSocketType::float3 && option < 1))
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -254,11 +254,11 @@ namespace VLR {
         // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
         // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
         // float4     |      0 | (s0, s1, s2, s3)
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == VLRShaderNodeSocketType_float && option < 4) ||
-                (stype == VLRShaderNodeSocketType_float2 && option < 3) ||
-                (stype == VLRShaderNodeSocketType_float3 && option < 2) ||
-                (stype == VLRShaderNodeSocketType_float4 && option < 1))
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if ((stype == ShaderNodeSocketType::float1 && option < 4) ||
+                (stype == ShaderNodeSocketType::float2 && option < 3) ||
+                (stype == ShaderNodeSocketType::float3 && option < 2) ||
+                (stype == ShaderNodeSocketType::float4 && option < 1))
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -301,8 +301,8 @@ namespace VLR {
 
         // Out Socket | option |
         // float      |      0 | s0
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_float && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::float1 && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -322,7 +322,7 @@ namespace VLR {
     class TripletSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        VLRSpectrumType m_spectrumType;
+        SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
         float m_immE0, m_immE1, m_immE2;
 
@@ -340,8 +340,8 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_Spectrum && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -349,7 +349,7 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrumType(VLRSpectrumType spectrumType);
+        void setImmediateValueSpectrumType(SpectrumType spectrumType);
         void setImmediateValueColorSpace(ColorSpace colorSpace);
         void setImmediateValueTriplet(float e0, float e1, float e2);
     };
@@ -359,7 +359,7 @@ namespace VLR {
     class RegularSampledSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        VLRSpectrumType m_spectrumType;
+        SpectrumType m_spectrumType;
         float m_minLambda;
         float m_maxLambda;
         float* m_values;
@@ -379,8 +379,8 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_Spectrum && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -388,7 +388,7 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
+        void setImmediateValueSpectrum(SpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
     };
 
 
@@ -396,7 +396,7 @@ namespace VLR {
     class IrregularSampledSpectrumShaderNode : public ShaderNode {
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        VLRSpectrumType m_spectrumType;
+        SpectrumType m_spectrumType;
         float* m_lambdas;
         float* m_values;
         uint32_t m_numSamples;
@@ -415,8 +415,8 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_Spectrum && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -424,7 +424,7 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
+        void setImmediateValueSpectrum(SpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
     };
 
 
@@ -434,7 +434,7 @@ namespace VLR {
 
         ShaderNodeSocket m_nodeFloat3;
         float m_immFloat3[3];
-        VLRSpectrumType m_spectrumType;
+        SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
 
         void setupNodeDescriptor() const;
@@ -451,8 +451,8 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_Spectrum && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -462,7 +462,7 @@ namespace VLR {
 
         bool setNodeFloat3(const ShaderNodeSocket &outputSocket);
         void setImmediateValueFloat3(const float value[3]);
-        void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, ColorSpace colorSpace);
+        void setImmediateValueSpectrumTypeAndColorSpace(SpectrumType spectrumType, ColorSpace colorSpace);
     };
 
 
@@ -487,8 +487,8 @@ namespace VLR {
 
         // Out Socket  | option |
         // TexCoord    |      0 | TexCoord
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_TextureCoordinates && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::TextureCoordinates && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }
@@ -521,7 +521,7 @@ namespace VLR {
         Image2DTextureShaderNode(Context &context);
         ~Image2DTextureShaderNode();
 
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
             uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), stype, option);
             if (cIndex != 0xFFFFFFFF)
                 return ShaderNodeSocket(this, stype, cIndex);
@@ -561,8 +561,8 @@ namespace VLR {
 
         // Out Socket   | option |
         // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(VLRShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == VLRShaderNodeSocketType_Spectrum && option < 1)
+        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
+            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
                 return ShaderNodeSocket(this, stype, option);
             return ShaderNodeSocket();
         }

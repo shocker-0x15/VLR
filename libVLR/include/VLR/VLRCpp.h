@@ -955,11 +955,11 @@ namespace VLRCpp {
 
 
     class InternalNodeHolder : public NodeHolder {
-        StaticTransformRef m_transform;
+        TransformRef m_transform;
         std::set<NodeRef> m_children;
 
     public:
-        InternalNodeHolder(const ContextConstRef &context, const char* name, const StaticTransformRef &transform) :
+        InternalNodeHolder(const ContextConstRef &context, const char* name, const TransformRef &transform) :
             NodeHolder(context), m_transform(transform) {
             errorCheck(vlrInternalNodeCreate(getRaw(m_context), (VLRInternalNode*)&m_raw, name, m_transform->get<VLRTransform>()));
         }
@@ -971,7 +971,7 @@ namespace VLRCpp {
             m_transform = transform;
             errorCheck(vlrInternalNodeSetTransform(get<VLRInternalNode>(), transform->get<VLRTransform>()));
         }
-        StaticTransformRef getTransform() const {
+        TransformRef getTransform() const {
             return m_transform;
         }
 
@@ -1004,12 +1004,12 @@ namespace VLRCpp {
 
 
     class SceneHolder : public Object {
-        StaticTransformRef m_transform;
+        TransformRef m_transform;
         std::set<NodeRef> m_children;
         EnvironmentEmitterSurfaceMaterialRef m_matEnv;
 
     public:
-        SceneHolder(const ContextConstRef &context, const StaticTransformRef &transform) :
+        SceneHolder(const ContextConstRef &context, const TransformRef &transform) :
             Object(context), m_transform(transform) {
             errorCheck(vlrSceneCreate(getRaw(m_context), (VLRScene*)&m_raw, m_transform->get<VLRTransform>()));
         }
@@ -1021,7 +1021,7 @@ namespace VLRCpp {
             m_transform = transform;
             errorCheck(vlrSceneSetTransform(get<VLRScene>(), transform->get<VLRTransform>()));
         }
-        StaticTransformRef getTransform() const {
+        TransformRef getTransform() const {
             return m_transform;
         }
 
