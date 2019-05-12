@@ -56,7 +56,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_library(VLR SHARED ${libVLR_Sources})
 add_dependencies(VLR VLR_PTX)
-target_include_directories(VLR PUBLIC ${include_dirs})
+target_include_directories(VLR PRIVATE ${include_dirs})
 foreach(lib_dir ${lib_dirs})
     target_link_directories(VLR PRIVATE ${lib_dir})
 endforeach()

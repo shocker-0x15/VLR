@@ -11,9 +11,6 @@
 #define STBI_MSC_SECURE_CRT
 #include "stb_image_write.h"
 
-// only for catching an exception.
-#include <optix_world.h>
-
 #include "scene.h"
 
 #include "StopWatch.h"
@@ -1151,8 +1148,8 @@ int32_t main(int32_t argc, const char* argv[]) {
     try {
         mainFunc(argc, argv);
     }
-    catch (optix::Exception ex) {
-        hpprintf("OptiX Error: %u: %s\n", ex.getErrorCode(), ex.getErrorString().c_str());
+    catch (const std::exception &ex) {
+        hpprintf("Error: %s\n", ex.what());
     }
 
     return 0;

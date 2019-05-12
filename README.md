@@ -60,8 +60,6 @@ It requires the following libraries.
     * CUDA 10.1
     * OptiX 6.0 (requires Maxwell or later generation NVIDIA GPU)
 * Host Program
-    * OptiX 6.0 (just for exception handling on host side)
-    * CUDA 10.1 (just because OptiX depends on this)
     * OpenEXR 2.2
     * assimp 4.1
 

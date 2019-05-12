@@ -603,7 +603,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     auto cornellBox = context->createTriangleMeshSurfaceNode("CornellBox");
     {
@@ -802,7 +802,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -972,7 +972,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     const float ColorCheckerLambdas[] = {
         380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730
@@ -1128,7 +1128,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1261,7 +1261,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1468,7 +1468,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1556,7 +1556,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1647,7 +1647,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1774,7 +1774,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -1844,7 +1844,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
@@ -2049,7 +2049,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     using namespace VLRCpp;
     using namespace VLR;
 
-    shot->scene = context->createScene(context->createStaticTransform(translate(0.0f, 0.0f, 0.0f)));
+    shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 

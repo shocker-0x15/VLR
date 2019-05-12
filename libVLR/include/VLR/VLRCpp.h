@@ -81,7 +81,8 @@ namespace VLRCpp {
         Object(const ContextConstRef &context) : m_context(context) {}
         virtual ~Object() {}
 
-        VLRObject get() const { return m_raw; }
+        template <typename VLRType>
+        VLRType get() const { return (VLRType)m_raw; }
     };
 
 
@@ -92,27 +93,27 @@ namespace VLRCpp {
 
         uint32_t getWidth() const {
             uint32_t width;
-            errorCheck(vlrImage2DGetWidth((VLRImage2D)m_raw, &width));
+            errorCheck(vlrImage2DGetWidth(get<VLRImage2D>(), &width));
             return width;
         }
         uint32_t getHeight() const {
             uint32_t height;
-            errorCheck(vlrImage2DGetHeight((VLRImage2D)m_raw, &height));
+            errorCheck(vlrImage2DGetHeight(get<VLRImage2D>(), &height));
             return height;
         }
         uint32_t getStride() const {
             uint32_t stride;
-            errorCheck(vlrImage2DGetStride((VLRImage2D)m_raw, &stride));
+            errorCheck(vlrImage2DGetStride(get<VLRImage2D>(), &stride));
             return stride;
         }
         VLRDataFormat getOriginalDataFormat() const {
             VLRDataFormat format;
-            errorCheck(vlrImage2DGetOriginalDataFormat((VLRImage2D)m_raw, &format));
+            errorCheck(vlrImage2DGetOriginalDataFormat(get<VLRImage2D>(), &format));
             return format;
         }
         bool originalHasAlpha() const {
             bool hasAlpha;
-            errorCheck(vlrImage2DOriginalHasAlpha((VLRImage2D)m_raw, &hasAlpha));
+            errorCheck(vlrImage2DOriginalHasAlpha(get<VLRImage2D>(), &hasAlpha));
             return hasAlpha;
         }
     };
@@ -126,7 +127,7 @@ namespace VLRCpp {
             errorCheck(vlrLinearImage2DCreate(getRaw(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, spectrumType, colorSpace));
         }
         ~LinearImage2DHolder() {
-            errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), (VLRLinearImage2D)m_raw));
+            errorCheck(vlrLinearImage2DDestroy(getRaw(m_context), get<VLRLinearImage2D>()));
         }
     };
 
@@ -139,7 +140,7 @@ namespace VLRCpp {
             errorCheck(vlrBlockCompressedImage2DCreate(getRaw(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, spectrumType, colorSpace));
         }
         ~BlockCompressedImage2DHolder() {
-            errorCheck(vlrBlockCompressedImage2DDestroy(getRaw(m_context), (VLRBlockCompressedImage2D)m_raw));
+            errorCheck(vlrBlockCompressedImage2DDestroy(getRaw(m_context), get<VLRBlockCompressedImage2D>()));
         }
     };
 
@@ -164,7 +165,7 @@ namespace VLRCpp {
 
         ShaderNodeSocket getSocket(VLRShaderNodeSocketType socketType, uint32_t option) {
             VLRShaderNodeSocket socket;
-            errorCheck(vlrShaderNodeGetSocket((VLRShaderNode)m_raw, socketType, option, &socket));
+            errorCheck(vlrShaderNodeGetSocket(get<VLRShaderNode>(), socketType, option, &socket));
             return ShaderNodeSocket(std::dynamic_pointer_cast<ShaderNodeHolder>(shared_from_this()), socket);
         }
     };
@@ -177,7 +178,7 @@ namespace VLRCpp {
             errorCheck(vlrGeometryShaderNodeCreate(getRaw(m_context), (VLRGeometryShaderNode*)&m_raw));
         }
         ~GeometryShaderNodeHolder() {
-            errorCheck(vlrGeometryShaderNodeDestroy(getRaw(m_context), (VLRGeometryShaderNode)m_raw));
+            errorCheck(vlrGeometryShaderNodeDestroy(getRaw(m_context), get<VLRGeometryShaderNode>()));
         }
     };
 
@@ -192,22 +193,22 @@ namespace VLRCpp {
             errorCheck(vlrFloat2ShaderNodeCreate(getRaw(m_context), (VLRFloat2ShaderNode*)&m_raw));
         }
         ~Float2ShaderNodeHolder() {
-            errorCheck(vlrFloat2ShaderNodeDestroy(getRaw(m_context), (VLRFloat2ShaderNode)m_raw));
+            errorCheck(vlrFloat2ShaderNodeDestroy(getRaw(m_context), get<VLRFloat2ShaderNode>()));
         }
 
         void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat2ShaderNodeSetNode0((VLRFloat2ShaderNode)m_raw, m_node0.socket));
+            errorCheck(vlrFloat2ShaderNodeSetNode0(get<VLRFloat2ShaderNode>(), m_node0.socket));
         }
         void setImmediateValue0(float value) {
-            errorCheck(vlrFloat2ShaderNodeSetImmediateValue0((VLRFloat2ShaderNode)m_raw, value));
+            errorCheck(vlrFloat2ShaderNodeSetImmediateValue0(get<VLRFloat2ShaderNode>(), value));
         }
         void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat2ShaderNodeSetNode1((VLRFloat2ShaderNode)m_raw, m_node1.socket));
+            errorCheck(vlrFloat2ShaderNodeSetNode1(get<VLRFloat2ShaderNode>(), m_node1.socket));
         }
         void setImmediateValue1(float value) {
-            errorCheck(vlrFloat2ShaderNodeSetImmediateValue1((VLRFloat2ShaderNode)m_raw, value));
+            errorCheck(vlrFloat2ShaderNodeSetImmediateValue1(get<VLRFloat2ShaderNode>(), value));
         }
     };
 
@@ -223,29 +224,29 @@ namespace VLRCpp {
             errorCheck(vlrFloat3ShaderNodeCreate(getRaw(m_context), (VLRFloat3ShaderNode*)&m_raw));
         }
         ~Float3ShaderNodeHolder() {
-            errorCheck(vlrFloat3ShaderNodeDestroy(getRaw(m_context), (VLRFloat3ShaderNode)m_raw));
+            errorCheck(vlrFloat3ShaderNodeDestroy(getRaw(m_context), get<VLRFloat3ShaderNode>()));
         }
 
         void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat3ShaderNodeSetNode0((VLRFloat3ShaderNode)m_raw, m_node0.socket));
+            errorCheck(vlrFloat3ShaderNodeSetNode0(get<VLRFloat3ShaderNode>(), m_node0.socket));
         }
         void setImmediateValue0(float value) {
-            errorCheck(vlrFloat3ShaderNodeSetImmediateValue0((VLRFloat3ShaderNode)m_raw, value));
+            errorCheck(vlrFloat3ShaderNodeSetImmediateValue0(get<VLRFloat3ShaderNode>(), value));
         }
         void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat3ShaderNodeSetNode1((VLRFloat3ShaderNode)m_raw, m_node1.socket));
+            errorCheck(vlrFloat3ShaderNodeSetNode1(get<VLRFloat3ShaderNode>(), m_node1.socket));
         }
         void setImmediateValue1(float value) {
-            errorCheck(vlrFloat3ShaderNodeSetImmediateValue1((VLRFloat3ShaderNode)m_raw, value));
+            errorCheck(vlrFloat3ShaderNodeSetImmediateValue1(get<VLRFloat3ShaderNode>(), value));
         }
         void setNode2(const ShaderNodeSocket &node2) {
             m_node2 = node2;
-            errorCheck(vlrFloat3ShaderNodeSetNode2((VLRFloat3ShaderNode)m_raw, m_node2.socket));
+            errorCheck(vlrFloat3ShaderNodeSetNode2(get<VLRFloat3ShaderNode>(), m_node2.socket));
         }
         void setImmediateValue2(float value) {
-            errorCheck(vlrFloat3ShaderNodeSetImmediateValue2((VLRFloat3ShaderNode)m_raw, value));
+            errorCheck(vlrFloat3ShaderNodeSetImmediateValue2(get<VLRFloat3ShaderNode>(), value));
         }
     };
 
@@ -262,36 +263,36 @@ namespace VLRCpp {
             errorCheck(vlrFloat4ShaderNodeCreate(getRaw(m_context), (VLRFloat4ShaderNode*)&m_raw));
         }
         ~Float4ShaderNodeHolder() {
-            errorCheck(vlrFloat4ShaderNodeDestroy(getRaw(m_context), (VLRFloat4ShaderNode)m_raw));
+            errorCheck(vlrFloat4ShaderNodeDestroy(getRaw(m_context), get<VLRFloat4ShaderNode>()));
         }
 
         void setNode0(const ShaderNodeSocket &node0) {
             m_node0 = node0;
-            errorCheck(vlrFloat4ShaderNodeSetNode0((VLRFloat4ShaderNode)m_raw, m_node0.socket));
+            errorCheck(vlrFloat4ShaderNodeSetNode0(get<VLRFloat4ShaderNode>(), m_node0.socket));
         }
         void setImmediateValue0(float value) {
-            errorCheck(vlrFloat4ShaderNodeSetImmediateValue0((VLRFloat4ShaderNode)m_raw, value));
+            errorCheck(vlrFloat4ShaderNodeSetImmediateValue0(get<VLRFloat4ShaderNode>(), value));
         }
         void setNode1(const ShaderNodeSocket &node1) {
             m_node1 = node1;
-            errorCheck(vlrFloat4ShaderNodeSetNode1((VLRFloat4ShaderNode)m_raw, m_node1.socket));
+            errorCheck(vlrFloat4ShaderNodeSetNode1(get<VLRFloat4ShaderNode>(), m_node1.socket));
         }
         void setImmediateValue1(float value) {
-            errorCheck(vlrFloat4ShaderNodeSetImmediateValue1((VLRFloat4ShaderNode)m_raw, value));
+            errorCheck(vlrFloat4ShaderNodeSetImmediateValue1(get<VLRFloat4ShaderNode>(), value));
         }
         void setNode2(const ShaderNodeSocket &node2) {
             m_node2 = node2;
-            errorCheck(vlrFloat4ShaderNodeSetNode2((VLRFloat4ShaderNode)m_raw, m_node2.socket));
+            errorCheck(vlrFloat4ShaderNodeSetNode2(get<VLRFloat4ShaderNode>(), m_node2.socket));
         }
         void setImmediateValue2(float value) {
-            errorCheck(vlrFloat4ShaderNodeSetImmediateValue2((VLRFloat4ShaderNode)m_raw, value));
+            errorCheck(vlrFloat4ShaderNodeSetImmediateValue2(get<VLRFloat4ShaderNode>(), value));
         }
         void setNode3(const ShaderNodeSocket &node3) {
             m_node3 = node3;
-            errorCheck(vlrFloat4ShaderNodeSetNode3((VLRFloat4ShaderNode)m_raw, m_node3.socket));
+            errorCheck(vlrFloat4ShaderNodeSetNode3(get<VLRFloat4ShaderNode>(), m_node3.socket));
         }
         void setImmediateValue3(float value) {
-            errorCheck(vlrFloat4ShaderNodeSetImmediateValue3((VLRFloat4ShaderNode)m_raw, value));
+            errorCheck(vlrFloat4ShaderNodeSetImmediateValue3(get<VLRFloat4ShaderNode>(), value));
         }
     };
 
@@ -307,26 +308,26 @@ namespace VLRCpp {
             errorCheck(vlrScaleAndOffsetFloatShaderNodeCreate(getRaw(m_context), (VLRScaleAndOffsetFloatShaderNode*)&m_raw));
         }
         ~ScaleAndOffsetFloatShaderNodeHolder() {
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeDestroy(getRaw(m_context), (VLRScaleAndOffsetFloatShaderNode)m_raw));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeDestroy(getRaw(m_context), get<VLRScaleAndOffsetFloatShaderNode>()));
         }
 
         void setNodeValue(const ShaderNodeSocket &node) {
             m_nodeValue = node;
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeValue((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeValue.socket));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeValue(get<VLRScaleAndOffsetFloatShaderNode>(), m_nodeValue.socket));
         }
         void setNodeScale(const ShaderNodeSocket &node) {
             m_nodeScale = node;
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeScale((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeScale.socket));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeScale(get<VLRScaleAndOffsetFloatShaderNode>(), m_nodeScale.socket));
         }
         void setNodeOffset(const ShaderNodeSocket &node) {
             m_nodeOffset = node;
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeOffset((VLRScaleAndOffsetFloatShaderNode)m_raw, m_nodeOffset.socket));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(get<VLRScaleAndOffsetFloatShaderNode>(), m_nodeOffset.socket));
         }
         void setImmediateValueScale(float value) {
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale((VLRScaleAndOffsetFloatShaderNode)m_raw, value));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale(get<VLRScaleAndOffsetFloatShaderNode>(), value));
         }
         void setImmediateValueOffset(float value) {
-            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset((VLRScaleAndOffsetFloatShaderNode)m_raw, value));
+            errorCheck(vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset(get<VLRScaleAndOffsetFloatShaderNode>(), value));
         }
     };
 
@@ -338,17 +339,17 @@ namespace VLRCpp {
             errorCheck(vlrTripletSpectrumShaderNodeCreate(getRaw(m_context), (VLRTripletSpectrumShaderNode*)&m_raw));
         }
         ~TripletSpectrumShaderNodeHolder() {
-            errorCheck(vlrTripletSpectrumShaderNodeDestroy(getRaw(m_context), (VLRTripletSpectrumShaderNode)m_raw));
+            errorCheck(vlrTripletSpectrumShaderNodeDestroy(getRaw(m_context), get<VLRTripletSpectrumShaderNode>()));
         }
 
         void setImmediateValueSpectrumType(VLRSpectrumType spectrumType) {
-            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueSpectrumType((VLRTripletSpectrumShaderNode)m_raw, spectrumType));
+            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueSpectrumType(get<VLRTripletSpectrumShaderNode>(), spectrumType));
         }
         void setImmediateValueColorSpace(VLRColorSpace colorSpace) {
-            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueColorSpace((VLRTripletSpectrumShaderNode)m_raw, colorSpace));
+            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueColorSpace(get<VLRTripletSpectrumShaderNode>(), colorSpace));
         }
         void setImmediateValueTriplet(float e0, float e1, float e2) {
-            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueTriplet((VLRTripletSpectrumShaderNode)m_raw, e0, e1, e2));
+            errorCheck(vlrTripletSpectrumShaderNodeSetImmediateValueTriplet(get<VLRTripletSpectrumShaderNode>(), e0, e1, e2));
         }
     };
 
@@ -360,11 +361,11 @@ namespace VLRCpp {
             errorCheck(vlrRegularSampledSpectrumShaderNodeCreate(getRaw(m_context), (VLRRegularSampledSpectrumShaderNode*)&m_raw));
         }
         ~RegularSampledSpectrumShaderNodeHolder() {
-            errorCheck(vlrRegularSampledSpectrumShaderNodeDestroy(getRaw(m_context), (VLRRegularSampledSpectrumShaderNode)m_raw));
+            errorCheck(vlrRegularSampledSpectrumShaderNodeDestroy(getRaw(m_context), get<VLRRegularSampledSpectrumShaderNode>()));
         }
 
         void setImmediateValueSpectrum(VLRSpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples) {
-            errorCheck(vlrRegularSampledSpectrumShaderNodeSetImmediateValueSpectrum((VLRRegularSampledSpectrumShaderNode)m_raw, spectrumType, minLambda, maxLambda, values, numSamples));
+            errorCheck(vlrRegularSampledSpectrumShaderNodeSetImmediateValueSpectrum(get<VLRRegularSampledSpectrumShaderNode>(), spectrumType, minLambda, maxLambda, values, numSamples));
         }
     };
 
@@ -376,11 +377,11 @@ namespace VLRCpp {
             errorCheck(vlrIrregularSampledSpectrumShaderNodeCreate(getRaw(m_context), (VLRIrregularSampledSpectrumShaderNode*)&m_raw));
         }
         ~IrregularSampledSpectrumShaderNodeHolder() {
-            errorCheck(vlrIrregularSampledSpectrumShaderNodeDestroy(getRaw(m_context), (VLRIrregularSampledSpectrumShaderNode)m_raw));
+            errorCheck(vlrIrregularSampledSpectrumShaderNodeDestroy(getRaw(m_context), get<VLRIrregularSampledSpectrumShaderNode>()));
         }
 
         void setImmediateValueSpectrum(VLRSpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples) {
-            errorCheck(vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum((VLRIrregularSampledSpectrumShaderNode)m_raw, spectrumType, lambdas, values, numSamples));
+            errorCheck(vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum(get<VLRIrregularSampledSpectrumShaderNode>(), spectrumType, lambdas, values, numSamples));
         }
     };
 
@@ -394,18 +395,18 @@ namespace VLRCpp {
             errorCheck(vlrFloat3ToSpectrumShaderNodeCreate(getRaw(m_context), (VLRFloat3ToSpectrumShaderNode*)&m_raw));
         }
         ~Float3ToSpectrumShaderNodeHolder() {
-            errorCheck(vlrFloat3ToSpectrumShaderNodeDestroy(getRaw(m_context), (VLRFloat3ToSpectrumShaderNode)m_raw));
+            errorCheck(vlrFloat3ToSpectrumShaderNodeDestroy(getRaw(m_context), get<VLRFloat3ToSpectrumShaderNode>()));
         }
 
         void setNodeFloat3(const ShaderNodeSocket &nodeFloat3) {
             m_nodeFloat3 = nodeFloat3;
-            errorCheck(vlrFloat3ToSpectrumShaderNodeSetNodeVector3D((VLRFloat3ToSpectrumShaderNode)m_raw, m_nodeFloat3.socket));
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(get<VLRFloat3ToSpectrumShaderNode>(), m_nodeFloat3.socket));
         }
         void setImmediateValueFloat3(const float value[3]) {
-            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D((VLRFloat3ToSpectrumShaderNode)m_raw, value));
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D(get<VLRFloat3ToSpectrumShaderNode>(), value));
         }
         void setImmediateValueSpectrumTypeAndColorSpace(VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
-            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace((VLRFloat3ToSpectrumShaderNode)m_raw, spectrumType, colorSpace));
+            errorCheck(vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndColorSpace(get<VLRFloat3ToSpectrumShaderNode>(), spectrumType, colorSpace));
         }
     };
 
@@ -417,11 +418,11 @@ namespace VLRCpp {
             errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeCreate(getRaw(m_context), (VLRScaleAndOffsetUVTextureMap2DShaderNode*)&m_raw));
         }
         ~ScaleAndOffsetUVTextureMap2DShaderNodeHolder() {
-            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(getRaw(m_context), (VLRScaleAndOffsetUVTextureMap2DShaderNode)m_raw));
+            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeDestroy(getRaw(m_context), get<VLRScaleAndOffsetUVTextureMap2DShaderNode>()));
         }
 
         void setValues(const float offset[2], const float scale[2]) {
-            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeSetValues((VLRScaleAndOffsetUVTextureMap2DShaderNode)m_raw, offset, scale));
+            errorCheck(vlrScaleAndOffsetUVTextureMap2DShaderNodeSetValues(get<VLRScaleAndOffsetUVTextureMap2DShaderNode>(), offset, scale));
         }
     };
 
@@ -436,22 +437,22 @@ namespace VLRCpp {
             errorCheck(vlrImage2DTextureShaderNodeCreate(getRaw(m_context), (VLRImage2DTextureShaderNode*)&m_raw));
         }
         ~Image2DTextureShaderNodeHolder() {
-            errorCheck(vlrImage2DTextureShaderNodeDestroy(getRaw(m_context), (VLRImage2DTextureShaderNode)m_raw));
+            errorCheck(vlrImage2DTextureShaderNodeDestroy(getRaw(m_context), get<VLRImage2DTextureShaderNode>()));
         }
 
         void setImage(const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrImage2DTextureShaderNodeSetImage((VLRImage2DTextureShaderNode)m_raw, m_image ? (VLRImage2D)m_image->get() : nullptr));
+            errorCheck(vlrImage2DTextureShaderNodeSetImage(get<VLRImage2DTextureShaderNode>(), m_image ? m_image->get<VLRImage2D>() : nullptr));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
-            errorCheck(vlrImage2DTextureShaderNodeSetFilterMode((VLRImage2DTextureShaderNode)m_raw, minification, magnification, mipmapping));
+            errorCheck(vlrImage2DTextureShaderNodeSetFilterMode(get<VLRImage2DTextureShaderNode>(), minification, magnification, mipmapping));
         }
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
-            errorCheck(vlrImage2DTextureShaderNodeSetWrapMode((VLRImage2DTextureShaderNode)m_raw, x, y));
+            errorCheck(vlrImage2DTextureShaderNodeSetWrapMode(get<VLRImage2DTextureShaderNode>(), x, y));
         }
         void setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;
-            errorCheck(vlrImage2DTextureShaderNodeSetNodeTexCoord((VLRImage2DTextureShaderNode)m_raw, m_nodeTexCoord.socket));
+            errorCheck(vlrImage2DTextureShaderNodeSetNodeTexCoord(get<VLRImage2DTextureShaderNode>(), m_nodeTexCoord.socket));
         }
     };
 
@@ -466,22 +467,22 @@ namespace VLRCpp {
             errorCheck(vlrEnvironmentTextureShaderNodeCreate(getRaw(m_context), (VLREnvironmentTextureShaderNode*)&m_raw));
         }
         ~EnvironmentTextureShaderNodeHolder() {
-            errorCheck(vlrEnvironmentTextureShaderNodeDestroy(getRaw(m_context), (VLREnvironmentTextureShaderNode)m_raw));
+            errorCheck(vlrEnvironmentTextureShaderNodeDestroy(getRaw(m_context), get<VLREnvironmentTextureShaderNode>()));
         }
 
         void setImage(const Image2DRef &image) {
             m_image = image;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetImage((VLREnvironmentTextureShaderNode)m_raw, m_image ? (VLRImage2D)m_image->get() : nullptr));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetImage(get<VLREnvironmentTextureShaderNode>(), m_image ? m_image->get<VLRImage2D>() : nullptr));
         }
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
-            errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode((VLREnvironmentTextureShaderNode)m_raw, minification, magnification, mipmapping));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetFilterMode(get<VLREnvironmentTextureShaderNode>(), minification, magnification, mipmapping));
         }
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
-            errorCheck(vlrEnvironmentTextureShaderNodeSetWrapMode((VLREnvironmentTextureShaderNode)m_raw, x, y));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetWrapMode(get<VLREnvironmentTextureShaderNode>(), x, y));
         }
         bool setNodeTexCoord(const ShaderNodeSocket &nodeTexCoord) {
             m_nodeTexCoord = nodeTexCoord;
-            errorCheck(vlrEnvironmentTextureShaderNodeSetNodeTexCoord((VLREnvironmentTextureShaderNode)m_raw, m_nodeTexCoord.socket));
+            errorCheck(vlrEnvironmentTextureShaderNodeSetNodeTexCoord(get<VLREnvironmentTextureShaderNode>(), m_nodeTexCoord.socket));
         }
     };
 
@@ -502,15 +503,15 @@ namespace VLRCpp {
             errorCheck(vlrMatteSurfaceMaterialCreate(getRaw(m_context), (VLRMatteSurfaceMaterial*)&m_raw));
         }
         ~MatteSurfaceMaterialHolder() {
-            errorCheck(vlrMatteSurfaceMaterialDestroy(getRaw(m_context), (VLRMatteSurfaceMaterial)m_raw));
+            errorCheck(vlrMatteSurfaceMaterialDestroy(getRaw(m_context), get<VLRMatteSurfaceMaterial>()));
         }
 
         void setNodeAlbedo(const ShaderNodeSocket &node) {
             m_nodeAlbedo = node;
-            errorCheck(vlrMatteSurfaceMaterialSetNodeAlbedo((VLRMatteSurfaceMaterial)m_raw, m_nodeAlbedo.socket));
+            errorCheck(vlrMatteSurfaceMaterialSetNodeAlbedo(get<VLRMatteSurfaceMaterial>(), m_nodeAlbedo.socket));
         }
         void setImmediateValueAlbedo(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMatteSurfaceMaterialSetImmediateValueAlbedo((VLRMatteSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMatteSurfaceMaterialSetImmediateValueAlbedo(get<VLRMatteSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
     };
 
@@ -526,29 +527,29 @@ namespace VLRCpp {
             errorCheck(vlrSpecularReflectionSurfaceMaterialCreate(getRaw(m_context), (VLRSpecularReflectionSurfaceMaterial*)&m_raw));
         }
         ~SpecularReflectionSurfaceMaterialHolder() {
-            errorCheck(vlrSpecularReflectionSurfaceMaterialDestroy(getRaw(m_context), (VLRSpecularReflectionSurfaceMaterial)m_raw));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialDestroy(getRaw(m_context), get<VLRSpecularReflectionSurfaceMaterial>()));
         }
 
         void setNodeCoeffR(const ShaderNodeSocket &node) {
             m_nodeCoeffR = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR((VLRSpecularReflectionSurfaceMaterial)m_raw, m_nodeCoeffR.socket));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(get<VLRSpecularReflectionSurfaceMaterial>(), m_nodeCoeffR.socket));
         }
         void setImmediateValueCoeffR(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR((VLRSpecularReflectionSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(get<VLRSpecularReflectionSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeEta(const ShaderNodeSocket &node) {
             m_nodeEta = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeEta((VLRSpecularReflectionSurfaceMaterial)m_raw, m_nodeEta.socket));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNodeEta(get<VLRSpecularReflectionSurfaceMaterial>(), m_nodeEta.socket));
         }
         void setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta((VLRSpecularReflectionSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(get<VLRSpecularReflectionSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNode_k(const ShaderNodeSocket &node) {
             m_node_k = node;
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNode_k((VLRSpecularReflectionSurfaceMaterial)m_raw, m_node_k.socket));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetNode_k(get<VLRSpecularReflectionSurfaceMaterial>(), m_node_k.socket));
         }
         void setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k((VLRSpecularReflectionSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k(get<VLRSpecularReflectionSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
     };
 
@@ -564,29 +565,29 @@ namespace VLRCpp {
             errorCheck(vlrSpecularScatteringSurfaceMaterialCreate(getRaw(m_context), (VLRSpecularScatteringSurfaceMaterial*)&m_raw));
         }
         ~SpecularScatteringSurfaceMaterialHolder() {
-            errorCheck(vlrSpecularScatteringSurfaceMaterialDestroy(getRaw(m_context), (VLRSpecularScatteringSurfaceMaterial)m_raw));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialDestroy(getRaw(m_context), get<VLRSpecularScatteringSurfaceMaterial>()));
         }
 
         void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeCoeff((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeCoeff.socket));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(get<VLRSpecularScatteringSurfaceMaterial>(), m_nodeCoeff.socket));
         }
         void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff((VLRSpecularScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(get<VLRSpecularScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeEtaExt(const ShaderNodeSocket &node) {
             m_nodeEtaExt = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeEtaExt.socket));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(get<VLRSpecularScatteringSurfaceMaterial>(), m_nodeEtaExt.socket));
         }
         void setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt((VLRSpecularScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(get<VLRSpecularScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeEtaInt(const ShaderNodeSocket &node) {
             m_nodeEtaInt = node;
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt((VLRSpecularScatteringSurfaceMaterial)m_raw, m_nodeEtaInt.socket));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(get<VLRSpecularScatteringSurfaceMaterial>(), m_nodeEtaInt.socket));
         }
         void setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt((VLRSpecularScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt(get<VLRSpecularScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
     };
 
@@ -602,35 +603,35 @@ namespace VLRCpp {
             errorCheck(vlrMicrofacetReflectionSurfaceMaterialCreate(getRaw(m_context), (VLRMicrofacetReflectionSurfaceMaterial*)&m_raw));
         }
         ~MicrofacetReflectionSurfaceMaterialHolder() {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialDestroy(getRaw(m_context), (VLRMicrofacetReflectionSurfaceMaterial)m_raw));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialDestroy(getRaw(m_context), get<VLRMicrofacetReflectionSurfaceMaterial>()));
         }
 
         void setNodeEta(const ShaderNodeSocket &node) {
             m_nodeEta = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeEta((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeEta.socket));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(get<VLRMicrofacetReflectionSurfaceMaterial>(), m_nodeEta.socket));
         }
         void setImmediateValueEta(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta((VLRMicrofacetReflectionSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(get<VLRMicrofacetReflectionSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNode_k(const ShaderNodeSocket &node) {
             m_node_k = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNode_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_node_k.socket));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNode_k(get<VLRMicrofacetReflectionSurfaceMaterial>(), m_node_k.socket));
         }
         void setImmediateValue_k(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k((VLRMicrofacetReflectionSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(get<VLRMicrofacetReflectionSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeRoughnessAnisotropyRotation(const ShaderNodeSocket &node) {
             m_nodeRoughnessAnisotropyRotation = node;
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation((VLRMicrofacetReflectionSurfaceMaterial)m_raw, m_nodeRoughnessAnisotropyRotation.socket));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotropyRotation(get<VLRMicrofacetReflectionSurfaceMaterial>(), m_nodeRoughnessAnisotropyRotation.socket));
         }
         void setImmediateValueRoughness(float value) {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughness(get<VLRMicrofacetReflectionSurfaceMaterial>(), value));
         }
         void setImmediateValueAnisotropy(float value) {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueAnisotropy((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueAnisotropy(get<VLRMicrofacetReflectionSurfaceMaterial>(), value));
         }
         void setImmediateValueRotation(float value) {
-            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRotation((VLRMicrofacetReflectionSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRotation(get<VLRMicrofacetReflectionSurfaceMaterial>(), value));
         }
     };
 
@@ -647,42 +648,42 @@ namespace VLRCpp {
             errorCheck(vlrMicrofacetScatteringSurfaceMaterialCreate(getRaw(m_context), (VLRMicrofacetScatteringSurfaceMaterial*)&m_raw));
         }
         ~MicrofacetScatteringSurfaceMaterialHolder() {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialDestroy(getRaw(m_context), (VLRMicrofacetScatteringSurfaceMaterial)m_raw));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialDestroy(getRaw(m_context), get<VLRMicrofacetScatteringSurfaceMaterial>()));
         }
 
         void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeCoeff.socket));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(get<VLRMicrofacetScatteringSurfaceMaterial>(), m_nodeCoeff.socket));
         }
         void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff((VLRMicrofacetScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(get<VLRMicrofacetScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeEtaExt(const ShaderNodeSocket &node) {
             m_nodeEtaExt = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeEtaExt.socket));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(get<VLRMicrofacetScatteringSurfaceMaterial>(), m_nodeEtaExt.socket));
         }
         void setImmediateValueEtaExt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(get<VLRMicrofacetScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeEtaInt(const ShaderNodeSocket &node) {
             m_nodeEtaInt = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeEtaInt.socket));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(get<VLRMicrofacetScatteringSurfaceMaterial>(), m_nodeEtaInt.socket));
         }
         void setImmediateValueEtaInt(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt((VLRMicrofacetScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(get<VLRMicrofacetScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeRoughnessAnisotropyRotation(const ShaderNodeSocket &node) {
             m_nodeRoughnessAnisotropyRotation = node;
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation((VLRMicrofacetScatteringSurfaceMaterial)m_raw, m_nodeRoughnessAnisotropyRotation.socket));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotropyRotation(get<VLRMicrofacetScatteringSurfaceMaterial>(), m_nodeRoughnessAnisotropyRotation.socket));
         }
         void setImmediateValueRoughness(float value) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughness(get<VLRMicrofacetScatteringSurfaceMaterial>(), value));
         }
         void setImmediateValueAnisotropy(float value) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueAnisotropy((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueAnisotropy(get<VLRMicrofacetScatteringSurfaceMaterial>(), value));
         }
         void setImmediateValueRotation(float value) {
-            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRotation((VLRMicrofacetScatteringSurfaceMaterial)m_raw, value));
+            errorCheck(vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRotation(get<VLRMicrofacetScatteringSurfaceMaterial>(), value));
         }
     };
 
@@ -697,22 +698,22 @@ namespace VLRCpp {
             errorCheck(vlrLambertianScatteringSurfaceMaterialCreate(getRaw(m_context), (VLRLambertianScatteringSurfaceMaterial*)&m_raw));
         }
         ~LambertianScatteringSurfaceMaterialHolder() {
-            errorCheck(vlrLambertianScatteringSurfaceMaterialDestroy(getRaw(m_context), (VLRLambertianScatteringSurfaceMaterial)m_raw));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialDestroy(getRaw(m_context), get<VLRLambertianScatteringSurfaceMaterial>()));
         }
 
         void setNodeCoeff(const ShaderNodeSocket &node) {
             m_nodeCoeff = node;
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeCoeff((VLRLambertianScatteringSurfaceMaterial)m_raw, m_nodeCoeff.socket));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(get<VLRLambertianScatteringSurfaceMaterial>(), m_nodeCoeff.socket));
         }
         void setImmediateValueCoeff(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff((VLRLambertianScatteringSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(get<VLRLambertianScatteringSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeF0(const ShaderNodeSocket &node) {
             m_nodeF0 = node;
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeF0((VLRLambertianScatteringSurfaceMaterial)m_raw, m_nodeF0.socket));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetNodeF0(get<VLRLambertianScatteringSurfaceMaterial>(), m_nodeF0.socket));
         }
         void setImmediateValueF0(float value) {
-            errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueF0((VLRLambertianScatteringSurfaceMaterial)m_raw, value));
+            errorCheck(vlrLambertianScatteringSurfaceMaterialSetImmediateValueF0(get<VLRLambertianScatteringSurfaceMaterial>(), value));
         }
     };
 
@@ -727,28 +728,28 @@ namespace VLRCpp {
             errorCheck(vlrUE4SurfaceMaterialCreate(getRaw(m_context), (VLRUE4SurfaceMaterial*)&m_raw));
         }
         ~UE4SurfaceMaterialHolder() {
-            errorCheck(vlrUE4SurfaceMaterialDestroy(getRaw(m_context), (VLRUE4SurfaceMaterial)m_raw));
+            errorCheck(vlrUE4SurfaceMaterialDestroy(getRaw(m_context), get<VLRUE4SurfaceMaterial>()));
         }
 
         void setNodeBaseColor(const ShaderNodeSocket &node) {
             m_nodeBaseColor = node;
-            errorCheck(vlrUE4SufaceMaterialSetNodeBaseColor((VLRUE4SurfaceMaterial)m_raw, m_nodeBaseColor.socket));
+            errorCheck(vlrUE4SufaceMaterialSetNodeBaseColor(get<VLRUE4SurfaceMaterial>(), m_nodeBaseColor.socket));
         }
         void setImmediateValueBaseColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrUE4SufaceMaterialSetImmediateValueBaseColor((VLRUE4SurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrUE4SufaceMaterialSetImmediateValueBaseColor(get<VLRUE4SurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeOcclusionRoughnessMetallic(const ShaderNodeSocket &node) {
             m_nodeOcclusionRoughnessMetallic = node;
-            errorCheck(vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic((VLRUE4SurfaceMaterial)m_raw, m_nodeOcclusionRoughnessMetallic.socket));
+            errorCheck(vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic(get<VLRUE4SurfaceMaterial>(), m_nodeOcclusionRoughnessMetallic.socket));
         }
         void setImmediateValueOcclusion(float value) {
-            errorCheck(vlrUE4SufaceMaterialSetImmediateValueOcclusion((VLRUE4SurfaceMaterial)m_raw, value));
+            errorCheck(vlrUE4SufaceMaterialSetImmediateValueOcclusion(get<VLRUE4SurfaceMaterial>(), value));
         }
         void setImmediateValueRoughness(float value) {
-            errorCheck(vlrUE4SufaceMaterialSetImmediateValueRoughness((VLRUE4SurfaceMaterial)m_raw, value));
+            errorCheck(vlrUE4SufaceMaterialSetImmediateValueRoughness(get<VLRUE4SurfaceMaterial>(), value));
         }
         void setImmediateValueMetallic(float value) {
-            errorCheck(vlrUE4SufaceMaterialSetImmediateValueMetallic((VLRUE4SurfaceMaterial)m_raw, value));
+            errorCheck(vlrUE4SufaceMaterialSetImmediateValueMetallic(get<VLRUE4SurfaceMaterial>(), value));
         }
     };
 
@@ -764,29 +765,29 @@ namespace VLRCpp {
             errorCheck(vlrOldStyleSurfaceMaterialCreate(getRaw(m_context), (VLROldStyleSurfaceMaterial*)&m_raw));
         }
         ~OldStyleSurfaceMaterialHolder() {
-            errorCheck(vlrOldStyleSurfaceMaterialDestroy(getRaw(m_context), (VLROldStyleSurfaceMaterial)m_raw));
+            errorCheck(vlrOldStyleSurfaceMaterialDestroy(getRaw(m_context), get<VLROldStyleSurfaceMaterial>()));
         }
 
         void setNodeDiffuseColor(const ShaderNodeSocket &node) {
             m_nodeDiffuseColor = node;
-            errorCheck(vlrOldStyleSufaceMaterialSetNodeDiffuseColor((VLROldStyleSurfaceMaterial)m_raw, m_nodeDiffuseColor.socket));
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeDiffuseColor(get<VLROldStyleSurfaceMaterial>(), m_nodeDiffuseColor.socket));
         }
         void setImmediateValueDiffuseColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor((VLROldStyleSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor(get<VLROldStyleSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeSpecularColor(const ShaderNodeSocket &node) {
             m_nodeSpecularColor = node;
-            errorCheck(vlrOldStyleSufaceMaterialSetNodeSpecularColor((VLROldStyleSurfaceMaterial)m_raw, m_nodeSpecularColor.socket));
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeSpecularColor(get<VLROldStyleSurfaceMaterial>(), m_nodeSpecularColor.socket));
         }
         void setImmediateValueSpecularColor(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor((VLROldStyleSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor(get<VLROldStyleSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setNodeGlossiness(const ShaderNodeSocket &node) {
             m_nodeGlossiness = node;
-            errorCheck(vlrOldStyleSufaceMaterialSetNodeGlossiness((VLROldStyleSurfaceMaterial)m_raw, m_nodeSpecularColor.socket));
+            errorCheck(vlrOldStyleSufaceMaterialSetNodeGlossiness(get<VLROldStyleSurfaceMaterial>(), m_nodeSpecularColor.socket));
         }
         void setImmediateValueGlossiness(float value) {
-            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueGlossiness((VLROldStyleSurfaceMaterial)m_raw, value));
+            errorCheck(vlrOldStyleSufaceMaterialSetImmediateValueGlossiness(get<VLROldStyleSurfaceMaterial>(), value));
         }
     };
 
@@ -800,18 +801,18 @@ namespace VLRCpp {
             errorCheck(vlrDiffuseEmitterSurfaceMaterialCreate(getRaw(m_context), (VLRDiffuseEmitterSurfaceMaterial*)&m_raw));
         }
         ~DiffuseEmitterSurfaceMaterialHolder() {
-            errorCheck(vlrDiffuseEmitterSurfaceMaterialDestroy(getRaw(m_context), (VLRDiffuseEmitterSurfaceMaterial)m_raw));
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialDestroy(getRaw(m_context), get<VLRDiffuseEmitterSurfaceMaterial>()));
         }
 
         void setNodeEmittance(const ShaderNodeSocket &node) {
             m_nodeEmittance = node;
-            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, m_nodeEmittance.socket));
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(get<VLRDiffuseEmitterSurfaceMaterial>(), m_nodeEmittance.socket));
         }
         void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance((VLRDiffuseEmitterSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(get<VLRDiffuseEmitterSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setImmediateValueScale(float value) {
-            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueScale((VLRDiffuseEmitterSurfaceMaterial)m_raw, value));
+            errorCheck(vlrDiffuseEmitterSurfaceMaterialSetImmediateValueScale(get<VLRDiffuseEmitterSurfaceMaterial>(), value));
         }
     };
 
@@ -825,14 +826,14 @@ namespace VLRCpp {
             errorCheck(vlrMultiSurfaceMaterialCreate(getRaw(m_context), (VLRMultiSurfaceMaterial*)&m_raw));
         }
         ~MultiSurfaceMaterialHolder() {
-            errorCheck(vlrMultiSurfaceMaterialDestroy(getRaw(m_context), (VLRMultiSurfaceMaterial)m_raw));
+            errorCheck(vlrMultiSurfaceMaterialDestroy(getRaw(m_context), get<VLRMultiSurfaceMaterial>()));
         }
 
         void setSubMaterial(uint32_t index, const SurfaceMaterialRef &mat) {
             if (!mat)
                 return;
             m_materials[index] = mat;
-            errorCheck(vlrMultiSurfaceMaterialSetSubMaterial((VLRMultiSurfaceMaterial)m_raw, index, (VLRSurfaceMaterial)mat->get()));
+            errorCheck(vlrMultiSurfaceMaterialSetSubMaterial(get<VLRMultiSurfaceMaterial>(), index, mat->get<VLRSurfaceMaterial>()));
         }
     };
 
@@ -848,22 +849,22 @@ namespace VLRCpp {
             errorCheck(vlrEnvironmentEmitterSurfaceMaterialCreate(getRaw(m_context), (VLREnvironmentEmitterSurfaceMaterial*)&m_raw));
         }
         ~EnvironmentEmitterSurfaceMaterialHolder() {
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialDestroy(getRaw(m_context), (VLREnvironmentEmitterSurfaceMaterial)m_raw));
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialDestroy(getRaw(m_context), get<VLREnvironmentEmitterSurfaceMaterial>()));
         }
 
         void setNodeEmittanceTextured(const EnvironmentTextureShaderNodeRef &node) {
             m_nodeEmittanceTextured = node;
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured((VLREnvironmentEmitterSurfaceMaterial)m_raw, (VLREnvironmentTextureShaderNode)m_nodeEmittanceTextured->get()));
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(get<VLREnvironmentEmitterSurfaceMaterial>(), m_nodeEmittanceTextured->get<VLREnvironmentTextureShaderNode>()));
         }
         void setNodeEmittanceConstant(const ShaderNodeRef &node) {
             m_nodeEmittanceContant = node;
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant((VLREnvironmentEmitterSurfaceMaterial)m_raw, (VLRShaderNode)m_nodeEmittanceContant->get()));
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(get<VLREnvironmentEmitterSurfaceMaterial>(), m_nodeEmittanceContant->get<VLRShaderNode>()));
         }
         void setImmediateValueEmittance(VLRColorSpace colorSpace, float e0, float e1, float e2) {
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance((VLREnvironmentEmitterSurfaceMaterial)m_raw, colorSpace, e0, e1, e2));
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance(get<VLREnvironmentEmitterSurfaceMaterial>(), colorSpace, e0, e1, e2));
         }
         void setImmediateValueScale(float value) {
-            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale((VLREnvironmentEmitterSurfaceMaterial)m_raw, value));
+            errorCheck(vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(get<VLREnvironmentEmitterSurfaceMaterial>(), value));
         }
     };
 
@@ -887,7 +888,7 @@ namespace VLRCpp {
             errorCheck(vlrStaticTransformCreate(getRaw(m_context), (VLRStaticTransform*)&m_raw, matArray));
         }
         ~StaticTransformHolder() {
-            errorCheck(vlrStaticTransformDestroy(getRaw(m_context), (VLRStaticTransform)m_raw));
+            errorCheck(vlrStaticTransformDestroy(getRaw(m_context), get<VLRStaticTransform>()));
         }
     };
 
@@ -899,15 +900,15 @@ namespace VLRCpp {
 
         VLRNodeType getNodeType() const {
             VLRNodeType type;
-            errorCheck(vlrNodeGetType((VLRNode)m_raw, &type));
+            errorCheck(vlrNodeGetType(get<VLRNode>(), &type));
             return type;
         }
         void setName(const std::string &name) const {
-            errorCheck(vlrNodeSetName((VLRNode)m_raw, name.c_str()));
+            errorCheck(vlrNodeSetName(get<VLRNode>(), name.c_str()));
         }
         const char* getName() const {
             const char* name;
-            errorCheck(vlrNodeGetName((VLRNode)m_raw, &name));
+            errorCheck(vlrNodeGetName(get<VLRNode>(), &name));
             return name;
         }
     };
@@ -932,11 +933,11 @@ namespace VLRCpp {
             errorCheck(vlrTriangleMeshSurfaceNodeCreate(getRaw(m_context), (VLRTriangleMeshSurfaceNode*)&m_raw, name));
         }
         ~TriangleMeshSurfaceNodeHolder() {
-            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRaw(m_context), (VLRTriangleMeshSurfaceNode)m_raw));
+            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRaw(m_context), get<VLRTriangleMeshSurfaceNode>()));
         }
 
         void setVertices(VLR::Vertex* vertices, uint32_t numVertices) {
-            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices((VLRTriangleMeshSurfaceNode)m_raw, (VLRVertex*)vertices, numVertices));
+            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(get<VLRTriangleMeshSurfaceNode>(), (VLRVertex*)vertices, numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
@@ -945,8 +946,8 @@ namespace VLRCpp {
             m_materials.push_back(material);
             m_nodeNormals.push_back(nodeNormal);
             m_nodeAlphas.push_back(nodeAlpha);
-            errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup((VLRTriangleMeshSurfaceNode)m_raw, indices, numIndices,
-                                                                  (VLRSurfaceMaterial)material->get(), nodeNormal.socket, nodeAlpha.socket,
+            errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup(get<VLRTriangleMeshSurfaceNode>(), indices, numIndices,
+                                                                  material->get<VLRSurfaceMaterial>(), nodeNormal.socket, nodeAlpha.socket,
                                                                   tangentType));
         }
     };
@@ -960,15 +961,15 @@ namespace VLRCpp {
     public:
         InternalNodeHolder(const ContextConstRef &context, const char* name, const StaticTransformRef &transform) :
             NodeHolder(context), m_transform(transform) {
-            errorCheck(vlrInternalNodeCreate(getRaw(m_context), (VLRInternalNode*)&m_raw, name, (VLRTransform)m_transform->get()));
+            errorCheck(vlrInternalNodeCreate(getRaw(m_context), (VLRInternalNode*)&m_raw, name, m_transform->get<VLRTransform>()));
         }
         ~InternalNodeHolder() {
-            errorCheck(vlrInternalNodeDestroy(getRaw(m_context), (VLRInternalNode)m_raw));
+            errorCheck(vlrInternalNodeDestroy(getRaw(m_context), get<VLRInternalNode>()));
         }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            errorCheck(vlrInternalNodeSetTransform((VLRInternalNode)m_raw, (VLRTransform)transform->get()));
+            errorCheck(vlrInternalNodeSetTransform(get<VLRInternalNode>(), transform->get<VLRTransform>()));
         }
         StaticTransformRef getTransform() const {
             return m_transform;
@@ -976,19 +977,19 @@ namespace VLRCpp {
 
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild((VLRInternalNode)m_raw, child->get()));
+            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), child->get<VLRNode>()));
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild((VLRInternalNode)m_raw, child->get()));
+            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), child->get<VLRNode>()));
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild((VLRInternalNode)m_raw, child->get()));
+            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), child->get<VLRNode>()));
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild((VLRInternalNode)m_raw, child->get()));
+            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), child->get<VLRNode>()));
         }
         uint32_t getNumChildren() const {
             return (uint32_t)m_children.size();
@@ -1010,15 +1011,15 @@ namespace VLRCpp {
     public:
         SceneHolder(const ContextConstRef &context, const StaticTransformRef &transform) :
             Object(context), m_transform(transform) {
-            errorCheck(vlrSceneCreate(getRaw(m_context), (VLRScene*)&m_raw, (VLRTransform)m_transform->get()));
+            errorCheck(vlrSceneCreate(getRaw(m_context), (VLRScene*)&m_raw, m_transform->get<VLRTransform>()));
         }
         ~SceneHolder() {
-            errorCheck(vlrSceneDestroy(getRaw(m_context), (VLRScene)m_raw));
+            errorCheck(vlrSceneDestroy(getRaw(m_context), get<VLRScene>()));
         }
 
         void setTransform(const StaticTransformRef &transform) {
             m_transform = transform;
-            errorCheck(vlrSceneSetTransform((VLRScene)m_raw, (VLRTransform)transform->get()));
+            errorCheck(vlrSceneSetTransform(get<VLRScene>(), transform->get<VLRTransform>()));
         }
         StaticTransformRef getTransform() const {
             return m_transform;
@@ -1026,19 +1027,19 @@ namespace VLRCpp {
 
         void addChild(const InternalNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrSceneAddChild((VLRScene)m_raw, child->get()));
+            errorCheck(vlrSceneAddChild(get<VLRScene>(), child->get<VLRNode>()));
         }
         void removeChild(const InternalNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild((VLRScene)m_raw, child->get()));
+            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), child->get<VLRNode>()));
         }
         void addChild(const SurfaceNodeRef &child) {
             m_children.insert(child);
-            errorCheck(vlrSceneAddChild((VLRScene)m_raw, child->get()));
+            errorCheck(vlrSceneAddChild(get<VLRScene>(), child->get<VLRNode>()));
         }
         void removeChild(const SurfaceNodeRef &child) {
             m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild((VLRScene)m_raw, child->get()));
+            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), child->get<VLRNode>()));
         }
         uint32_t getNumChildren() const {
             return (uint32_t)m_children.size();
@@ -1051,11 +1052,11 @@ namespace VLRCpp {
 
         void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv, float rotationPhi) {
             m_matEnv = matEnv;
-            errorCheck(vlrSceneSetEnvironment((VLRScene)m_raw, (VLREnvironmentEmitterSurfaceMaterial)m_matEnv->get()));
-            errorCheck(vlrSceneSetEnvironmentRotation((VLRScene)m_raw, rotationPhi));
+            errorCheck(vlrSceneSetEnvironment(get<VLRScene>(), m_matEnv->get<VLREnvironmentEmitterSurfaceMaterial>()));
+            errorCheck(vlrSceneSetEnvironmentRotation(get<VLRScene>(), rotationPhi));
         }
         void setEnvironmentRotation(float rotationPhi) {
-            errorCheck(vlrSceneSetEnvironmentRotation((VLRScene)m_raw, rotationPhi));
+            errorCheck(vlrSceneSetEnvironmentRotation(get<VLRScene>(), rotationPhi));
         }
     };
 
@@ -1067,7 +1068,7 @@ namespace VLRCpp {
 
         VLRCameraType getCameraType() const {
             VLRCameraType type;
-            errorCheck(vlrCameraGetType((VLRCamera)m_raw, &type));
+            errorCheck(vlrCameraGetType(get<VLRCamera>(), &type));
             return type;
         }
     };
@@ -1081,51 +1082,51 @@ namespace VLRCpp {
             errorCheck(vlrPerspectiveCameraCreate(getRaw(m_context), (VLRPerspectiveCamera*)&m_raw));
         }
         ~PerspectiveCameraHolder() {
-            errorCheck(vlrPerspectiveCameraDestroy(getRaw(m_context), (VLRPerspectiveCamera)m_raw));
+            errorCheck(vlrPerspectiveCameraDestroy(getRaw(m_context), get<VLRPerspectiveCamera>()));
         }
 
         void setPosition(const VLR::Point3D &position) {
-            errorCheck(vlrPerspectiveCameraSetPosition((VLRPerspectiveCamera)m_raw, (VLRPoint3D*)&position));
+            errorCheck(vlrPerspectiveCameraSetPosition(get<VLRPerspectiveCamera>(), (VLRPoint3D*)&position));
         }
         void setOrientation(const VLR::Quaternion &orientation) {
-            errorCheck(vlrPerspectiveCameraSetOrientation((VLRPerspectiveCamera)m_raw, (VLRQuaternion*)&orientation));
+            errorCheck(vlrPerspectiveCameraSetOrientation(get<VLRPerspectiveCamera>(), (VLRQuaternion*)&orientation));
         }
         void setAspectRatio(float aspect) {
-            errorCheck(vlrPerspectiveCameraSetAspectRatio((VLRPerspectiveCamera)m_raw, aspect));
+            errorCheck(vlrPerspectiveCameraSetAspectRatio(get<VLRPerspectiveCamera>(), aspect));
         }
         void setSensitivity(float sensitivity) {
-            errorCheck(vlrPerspectiveCameraSetSensitivity((VLRPerspectiveCamera)m_raw, sensitivity));
+            errorCheck(vlrPerspectiveCameraSetSensitivity(get<VLRPerspectiveCamera>(), sensitivity));
         }
         void setFovY(float fovY) {
-            errorCheck(vlrPerspectiveCameraSetFovY((VLRPerspectiveCamera)m_raw, fovY));
+            errorCheck(vlrPerspectiveCameraSetFovY(get<VLRPerspectiveCamera>(), fovY));
         }
         void setLensRadius(float lensRadius) {
-            errorCheck(vlrPerspectiveCameraSetLensRadius((VLRPerspectiveCamera)m_raw, lensRadius));
+            errorCheck(vlrPerspectiveCameraSetLensRadius(get<VLRPerspectiveCamera>(), lensRadius));
         }
         void setObjectPlaneDistance(float distance) {
-            errorCheck(vlrPerspectiveCameraSetObjectPlaneDistance((VLRPerspectiveCamera)m_raw, distance));
+            errorCheck(vlrPerspectiveCameraSetObjectPlaneDistance(get<VLRPerspectiveCamera>(), distance));
         }
 
         void getPosition(VLR::Point3D* position) {
-            errorCheck(vlrPerspectiveCameraGetPosition((VLRPerspectiveCamera)m_raw, (VLRPoint3D*)position));
+            errorCheck(vlrPerspectiveCameraGetPosition(get<VLRPerspectiveCamera>(), (VLRPoint3D*)position));
         }
         void getOrientation(VLR::Quaternion* orientation) {
-            errorCheck(vlrPerspectiveCameraGetOrientation((VLRPerspectiveCamera)m_raw, (VLRQuaternion*)orientation));
+            errorCheck(vlrPerspectiveCameraGetOrientation(get<VLRPerspectiveCamera>(), (VLRQuaternion*)orientation));
         }
         void getAspectRatio(float* aspect) {
-            errorCheck(vlrPerspectiveCameraGetAspectRatio((VLRPerspectiveCamera)m_raw, aspect));
+            errorCheck(vlrPerspectiveCameraGetAspectRatio(get<VLRPerspectiveCamera>(), aspect));
         }
         void getSensitivity(float* sensitivity) {
-            errorCheck(vlrPerspectiveCameraGetSensitivity((VLRPerspectiveCamera)m_raw, sensitivity));
+            errorCheck(vlrPerspectiveCameraGetSensitivity(get<VLRPerspectiveCamera>(), sensitivity));
         }
         void getFovY(float* fovY) {
-            errorCheck(vlrPerspectiveCameraGetFovY((VLRPerspectiveCamera)m_raw, fovY));
+            errorCheck(vlrPerspectiveCameraGetFovY(get<VLRPerspectiveCamera>(), fovY));
         }
         void getLensRadius(float* lensRadius) {
-            errorCheck(vlrPerspectiveCameraGetLensRadius((VLRPerspectiveCamera)m_raw, lensRadius));
+            errorCheck(vlrPerspectiveCameraGetLensRadius(get<VLRPerspectiveCamera>(), lensRadius));
         }
         void getObjectPlaneDistance(float* distance) {
-            errorCheck(vlrPerspectiveCameraGetObjectPlaneDistance((VLRPerspectiveCamera)m_raw, distance));
+            errorCheck(vlrPerspectiveCameraGetObjectPlaneDistance(get<VLRPerspectiveCamera>(), distance));
         }
     };
 
@@ -1138,33 +1139,33 @@ namespace VLRCpp {
             errorCheck(vlrEquirectangularCameraCreate(getRaw(m_context), (VLREquirectangularCamera*)&m_raw));
         }
         ~EquirectangularCameraHolder() {
-            errorCheck(vlrEquirectangularCameraDestroy(getRaw(m_context), (VLREquirectangularCamera)m_raw));
+            errorCheck(vlrEquirectangularCameraDestroy(getRaw(m_context), get<VLREquirectangularCamera>()));
         }
 
         void setPosition(const VLR::Point3D &position) {
-            errorCheck(vlrEquirectangularCameraSetPosition((VLREquirectangularCamera)m_raw, (VLRPoint3D*)&position));
+            errorCheck(vlrEquirectangularCameraSetPosition(get<VLREquirectangularCamera>(), (VLRPoint3D*)&position));
         }
         void setOrientation(const VLR::Quaternion &orientation) {
-            errorCheck(vlrEquirectangularCameraSetOrientation((VLREquirectangularCamera)m_raw, (VLRQuaternion*)&orientation));
+            errorCheck(vlrEquirectangularCameraSetOrientation(get<VLREquirectangularCamera>(), (VLRQuaternion*)&orientation));
         }
         void setSensitivity(float sensitivity) {
-            errorCheck(vlrEquirectangularCameraSetSensitivity((VLREquirectangularCamera)m_raw, sensitivity));
+            errorCheck(vlrEquirectangularCameraSetSensitivity(get<VLREquirectangularCamera>(), sensitivity));
         }
         void setAngles(float phiAngle, float thetaAngle) {
-            errorCheck(vlrEquirectangularCameraSetAngles((VLREquirectangularCamera)m_raw, phiAngle, thetaAngle));
+            errorCheck(vlrEquirectangularCameraSetAngles(get<VLREquirectangularCamera>(), phiAngle, thetaAngle));
         }
 
         void getPosition(VLR::Point3D* position) {
-            errorCheck(vlrEquirectangularCameraGetPosition((VLREquirectangularCamera)m_raw, (VLRPoint3D*)position));
+            errorCheck(vlrEquirectangularCameraGetPosition(get<VLREquirectangularCamera>(), (VLRPoint3D*)position));
         }
         void getOrientation(VLR::Quaternion* orientation) {
-            errorCheck(vlrEquirectangularCameraGetOrientation((VLREquirectangularCamera)m_raw, (VLRQuaternion*)orientation));
+            errorCheck(vlrEquirectangularCameraGetOrientation(get<VLREquirectangularCamera>(), (VLRQuaternion*)orientation));
         }
         void getSensitivity(float* sensitivity) {
-            errorCheck(vlrEquirectangularCameraGetSensitivity((VLREquirectangularCamera)m_raw, sensitivity));
+            errorCheck(vlrEquirectangularCameraGetSensitivity(get<VLREquirectangularCamera>(), sensitivity));
         }
         void getAngles(float* phiAngle, float* thetaAngle) {
-            errorCheck(vlrEquirectangularCameraGetAngles((VLREquirectangularCamera)m_raw, phiAngle, thetaAngle));
+            errorCheck(vlrEquirectangularCameraGetAngles(get<VLREquirectangularCamera>(), phiAngle, thetaAngle));
         }
     };
 
@@ -1173,6 +1174,7 @@ namespace VLRCpp {
     class Context : public std::enable_shared_from_this<Context> {
         VLRContext m_rawContext;
         GeometryShaderNodeRef m_geomShaderNode;
+        StaticTransformRef m_identityTransform;
 
         Context() {}
 
@@ -1180,6 +1182,7 @@ namespace VLRCpp {
                         const int32_t* devices, uint32_t numDevices) {
             errorCheck(vlrCreateContext(&m_rawContext, logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices));
             m_geomShaderNode = std::make_shared<GeometryShaderNodeHolder>(shared_from_this());
+            m_identityTransform = std::make_shared<StaticTransformHolder>(shared_from_this(), VLR::Matrix4x4::Identity());
         }
 
     public:
@@ -1217,11 +1220,11 @@ namespace VLRCpp {
         }
 
         void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), shrinkCoeff, firstFrame, numAccumFrames));
+            errorCheck(vlrContextRender(m_rawContext, scene->get<VLRScene>(), camera->get<VLRCamera>(), shrinkCoeff, firstFrame, numAccumFrames));
         }
 
         void debugRender(const SceneRef &scene, const CameraRef &camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextDebugRender(m_rawContext, (VLRScene)scene->get(), (VLRCamera)camera->get(), renderMode, shrinkCoeff, firstFrame, numAccumFrames));
+            errorCheck(vlrContextDebugRender(m_rawContext, scene->get<VLRScene>(), camera->get<VLRCamera>(), renderMode, shrinkCoeff, firstFrame, numAccumFrames));
         }
 
 
@@ -1236,7 +1239,7 @@ namespace VLRCpp {
 
 
 
-        GeometryShaderNodeRef createGeometryShaderNode() const {
+        const GeometryShaderNodeRef &createGeometryShaderNode() const {
             return m_geomShaderNode;
         }
 
@@ -1340,16 +1343,20 @@ namespace VLRCpp {
             return std::make_shared<StaticTransformHolder>(shared_from_this(), mat);
         }
 
+        const StaticTransformRef &getIdentityTransform() const {
+            return m_identityTransform;
+        }
+
         TriangleMeshSurfaceNodeRef createTriangleMeshSurfaceNode(const char* name) const {
             return std::make_shared<TriangleMeshSurfaceNodeHolder>(shared_from_this(), name);
         }
 
-        InternalNodeRef createInternalNode(const char* name, const StaticTransformRef &transform) const {
-            return std::make_shared<InternalNodeHolder>(shared_from_this(), name, transform);
+        InternalNodeRef createInternalNode(const char* name, const StaticTransformRef &transform = nullptr) const {
+            return std::make_shared<InternalNodeHolder>(shared_from_this(), name, transform ? transform : getIdentityTransform());
         }
 
-        SceneRef createScene(const StaticTransformRef &transform) const {
-            return std::make_shared<SceneHolder>(shared_from_this(), transform);
+        SceneRef createScene(const StaticTransformRef &transform = nullptr) const {
+            return std::make_shared<SceneHolder>(shared_from_this(), transform ? transform : getIdentityTransform());
         }
 
         PerspectiveCameraRef createPerspectiveCamera() const {

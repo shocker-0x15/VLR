@@ -1733,7 +1733,7 @@ VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, VLRTransform
     return VLRResult_NoError;
 }
 
-VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRObject child) {
+VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRNode child) {
     VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
     if (child == nullptr)
         return VLRResult_InvalidArgument;
@@ -1748,7 +1748,7 @@ VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRObject child)
     return VLRResult_NoError;
 }
 
-VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRObject child) {
+VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRNode child) {
     VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
     if (child == nullptr)
         return VLRResult_InvalidArgument;
@@ -1793,7 +1793,7 @@ VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransform localToWorld
     return VLRResult_NoError;
 }
 
-VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child) {
+VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRNode child) {
     VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
     if (child == nullptr)
         return VLRResult_InvalidArgument;
@@ -1808,7 +1808,7 @@ VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRObject child) {
     return VLRResult_NoError;
 }
 
-VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRObject child) {
+VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRNode child) {
     VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
     if (child == nullptr)
         return VLRResult_InvalidArgument;
