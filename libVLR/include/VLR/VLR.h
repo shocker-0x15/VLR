@@ -33,6 +33,7 @@ extern "C" {
         VLRResult_InvalidInstance,
         VLRResult_InvalidArgument,
         VLRResult_IncompatibleNodeType,
+        VLRResult_InternalError,
     };
 
 #if !defined(__cplusplus)
