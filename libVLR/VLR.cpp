@@ -2,7 +2,9 @@
 
 #include "scene.h"
 
-#define VLR_DEFINE_C_ALIAS(name) typedef VLR::name* VLR ## name
+#define VLR_DEFINE_C_ALIAS(name) \
+    typedef VLR::name* VLR ## name; \
+    typedef const VLR::name* VLR ## name ## Const
 
 VLR_DEFINE_C_ALIAS(Object);
 
@@ -40,7 +42,6 @@ VLR_DEFINE_C_ALIAS(MultiSurfaceMaterial);
 VLR_DEFINE_C_ALIAS(EnvironmentEmitterSurfaceMaterial);
 
 VLR_DEFINE_C_ALIAS(Transform);
-typedef VLR::Transform const* VLRTransformConst;
 VLR_DEFINE_C_ALIAS(StaticTransform);
 
 VLR_DEFINE_C_ALIAS(Node);
@@ -249,7 +250,7 @@ VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* wi
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
         if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
@@ -261,7 +262,7 @@ VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCamera camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
         if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
@@ -275,7 +276,7 @@ VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRC
 
 
 
-VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width) {
+VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
         if (width == nullptr)
@@ -288,7 +289,7 @@ VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height) {
+VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
         if (height == nullptr)
@@ -301,7 +302,7 @@ VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
+VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
 
@@ -312,7 +313,7 @@ VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2D image, VLRDataFormat* format) {
+VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, VLRDataFormat* format) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
 
@@ -323,7 +324,7 @@ VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2D image, VLRDataForma
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha) {
+VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
 
@@ -395,7 +396,7 @@ VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockC
 
 
 
-VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t option,
+VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNodeConst node, VLRShaderNodeSocketType socketType, uint32_t option,
                                          VLRShaderNodeSocket* socket) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ShaderNode);
@@ -2008,7 +2009,7 @@ VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSur
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterial mat) {
+VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterialConst mat) {
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MultiSurfaceMaterial);
 
@@ -2046,7 +2047,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNode node) {
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNodeConst node) {
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
         if (!validateArgument<VLR::EnvironmentTextureShaderNode>(node))
@@ -2060,7 +2061,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(V
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNode node) {
+VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNodeConst node) {
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
         if (!validateArgument<VLR::ShaderNode>(node))
@@ -2098,6 +2099,19 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(VLR
 
 
 
+VLR_API VLRResult vlrTransformGetType(VLRTransform transform, VLRTransformType* type) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(transform, VLR::Transform);
+        if (type == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *type = transform->getType();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 VLR_API VLRResult vlrStaticTransformCreate(VLRContext context, VLRStaticTransform* transform,
                                            const float mat[16]) {
     try {
@@ -2123,6 +2137,19 @@ VLR_API VLRResult vlrStaticTransformDestroy(VLRContext context, VLRStaticTransfo
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrStaticTransformGetArrays(VLRStaticTransformConst transform, float mat[16], float invMat[16]) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(transform, VLR::StaticTransform);
+        if (mat == nullptr || invMat == nullptr)
+            return VLRResult_InvalidArgument;
+
+        transform->getArrays(mat, invMat);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 
 
 VLR_API VLRResult vlrNodeSetName(VLRNode node, const char* name) {
@@ -2138,7 +2165,7 @@ VLR_API VLRResult vlrNodeSetName(VLRNode node, const char* name) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrNodeGetName(VLRNode node, const char** name) {
+VLR_API VLRResult vlrNodeGetName(VLRNodeConst node, const char** name) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Node);
         if (name == nullptr)
@@ -2151,7 +2178,7 @@ VLR_API VLRResult vlrNodeGetName(VLRNode node, const char** name) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrNodeGetType(VLRNode node, VLRNodeType* type) {
+VLR_API VLRResult vlrNodeGetType(VLRNodeConst node, VLRNodeType* type) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Node);
         if (type == nullptr)
@@ -2190,7 +2217,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTrian
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices) {
+VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, const VLRVertex* vertices, uint32_t numVertices) {
     try {
         VLR_RETURN_INVALID_INSTANCE(surfaceNode, VLR::TriangleMeshSurfaceNode);
         if (vertices == nullptr)
@@ -2207,8 +2234,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
-                                                             VLRSurfaceMaterial material, VLRShaderNodeSocket nodeNormal, VLRShaderNodeSocket nodeAlpha,
+VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
+                                                             VLRSurfaceMaterialConst material, VLRShaderNodeSocket nodeNormal, VLRShaderNodeSocket nodeAlpha,
                                                              VLRTangentType tangentType) {
     try {
         VLR_RETURN_INVALID_INSTANCE(surfaceNode, VLR::TriangleMeshSurfaceNode);
@@ -2232,7 +2259,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
 
 VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                        const char* name, VLRTransform transform) {
+                                        const char* name, VLRTransformConst transform) {
     try {
         if (node == nullptr || !validateArgument<VLR::Transform>(transform))
             return VLRResult_InvalidArgument;
@@ -2255,7 +2282,7 @@ VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode nod
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransform localToWorld) {
+VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransformConst localToWorld) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
         if (!validateArgument<VLR::Transform>(localToWorld))
@@ -2268,7 +2295,7 @@ VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransform
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, VLRTransformConst* localToWorld) {
+VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNodeConst node, VLRTransformConst* localToWorld) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
         if (localToWorld == nullptr)
@@ -2317,10 +2344,36 @@ VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRNode child
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrInternalNodeGetNumChildren(VLRInternalNodeConst node, uint32_t* numChildren) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
+        if (numChildren == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *numChildren = node->getNumChildren();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrInternalNodeGetChildAt(VLRInternalNodeConst node, uint32_t index, VLRNode* child) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
+        if (child == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *child = node->getChildAt(index);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 
 
 VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                 VLRTransform transform) {
+                                 VLRTransformConst transform) {
     try {
         if (scene == nullptr || !validateArgument<VLR::Transform>(transform))
             return VLRResult_InvalidArgument;
@@ -2343,7 +2396,7 @@ VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransform localToWorld) {
+VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransformConst localToWorld) {
     try {
         VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
         if (!validateArgument<VLR::Transform>(localToWorld))
@@ -2392,6 +2445,32 @@ VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRNode child) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrSceneGetNumChildren(VLRSceneConst scene, uint32_t* numChildren) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
+        if (numChildren == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *numChildren = scene->getNumChildren();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrSceneGetChildAt(VLRSceneConst scene, uint32_t index, VLRNode* child) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
+        if (child == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *child = scene->getChildAt(index);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material) {
     try {
         VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
@@ -2419,7 +2498,7 @@ VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationP
 
 
 
-VLR_API VLRResult vlrCameraGetType(VLRCamera camera, VLRCameraType* type) {
+VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, VLRCameraType* type) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
         if (type == nullptr)
@@ -2539,7 +2618,7 @@ VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamer
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCamera camera, VLRPoint3D* position) {
+VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCameraConst camera, VLRPoint3D* position) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (position == nullptr)
@@ -2552,7 +2631,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCamera camera, V
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCamera camera, VLRQuaternion* orientation) {
+VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCameraConst camera, VLRQuaternion* orientation) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (orientation == nullptr)
@@ -2565,7 +2644,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCamera camera
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCamera camera, float* aspect) {
+VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCameraConst camera, float* aspect) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (aspect == nullptr)
@@ -2578,7 +2657,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCamera camera
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCamera camera, float* sensitivity) {
+VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCameraConst camera, float* sensitivity) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (sensitivity == nullptr)
@@ -2591,7 +2670,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCamera camera
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCamera camera, float* fovY) {
+VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCameraConst camera, float* fovY) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (fovY == nullptr)
@@ -2604,7 +2683,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCamera camera, float
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCamera camera, float* lensRadius) {
+VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCameraConst camera, float* lensRadius) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (lensRadius == nullptr)
@@ -2617,7 +2696,7 @@ VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCamera camera,
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCamera camera, float* distance) {
+VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCameraConst camera, float* distance) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
         if (distance == nullptr)
@@ -2703,7 +2782,7 @@ VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera cam
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCamera camera, VLRPoint3D* position) {
+VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCameraConst camera, VLRPoint3D* position) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
         if (position == nullptr)
@@ -2716,7 +2795,7 @@ VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCamera c
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCamera camera, VLRQuaternion* orientation) {
+VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCameraConst camera, VLRQuaternion* orientation) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
         if (orientation == nullptr)
@@ -2729,7 +2808,7 @@ VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCamer
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCamera camera, float* sensitivity) {
+VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCameraConst camera, float* sensitivity) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
         if (sensitivity == nullptr)
@@ -2742,7 +2821,7 @@ VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCamer
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCamera camera, float* phiAngle, float* thetaAngle) {
+VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCameraConst camera, float* phiAngle, float* thetaAngle) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
         if (phiAngle == nullptr || thetaAngle == nullptr)

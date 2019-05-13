@@ -762,6 +762,22 @@ namespace VLR {
             it->second->setName(name);
     }
 
+    void ParentNode::setTransform(const Transform* localToWorld) {
+        m_localToWorld = localToWorld;
+
+        // JP: 管理中のSHTransformを更新する。
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
+            if (m_localToWorld->isStatic()) {
+                StaticTransform* tr = (StaticTransform*)m_localToWorld;
+                SHTransform* shtr = it->second;
+                shtr->setTransform(*tr);
+            }
+            else {
+                VLRAssert_NotImplemented();
+            }
+        }
+    }
+
     void ParentNode::addChild(InternalNode* child) {
         m_children.insert(child);
         child->addParent(this);
@@ -782,20 +798,16 @@ namespace VLR {
         child->removeParent(this);
     }
 
-    void ParentNode::setTransform(const Transform* localToWorld) {
-        m_localToWorld = localToWorld;
+    uint32_t ParentNode::getNumChildren() const {
+        return (uint32_t)m_children.size();
+    }
 
-        // JP: 管理中のSHTransformを更新する。
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
-            if (m_localToWorld->isStatic()) {
-                StaticTransform* tr = (StaticTransform*)m_localToWorld;
-                SHTransform* shtr = it->second;
-                shtr->setTransform(*tr);
-            }
-            else {
-                VLRAssert_NotImplemented();
-            }
-        }
+    Node* ParentNode::getChildAt(uint32_t index) const {
+        if (index >= getNumChildren())
+            return nullptr;
+        auto it = m_children.cbegin();
+        std::advance(it, index);
+        return *it;
     }
 
 

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <set>
+#include <map>
 #include <memory>
 
 #include "VLR.h"
@@ -873,6 +873,12 @@ namespace VLRCpp {
     class TransformHolder : public Object {
     public:
         TransformHolder(const ContextConstRef &context) : Object(context) {}
+
+        VLRTransformType getTransformType() const {
+            VLRTransformType type;
+            errorCheck(vlrTransformGetType(get<VLRTransform>(), &type));
+            return type;
+        }
     };
 
 
@@ -889,6 +895,16 @@ namespace VLRCpp {
         }
         ~StaticTransformHolder() {
             errorCheck(vlrStaticTransformDestroy(getRaw(m_context), get<VLRStaticTransform>()));
+        }
+
+        void getArrays(float mat[16], float invMat[16]) const {
+            errorCheck(vlrStaticTransformGetArrays(get<VLRStaticTransform>(), mat, invMat));
+        }
+        void getMatrices(VLR::Matrix4x4* mat, VLR::Matrix4x4* invMat) const {
+            float aMat[16], aInvMat[16];
+            getArrays(aMat, aInvMat);
+            *mat = VLR::Matrix4x4(aMat);
+            *invMat = VLR::Matrix4x4(aInvMat);
         }
     };
 
@@ -956,7 +972,7 @@ namespace VLRCpp {
 
     class InternalNodeHolder : public NodeHolder {
         TransformRef m_transform;
-        std::set<NodeRef> m_children;
+        std::map<VLRNode, NodeRef> m_children;
 
     public:
         InternalNodeHolder(const ContextConstRef &context, const char* name, const TransformRef &transform) :
@@ -976,28 +992,38 @@ namespace VLRCpp {
         }
 
         void addChild(const InternalNodeRef &child) {
-            m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children[rawChild] = child;
+            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), rawChild));
         }
         void removeChild(const InternalNodeRef &child) {
-            m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children.erase(rawChild);
+            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), rawChild));
         }
         void addChild(const SurfaceNodeRef &child) {
-            m_children.insert(child);
-            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children[rawChild] = child;
+            errorCheck(vlrInternalNodeAddChild(get<VLRInternalNode>(), rawChild));
         }
         void removeChild(const SurfaceNodeRef &child) {
-            m_children.erase(child);
-            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children.erase(rawChild);
+            errorCheck(vlrInternalNodeRemoveChild(get<VLRInternalNode>(), rawChild));
         }
         uint32_t getNumChildren() const {
-            return (uint32_t)m_children.size();
+            uint32_t numChildren;
+            errorCheck(vlrInternalNodeGetNumChildren(get<VLRInternalNode>(), &numChildren));
+            return numChildren;
         }
         NodeRef getChildAt(uint32_t index) const {
-            auto it = m_children.cbegin();
-            std::advance(it, index);
-            return *it;
+            VLRNode rawChild;
+            errorCheck(vlrInternalNodeGetChildAt(get<VLRInternalNode>(), index, &rawChild));
+
+            if (m_children.count(rawChild))
+                return m_children.at(rawChild);
+
+            return nullptr;
         }
     };
 
@@ -1005,7 +1031,7 @@ namespace VLRCpp {
 
     class SceneHolder : public Object {
         TransformRef m_transform;
-        std::set<NodeRef> m_children;
+        std::map<VLRNode, NodeRef> m_children;
         EnvironmentEmitterSurfaceMaterialRef m_matEnv;
 
     public:
@@ -1026,28 +1052,38 @@ namespace VLRCpp {
         }
 
         void addChild(const InternalNodeRef &child) {
-            m_children.insert(child);
-            errorCheck(vlrSceneAddChild(get<VLRScene>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children[rawChild] = child;
+            errorCheck(vlrSceneAddChild(get<VLRScene>(), rawChild));
         }
         void removeChild(const InternalNodeRef &child) {
-            m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children.erase(rawChild);
+            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), rawChild));
         }
         void addChild(const SurfaceNodeRef &child) {
-            m_children.insert(child);
-            errorCheck(vlrSceneAddChild(get<VLRScene>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children[rawChild] = child;
+            errorCheck(vlrSceneAddChild(get<VLRScene>(), rawChild));
         }
         void removeChild(const SurfaceNodeRef &child) {
-            m_children.erase(child);
-            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), child->get<VLRNode>()));
+            VLRNode rawChild = child->get<VLRNode>();
+            m_children.erase(rawChild);
+            errorCheck(vlrSceneRemoveChild(get<VLRScene>(), rawChild));
         }
         uint32_t getNumChildren() const {
-            return (uint32_t)m_children.size();
+            uint32_t numChildren;
+            errorCheck(vlrSceneGetNumChildren(get<VLRScene>(), &numChildren));
+            return numChildren;
         }
         NodeRef getChildAt(uint32_t index) const {
-            auto it = m_children.cbegin();
-            std::advance(it, index);
-            return *it;
+            VLRNode rawChild;
+            errorCheck(vlrSceneGetChildAt(get<VLRScene>(), index, &rawChild));
+
+            if (m_children.count(rawChild))
+                return m_children.at(rawChild);
+
+            return nullptr;
         }
 
         void setEnvironment(const EnvironmentEmitterSurfaceMaterialRef &matEnv, float rotationPhi) {

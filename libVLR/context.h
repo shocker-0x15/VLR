@@ -117,8 +117,8 @@ namespace VLR {
         void unmapOutputBuffer();
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
-        void render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-        void debugRender(Scene &scene, Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         const optix::Context &getOptiXContext() const {
             return m_optixContext;

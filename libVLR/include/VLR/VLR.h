@@ -41,7 +41,9 @@ extern "C" {
 #endif
 
 #if !defined(VLR_API_EXPORTS)
-#   define VLR_DEFINE_OPAQUE_TYPE(name) typedef struct VLR ## name ## _API* VLR ## name
+#   define VLR_DEFINE_OPAQUE_TYPE(name) \
+        typedef struct VLR ## name ## _API* VLR ## name; \
+        typedef const struct VLR ## name ## _API* VLR ## name ## Const
 
     VLR_DEFINE_OPAQUE_TYPE(Object);
 
@@ -79,7 +81,6 @@ extern "C" {
     VLR_DEFINE_OPAQUE_TYPE(EnvironmentEmitterSurfaceMaterial);
 
     VLR_DEFINE_OPAQUE_TYPE(Transform);
-    typedef const struct VLRTransform_API* VLRTransformConst;
     VLR_DEFINE_OPAQUE_TYPE(StaticTransform);
 
     VLR_DEFINE_OPAQUE_TYPE(Node);
@@ -107,16 +108,16 @@ extern "C" {
     VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr);
     VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context);
     VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height);
-    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCamera camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-    VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCamera camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+    VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
 
 
-    VLR_API VLRResult vlrImage2DGetWidth(VLRImage2D image, uint32_t* width);
-    VLR_API VLRResult vlrImage2DGetHeight(VLRImage2D image, uint32_t* height);
-    VLR_API VLRResult vlrImage2DGetStride(VLRImage2D image, uint32_t* stride);
-    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2D image, VLRDataFormat* format);
-    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2D image, bool* hasAlpha);
+    VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width);
+    VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height);
+    VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride);
+    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, VLRDataFormat* format);
+    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint8_t* linearData, uint32_t width, uint32_t height,
@@ -130,7 +131,7 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNode node, VLRShaderNodeSocketType socketType, uint32_t option, 
+    VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNodeConst node, VLRShaderNodeSocketType socketType, uint32_t option, 
                                              VLRShaderNodeSocket* socket);
 
     VLR_API VLRResult vlrGeometryShaderNodeCreate(VLRContext context, VLRGeometryShaderNode* node);
@@ -291,57 +292,64 @@ extern "C" {
 
     VLR_API VLRResult vlrMultiSurfaceMaterialCreate(VLRContext context, VLRMultiSurfaceMaterial* material);
     VLR_API VLRResult vlrMultiSurfaceMaterialDestroy(VLRContext context, VLRMultiSurfaceMaterial material);
-    VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterial mat);
+    VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial material, uint32_t index, VLRSurfaceMaterialConst mat);
 
     VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialCreate(VLRContext context, VLREnvironmentEmitterSurfaceMaterial* material);
     VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context, VLREnvironmentEmitterSurfaceMaterial material);
-    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNode node);
-    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNode node);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNodeConst node);
+    VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNodeConst node);
     VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance(VLREnvironmentEmitterSurfaceMaterial material, VLRColorSpace colorSpace, float e0, float e1, float e2);
     VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(VLREnvironmentEmitterSurfaceMaterial material, float value);
 
 
 
+    VLR_API VLRResult vlrTransformGetType(VLRTransformConst transform, VLRTransformType* type);
+
     VLR_API VLRResult vlrStaticTransformCreate(VLRContext context, VLRStaticTransform* transform, 
                                                const float mat[16]);
     VLR_API VLRResult vlrStaticTransformDestroy(VLRContext context, VLRStaticTransform transform);
+    VLR_API VLRResult vlrStaticTransformGetArrays(VLRStaticTransformConst transform, float mat[16], float invMat[16]);
 
 
 
     VLR_API VLRResult vlrNodeSetName(VLRNode node, const char* name);
-    VLR_API VLRResult vlrNodeGetName(VLRNode node, const char** name);
-    VLR_API VLRResult vlrNodeGetType(VLRNode node, VLRNodeType* type);
+    VLR_API VLRResult vlrNodeGetName(VLRNodeConst node, const char** name);
+    VLR_API VLRResult vlrNodeGetType(VLRNodeConst node, VLRNodeType* type);
     
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode,
                                                        const char* name);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTriangleMeshSurfaceNode surfaceNode);
-    VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, VLRVertex* vertices, uint32_t numVertices);
-    VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, uint32_t* indices, uint32_t numIndices, 
-                                                                 VLRSurfaceMaterial material, VLRShaderNodeSocket nodeNormal, VLRShaderNodeSocket nodeAlpha,
+    VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, const VLRVertex* vertices, uint32_t numVertices);
+    VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
+                                                                 VLRSurfaceMaterialConst material, VLRShaderNodeSocket nodeNormal, VLRShaderNodeSocket nodeAlpha,
                                                                  VLRTangentType tangentType);
 
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
-                                            const char* name, VLRTransform transform);
+                                            const char* name, VLRTransformConst transform);
     VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode node);
-    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransform localToWorld);
-    VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNode node, VLRTransformConst* localToWorld);
+    VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransformConst localToWorld);
+    VLR_API VLRResult vlrInternalNodeGetTransform(VLRInternalNodeConst node, VLRTransformConst* localToWorld);
     VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRNode child);
     VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRNode child);
+    VLR_API VLRResult vlrInternalNodeGetNumChildren(VLRInternalNodeConst node, uint32_t* numChildren);
+    VLR_API VLRResult vlrInternalNodeGetChildAt(VLRInternalNodeConst node, uint32_t index, VLRNode* child);
 
 
 
     VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
-                                     VLRTransform transform);
+                                     VLRTransformConst transform);
     VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene);
-    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransform localToWorld);
+    VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransformConst localToWorld);
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRNode child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRNode child);
+    VLR_API VLRResult vlrSceneGetNumChildren(VLRSceneConst scene, uint32_t* numChildren);
+    VLR_API VLRResult vlrSceneGetChildAt(VLRSceneConst scene, uint32_t index, VLRNode* child);
     VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material);
     VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationPhi);
 
 
 
-    VLR_API VLRResult vlrCameraGetType(VLRCamera camera, VLRCameraType* type);
+    VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, VLRCameraType* type);
     
     VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera);
     VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera);
@@ -352,13 +360,13 @@ extern "C" {
     VLR_API VLRResult vlrPerspectiveCameraSetFovY(VLRPerspectiveCamera camera, float fovY);
     VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius);
     VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance);
-    VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCamera camera, VLRPoint3D* position);
-    VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCamera camera, VLRQuaternion* orientation);
-    VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCamera camera, float* aspect);
-    VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCamera camera, float* sensitivity);
-    VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCamera camera, float* fovY);
-    VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCamera camera, float* lensRadius);
-    VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCamera camera, float* distance);
+    VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCameraConst camera, VLRPoint3D* position);
+    VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCameraConst camera, VLRQuaternion* orientation);
+    VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCameraConst camera, float* aspect);
+    VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCameraConst camera, float* sensitivity);
+    VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCameraConst camera, float* fovY);
+    VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCameraConst camera, float* lensRadius);
+    VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCameraConst camera, float* distance);
 
     VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera);
     VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirectangularCamera camera);
@@ -366,10 +374,10 @@ extern "C" {
     VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLRQuaternion* orientation);
     VLR_API VLRResult vlrEquirectangularCameraSetSensitivity(VLREquirectangularCamera camera, float sensitivity);
     VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera camera, float phiAngle, float thetaAngle);
-    VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCamera camera, VLRPoint3D* position);
-    VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCamera camera, VLRQuaternion* orientation);
-    VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCamera camera, float* sensitivity);
-    VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCamera camera, float* phiAngle, float* thetaAngle);
+    VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCameraConst camera, VLRPoint3D* position);
+    VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCameraConst camera, VLRQuaternion* orientation);
+    VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCameraConst camera, float* sensitivity);
+    VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCameraConst camera, float* phiAngle, float* thetaAngle);
 #if defined(__cplusplus)
 }
 #endif

@@ -10,6 +10,7 @@ namespace VLR {
 
         virtual ~Transform() {}
 
+        virtual VLRTransformType getType() const = 0;
         virtual bool isStatic() const = 0;
     };
 
@@ -25,6 +26,7 @@ namespace VLR {
 
         StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
 
+        VLRTransformType getType() const override { return VLRTransformType_Static; }
         bool isStatic() const override { return true; }
 
         StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
@@ -370,6 +372,8 @@ namespace VLR {
         void addChild(SurfaceNode* child);
         void removeChild(InternalNode* child);
         void removeChild(SurfaceNode* child);
+        uint32_t getNumChildren() const;
+        Node* getChildAt(uint32_t index) const;
     };
 
 
@@ -444,6 +448,12 @@ namespace VLR {
         }
         void removeChild(SurfaceNode* child) {
             m_rootNode.removeChild(child);
+        }
+        uint32_t getNumChildren() const {
+            return m_rootNode.getNumChildren();
+        }
+        Node* getChildAt(uint32_t index) const {
+            return m_rootNode.getChildAt(index);
         }
 
         // TODO: 内部実装をInfiniteSphereSurfaceNode + EnvironmentEmitterMaterialを使ったものに変えられないかを考える。
@@ -522,25 +532,25 @@ namespace VLR {
             m_data.setImagePlaneArea();
         }
 
-        void getPosition(Point3D* position) {
+        void getPosition(Point3D* position) const {
             *position = m_data.position;
         }
-        void getOrientation(Quaternion* orientation) {
+        void getOrientation(Quaternion* orientation) const {
             *orientation = m_data.orientation;
         }
-        void getAspectRatio(float* aspect) {
+        void getAspectRatio(float* aspect) const {
             *aspect = m_data.aspect;
         }
-        void getSensitivity(float* sensitivity) {
+        void getSensitivity(float* sensitivity) const {
             *sensitivity = m_data.sensitivity;
         }
-        void getFovY(float* fovY) {
+        void getFovY(float* fovY) const {
             *fovY = m_data.fovY;
         }
-        void getLensRadius(float* lensRadius) {
+        void getLensRadius(float* lensRadius) const {
             *lensRadius = m_data.lensRadius;
         }
-        void getObjectPlaneDistance(float* distance) {
+        void getObjectPlaneDistance(float* distance) const {
             *distance = m_data.objPlaneDistance;
         }
     };
@@ -585,16 +595,16 @@ namespace VLR {
             m_data.thetaAngle = VLR::clamp<float>(thetaAngle, 0.01f, M_PI);
         }
 
-        void getPosition(Point3D* position) {
+        void getPosition(Point3D* position) const {
             *position = m_data.position;
         }
-        void getOrientation(Quaternion* orientation) {
+        void getOrientation(Quaternion* orientation) const {
             *orientation = m_data.orientation;
         }
-        void getSensitivity(float* sensitivity) {
+        void getSensitivity(float* sensitivity) const {
             *sensitivity = m_data.sensitivity;
         }
-        void getAngles(float* phiAngle, float* thetaAngle) {
+        void getAngles(float* phiAngle, float* thetaAngle) const {
             *phiAngle = m_data.phiAngle;
             *thetaAngle = m_data.thetaAngle;
         }

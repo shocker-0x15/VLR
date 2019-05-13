@@ -562,7 +562,7 @@ namespace VLR {
         *height = m_height;
     }
 
-    void Context::render(Scene &scene, Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    void Context::render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         optix::Context optixContext = getOptiXContext();
 
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
@@ -593,7 +593,7 @@ namespace VLR {
         optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 
-    void Context::debugRender(Scene &scene, Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    void Context::debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         optix::Context optixContext = getOptiXContext();
 
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
