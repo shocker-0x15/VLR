@@ -169,7 +169,7 @@ namespace VLR {
     // static
     void Float2ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            ShaderNodeSocketType::float1, "VLR::Float2ShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::Float2ShaderNode_float1",
             ShaderNodeSocketType::float2, "VLR::Float2ShaderNode_float2",
         };
         OptiXProgramSet programSet;
@@ -236,7 +236,7 @@ namespace VLR {
     // static
     void Float3ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            ShaderNodeSocketType::float1, "VLR::Float3ShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::Float3ShaderNode_float1",
             ShaderNodeSocketType::float2, "VLR::Float3ShaderNode_float2",
             ShaderNodeSocketType::float3, "VLR::Float3ShaderNode_float3",
         };
@@ -319,7 +319,7 @@ namespace VLR {
     // static
     void Float4ShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            ShaderNodeSocketType::float1, "VLR::Float4ShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::Float4ShaderNode_float1",
             ShaderNodeSocketType::float2, "VLR::Float4ShaderNode_float2",
             ShaderNodeSocketType::float3, "VLR::Float4ShaderNode_float3",
             ShaderNodeSocketType::float4, "VLR::Float4ShaderNode_float4",
@@ -418,7 +418,7 @@ namespace VLR {
     // static
     void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            ShaderNodeSocketType::float1, "VLR::ScaleAndOffsetFloatShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::ScaleAndOffsetFloatShaderNode_float1",
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -790,7 +790,7 @@ namespace VLR {
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
         const SocketTypeToProgramPair pairs[] = {
-            ShaderNodeSocketType::float1, "VLR::Image2DTextureShaderNode_float",
+            ShaderNodeSocketType::float1, "VLR::Image2DTextureShaderNode_float1",
             ShaderNodeSocketType::float2, "VLR::Image2DTextureShaderNode_float2",
             ShaderNodeSocketType::float3, "VLR::Image2DTextureShaderNode_float3",
             ShaderNodeSocketType::float4, "VLR::Image2DTextureShaderNode_float4",

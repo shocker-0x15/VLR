@@ -23,7 +23,7 @@ namespace VLR {
     RT_FUNCTION TripletSpectrum DebugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
         TripletSpectrum value;
 
-        switch ((int32_t)attribute) {
+        switch (attribute) {
         case DebugRenderingAttribute::GeometricNormal:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.geometricNormal.x),

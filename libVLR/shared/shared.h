@@ -588,41 +588,30 @@ namespace VLR {
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
         };
 
-        struct DebugRenderingAttribute {
-            enum Value {
-                BaseColor = 0,
-                GeometricNormal,
-                ShadingTangent,
-                ShadingBitangent,
-                ShadingNormal,
-                TC0Direction,
-                TextureCoordinates,
-                GeometricVsShadingNormal,
-                ShadingFrameLengths,
-                ShadingFrameOrthogonality,
-            } value;
 
-            RT_FUNCTION constexpr DebugRenderingAttribute(Value v = BaseColor) : value(v) {}
 
-            RT_FUNCTION operator int32_t() const {
-                return value;
-            }
+        enum class DebugRenderingAttribute {
+            BaseColor = 0,
+            GeometricNormal,
+            ShadingTangent,
+            ShadingBitangent,
+            ShadingNormal,
+            TC0Direction,
+            TextureCoordinates,
+            GeometricVsShadingNormal,
+            ShadingFrameLengths,
+            ShadingFrameOrthogonality,
+            NumAttributes
         };
 
 
 
-        struct TangentType {
-            enum Value {
-                TC0Direction = 0,
-                RadialX,
-                RadialY,
-                RadialZ
-            } value;
-
-            RT_FUNCTION constexpr TangentType(Value v = TC0Direction) : value(v) {}
-            RT_FUNCTION bool operator==(const TangentType &r) const {
-                return value == r.value;
-            }
+        enum class TangentType {
+            TC0Direction = 0,
+            RadialX,
+            RadialY,
+            RadialZ,
+            NumTypes
         };
 
 

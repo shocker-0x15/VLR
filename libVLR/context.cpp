@@ -546,11 +546,11 @@ namespace VLR {
         m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
     }
 
-    void* Context::mapOutputBuffer() {
+    const void* Context::mapOutputBuffer() {
         if (!m_outputBuffer)
             return nullptr;
 
-        return m_outputBuffer->map();
+        return m_outputBuffer->map(0, RT_BUFFER_MAP_READ);
     }
 
     void Context::unmapOutputBuffer() {
@@ -619,7 +619,7 @@ namespace VLR {
         optixContext->validate();
 #endif
 
-        auto attr = Shared::DebugRenderingAttribute((Shared::DebugRenderingAttribute::Value)renderMode);
+        auto attr = Shared::DebugRenderingAttribute((Shared::DebugRenderingAttribute)renderMode);
         optixContext["VLR::pv_debugRenderingAttribute"]->setUserData(sizeof(attr), &attr);
         optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
 

@@ -1205,8 +1205,8 @@ namespace VLRCpp {
             errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID));
         }
 
-        void* mapOutputBuffer() const {
-            void* ptr = nullptr;
+        const void* mapOutputBuffer() const {
+            const void* ptr = nullptr;
             errorCheck(vlrContextMapOutputBuffer(m_rawContext, &ptr));
             return ptr;
         }

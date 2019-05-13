@@ -38,8 +38,8 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM float Float2ShaderNode_float(const ShaderNodeSocket &socket,
-                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float Float2ShaderNode_float1(const ShaderNodeSocket &socket,
+                                                      const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float2ShaderNode>(socket.nodeDescIndex);
         if (socket.option == 0)
             return calcNode(nodeData.node0, nodeData.imm0, surfPt, wls);
@@ -62,8 +62,8 @@ namespace VLR {
         return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<Float3ShaderNode>();
     }
     
-    RT_CALLABLE_PROGRAM float Float3ShaderNode_float(const ShaderNodeSocket &socket,
-                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float Float3ShaderNode_float1(const ShaderNodeSocket &socket,
+                                                      const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ShaderNode>(socket.nodeDescIndex);
         if (socket.option == 0)
             return calcNode(nodeData.node0, nodeData.imm0, surfPt, wls);
@@ -101,8 +101,8 @@ namespace VLR {
         return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<Float4ShaderNode>();
     }
     
-    RT_CALLABLE_PROGRAM float Float4ShaderNode_float(const ShaderNodeSocket &socket,
-                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float Float4ShaderNode_float1(const ShaderNodeSocket &socket,
+                                                      const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float4ShaderNode>(socket.nodeDescIndex);
         if (socket.option == 0)
             return calcNode(nodeData.node0, nodeData.imm0, surfPt, wls);
@@ -160,8 +160,8 @@ namespace VLR {
         return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<ScaleAndOffsetFloatShaderNode>();
     }
     
-    RT_CALLABLE_PROGRAM float ScaleAndOffsetFloatShaderNode_float(const ShaderNodeSocket &socket,
-                                                                  const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float ScaleAndOffsetFloatShaderNode_float1(const ShaderNodeSocket &socket,
+                                                                   const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<ScaleAndOffsetFloatShaderNode>(socket.nodeDescIndex);
         float value = calcNode(nodeData.nodeValue, 0.0f, surfPt, wls);
         float scale = calcNode(nodeData.nodeScale, nodeData.immScale, surfPt, wls);
@@ -251,8 +251,8 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM float Image2DTextureShaderNode_float(const ShaderNodeSocket &socket,
-                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float Image2DTextureShaderNode_float1(const ShaderNodeSocket &socket,
+                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Image2DTextureShaderNode>(socket.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);

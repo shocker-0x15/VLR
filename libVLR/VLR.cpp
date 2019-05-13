@@ -217,7 +217,7 @@ VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width,
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, void** ptr) {
+VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr) {
     try {
         if (ptr == nullptr)
             return VLRResult_InvalidArgument;

@@ -609,7 +609,7 @@ namespace VLR {
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
 
-            Shared::TangentType sTangentType = (Shared::TangentType::Value)tangentType;
+            Shared::TangentType sTangentType = (Shared::TangentType)tangentType;
             optixGeomInst["VLR::pv_tangentType"]->setUserData(sizeof(tangentType), &tangentType);
 
             Shared::ShaderNodeSocket sNodeNormal = Shared::ShaderNodeSocket::Invalid();
