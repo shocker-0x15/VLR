@@ -2099,7 +2099,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(VLR
 
 
 
-VLR_API VLRResult vlrTransformGetType(VLRTransform transform, VLRTransformType* type) {
+VLR_API VLRResult vlrTransformGetType(VLRTransformConst transform, VLRTransformType* type) {
     try {
         VLR_RETURN_INVALID_INSTANCE(transform, VLR::Transform);
         if (type == nullptr)
@@ -2357,6 +2357,19 @@ VLR_API VLRResult vlrInternalNodeGetNumChildren(VLRInternalNodeConst node, uint3
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrInternalNodeGetChildren(VLRInternalNodeConst node, VLRNode* children) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
+        if (children == nullptr)
+            return VLRResult_InvalidArgument;
+
+        node->getChildren(children);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 VLR_API VLRResult vlrInternalNodeGetChildAt(VLRInternalNodeConst node, uint32_t index, VLRNode* child) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
@@ -2452,6 +2465,19 @@ VLR_API VLRResult vlrSceneGetNumChildren(VLRSceneConst scene, uint32_t* numChild
             return VLRResult_InvalidArgument;
 
         *numChildren = scene->getNumChildren();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrSceneGetChildren(VLRSceneConst scene, VLRNode* children) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
+        if (children == nullptr)
+            return VLRResult_InvalidArgument;
+
+        scene->getChildren(children);
 
         return VLRResult_NoError;
     }

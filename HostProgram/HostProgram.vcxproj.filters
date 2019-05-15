@@ -18,6 +18,7 @@
       <Filter>imGui</Filter>
     </ClCompile>
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="c_compile_test.c" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">

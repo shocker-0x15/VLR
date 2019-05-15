@@ -1013,6 +1013,53 @@ namespace VLR {
             std::memcpy(array, this, sizeof(*this));
         }
 
+        void decompose(Vector3DTemplate<RealType>* scale, Vector3DTemplate<RealType>* rotation, Vector3DTemplate<RealType>* translation) {
+            Matrix4x4Template<RealType> mat = *this;
+
+            // JP: 移動成分
+            // EN: Translation component
+            *translation = (Vector3DTemplate<RealType>)mat.c3;
+
+            // JP: 拡大縮小成分
+            // EN: Scale component
+            *scale = Vector3DTemplate<RealType>(
+                ((Vector3DTemplate<RealType>)mat.c0).length(),
+                ((Vector3DTemplate<RealType>)mat.c1).length(),
+                ((Vector3DTemplate<RealType>)mat.c2).length());
+
+            // JP: 上記成分を排除
+            // EN: Remove the above components
+            mat.c3 = Vector4DTemplate<RealType>(0, 0, 0, 1);
+            mat.c0 /= scale->x;
+            mat.c1 /= scale->y;
+            mat.c2 /= scale->z;
+
+            // JP: 回転成分がXYZの順で作られている、つまりZYXp(pは何らかのベクトル)と仮定すると、行列は以下の形式をとっていると考えられる。
+            //     A, B, GはそれぞれX, Y, Z軸に対する回転角度。cとsはcosとsin。
+            //     cG * cB   -sG * cA + cG * sB * sA    sG * sA + cG * sB * cA
+            //     sG * cB    cG * cA + sG * sB * sA   -cG * sA + sG * sB * cA
+            //       -sB             cB * sA                   cB * cA
+            //     したがって、3行1列成分からまずY軸に対する回転Bが求まる。
+            //     次に求めたBを使って回転A, Gが求まる。数値精度を考慮すると、cBが0の場合は別の処理が必要。
+            //     cBが0の場合はsBは+-1(Bが90度ならば+、-90度ならば-)なので、上の行列は以下のようになる。
+            //      0   -sG * cA +- cG * sA    sG * sA +- cG * cA
+            //      0    cG * cA +- sG * sA   -cG * sA +- sG * cA
+            //     -+1           0                     0
+            //     求めたBを使ってさらに求まる成分がないため、Aを0と仮定する。
+            // EN: 
+            rotation->y = std::asin(-mat.c0[2]);
+            RealType cosBeta = std::cos(rotation->y);
+
+            if (std::fabs(cosBeta) < 0.000001f) {
+                rotation->x = 0;
+                rotation->z = std::atan2(-mat.c1[0], mat.c1[1]);
+            }
+            else {
+                rotation->x = std::atan2(mat.c1[2], mat.c2[2]);
+                rotation->z = std::atan2(mat.c0[1], mat.c0[0]);
+            }
+        }
+
         RT_FUNCTION static constexpr Matrix4x4Template Identity() {
             RealType data[] = {
                 1, 0, 0, 0,

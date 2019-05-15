@@ -48,11 +48,12 @@ foreach(lib ${libs})
     target_link_libraries(HostProgram PRIVATE ${lib})
 endforeach()
 
-add_custom_command(TARGET HostProgram POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
-                   "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:HostProgram>/shaders")
-
 # ----------------------------------------------------------------
 # Post-build events
+
+# copy shaders
+add_custom_command(TARGET HostProgram POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "$<TARGET_FILE_DIR:HostProgram>/shaders")
 
 # copy dlls
 if(MSVC)

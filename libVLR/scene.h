@@ -332,7 +332,9 @@ namespace VLR {
 
     class ParentNode : public Node {
     protected:
-        std::set<Node*> m_children;
+        uint32_t m_serialChildID;
+        std::map<Node*, uint32_t> m_childToSerialIDMap;
+        std::map<uint32_t, Node*> m_serialIDToChlidMap;
         const Transform* m_localToWorld;
 
         // key: child SHTransform
@@ -373,6 +375,7 @@ namespace VLR {
         void removeChild(InternalNode* child);
         void removeChild(SurfaceNode* child);
         uint32_t getNumChildren() const;
+        void getChildren(Node** children) const;
         Node* getChildAt(uint32_t index) const;
     };
 
@@ -451,6 +454,9 @@ namespace VLR {
         }
         uint32_t getNumChildren() const {
             return m_rootNode.getNumChildren();
+        }
+        void getChildren(Node** children) const {
+            m_rootNode.getChildren(children);
         }
         Node* getChildAt(uint32_t index) const {
             return m_rootNode.getChildAt(index);

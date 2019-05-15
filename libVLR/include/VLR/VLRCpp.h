@@ -1016,6 +1016,18 @@ namespace VLRCpp {
             errorCheck(vlrInternalNodeGetNumChildren(get<VLRInternalNode>(), &numChildren));
             return numChildren;
         }
+        void getChildren(uint32_t numChildren, NodeRef* children) const {
+            auto rawChildren = new VLRNode[numChildren];
+            errorCheck(vlrInternalNodeGetChildren(get<VLRInternalNode>(), rawChildren));
+
+            for (int i = 0; i < numChildren; ++i) {
+                VLRNode rawChild = rawChildren[i];
+                if (m_children.count(rawChild))
+                    children[i] = m_children.at(rawChild);
+            }
+
+            delete[] rawChildren;
+        }
         NodeRef getChildAt(uint32_t index) const {
             VLRNode rawChild;
             errorCheck(vlrInternalNodeGetChildAt(get<VLRInternalNode>(), index, &rawChild));
@@ -1075,6 +1087,18 @@ namespace VLRCpp {
             uint32_t numChildren;
             errorCheck(vlrSceneGetNumChildren(get<VLRScene>(), &numChildren));
             return numChildren;
+        }
+        void getChildren(uint32_t numChildren, NodeRef* children) const {
+            auto rawChildren = new VLRNode[numChildren];
+            errorCheck(vlrSceneGetChildren(get<VLRScene>(), rawChildren));
+
+            for (int i = 0; i < numChildren; ++i) {
+                VLRNode rawChild = rawChildren[i];
+                if (m_children.count(rawChild))
+                    children[i] = m_children.at(rawChild);
+            }
+
+            delete[] rawChildren;
         }
         NodeRef getChildAt(uint32_t index) const {
             VLRNode rawChild;

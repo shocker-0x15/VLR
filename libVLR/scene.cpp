@@ -738,9 +738,9 @@ namespace VLR {
 
 
     ParentNode::ParentNode(Context &context, const std::string &name, const Transform* localToWorld) :
-        Node(context, name), m_localToWorld(localToWorld), m_shGeomGroup(context) {
+        Node(context, name), m_serialChildID(0), m_localToWorld(localToWorld), m_shGeomGroup(context) {
         // JP: 自分自身のTransformを持ったSHTransformを生成。
-        // EN: 
+        // EN: Create a SHTransform having Transform of this node.
         if (m_localToWorld->isStatic()) {
             auto tr = (const StaticTransform*)m_localToWorld;
             m_shTransforms[nullptr] = new SHTransform(name, m_context, *tr, nullptr);
@@ -766,6 +766,7 @@ namespace VLR {
         m_localToWorld = localToWorld;
 
         // JP: 管理中のSHTransformを更新する。
+        // EN: updpate SHTransform under control.
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             if (m_localToWorld->isStatic()) {
                 StaticTransform* tr = (StaticTransform*)m_localToWorld;
@@ -779,35 +780,59 @@ namespace VLR {
     }
 
     void ParentNode::addChild(InternalNode* child) {
-        m_children.insert(child);
+        if (m_childToSerialIDMap.count(child) > 0)
+            return;
+        m_childToSerialIDMap[child] = m_serialChildID;
+        m_serialIDToChlidMap[m_serialChildID] = child;
+        ++m_serialChildID;
         child->addParent(this);
     }
 
     void ParentNode::addChild(SurfaceNode* child) {
-        m_children.insert(child);
+        if (m_childToSerialIDMap.count(child) > 0)
+            return;
+        m_childToSerialIDMap[child] = m_serialChildID;
+        m_serialIDToChlidMap[m_serialChildID] = child;
+        ++m_serialChildID;
         child->addParent(this);
     }
 
     void ParentNode::removeChild(InternalNode* child) {
-        m_children.erase(child);
+        if (m_childToSerialIDMap.count(child) == 0)
+            return;
+        uint32_t serialID = m_childToSerialIDMap.at(child);
+        m_childToSerialIDMap.erase(child);
+        m_serialIDToChlidMap.erase(serialID);
         child->removeParent(this);
     }
 
     void ParentNode::removeChild(SurfaceNode* child) {
-        m_children.erase(child);
+        if (m_childToSerialIDMap.count(child) == 0)
+            return;
+        uint32_t serialID = m_childToSerialIDMap.at(child);
+        m_childToSerialIDMap.erase(child);
+        m_serialIDToChlidMap.erase(serialID);
         child->removeParent(this);
     }
 
     uint32_t ParentNode::getNumChildren() const {
-        return (uint32_t)m_children.size();
+        return (uint32_t)m_childToSerialIDMap.size();
+    }
+
+    void ParentNode::getChildren(Node** children) const {
+        uint32_t i = 0;
+        for (auto it = m_serialIDToChlidMap.cbegin(); it != m_serialIDToChlidMap.cend(); ++it)
+            children[i++] = it->second;
     }
 
     Node* ParentNode::getChildAt(uint32_t index) const {
-        if (index >= getNumChildren())
+        if (index >= m_serialIDToChlidMap.size())
             return nullptr;
-        auto it = m_children.cbegin();
-        std::advance(it, index);
-        return *it;
+
+        auto it = m_serialIDToChlidMap.cbegin();
+        std::advance(it, index); // want to make this operation O(log(n)).
+
+        return it->second;
     }
 
 

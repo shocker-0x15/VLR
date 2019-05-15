@@ -788,13 +788,22 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                             }
                         };
 
+                        // JP: 一度にクリックされる要素はひとつだけ。
+                        // EN: 
+                        SelectedChild clickedChild{ nullptr, -1 };
+
                         static std::set<SelectedChild> g_selectedNodes;
 
                         const std::function<SelectedChild(InternalNodeRef)> recursiveBuild = [&recursiveBuild](InternalNodeRef parent) {
                             SelectedChild clickedChild{ nullptr, -1 };
 
-                            for (int i = 0; i < parent->getNumChildren(); ++i) {
-                                NodeRef child = parent->getChildAt(i);
+                            std::vector<NodeRef> children;
+                            uint32_t numChildren = parent->getNumChildren();
+                            children.resize(numChildren);
+                            parent->getChildren(numChildren, children.data());
+
+                            for (int i = 0; i < numChildren; ++i) {
+                                NodeRef child = children[i];
                                 SelectedChild curChild{ parent, i };
 
                                 ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -824,39 +833,46 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                             return clickedChild;
                         };
 
-                        SelectedChild clickedChild{ nullptr, -1 };
+                        {
+                            std::vector<NodeRef> rootChildren;
+                            uint32_t numRootChildren = shot.scene->getNumChildren();
+                            rootChildren.resize(numRootChildren);
+                            shot.scene->getChildren(numRootChildren, rootChildren.data());
 
-                        for (int i = 0; i < shot.scene->getNumChildren(); ++i) {
-                            NodeRef child = shot.scene->getChildAt(i);
-                            SelectedChild curChild{ nullptr, i };
+                            for (int i = 0; i < numRootChildren; ++i) {
+                                NodeRef child = rootChildren[i];
+                                SelectedChild curChild{ nullptr, i };
 
-                            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-                            if (g_selectedNodes.count(curChild))
-                                node_flags |= ImGuiTreeNodeFlags_Selected;
-                            if (child->getNodeType() == VLRNodeType_InternalNode) {
-                                bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
-                                bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
-                                if (ImGui::IsItemClicked() && mouseOnLabel)
-                                    clickedChild = curChild;
-                                if (nodeOpen) {
-                                    SelectedChild cSelectedChild = recursiveBuild(std::dynamic_pointer_cast<InternalNodeHolder>(child));
-                                    if (cSelectedChild.childIndex != -1)
-                                        clickedChild = cSelectedChild;
+                                ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+                                if (g_selectedNodes.count(curChild))
+                                    node_flags |= ImGuiTreeNodeFlags_Selected;
+                                if (child->getNodeType() == VLRNodeType_InternalNode) {
+                                    bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
+                                    bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
+                                    if (ImGui::IsItemClicked() && mouseOnLabel)
+                                        clickedChild = curChild;
+                                    if (nodeOpen) {
+                                        SelectedChild cSelectedChild = recursiveBuild(std::dynamic_pointer_cast<InternalNodeHolder>(child));
+                                        if (cSelectedChild.childIndex != -1)
+                                            clickedChild = cSelectedChild;
+                                    }
                                 }
-                            }
-                            else {
-                                node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
-                                ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
-                                if (ImGui::IsItemClicked())
-                                    clickedChild = curChild;
+                                else {
+                                    node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
+                                    ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
+                                    if (ImGui::IsItemClicked())
+                                        clickedChild = curChild;
+                                }
                             }
                         }
 
                         // JP: 何かクリックした要素がある場合。
+                        // EN: 
                         bool newOnlyOneSelected = false;
                         if (clickedChild.childIndex != -1) {
                             if (ImGui::GetIO().KeyCtrl) {
                                 // JP: Ctrlキーを押しながら選択した場合は追加選択or選択解除。
+                                // EN: 
                                 if (g_selectedNodes.count(clickedChild))
                                     g_selectedNodes.erase(clickedChild);
                                 else
@@ -866,6 +882,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                                 if (g_selectedNodes.count(clickedChild)) {
                                     // JP: クリックした要素を既に選択リストに持っていた場合は全ての選択状態を解除する。
                                     //     このとき他に選択要素を持っていた場合はクリックした要素だけを選択状態にする。
+                                    // EN: 
                                     bool multiplySelected = g_selectedNodes.size() > 1;
                                     g_selectedNodes.clear();
                                     if (multiplySelected)
@@ -873,6 +890,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                                 }
                                 else {
                                     // JP: 全ての選択状態を解除してクリックした要素だけを選択状態にする。
+                                    // EN: 
                                     g_selectedNodes.clear();
                                     g_selectedNodes.insert(clickedChild);
                                 }
@@ -880,6 +898,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                             // JP: クリック時には必ず選択状態に何らかの変化が起きるので、
                             //     クリック後に選択要素数が1であれば、必ずそれは新たにひとつだけ選択された要素となる。
+                            // EN: 
                             if (g_selectedNodes.size() == 1)
                                 newOnlyOneSelected = true;
                         }
@@ -888,37 +907,55 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
                         ImGui::Separator();
 
-                        NodeRef node;
-
+                        NodeRef onlyOneSelectedNode;
                         if (g_selectedNodes.size() == 1) {
                             const SelectedChild &sc = *g_selectedNodes.cbegin();
                             if (sc.parent)
-                                node = sc.parent->getChildAt(sc.childIndex);
+                                onlyOneSelectedNode = sc.parent->getChildAt(sc.childIndex);
                             else
-                                node = shot.scene->getChildAt(sc.childIndex);
+                                onlyOneSelectedNode = shot.scene->getChildAt(sc.childIndex);
                         }
 
                         static char g_nodeName[256];
                         if (newOnlyOneSelected) {
-                            size_t copySize = std::min(std::strlen(node->getName()), sizeof(g_nodeName) - 1);
-                            std::memcpy(g_nodeName, node->getName(), copySize);
+                            size_t copySize = std::min(std::strlen(onlyOneSelectedNode->getName()), sizeof(g_nodeName) - 1);
+                            std::memcpy(g_nodeName, onlyOneSelectedNode->getName(), copySize);
                             g_nodeName[copySize] = '\0';
                         }
                         else if (g_selectedNodes.size() != 1) {
                             g_nodeName[0] = '\0';
                         }
 
-                        if (node) {
+                        if (onlyOneSelectedNode) {
                             ImGui::AlignTextToFramePadding();
                             ImGui::Text("Name:"); ImGui::SameLine();
                             ImGui::PushID("NameTextBox");
                             if (ImGui::InputText("", g_nodeName, sizeof(g_nodeName), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                                node->setName(g_nodeName);
+                                onlyOneSelectedNode->setName(g_nodeName);
                             }
                             ImGui::PopID();
 
-                            if (node->getNodeType() == VLRNodeType_InternalNode) {
+                            if (onlyOneSelectedNode->getNodeType() == VLRNodeType_InternalNode) {
+                                auto node = std::dynamic_pointer_cast<InternalNodeHolder>(onlyOneSelectedNode);
+                                TransformRef tr = node->getTransform();
+                                if (tr->getTransformType() == VLRTransformType_Static) {
+                                    Matrix4x4 mat, invMat;
+                                    auto sTr = std::dynamic_pointer_cast<StaticTransformHolder>(tr);
+                                    sTr->getMatrices(&mat, &invMat);
 
+                                    Vector3D scale;
+                                    Vector3D rotation;
+                                    Vector3D translation;
+                                    mat.decompose(&scale, &rotation, &translation);
+                                    rotation *= 180 / M_PI;
+
+                                    ImGui::InputFloat3("Scale", (float*)&scale);
+                                    ImGui::InputFloat3("Rotation", (float*)&rotation);
+                                    ImGui::InputFloat3("Translation", (float*)&translation);
+                                }
+                                else {
+                                    Assert_NotImplemented();
+                                }
                             }
                             else {
 

@@ -332,6 +332,7 @@ extern "C" {
     VLR_API VLRResult vlrInternalNodeAddChild(VLRInternalNode node, VLRNode child);
     VLR_API VLRResult vlrInternalNodeRemoveChild(VLRInternalNode node, VLRNode child);
     VLR_API VLRResult vlrInternalNodeGetNumChildren(VLRInternalNodeConst node, uint32_t* numChildren);
+    VLR_API VLRResult vlrInternalNodeGetChildren(VLRInternalNodeConst node, VLRNode* children);
     VLR_API VLRResult vlrInternalNodeGetChildAt(VLRInternalNodeConst node, uint32_t index, VLRNode* child);
 
 
@@ -343,6 +344,7 @@ extern "C" {
     VLR_API VLRResult vlrSceneAddChild(VLRScene scene, VLRNode child);
     VLR_API VLRResult vlrSceneRemoveChild(VLRScene scene, VLRNode child);
     VLR_API VLRResult vlrSceneGetNumChildren(VLRSceneConst scene, uint32_t* numChildren);
+    VLR_API VLRResult vlrSceneGetChildren(VLRSceneConst scene, VLRNode* children);
     VLR_API VLRResult vlrSceneGetChildAt(VLRSceneConst scene, uint32_t index, VLRNode* child);
     VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material);
     VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationPhi);
