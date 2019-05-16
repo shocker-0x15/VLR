@@ -71,7 +71,7 @@ VLR_DEFINE_C_ALIAS(EquirectangularCamera);
     }
 
 template <typename T>
-inline bool validateArgument(const T* obj) {
+inline bool nonNullAndCheckType(const T* obj) {
     if (obj == nullptr)
         return false;
     if (!obj->isMemberOf<T>())
@@ -1059,8 +1059,9 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeDestroy(VLRContext context, VLRImag
 VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNode node, VLRImage2D image) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Image2DTextureShaderNode);
-        if (!validateArgument<VLR::Image2D>(image))
-            return VLRResult_InvalidArgument;
+		if (image != nullptr)
+			if (!image->isMemberOf<VLR::Image2D>())
+				return VLRResult_InvalidArgument;
 
         node->setImage(image);
 
@@ -1131,8 +1132,9 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeDestroy(VLRContext context, VLR
 VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetImage(VLREnvironmentTextureShaderNode node, VLRImage2D image) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::EnvironmentTextureShaderNode);
-        if (!validateArgument<VLR::Image2D>(image))
-            return VLRResult_InvalidArgument;
+		if (image != nullptr)
+			if (!image->isMemberOf<VLR::Image2D>())
+				return VLRResult_InvalidArgument;
 
         node->setImage(image);
 
@@ -2013,8 +2015,11 @@ VLR_API VLRResult vlrMultiSurfaceMaterialSetSubMaterial(VLRMultiSurfaceMaterial 
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MultiSurfaceMaterial);
 
-        if (index >= 4 || !validateArgument<VLR::SurfaceMaterial>(mat))
+        if (index >= 4)
             return VLRResult_InvalidArgument;
+		if (mat != nullptr)
+			if (!mat->isMemberOf<VLR::SurfaceMaterial>())
+				return VLRResult_InvalidArgument;
         material->setSubMaterial(index, mat);
 
         return VLRResult_NoError;
@@ -2050,7 +2055,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialDestroy(VLRContext context
 VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(VLREnvironmentEmitterSurfaceMaterial material, VLREnvironmentTextureShaderNodeConst node) {
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
-        if (!validateArgument<VLR::EnvironmentTextureShaderNode>(node))
+        if (!nonNullAndCheckType<VLR::EnvironmentTextureShaderNode>(node))
             return VLRResult_InvalidArgument;
 
         if (!material->setNodeEmittanceTextured(node))
@@ -2064,7 +2069,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(V
 VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(VLREnvironmentEmitterSurfaceMaterial material, VLRShaderNodeConst node) {
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
-        if (!validateArgument<VLR::ShaderNode>(node))
+        if (!nonNullAndCheckType<VLR::ShaderNode>(node))
             return VLRResult_InvalidArgument;
 
         if (!material->setNodeEmittanceConstant(node))
@@ -2239,7 +2244,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
                                                              VLRTangentType tangentType) {
     try {
         VLR_RETURN_INVALID_INSTANCE(surfaceNode, VLR::TriangleMeshSurfaceNode);
-        if (indices == nullptr || !validateArgument<VLR::SurfaceMaterial>(material))
+        if (indices == nullptr || !nonNullAndCheckType<VLR::SurfaceMaterial>(material))
             return VLRResult_InvalidArgument;
 
         std::vector<uint32_t> vecIndices;
@@ -2261,7 +2266,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
                                         const char* name, VLRTransformConst transform) {
     try {
-        if (node == nullptr || !validateArgument<VLR::Transform>(transform))
+        if (node == nullptr || !nonNullAndCheckType<VLR::Transform>(transform))
             return VLRResult_InvalidArgument;
 
         *node = new VLR::InternalNode(*context, name, transform);
@@ -2285,7 +2290,7 @@ VLR_API VLRResult vlrInternalNodeDestroy(VLRContext context, VLRInternalNode nod
 VLR_API VLRResult vlrInternalNodeSetTransform(VLRInternalNode node, VLRTransformConst localToWorld) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::InternalNode);
-        if (!validateArgument<VLR::Transform>(localToWorld))
+        if (!nonNullAndCheckType<VLR::Transform>(localToWorld))
             return VLRResult_InvalidArgument;
 
         node->setTransform(localToWorld);
@@ -2388,7 +2393,7 @@ VLR_API VLRResult vlrInternalNodeGetChildAt(VLRInternalNodeConst node, uint32_t 
 VLR_API VLRResult vlrSceneCreate(VLRContext context, VLRScene* scene,
                                  VLRTransformConst transform) {
     try {
-        if (scene == nullptr || !validateArgument<VLR::Transform>(transform))
+        if (scene == nullptr || !nonNullAndCheckType<VLR::Transform>(transform))
             return VLRResult_InvalidArgument;
 
         *scene = new VLR::Scene(*context, transform);
@@ -2412,7 +2417,7 @@ VLR_API VLRResult vlrSceneDestroy(VLRContext context, VLRScene scene) {
 VLR_API VLRResult vlrSceneSetTransform(VLRScene scene, VLRTransformConst localToWorld) {
     try {
         VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
-        if (!validateArgument<VLR::Transform>(localToWorld))
+        if (!nonNullAndCheckType<VLR::Transform>(localToWorld))
             return VLRResult_InvalidArgument;
 
         scene->setTransform(localToWorld);
@@ -2500,7 +2505,7 @@ VLR_API VLRResult vlrSceneGetChildAt(VLRSceneConst scene, uint32_t index, VLRNod
 VLR_API VLRResult vlrSceneSetEnvironment(VLRScene scene, VLREnvironmentEmitterSurfaceMaterial material) {
     try {
         VLR_RETURN_INVALID_INSTANCE(scene, VLR::Scene);
-        if (!validateArgument<VLR::EnvironmentEmitterSurfaceMaterial>(material))
+        if (!nonNullAndCheckType<VLR::EnvironmentEmitterSurfaceMaterial>(material))
             return VLRResult_InvalidArgument;
 
         scene->setEnvironment(material);
