@@ -5,20 +5,26 @@
     <ClCompile Include="ext\src\gl3w\gl3w.c">
       <Filter>gl3w</Filter>
     </ClCompile>
+    <ClCompile Include="scene.cpp" />
+    <ClCompile Include="c_compile_test.c" />
+    <ClCompile Include="ext\src\imGui\imgui_impl_glfw.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_impl_opengl3.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_widgets.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
     <ClCompile Include="ext\src\imGui\imgui_demo.cpp">
       <Filter>imGui</Filter>
     </ClCompile>
     <ClCompile Include="ext\src\imGui\imgui_draw.cpp">
       <Filter>imGui</Filter>
     </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_impl_glfw_gl3.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="scene.cpp" />
-    <ClCompile Include="c_compile_test.c" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">
@@ -30,6 +36,9 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{b1ba1065-1607-4b70-8c86-9c1535ae2b93}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GLFW">
+      <UniqueIdentifier>{087fdc49-3034-48a3-95d9-953bde5f51ac}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ext\include\GL\gl3w.h">
@@ -38,31 +47,40 @@
     <ClInclude Include="ext\include\GL\glcorearb.h">
       <Filter>gl3w</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\imGui\imgui.h">
+    <ClInclude Include="GLToolkit.h" />
+    <ClInclude Include="StopWatch.h" />
+    <ClInclude Include="scene.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="ext\include\imGui\imgui_impl_glfw.h">
       <Filter>imGui</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\imGui\imgui_impl_glfw_gl3.h">
+    <ClInclude Include="ext\include\imGui\imgui_impl_opengl3.h">
       <Filter>imGui</Filter>
     </ClInclude>
     <ClInclude Include="ext\include\imGui\imgui_internal.h">
       <Filter>imGui</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\imGui\stb_rect_pack.h">
+    <ClInclude Include="ext\include\imGui\imstb_rectpack.h">
       <Filter>imGui</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\imGui\stb_textedit.h">
+    <ClInclude Include="ext\include\imGui\imstb_textedit.h">
       <Filter>imGui</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\imGui\stb_truetype.h">
+    <ClInclude Include="ext\include\imGui\imstb_truetype.h">
       <Filter>imGui</Filter>
     </ClInclude>
     <ClInclude Include="ext\include\imGui\imconfig.h">
       <Filter>imGui</Filter>
     </ClInclude>
-    <ClInclude Include="GLToolkit.h" />
-    <ClInclude Include="StopWatch.h" />
-    <ClInclude Include="scene.h" />
-    <ClInclude Include="common.h" />
+    <ClInclude Include="ext\include\imGui\imgui.h">
+      <Filter>imGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GLFW\glfw3.h">
+      <Filter>GLFW</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GLFW\glfw3native.h">
+      <Filter>GLFW</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\scale.frag">

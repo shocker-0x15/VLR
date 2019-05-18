@@ -2,8 +2,10 @@
 
 #define NOMINMAX
 #include "imgui.h"
-#include "imgui_impl_glfw_gl3.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_impl_glfw.h"
 #include "GLToolkit.h"
+// Include glfw3.h after our OpenGL definitions
 #include "GLFW/glfw3.h"
 
 // DELETE ME
@@ -401,6 +403,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         // JP: OpenGL 4.6 Core Profileのコンテキストを作成する。
         const uint32_t OpenGLMajorVersion = 4;
         const uint32_t OpenGLMinorVersion = 6;
+        const char* glsl_version = "#version 460";
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OpenGLMajorVersion);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OpenGLMinorVersion);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -442,7 +445,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-        ImGui_ImplGlfwGL3_Init(window, true);
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init(glsl_version);
 
         // Setup style
         ImGui::StyleColorsDark();
@@ -679,7 +683,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             }
 
             {
-                ImGui_ImplGlfwGL3_NewFrame(g_renderTargetSizeX, g_renderTargetSizeY, UIScaling);
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
 
                 bool outputBufferSizeChanged = resized;
                 static bool g_forceLowResolution = false;
@@ -949,7 +955,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                                     mat.decompose(&scale, &rotation, &translation);
                                     rotation *= 180 / M_PI;
 
-                                    ImGui::InputFloat3("Scale", (float*)&scale);
+                                    if (ImGui::InputFloat3("Scale", (float*)&scale))
+                                        printf("");
                                     ImGui::InputFloat3("Rotation", (float*)&rotation);
                                     ImGui::InputFloat3("Translation", (float*)&translation);
                                 }
@@ -1062,7 +1069,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 }
 
                 ImGui::Render();
-                ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
                 frameBuffer.unbind();
 
@@ -1110,7 +1117,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         vertexArrayForFullScreen.finalize();
 
-        ImGui_ImplGlfwGL3_Shutdown();
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
         glfwDestroyWindow(window);

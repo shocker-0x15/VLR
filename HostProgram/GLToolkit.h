@@ -234,10 +234,6 @@ namespace GLTK {
             Compressed_SignedRed_RGTC1 = GL_COMPRESSED_SIGNED_RED_RGTC1,
             Compressed_RG_RGTC2 = GL_COMPRESSED_RG_RGTC2,
             Compressed_SignedRG_RGTC2 = GL_COMPRESSED_SIGNED_RG_RGTC2,
-            Compressed_RGBA_BPTC_UNorm = GL_COMPRESSED_RGBA_BPTC_UNORM,
-            Compressed_sRGB_alpha_BPTC_UNorm = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,
-            Compressed_RGB_BPTC_SignedFloat = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
-            Compressed_RGB_BPTC_UnsignedFloat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
         };
         Value value;
 
@@ -324,7 +320,6 @@ namespace GLTK {
             ElementArrayBuffer = GL_ELEMENT_ARRAY_BUFFER,
             PixelPackBuffer = GL_PIXEL_PACK_BUFFER,
             PixelUnpackBuffer = GL_PIXEL_UNPACK_BUFFER,
-            QueryBuffer = GL_QUERY_BUFFER,
             ShaderStorageBuffer = GL_SHADER_STORAGE_BUFFER,
             TextureBuffer = GL_TEXTURE_BUFFER,
             TransformFeedbackBuffer = GL_TRANSFORM_FEEDBACK_BUFFER,
@@ -540,7 +535,6 @@ namespace GLTK {
             ClampToEdge = GL_CLAMP_TO_EDGE,
             ClampToBorder = GL_CLAMP_TO_BORDER,
             MirroredRepeat = GL_MIRRORED_REPEAT,
-            MirrorClampToEdge = GL_MIRROR_CLAMP_TO_EDGE,
         };
 
     private:
