@@ -450,13 +450,13 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
         texDiffuse = context->createImage2DTextureShaderNode();
         imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
         texDiffuse->setImage(imgDiffuse);
-        mat->setNodeAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        mat->setAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
     }
     else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+        mat->setAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
     }
     else {
-        mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
+        mat->setAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
     }
 
     if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
@@ -653,7 +653,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
             auto matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            matMatte->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -663,7 +663,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.75f, 0.75f);
+            matMatte->setAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.75f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 4, 5, 6, 4, 6, 7,
@@ -674,7 +674,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.25f, 0.25f);
+            matMatte->setAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.25f, 0.25f);
 
             //float value[3] = { 0.06f, 0.02f, 0.02f };
             //Float3TextureRef texEmittance = context->createConstantFloat3Texture(value);
@@ -688,7 +688,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.25f, 0.25f, 0.75f);
+            matMatte->setAlbedo(VLRColorSpace_Rec709_D65_sRGBGamma, 0.25f, 0.25f, 0.75f);
 
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
@@ -698,7 +698,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 30.0f, 30.0f, 30.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 30.0f, 30.0f, 30.0f);
 
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
@@ -708,7 +708,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 100.0f, 100.0f, 100.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 100.0f, 100.0f, 100.0f);
 
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
@@ -726,38 +726,38 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         using namespace VLR;
 
         //auto matA = context->createSpecularReflectionSurfaceMaterial();
-        //matA->setImmediateValueCoeffR(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.27579f, 0.940922f, 0.574879f); // Aluminum
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 7.30257f, 6.33458f, 5.16694f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.237698f, 0.734847f, 1.37062f); // Copper
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.44233f, 2.55751f, 2.23429f);
-        //matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.12481f, 0.468228f, 1.44476f); // Gold
-        //matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.32107f, 2.23761f, 1.69196f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.91705f, 2.92092f, 2.53253f); // Iron
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.06696f, 2.93804f, 2.7429f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.9566f, 1.82777f, 1.46089f); // Lead
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.49593f, 3.38158f, 3.17737f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.99144f, 1.5186f, 1.00058f); // Mercury
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 5.25161f, 4.6095f, 3.7646f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.32528f, 2.06722f, 1.81479f); // Platinum
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 4.19238f, 3.67941f, 3.06551f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.157099f, 0.144013f, 0.134847f); // Silver
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.82431f, 3.1451f, 2.27711f);
-        ////matA->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.71866f, 2.50954f, 2.22767f); // Titanium
-        ////matA->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.79521f, 3.40035f, 3.00114f);
+        //matA->setCoeffR(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 1.27579f, 0.940922f, 0.574879f); // Aluminum
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 7.30257f, 6.33458f, 5.16694f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 0.237698f, 0.734847f, 1.37062f); // Copper
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 3.44233f, 2.55751f, 2.23429f);
+        //matA->setEta(VLRColorSpace_Rec709_D65, 0.12481f, 0.468228f, 1.44476f); // Gold
+        //matA->set_k(VLRColorSpace_Rec709_D65, 3.32107f, 2.23761f, 1.69196f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 2.91705f, 2.92092f, 2.53253f); // Iron
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 3.06696f, 2.93804f, 2.7429f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 1.9566f, 1.82777f, 1.46089f); // Lead
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 3.49593f, 3.38158f, 3.17737f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 1.99144f, 1.5186f, 1.00058f); // Mercury
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 5.25161f, 4.6095f, 3.7646f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 2.32528f, 2.06722f, 1.81479f); // Platinum
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 4.19238f, 3.67941f, 3.06551f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 0.157099f, 0.144013f, 0.134847f); // Silver
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 3.82431f, 3.1451f, 2.27711f);
+        ////matA->setEta(VLRColorSpace_Rec709_D65, 2.71866f, 2.50954f, 2.22767f); // Titanium
+        ////matA->set_k(VLRColorSpace_Rec709_D65, 3.79521f, 3.40035f, 3.00114f);
 
         auto matA = context->createSpecularScatteringSurfaceMaterial();
-        matA->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
-        matA->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
-        matA->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
-        //matA->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.33161f, 1.33331f, 1.33799f); // Water
-        //matA->setImmediateValueEtaInt(VLRColorSpace_Rec709, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
+        matA->setCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
+        matA->setEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
+        matA->setEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
+        //matA->setEtaInt(VLRColorSpace_Rec709, 1.33161f, 1.33331f, 1.33799f); // Water
+        //matA->setEtaInt(VLRColorSpace_Rec709, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
 
         //auto matB = context->createDiffuseEmitterSurfaceMaterial();
-        //matB->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 1, 1, 1);
+        //matB->setEmittance(VLRColorSpace_Rec709_D65, 1, 1, 1);
 
         //auto matB = context->createMatteSurfaceMaterial();
-        //matB->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.3f, 0.05f);
+        //matB->setAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.3f, 0.05f);
 
         //auto mat = context->createMultiSurfaceMaterial();
         //mat->setSubMaterial(0, matA);
@@ -820,10 +820,10 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-        nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
+        nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
-        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        mat->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
         return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
@@ -845,7 +845,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -876,7 +876,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
         ShaderNodeSocket socketAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
             MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.18f, 0.18f, 0.18f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.18f, 0.18f, 0.18f);
 
             mat = matteMat;
         }
@@ -886,11 +886,11 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
             nodeBaseColorAlpha->setImage(imgBaseColorAlpha);
 
             UE4SurfaceMaterialRef ue4Mat = context->createUE4SurfaceMaterial();
-            ue4Mat->setNodeBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setImmediateValueBaseColor(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.5f, 0.0025f);
-            ue4Mat->setImmediateValueOcclusion(0.0f);
-            ue4Mat->setImmediateValueRoughness(0.3f);
-            ue4Mat->setImmediateValueMetallic(0.0f);
+            ue4Mat->setBaseColor(nodeBaseColorAlpha->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            ue4Mat->setBaseColor(VLRColorSpace_Rec709_D65_sRGBGamma, 0.75f, 0.5f, 0.0025f);
+            ue4Mat->setOcclusion(0.0f);
+            ue4Mat->setRoughness(0.3f);
+            ue4Mat->setMetallic(0.0f);
 
             mat = ue4Mat;
 
@@ -900,27 +900,27 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
             //float lambdas[] = { 360.0, 418.75, 477.5, 536.25, 595.0, 653.75, 712.5, 771.25, 830.0 };
             //float values[] = { 0.8f, 0.8f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
             ////auto nodeAlbedo = context->createRegularSampledSpectrumShaderNode();
-            ////nodeAlbedo->setImmediateValueSpectrum(360.0f, 830.0f, values, lengthof(values));
+            ////nodeAlbedo->setSpectrum(360.0f, 830.0f, values, lengthof(values));
             //auto nodeAlbedo = context->createIrregularSampledSpectrumShaderNode();
-            //nodeAlbedo->setImmediateValueSpectrum(lambdas, values, lengthof(values));
-            //matteMat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            //nodeAlbedo->setSpectrum(lambdas, values, lengthof(values));
+            //matteMat->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
             //mat = matteMat;
 
             //MicrofacetReflectionSurfaceMaterialRef mfMat = context->createMicrofacetReflectionSurfaceMaterial();
             //// Aluminum
-            //mfMat->setImmediateValueEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
-            //mfMat->setImmediateValue_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
-            //mfMat->setImmediateValueRoughness(0.2f);
-            //mfMat->setImmediateValueAnisotropy(0.9f);
-            //mfMat->setImmediateValueRotation(0.0f);
+            //mfMat->setEta(RGBSpectrum(1.27579f, 0.940922f, 0.574879f));
+            //mfMat->set_k(RGBSpectrum(7.30257f, 6.33458f, 5.16694f));
+            //mfMat->setRoughness(0.2f);
+            //mfMat->setAnisotropy(0.9f);
+            //mfMat->setRotation(0.0f);
 
             //mat = mfMat;
 
             //GeometryShaderNodeRef nodeGeom = context->createGeometryShaderNode();
             //Vector3DToSpectrumShaderNodeRef nodeVec2Sp = context->createVector3DToSpectrumShaderNode();
-            //nodeVec2Sp->setNodeVector3D(nodeGeom->getSocket(VLRShaderNodeSocketType_Vector3D, 0));
+            //nodeVec2Sp->setVector3D(nodeGeom->getSocket(VLRShaderNodeSocketType_Vector3D, 0));
             //MatteSurfaceMaterialRef mtMat = context->createMatteSurfaceMaterial();
-            //mtMat->setNodeAlbedo(nodeVec2Sp->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            //mtMat->setAlbedo(nodeVec2Sp->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
             //mat = mtMat;
         }
@@ -939,8 +939,8 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = -M_PI / 2;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1021,10 +1021,10 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
         const float MaxLambda = ColorCheckerLambdas[lengthof(ColorCheckerLambdas) - 1];
         for (int i = 0; i < 24; ++i) {
             auto spectrum = context->createRegularSampledSpectrumShaderNode();
-            spectrum->setImmediateValueSpectrum(VLRSpectrumType_Reflectance, MinLambda, MaxLambda, ColorCheckerSpectrumValues[i], lengthof(ColorCheckerLambdas));
+            spectrum->setSpectrum(VLRSpectrumType_Reflectance, MinLambda, MaxLambda, ColorCheckerSpectrumValues[i], lengthof(ColorCheckerLambdas));
 
             auto matMatte = context->createMatteSurfaceMaterial();
-            matMatte->setNodeAlbedo(spectrum->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            matMatte->setAlbedo(spectrum->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
             uint32_t indexOffset = 4 * i;
             std::vector<uint32_t> matGroup = {
@@ -1052,7 +1052,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
     //    {
     //        DiffuseEmitterSurfaceMaterialRef matLight = context->createDiffuseEmitterSurfaceMaterial();
-    //        matLight->setImmediateValueEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
+    //        matLight->setEmittance(VLRColorSpace_Rec709, 50.0f, 50.0f, 50.0f);
 
     //        std::vector<uint32_t> matGroup = {
     //            0, 1, 2, 0, 2, 3
@@ -1087,16 +1087,16 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     const float MaxLambda = 830;
     const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
     auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
+    spectrum->setSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
     float envScale = 0.02f;
     //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
     //auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    //spectrum->setImmediateValueSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
+    //spectrum->setSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
     //float envScale = 1.0f;
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceConstant(spectrum);
-    //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
-    matEnv->setImmediateValueScale(envScale);
+    matEnv->setEmittanceConstant(spectrum);
+    //matEnv->setEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
+    matEnv->setScale(envScale);
     shot->environmentRotation = 0.0f;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1146,10 +1146,10 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-        nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
+        nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
-        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        mat->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
         return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
         });
@@ -1175,15 +1175,15 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
             nodeAlbedo->setImage(image);
             nodeAlbedo->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
             auto mat = context->createMatteSurfaceMaterial();
-            mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            mat->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
             //auto image = loadImage2D(context, "resources/material_test/jumping_colors.png", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65_sRGBGamma);
             //auto nodeEmittance = context->createImage2DTextureShaderNode();
             //nodeEmittance->setImage(image);
             //nodeEmittance->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
             //auto mat = context->createDiffuseEmitterSurfaceMaterial();
-            //mat->setNodeEmittance(nodeEmittance->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            //mat->setImmediateValueScale(10.0f);
+            //mat->setEmittance(nodeEmittance->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            //mat->setScale(10.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -1220,16 +1220,16 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
     const float MaxLambda = 830;
     const uint32_t NumLambdas = lengthof(IlluminantD65SpectrumValues);
     auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    spectrum->setImmediateValueSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
+    spectrum->setSpectrum(VLRSpectrumType_LightSource, MinLambda, MaxLambda, Values, NumLambdas);
     float envScale = 0.02f;
     //const float IlluminantESpectrumValues[] = { 1.0f, 1.0f };
     //auto spectrum = context->createRegularSampledSpectrumShaderNode();
-    //spectrum->setImmediateValueSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
+    //spectrum->setSpectrum(0.0f, 1000.0f, IlluminantESpectrumValues, 2);
     //float envScale = 1.0f;
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceConstant(spectrum);
-    //matEnv->setImmediateValueEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
-    matEnv->setImmediateValueScale(envScale);
+    matEnv->setEmittanceConstant(spectrum);
+    //matEnv->setEmittance(VLRColorSpace_xyY, 1.0f / 3, 1.0f / 3, 1.0f);
+    matEnv->setScale(envScale);
     shot->environmentRotation = 0.0f;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1279,10 +1279,10 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
         nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-        nodeAlbedo->setNodeTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
+        nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
-        mat->setNodeAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        mat->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
         return SurfaceMaterialAttributeTuple(mat, ShaderNodeSocket(), ShaderNodeSocket());
     });
@@ -1304,7 +1304,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -1341,8 +1341,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
             nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_01_Head_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             auto ue4Mat = context->createUE4SurfaceMaterial();
-            ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+            ue4Mat->setBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            ue4Mat->setOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
             socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
@@ -1356,8 +1356,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
             nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_02_Body_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             auto ue4Mat = context->createUE4SurfaceMaterial();
-            ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+            ue4Mat->setBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            ue4Mat->setOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
             socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
@@ -1371,8 +1371,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
             nodeNormal->setImage(loadImage2D(context, pathPrefix + "MeetMat_2_Cameras_03_Base_NormalAlpha.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
 
             auto ue4Mat = context->createUE4SurfaceMaterial();
-            ue4Mat->setNodeBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
-            ue4Mat->setNodeOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
+            ue4Mat->setBaseColor(nodeBaseColor->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            ue4Mat->setOcclusionRoughnessMetallic(nodeORM->getSocket(VLRShaderNodeSocketType_float3, 0));
 
             mat = ue4Mat;
             socketNormal = nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
@@ -1394,32 +1394,32 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         using namespace VLR;
 
         SpecularReflectionSurfaceMaterialRef mat = context->createSpecularReflectionSurfaceMaterial();
-        mat->setImmediateValueCoeffR(VLRColorSpace_Rec709_D65_sRGBGamma, 0.999f, 0.999f, 0.999f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.27579f, 0.940922f, 0.574879f); // Aluminum
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 7.30257f, 6.33458f, 5.16694f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.237698f, 0.734847f, 1.37062f); // Copper
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.44233f, 2.55751f, 2.23429f);
-        mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.12481f, 0.468228f, 1.44476f); // Gold
-        mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.32107f, 2.23761f, 1.69196f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.91705f, 2.92092f, 2.53253f); // Iron
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.06696f, 2.93804f, 2.7429f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.9566f, 1.82777f, 1.46089f); // Lead
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.49593f, 3.38158f, 3.17737f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 1.99144f, 1.5186f, 1.00058f); // Mercury
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 5.25161f, 4.6095f, 3.7646f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.32528f, 2.06722f, 1.81479f); // Platinum
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 4.19238f, 3.67941f, 3.06551f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 0.157099f, 0.144013f, 0.134847f); // Silver
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.82431f, 3.1451f, 2.27711f);
-        //mat->setImmediateValueEta(VLRColorSpace_Rec709_D65, 2.71866f, 2.50954f, 2.22767f); // Titanium
-        //mat->setImmediateValue_k(VLRColorSpace_Rec709_D65, 3.79521f, 3.40035f, 3.00114f);
+        mat->setCoeffR(VLRColorSpace_Rec709_D65_sRGBGamma, 0.999f, 0.999f, 0.999f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 1.27579f, 0.940922f, 0.574879f); // Aluminum
+        //mat->set_k(VLRColorSpace_Rec709_D65, 7.30257f, 6.33458f, 5.16694f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 0.237698f, 0.734847f, 1.37062f); // Copper
+        //mat->set_k(VLRColorSpace_Rec709_D65, 3.44233f, 2.55751f, 2.23429f);
+        mat->setEta(VLRColorSpace_Rec709_D65, 0.12481f, 0.468228f, 1.44476f); // Gold
+        mat->set_k(VLRColorSpace_Rec709_D65, 3.32107f, 2.23761f, 1.69196f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 2.91705f, 2.92092f, 2.53253f); // Iron
+        //mat->set_k(VLRColorSpace_Rec709_D65, 3.06696f, 2.93804f, 2.7429f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 1.9566f, 1.82777f, 1.46089f); // Lead
+        //mat->set_k(VLRColorSpace_Rec709_D65, 3.49593f, 3.38158f, 3.17737f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 1.99144f, 1.5186f, 1.00058f); // Mercury
+        //mat->set_k(VLRColorSpace_Rec709_D65, 5.25161f, 4.6095f, 3.7646f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 2.32528f, 2.06722f, 1.81479f); // Platinum
+        //mat->set_k(VLRColorSpace_Rec709_D65, 4.19238f, 3.67941f, 3.06551f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 0.157099f, 0.144013f, 0.134847f); // Silver
+        //mat->set_k(VLRColorSpace_Rec709_D65, 3.82431f, 3.1451f, 2.27711f);
+        //mat->setEta(VLRColorSpace_Rec709_D65, 2.71866f, 2.50954f, 2.22767f); // Titanium
+        //mat->set_k(VLRColorSpace_Rec709_D65, 3.79521f, 3.40035f, 3.00114f);
 
         //SpecularScatteringSurfaceMaterialRef mat = context->createSpecularScatteringSurfaceMaterial();
-        //mat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
-        //mat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
-        //mat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
-        ////mat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 1.33161f, 1.33331f, 1.33799f); // Water
-        ////mat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
+        //mat->setCoeff(VLRColorSpace_Rec709_D65, 0.999f, 0.999f, 0.999f);
+        //mat->setEtaExt(VLRColorSpace_Rec709_D65, 1.00036f, 1.00021f, 1.00071f); // Air
+        //mat->setEtaInt(VLRColorSpace_Rec709_D65, 2.41174f, 2.42343f, 2.44936f); // Diamond
+        ////mat->setEtaInt(VLRColorSpace_Rec709_D65, 1.33161f, 1.33331f, 1.33799f); // Water
+        ////mat->setEtaInt(VLRColorSpace_Rec709_D65, 1.51455f, 1.51816f, 1.52642f); // Glass BK7
 
         //SurfaceMaterialRef mats[] = { matA, matB };
         //SurfaceMaterialRef mat = context->createMultiSurfaceMaterial(mats, lengthof(mats));
@@ -1435,8 +1435,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = -M_PI / 2;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1486,7 +1486,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -1516,7 +1516,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
         ShaderNodeSocket socketAlpha;
         {
             auto matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
 
             mat = matteMat;
         }
@@ -1574,7 +1574,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto matLight = context->createDiffuseEmitterSurfaceMaterial();
-            matLight->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
+            matLight->setEmittance(VLRColorSpace_Rec709_D65, 50.0f, 50.0f, 50.0f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -1605,7 +1605,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
         ShaderNodeSocket socketAlpha;
         {
             auto matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
 
             mat = matteMat;
         }
@@ -1677,13 +1677,13 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             texDiffuse->setImage(imgDiffuse);
             texDiffuse->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
-            mat->setNodeAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+            mat->setAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
         }
         else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
-            mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+            mat->setAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
         }
         else {
-            mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
+            mat->setAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
         }
 
         //if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
@@ -1723,7 +1723,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         {
             auto mat = context->createMatteSurfaceMaterial();
-            mat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.025f, 0.025f);
+            mat->setAlbedo(VLRColorSpace_Rec709_D65, 0.05f, 0.025f, 0.025f);
 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
@@ -1741,8 +1741,8 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = -0.2 * M_PI;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1794,7 +1794,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
         ShaderNodeSocket socketAlpha;
         {
             auto matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
 
             mat = matteMat;
         }
@@ -1811,8 +1811,8 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = 0.0f;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1873,16 +1873,16 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
             if (color[0] < 1 && color[1] < 1 && color[2] < 1) {
                 auto glassMat = context->createSpecularScatteringSurfaceMaterial();
-                glassMat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 1 - color[0], 1 - color[1], 1 - color[2]);
-                glassMat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.0f, 1.0f, 1.0f);
-                glassMat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 1.5f, 1.5f, 1.5f);
+                glassMat->setCoeff(VLRColorSpace_Rec709_D65, 1 - color[0], 1 - color[1], 1 - color[2]);
+                glassMat->setEtaExt(VLRColorSpace_Rec709_D65, 1.0f, 1.0f, 1.0f);
+                glassMat->setEtaInt(VLRColorSpace_Rec709_D65, 1.5f, 1.5f, 1.5f);
 
                 mat = glassMat;
             }
             else {
                 auto oldMat = context->createOldStyleSurfaceMaterial();
 
-                oldMat->setImmediateValueGlossiness(0.7f);
+                oldMat->setGlossiness(0.7f);
 
                 Image2DRef imageDiffuse;
                 Image2DRef imageSpecular;
@@ -1915,13 +1915,13 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                 }
 
                 if (texDiffuse)
-                    oldMat->setNodeDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                    oldMat->setDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
                 if (texSpecular)
-                    oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                    oldMat->setSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
                 //if (imageSpecular && imageSpecular->originalHasAlpha())
-                //    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
+                //    oldMat->setGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
 
                 if (texNormal)
                     socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
@@ -1936,8 +1936,8 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                 if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color, nullptr) == aiReturn_SUCCESS) {
                     if (color[0] > 0.0f && color[1] > 0.0f && color[2] > 0.0f) {
                         auto emitter = context->createDiffuseEmitterSurfaceMaterial();
-                        emitter->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
-                        emitter->setImmediateValueScale(30);
+                        emitter->setEmittance(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+                        emitter->setScale(30);
 
                         auto mMat = context->createMultiSurfaceMaterial();
                         mMat->setSubMaterial(0, oldMat);
@@ -1967,7 +1967,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
         ShaderNodeSocket socketAlpha;
         {
             auto matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
 
             mat = matteMat;
         }
@@ -1985,8 +1985,8 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = 0.0f;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -2078,16 +2078,16 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
             if (color[0] < 1 && color[1] < 1 && color[2] < 1) {
                 auto glassMat = context->createSpecularScatteringSurfaceMaterial();
-                glassMat->setImmediateValueCoeff(VLRColorSpace_Rec709_D65, 1 - color[0], 1 - color[1], 1 - color[2]);
-                glassMat->setImmediateValueEtaExt(VLRColorSpace_Rec709_D65, 1.0f, 1.0f, 1.0f);
-                glassMat->setImmediateValueEtaInt(VLRColorSpace_Rec709_D65, 1.5f, 1.5f, 1.5f);
+                glassMat->setCoeff(VLRColorSpace_Rec709_D65, 1 - color[0], 1 - color[1], 1 - color[2]);
+                glassMat->setEtaExt(VLRColorSpace_Rec709_D65, 1.0f, 1.0f, 1.0f);
+                glassMat->setEtaInt(VLRColorSpace_Rec709_D65, 1.5f, 1.5f, 1.5f);
 
                 mat = glassMat;
             }
             else {
                 auto oldMat = context->createOldStyleSurfaceMaterial();
 
-                oldMat->setImmediateValueGlossiness(0.7f);
+                oldMat->setGlossiness(0.7f);
 
                 Image2DRef imageDiffuse;
                 Image2DRef imageSpecular;
@@ -2120,13 +2120,13 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                 }
 
                 if (texDiffuse)
-                    oldMat->setNodeDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                    oldMat->setDiffuseColor(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
                 if (texSpecular)
-                    oldMat->setNodeSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+                    oldMat->setSpecularColor(texSpecular->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
                 //if (imageSpecular && imageSpecular->originalHasAlpha())
-                //    oldMat->setNodeGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
+                //    oldMat->setGlossiness(texSpecular->getSocket(VLRShaderNodeSocketType_Alpha, 0));
 
                 if (texNormal)
                     socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
@@ -2141,8 +2141,8 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
                 if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, color, nullptr) == aiReturn_SUCCESS) {
                     if (color[0] > 0.0f && color[1] > 0.0f && color[2] > 0.0f) {
                         auto emitter = context->createDiffuseEmitterSurfaceMaterial();
-                        emitter->setImmediateValueEmittance(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
-                        emitter->setImmediateValueScale(30);
+                        emitter->setEmittance(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+                        emitter->setScale(30);
 
                         auto mMat = context->createMultiSurfaceMaterial();
                         mMat->setSubMaterial(0, oldMat);
@@ -2172,7 +2172,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
         ShaderNodeSocket socketAlpha;
         {
             auto matteMat = context->createMatteSurfaceMaterial();
-            matteMat->setImmediateValueAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
+            matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 0.5f, 0.5f, 0.5f);
 
             mat = matteMat;
         }
@@ -2191,9 +2191,9 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
     nodeEnvTex->setImage(imgEnv);
     auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
-    matEnv->setNodeEmittanceTextured(nodeEnvTex);
-    matEnv->setImmediateValueScale(10);
-    //matEnv->setImmediateValueEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    matEnv->setScale(10);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
     shot->environmentRotation = 160 * M_PI / 180;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
