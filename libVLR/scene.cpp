@@ -42,7 +42,6 @@ namespace VLR {
         if (status.hasGeometryDescendant) {
             if (!transform->hasGeometryDescendant()) {
                 m_optixGroup->removeChild(optixTransform);
-                m_optixAcceleration->markDirty();
                 status.hasGeometryDescendant = false;
                 --m_numValidTransforms;
             }
@@ -56,11 +55,11 @@ namespace VLR {
                 VLRAssert(trChild, "Transform must have a child.");
 
                 m_optixGroup->addChild(optixTransform);
-                m_optixAcceleration->markDirty();
                 status.hasGeometryDescendant = true;
                 ++m_numValidTransforms;
             }
         }
+        m_optixAcceleration->markDirty();
     }
 
     void SHGroup::addChild(SHGeometryGroup* geomGroup) {
@@ -363,6 +362,11 @@ namespace VLR {
         m_optixAcceleration->markDirty();
     }
 
+    void SHGeometryGroup::updateGeometryInstance(const SHGeometryInstance* instance) {
+        VLRAssert(m_instances.count(instance), "There is no instance which matches the given instance.");
+        m_optixAcceleration->markDirty();
+    }
+
     // END: Shallow Hierarchy
     // ----------------------------------------------------------------
 
@@ -462,20 +466,24 @@ namespace VLR {
         SurfaceNode::addParent(parent);
 
         // JP: 追加した親に対してジオメトリインスタンスの追加を行わせる。
-        std::set<SHGeometryInstance*> delta;
+        // EN: 
+        std::set<const SHGeometryInstance*> delta;
         for (auto it = m_shGeometryInstances.cbegin(); it != m_shGeometryInstances.cend(); ++it)
             delta.insert(*it);
-        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryAdded, delta);
+
+        parent->geometryAddEvent(delta);
     }
 
     void TriangleMeshSurfaceNode::removeParent(ParentNode* parent) {
         SurfaceNode::removeParent(parent);
 
-        // JP: 削除した親に対してジオメトリインスタンスの削除を行わせる。
-        std::set<SHGeometryInstance*> delta;
+        // JP: 追加した親に対してジオメトリインスタンスの削除を行わせる。
+        // EN: 
+        std::set<const SHGeometryInstance*> delta;
         for (auto it = m_shGeometryInstances.cbegin(); it != m_shGeometryInstances.cend(); ++it)
             delta.insert(*it);
-        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryRemoved, delta);
+
+        parent->geometryRemoveEvent(delta);
     }
 
     void TriangleMeshSurfaceNode::setVertices(std::vector<Vertex> &&vertices) {
@@ -635,11 +643,11 @@ namespace VLR {
         m_shGeometryInstances.push_back(geomInst);
 
         // JP: 親にジオメトリインスタンスの追加を行わせる。
-        std::set<SHGeometryInstance*> delta;
+        std::set<const SHGeometryInstance*> delta;
         delta.insert(geomInst);
         for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
             ParentNode* parent = *it;
-            parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryAdded, delta);
+            parent->geometryAddEvent(delta);
         }
     }
 
@@ -721,18 +729,22 @@ namespace VLR {
         SurfaceNode::addParent(parent);
 
         // JP: 追加した親に対してジオメトリインスタンスの追加を行わせる。
-        std::set<SHGeometryInstance*> delta;
+        // EN: 
+        std::set<const SHGeometryInstance*> delta;
         delta.insert(m_shGeometryInstance);
-        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryAdded, delta);
+
+        parent->geometryAddEvent(delta);
     }
 
     void InfiniteSphereSurfaceNode::removeParent(ParentNode* parent) {
         SurfaceNode::removeParent(parent);
 
-        // JP: 削除した親に対してジオメトリインスタンスの削除を行わせる。
-        std::set<SHGeometryInstance*> delta;
+        // JP: 追加した親に対してジオメトリインスタンスの削除を行わせる。
+        // EN: 
+        std::set<const SHGeometryInstance*> delta;
         delta.insert(m_shGeometryInstance);
-        parent->childUpdateEvent(ParentNode::UpdateEvent::GeometryRemoved, delta);
+
+        parent->geometryRemoveEvent(delta);
     }
 
 
@@ -762,6 +774,67 @@ namespace VLR {
             it->second->setName(name);
     }
 
+    void ParentNode::createConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta) {
+        // JP: 自分自身のTransformと子InternalNodeが持つSHTransformを繋げたSHTransformを生成。
+        //     子のSHTransformをキーとして辞書に保存する。
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+            if (m_localToWorld->isStatic()) {
+                StaticTransform* tr = (StaticTransform*)m_localToWorld;
+                SHTransform* shtr = new SHTransform(m_name, m_context, *tr, *it);
+                m_shTransforms[*it] = shtr;
+                if (delta)
+                    delta->insert(shtr);
+            }
+            else {
+                VLRAssert_NotImplemented();
+            }
+        }
+    }
+
+    void ParentNode::removeConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta) {
+        // JP: 
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+            SHTransform* shtr = m_shTransforms.at(*it);
+            m_shTransforms.erase(*it);
+            if (delta)
+                delta->insert(shtr);
+        }
+    }
+
+    void ParentNode::updateConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta) {
+        // JP: 
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
+            SHTransform* shtr = m_shTransforms.at(*it);
+            shtr->update();
+            if (delta)
+                delta->insert(shtr);
+        }
+    }
+
+    void ParentNode::addToGeometryGroup(const std::set<const SHGeometryInstance*>& childDelta) {
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
+            m_shGeomGroup.addGeometryInstance(*it);
+
+        SHTransform* selfTransform = m_shTransforms.at(nullptr);
+        selfTransform->setChild(m_shGeomGroup.getNumInstances() > 0 ? &m_shGeomGroup : nullptr);
+    }
+
+    void ParentNode::removeFromGeometryGroup(const std::set<const SHGeometryInstance*>& childDelta) {
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
+            m_shGeomGroup.removeGeometryInstance(*it);
+
+        SHTransform* selfTransform = m_shTransforms.at(nullptr);
+        selfTransform->setChild(m_shGeomGroup.getNumInstances() > 0 ? &m_shGeomGroup : nullptr);
+    }
+
+    void ParentNode::updateGeometryGroup(const std::set<const SHGeometryInstance*>& childDelta) {
+        for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
+            m_shGeomGroup.updateGeometryInstance(*it);
+
+        SHTransform* selfTransform = m_shTransforms.at(nullptr);
+        selfTransform->setChild(m_shGeomGroup.getNumInstances() > 0 ? &m_shGeomGroup : nullptr);
+    }
+
     void ParentNode::setTransform(const Transform* localToWorld) {
         m_localToWorld = localToWorld;
 
@@ -769,7 +842,7 @@ namespace VLR {
         // EN: updpate SHTransform under control.
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             if (m_localToWorld->isStatic()) {
-                StaticTransform* tr = (StaticTransform*)m_localToWorld;
+                auto tr = (StaticTransform*)m_localToWorld;
                 SHTransform* shtr = it->second;
                 shtr->setTransform(*tr);
             }
@@ -779,39 +852,39 @@ namespace VLR {
         }
     }
 
-    void ParentNode::addChild(InternalNode* child) {
+    void ParentNode::addToChildMap(Node* child) {
         if (m_childToSerialIDMap.count(child) > 0)
             return;
         m_childToSerialIDMap[child] = m_serialChildID;
         m_serialIDToChlidMap[m_serialChildID] = child;
         ++m_serialChildID;
-        child->addParent(this);
     }
 
-    void ParentNode::addChild(SurfaceNode* child) {
-        if (m_childToSerialIDMap.count(child) > 0)
+    void ParentNode::removeFromChildMap(Node* child) {
+        if (m_childToSerialIDMap.count(child) == 0)
             return;
-        m_childToSerialIDMap[child] = m_serialChildID;
-        m_serialIDToChlidMap[m_serialChildID] = child;
-        ++m_serialChildID;
+        uint32_t serialID = m_childToSerialIDMap.at(child);
+        m_childToSerialIDMap.erase(child);
+        m_serialIDToChlidMap.erase(serialID);
+    }
+
+    void ParentNode::addChild(InternalNode* child) {
+        addToChildMap(child);
         child->addParent(this);
     }
 
     void ParentNode::removeChild(InternalNode* child) {
-        if (m_childToSerialIDMap.count(child) == 0)
-            return;
-        uint32_t serialID = m_childToSerialIDMap.at(child);
-        m_childToSerialIDMap.erase(child);
-        m_serialIDToChlidMap.erase(serialID);
+        removeFromChildMap(child);
         child->removeParent(this);
     }
 
+    void ParentNode::addChild(SurfaceNode* child) {
+        addToChildMap((Node*)child);
+        child->addParent(this);
+    }
+
     void ParentNode::removeChild(SurfaceNode* child) {
-        if (m_childToSerialIDMap.count(child) == 0)
-            return;
-        uint32_t serialID = m_childToSerialIDMap.at(child);
-        m_childToSerialIDMap.erase(child);
-        m_serialIDToChlidMap.erase(serialID);
+        removeFromChildMap((Node*)child);
         child->removeParent(this);
     }
 
@@ -837,192 +910,94 @@ namespace VLR {
 
 
 
-    void InternalNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) {
-        switch (eventType) {
-        case UpdateEvent::TransformAdded: {
-            // JP: 自分自身のTransformと子InternalNodeが持つSHTransformを繋げたSHTransformを生成。
-            //     子のSHTransformをキーとして辞書に保存する。
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                if (m_localToWorld->isStatic()) {
-                    StaticTransform* tr = (StaticTransform*)m_localToWorld;
-                    SHTransform* shtr = new SHTransform(m_name, m_context, *tr, *it);
-                    m_shTransforms[*it] = shtr;
-                    delta.insert(shtr);
-                }
-                else {
-                    VLRAssert_NotImplemented();
-                }
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: 親に自分が保持するSHTransformが増えたことを通知(増分を通知)。
-            for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                auto parent = *it;
-                parent->childUpdateEvent(eventType, delta, geomInstDelta);
-            }
-
-            break;
-        }
-        case UpdateEvent::TransformRemoved: {
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: 子InternalNodeが持つSHTransformが繋がっているSHTransformを削除。
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                m_shTransforms.erase(*it);
-                delta.insert(shtr);
-            }
-
-            // JP: 親に自分が保持するSHTransformが減ったことを通知(減分を通知)。
-            for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                auto parent = *it;
-                parent->childUpdateEvent(eventType, delta, geomInstDelta);
-            }
-
-            for (auto it = delta.cbegin(); it != delta.cend(); ++it)
-                delete *it;
-
-            break;
-        }
-        case UpdateEvent::TransformUpdated: {
-            // JP: 子InternalNodeが持つSHTransformが繋がっているSHTransformを更新する。
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                shtr->update();
-                delta.insert(shtr);
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: 親に自分が保持するSHTransformが更新されたことを通知(更新分を通知)。
-            for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                auto parent = *it;
-                parent->childUpdateEvent(eventType, delta, geomInstDelta);
-            }
-
-            break;
-        }
-        case UpdateEvent::GeometryAdded:
-        case UpdateEvent::GeometryRemoved: {
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                delta.insert(shtr);
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: 親に自分が保持するSHTransformが更新されたことを通知(更新分を通知)。
-            for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                auto parent = *it;
-                parent->childUpdateEvent(eventType, delta, geomInstDelta);
-            }
-
-            break;
-        }
-        default:
-            VLRAssert_ShouldNotBeCalled();
-            break;
-        }
-    }
-
-    void InternalNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) {
-        switch (eventType) {
-        case UpdateEvent::GeometryAdded: {
-            // JP: このInternalNodeが管理するGeometryGroupにGeometryInstanceを追加する。
-            SHTransform* selfTransform = m_shTransforms.at(nullptr);
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                m_shGeomGroup.addGeometryInstance(*it);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ selfTransform, *it });
-            }
-
-            // JP: このInternalNodeのTransformにGeometryGroupをセットする。
-            //     このInternalNodeのTransformを末尾に持つTransformに変更があったことを親に知らせる。
-            if (m_shGeomGroup.getNumInstances() > 0) {
-                selfTransform->setChild(&m_shGeomGroup);
-
-                std::set<SHTransform*> delta;
-                delta.insert(selfTransform);
-                for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                    ParentNode* parent = *it;
-                    parent->childUpdateEvent(eventType, delta, geomInstDelta);
-                }
-            }
-
-            break;
-        }
-        case UpdateEvent::GeometryRemoved: {
-            // JP: 
-            SHTransform* selfTransform = m_shTransforms.at(nullptr);
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                m_shGeomGroup.removeGeometryInstance(*it);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ selfTransform, *it });
-            }
-
-            if (m_shGeomGroup.getNumInstances() == 0) {
-                selfTransform->setChild(nullptr);
-
-                std::set<SHTransform*> delta;
-                delta.insert(selfTransform);
-                for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
-                    ParentNode* parent = *it;
-                    parent->childUpdateEvent(eventType, delta, geomInstDelta);
-                }
-            }
-
-            break;
-        }
-        default:
-            VLRAssert_ShouldNotBeCalled();
-            break;
-        }
-    }
-
     InternalNode::InternalNode(Context &context, const std::string &name, const Transform* localToWorld) :
         ParentNode(context, name, localToWorld) {
+    }
+
+    void InternalNode::transformAddEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        createConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: 親に自分が保持するSHTransformが増えたことを通知(増分を通知)。
+        // EN: 
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            auto parent = *it;
+            parent->transformAddEvent(delta);
+        }
+    }
+
+    void InternalNode::transformRemoveEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        removeConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: 親に自分が保持するSHTransformが減ったことを通知(減分を通知)。
+        // EN: 
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            auto parent = *it;
+            parent->transformRemoveEvent(delta);
+        }
+
+        for (auto it = delta.cbegin(); it != delta.cend(); ++it)
+            delete *it;
+    }
+
+    void InternalNode::transformUpdateEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        updateConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: 親に自分が保持するSHTransformが更新されたことを通知(更新分を通知)。
+        // EN: 
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            auto parent = *it;
+            parent->transformUpdateEvent(delta);
+        }
+    }
+
+    void InternalNode::geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        addToGeometryGroup(childDelta);
+
+        geometryAddEvent(nullptr, childDelta);
+    }
+
+    void InternalNode::geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
+        SHTransform* transform = m_shTransforms.at(childTransform);
+
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            ParentNode* parent = *it;
+            parent->geometryAddEvent(transform, geomInstDelta);
+        }
+    }
+
+    void InternalNode::geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        removeFromGeometryGroup(childDelta);
+
+        geometryRemoveEvent(nullptr, childDelta);
+    }
+
+    void InternalNode::geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
+        SHTransform* transform = m_shTransforms.at(childTransform);
+
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            ParentNode* parent = *it;
+            parent->geometryRemoveEvent(transform, geomInstDelta);
+        }
     }
 
     void InternalNode::setTransform(const Transform* localToWorld) {
         ParentNode::setTransform(localToWorld);
 
         // JP: 親に変形情報が更新されたことを通知する。
+        // EN: 
         std::set<SHTransform*> delta;
-        std::vector<TransformAndGeometryInstance> geomInstDelta;
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
             delta.insert(it->second);
 
-            SHGeometryGroup* shGeomGroup = nullptr;
-            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
-                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
-                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
-                }
-            }
-        }
         for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
             ParentNode* parent = *it;
-            parent->childUpdateEvent(UpdateEvent::TransformUpdated, delta, geomInstDelta);
+            parent->transformUpdateEvent(delta);
         }
     }
 
@@ -1030,293 +1005,59 @@ namespace VLR {
         VLRAssert(parent != nullptr, "parent must be not null.");
         m_parents.insert(parent);
 
-        // JP: 追加した親に対して変形情報の追加を行わせる。
         std::set<SHTransform*> delta;
-        std::vector<TransformAndGeometryInstance> geomInstDelta;
-        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
             delta.insert(it->second);
 
-            SHGeometryGroup* shGeomGroup = nullptr;
-            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
-                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
-                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
-                }
+        // JP: 追加した親に対して「自身のSHTransform + 管理中の下位との連結SHTransform」の追加を行わせる。
+        // EN: 
+        parent->transformAddEvent(delta);
+
+        // JP: 子孫が持つSHGeometryInstanceの追加を親に伝える。
+        // EN: 
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
+            std::set<const SHGeometryInstance*> geomInstDelta;
+
+            SHTransform* shtr = it->second;
+            SHGeometryGroup* geomGroup;
+            if (shtr->hasGeometryDescendant(&geomGroup)) {
+                for (int i = 0; i < geomGroup->getNumInstances(); ++i)
+                    geomInstDelta.insert(geomGroup->getGeometryInstanceAt(i));
+
+                parent->geometryAddEvent(shtr, geomInstDelta);
             }
         }
-        parent->childUpdateEvent(UpdateEvent::TransformAdded, delta, geomInstDelta);
     }
 
     void InternalNode::removeParent(ParentNode* parent) {
         VLRAssert(parent != nullptr, "parent must be not null.");
         m_parents.erase(parent);
 
-        // JP: 削除した親に対して変形情報の削除を行わせる。
-        std::set<SHTransform*> delta;
-        std::vector<TransformAndGeometryInstance> geomInstDelta;
+        // JP: 子孫が持つSHGeometryInstanceの削除を親に伝える。
+        // EN: 
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
+            std::set<const SHGeometryInstance*> geomInstDelta;
+
+            SHTransform* shtr = it->second;
+            SHGeometryGroup* geomGroup;
+            if (shtr->hasGeometryDescendant(&geomGroup)) {
+                for (int i = 0; i < geomGroup->getNumInstances(); ++i)
+                    geomInstDelta.insert(geomGroup->getGeometryInstanceAt(i));
+
+                parent->geometryRemoveEvent(shtr, geomInstDelta);
+            }
+        }
+
+        std::set<SHTransform*> delta;
+        for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it)
             delta.insert(it->second);
 
-            SHGeometryGroup* shGeomGroup = nullptr;
-            if (it->second->hasGeometryDescendant(&shGeomGroup)) {
-                for (int i = 0; i < shGeomGroup->getNumInstances(); ++i) {
-                    geomInstDelta.push_back(TransformAndGeometryInstance{ it->second, shGeomGroup->getGeometryInstanceAt(i) });
-                }
-            }
-        }
-        parent->childUpdateEvent(UpdateEvent::TransformRemoved, delta, geomInstDelta);
+        // JP: 追加した親に対して「自身のSHTransform + 管理中の下位との連結SHTransform」の削除を行わせる。
+        // EN: 
+        parent->transformRemoveEvent(delta);
     }
 
 
-
-    void RootNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) {
-        switch (eventType) {
-        case UpdateEvent::TransformAdded: {
-            // JP: 自分自身のTransformと子InternalNodeが持つSHTransformを繋げたSHTransformを生成。
-            //     子のSHTransformをキーとして辞書に保存する。
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                if (m_localToWorld->isStatic()) {
-                    StaticTransform* tr = (StaticTransform*)m_localToWorld;
-                    SHTransform* shtr = new SHTransform(m_name, m_context, *tr, *it);
-                    m_shTransforms[*it] = shtr;
-                    delta.insert(shtr);
-                }
-                else {
-                    VLRAssert_NotImplemented();
-                }
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
-                if (m_surfaceLights.count(it->geomInstance)) {
-                    vlrprintf("Surface light cannot be instanced.");
-                    VLRAssert_ShouldNotBeCalled();
-                }
-                else {
-                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[it->geomInstance];
-                    it->geomInstance->getSurfaceLightDescriptor(&lightDesc);
-                    if (it->transform->isStatic()) {
-                        StaticTransform tr = it->transform->getStaticTransform();
-                        float mat[16], invMat[16];
-                        tr.getArrays(mat, invMat);
-                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
-                    }
-                    else {
-                        VLRAssert_NotImplemented();
-                    }
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            // JP: SHGroupにもSHTransformを追加する。
-            for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
-                SHTransform* shtr = *it;
-                m_shGroup.addChild(shtr);
-            }
-
-            break;
-        }
-        case UpdateEvent::TransformRemoved: {
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                if (m_surfaceLights.count(it->geomInstance)) {
-                    m_surfaceLights.erase(it->geomInstance);
-                }
-                else {
-                    VLRAssert_ShouldNotBeCalled();
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            // JP: 子InternalNodeが持つSHTransformがつながっているSHTransformを削除。
-            std::set<SHTransform*> delta;
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                m_shTransforms.erase(*it);
-                delta.insert(shtr);
-            }
-
-            // JP: SHGroupからもSHTransformを削除する。
-            for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
-                SHTransform* shtr = *it;
-                m_shGroup.removeChild(shtr);
-            }
-
-            for (auto it = delta.cbegin(); it != delta.cend(); ++it)
-                delete *it;
-
-            break;
-        }
-        case UpdateEvent::TransformUpdated: {
-            // JP: 子InternalNodeが持つSHTransformが繋がっているSHTransformを更新する。
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                shtr->update();
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
-                if (m_surfaceLights.count(it->geomInstance)) {
-                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights.at(it->geomInstance);
-                    if (it->transform->isStatic()) {
-                        StaticTransform tr = it->transform->getStaticTransform();
-                        float mat[16], invMat[16];
-                        tr.getArrays(mat, invMat);
-                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
-                    }
-                    else {
-                        VLRAssert_NotImplemented();
-                    }
-                }
-                else {
-                    VLRAssert_ShouldNotBeCalled();
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            break;
-        }
-        case UpdateEvent::GeometryAdded: {
-            // JP: SHGroupに対してSHTransformの末尾のジオメトリ状態に変化があったことを通知する。
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                m_shGroup.updateChild(shtr);
-            }
-
-            std::vector<TransformAndGeometryInstance> geomInstDelta;
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(it->transform);
-                geomInstDelta.push_back(TransformAndGeometryInstance{ shtr, it->geomInstance });
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
-                if (m_surfaceLights.count(it->geomInstance)) {
-                    vlrprintf("Surface light cannot be instanced.");
-                    VLRAssert_ShouldNotBeCalled();
-                }
-                else {
-                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[it->geomInstance];
-                    it->geomInstance->getSurfaceLightDescriptor(&lightDesc);
-                    if (it->transform->isStatic()) {
-                        StaticTransform tr = it->transform->getStaticTransform();
-                        float mat[16], invMat[16];
-                        tr.getArrays(mat, invMat);
-                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
-                    }
-                    else {
-                        VLRAssert_NotImplemented();
-                    }
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            break;
-        }
-        case UpdateEvent::GeometryRemoved: {
-            // JP: SHGroupに対してSHTransformの末尾のジオメトリ状態に変化があったことを通知する。
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                SHTransform* shtr = m_shTransforms.at(*it);
-                m_shGroup.updateChild(shtr);
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = childGeomInstDelta.cbegin(); it != childGeomInstDelta.cend(); ++it) {
-                if (m_surfaceLights.count(it->geomInstance)) {
-                    m_surfaceLights.erase(it->geomInstance);
-                }
-                else {
-                    VLRAssert_ShouldNotBeCalled();
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            break;
-        }
-        default:
-            VLRAssert_ShouldNotBeCalled();
-            break;
-        }
-    }
-
-    void RootNode::childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) {
-        switch (eventType) {
-        case UpdateEvent::GeometryAdded: {
-            // JP: 
-            SHTransform* selfTransform = m_shTransforms.at(nullptr);
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
-                m_shGeomGroup.addGeometryInstance(*it);
-
-            if (m_shGeomGroup.getNumInstances() > 0) {
-                selfTransform->setChild(&m_shGeomGroup);
-                m_shGroup.updateChild(selfTransform);
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                if (m_surfaceLights.count(*it)) {
-                    vlrprintf("Surface light cannot be instanced.");
-                    VLRAssert_ShouldNotBeCalled();
-                }
-                else {
-                    Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[*it];
-                    (*it)->getSurfaceLightDescriptor(&lightDesc);
-                    if (selfTransform->isStatic()) {
-                        StaticTransform tr = selfTransform->getStaticTransform();
-                        float mat[16], invMat[16];
-                        tr.getArrays(mat, invMat);
-                        lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
-                    }
-                    else {
-                        VLRAssert_NotImplemented();
-                    }
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            break;
-        }
-        case UpdateEvent::GeometryRemoved: {
-            // JP: 
-            SHTransform* selfTransform = m_shTransforms.at(nullptr);
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
-                m_shGeomGroup.removeGeometryInstance(*it);
-
-            if (m_shGeomGroup.getNumInstances() == 0) {
-                selfTransform->setChild(nullptr);
-                m_shGroup.updateChild(selfTransform);
-            }
-
-            // JP: SurfaceLightDescriptorのマップを構築する。
-            for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
-                if (m_surfaceLights.count(*it)) {
-                    m_surfaceLights.erase(*it);
-                }
-                else {
-                    VLRAssert_ShouldNotBeCalled();
-                }
-            }
-            m_surfaceLightsAreSetup = false;
-
-            break;
-        }
-        default:
-            VLRAssert_ShouldNotBeCalled();
-            break;
-        }
-    }
 
     RootNode::RootNode(Context &context, const Transform* localToWorld) :
         ParentNode(context, "Root", localToWorld), m_shGroup(context), m_surfaceLightsAreSetup(false) {
@@ -1332,6 +1073,104 @@ namespace VLR {
 
             m_surfaceLightsAreSetup = false;
         }
+    }
+
+    void RootNode::transformAddEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        createConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: SHGroupにもSHTransformを追加する。
+        // EN: 
+        for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
+            SHTransform* shtr = *it;
+            m_shGroup.addChild(shtr);
+        }
+    }
+
+    void RootNode::transformRemoveEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        removeConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: SHGroupからSHTransformを削除する。
+        // EN: 
+        for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
+            SHTransform* shtr = *it;
+            m_shGroup.removeChild(shtr);
+        }
+
+        for (auto it = delta.cbegin(); it != delta.cend(); ++it)
+            delete *it;
+    }
+
+    void RootNode::transformUpdateEvent(const std::set<SHTransform*>& childDelta) {
+        std::set<SHTransform*> delta;
+        updateConcatanatedTransforms(childDelta, &delta);
+        VLRAssert(childDelta.size() == delta.size(), "The number of elements must match.");
+
+        // JP: SHTransformを更新する。
+        // EN: 
+        for (auto it = delta.cbegin(); it != delta.cend(); ++it) {
+            SHTransform* shtr = *it;
+            m_shGroup.updateChild(shtr);
+        }
+    }
+
+    void RootNode::geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        addToGeometryGroup(childDelta);
+
+        geometryAddEvent(nullptr, childDelta);
+    }
+
+    void RootNode::geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
+        SHTransform* transform = m_shTransforms.at(childTransform);
+
+        m_shGroup.updateChild(transform);
+
+        for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
+            auto key = TransformAndGeometryInstance{ transform, *it };
+            if (m_surfaceLights.count(key)) {
+                VLRAssert_ShouldNotBeCalled();
+            }
+            else {
+                Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[key]; // new entry
+                (*it)->getSurfaceLightDescriptor(&lightDesc);
+                if (transform->isStatic()) {
+                    StaticTransform tr = transform->getStaticTransform();
+                    float mat[16], invMat[16];
+                    tr.getArrays(mat, invMat);
+                    lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
+                }
+                else {
+                    VLRAssert_NotImplemented();
+                }
+            }
+        }
+        m_surfaceLightsAreSetup = false;
+    }
+
+    void RootNode::geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        removeFromGeometryGroup(childDelta);
+
+        geometryRemoveEvent(nullptr, childDelta);
+    }
+
+    void RootNode::geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
+        SHTransform* transform = m_shTransforms.at(childTransform);
+
+        m_shGroup.updateChild(transform);
+
+        for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
+            auto key = TransformAndGeometryInstance{ transform, *it };
+            if (m_surfaceLights.count(key)) {
+                m_surfaceLights.erase(key);
+            }
+            else {
+                VLRAssert_ShouldNotBeCalled();
+            }
+        }
+        m_surfaceLightsAreSetup = false;
     }
 
     void RootNode::set() {

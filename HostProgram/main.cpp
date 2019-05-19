@@ -889,9 +889,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                                     // JP: クリックした要素を既に選択リストに持っていた場合は全ての選択状態を解除する。
                                     //     このとき他に選択要素を持っていた場合はクリックした要素だけを選択状態にする。
                                     // EN: 
-                                    bool multiplySelected = g_selectedNodes.size() > 1;
+                                    bool multipleSelected = g_selectedNodes.size() > 1;
                                     g_selectedNodes.clear();
-                                    if (multiplySelected)
+                                    if (multipleSelected)
                                         g_selectedNodes.insert(clickedChild);
                                 }
                                 else {
@@ -923,13 +923,34 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                         }
 
                         static char g_nodeName[256];
+                        static VLRNodeType g_nodeType = (VLRNodeType)-1;
+                        static InternalNodeRef g_internalNode;
+                        static Vector3D g_nodeScale;
+                        static Vector3D g_nodeRotation;
+                        static Vector3D g_nodeTranslation;
                         if (newOnlyOneSelected) {
                             size_t copySize = std::min(std::strlen(onlyOneSelectedNode->getName()), sizeof(g_nodeName) - 1);
                             std::memcpy(g_nodeName, onlyOneSelectedNode->getName(), copySize);
                             g_nodeName[copySize] = '\0';
+                            g_nodeType = onlyOneSelectedNode->getNodeType();
+
+                            if (g_nodeType == VLRNodeType_InternalNode) {
+                                g_internalNode = std::dynamic_pointer_cast<InternalNodeHolder>(onlyOneSelectedNode);
+                                TransformRef tr = g_internalNode->getTransform();
+                                if (tr->getTransformType() == VLRTransformType_Static) {
+                                    Matrix4x4 mat, invMat;
+                                    auto sTr = std::dynamic_pointer_cast<StaticTransformHolder>(tr);
+                                    sTr->getMatrices(&mat, &invMat);
+
+                                    mat.decompose(&g_nodeScale, &g_nodeRotation, &g_nodeTranslation);
+                                    g_nodeRotation *= 180 / M_PI;
+                                }
+                            }
+
                         }
                         else if (g_selectedNodes.size() != 1) {
                             g_nodeName[0] = '\0';
+                            g_nodeType = (VLRNodeType)-1;
                         }
 
                         if (onlyOneSelectedNode) {
@@ -941,31 +962,28 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                             }
                             ImGui::PopID();
 
-                            if (onlyOneSelectedNode->getNodeType() == VLRNodeType_InternalNode) {
-                                auto node = std::dynamic_pointer_cast<InternalNodeHolder>(onlyOneSelectedNode);
-                                TransformRef tr = node->getTransform();
-                                if (tr->getTransformType() == VLRTransformType_Static) {
-                                    Matrix4x4 mat, invMat;
-                                    auto sTr = std::dynamic_pointer_cast<StaticTransformHolder>(tr);
-                                    sTr->getMatrices(&mat, &invMat);
+                            if (g_selectedNodes.size() == 1) {
+                                if (g_nodeType == VLRNodeType_InternalNode) {
+                                    // TODO: tabでフォーカスを動かしたときも編集を確定させる。
+                                    //       ImGuiにバグがあるっぽい？
+                                    bool trChanged = false;
+                                    trChanged |= ImGui::InputFloat3("Scale", (float*)&g_nodeScale, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                                    trChanged |= ImGui::InputFloat3("Rotation", (float*)&g_nodeRotation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                                    trChanged |= ImGui::InputFloat3("Translation", (float*)&g_nodeTranslation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                                    if (trChanged) {
+                                        Matrix4x4 mat = translate<float>(g_nodeTranslation) *
+                                            rotateZ<float>(g_nodeRotation.z * M_PI / 180) *
+                                            rotateY<float>(g_nodeRotation.y * M_PI / 180) *
+                                            rotateX<float>(g_nodeRotation.x * M_PI / 180) *
+                                            scale<float>(g_nodeScale);
 
-                                    Vector3D scale;
-                                    Vector3D rotation;
-                                    Vector3D translation;
-                                    mat.decompose(&scale, &rotation, &translation);
-                                    rotation *= 180 / M_PI;
+                                        auto newTransform = context->createStaticTransform(mat);
 
-                                    if (ImGui::InputFloat3("Scale", (float*)&scale))
-                                        printf("");
-                                    ImGui::InputFloat3("Rotation", (float*)&rotation);
-                                    ImGui::InputFloat3("Translation", (float*)&translation);
+                                        g_internalNode->setTransform(newTransform);
+
+                                        sceneChanged = true;
+                                    }
                                 }
-                                else {
-                                    Assert_NotImplemented();
-                                }
-                            }
-                            else {
-
                             }
                         }
                     }

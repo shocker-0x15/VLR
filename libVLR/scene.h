@@ -44,6 +44,10 @@ namespace VLR {
 
     // ----------------------------------------------------------------
     // Shallow Hierarchy
+    // JP: レンダリング時のパフォーマンスを考えるとシーン階層は浅いほうが良い。
+    //     ユーザーには任意の深いシーングラフを許可する裏で同時に浅いシーングラフを生成する。
+    // EN: Shallower scene hierarchy is preferrable for rendering performance.
+    //     Generate shallow scene graph while allowing the user build arbitrarily deep scene graph.
 
     class SHGroup;
     class SHTransform;
@@ -148,6 +152,7 @@ namespace VLR {
 
         void addGeometryInstance(const SHGeometryInstance* instance);
         void removeGeometryInstance(const SHGeometryInstance* instance);
+        void updateGeometryInstance(const SHGeometryInstance* instance);
         const SHGeometryInstance* getGeometryInstanceAt(uint32_t index) const {
             auto it = m_instances.cbegin();
             std::advance(it, index);
@@ -326,11 +331,31 @@ namespace VLR {
     struct TransformAndGeometryInstance {
         const SHTransform* transform;
         const SHGeometryInstance* geomInstance;
+
+        bool operator<(const TransformAndGeometryInstance& v) const {
+            if (transform < v.transform) {
+                return true;
+            }
+            else if (transform == v.transform) {
+                if (geomInstance < v.geomInstance)
+                    return true;
+            }
+            return false;
+        }
     };
 
 
 
+    // JP: ParentNodeは対応するひとつのSHTransformとSHGeometryGroupを持つ。
+    //     また自分の子孫が持つ連なったSHTransformも管理する。
+    //     SHGeometryGroupにはParentNodeに「直接」所属するSurfaceNodeのジオメトリが登録される。
+    // EN: ParentNode has a single SHTransform corresponding the node itself and a single SHGeometryGroup.
+    //     And it manages chaining SHTransforms that children have.
+    //     SHGeometryGroup holds geometries of SurfaceNode's which *directly* belong to the ParentNode.
     class ParentNode : public Node {
+        void addToChildMap(Node* child);
+        void removeFromChildMap(Node* child);
+
     protected:
         uint32_t m_serialChildID;
         std::map<Node*, uint32_t> m_childToSerialIDMap;
@@ -338,10 +363,19 @@ namespace VLR {
         const Transform* m_localToWorld;
 
         // key: child SHTransform
-        // SHTransform containing only the self transform uses nullptr as the key.
+        // JP: 自分自身のトランスフォームのみを含むSHTransformはnullptrをキーとする。
+        // EN: SHTransform containing only the self transform uses nullptr as the key.
         std::map<const SHTransform*, SHTransform*> m_shTransforms;
 
         SHGeometryGroup m_shGeomGroup;
+
+        void createConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
+        void removeConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
+        void updateConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
+
+        void addToGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
+        void removeFromGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
+        void updateGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
 
     public:
         static const ClassIdentifier ClassID;
@@ -355,24 +389,23 @@ namespace VLR {
             return VLRNodeType_InternalNode;
         }
 
-        enum class UpdateEvent {
-            TransformAdded = 0,
-            TransformRemoved,
-            TransformUpdated,
-            GeometryAdded,
-            GeometryRemoved,
-        };
+        virtual void transformAddEvent(const std::set<SHTransform*>& childDelta) = 0;
+        virtual void transformRemoveEvent(const std::set<SHTransform*>& childDelta) = 0;
+        virtual void transformUpdateEvent(const std::set<SHTransform*>& childDelta) = 0;
 
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*> &childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) = 0;
-        virtual void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) = 0;
+        virtual void geometryAddEvent(const std::set<const SHGeometryInstance*> &childDelta) = 0;
+        virtual void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) = 0;
+        virtual void geometryRemoveEvent(const std::set<const SHGeometryInstance*> &childDelta) = 0;
+        virtual void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) = 0;
+
         virtual void setTransform(const Transform* localToWorld);
         const Transform* getTransform() const {
             return m_localToWorld;
         }
 
         void addChild(InternalNode* child);
-        void addChild(SurfaceNode* child);
         void removeChild(InternalNode* child);
+        void addChild(SurfaceNode* child);
         void removeChild(SurfaceNode* child);
         uint32_t getNumChildren() const;
         void getChildren(Node** children) const;
@@ -384,14 +417,20 @@ namespace VLR {
     class InternalNode : public ParentNode {
         std::set<ParentNode*> m_parents;
 
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
-
     public:
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier &getClass() const { return ClassID; }
 
         InternalNode(Context &context, const std::string &name, const Transform* localToWorld);
+
+        void transformAddEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformRemoveEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformUpdateEvent(const std::set<SHTransform*>& childDelta) override;
+
+        void geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) override;
+        void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
+        void geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) override;
+        void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
 
         void setTransform(const Transform* localToWorld) override;
 
@@ -403,13 +442,10 @@ namespace VLR {
 
     class RootNode : public ParentNode {
         SHGroup m_shGroup;
-        std::map<const SHGeometryInstance*, Shared::SurfaceLightDescriptor> m_surfaceLights;
+        std::map<TransformAndGeometryInstance, Shared::SurfaceLightDescriptor> m_surfaceLights;
         optix::Buffer m_optixSurfaceLightDescriptorBuffer;
         DiscreteDistribution1D m_surfaceLightImpDist;
         bool m_surfaceLightsAreSetup;
-
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHTransform*>& childDelta, const std::vector<TransformAndGeometryInstance> &childGeomInstDelta) override;
-        void childUpdateEvent(UpdateEvent eventType, const std::set<SHGeometryInstance*> &childDelta) override;
 
     public:
         static const ClassIdentifier ClassID;
@@ -417,6 +453,15 @@ namespace VLR {
 
         RootNode(Context &context, const Transform* localToWorld);
         ~RootNode();
+
+        void transformAddEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformRemoveEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformUpdateEvent(const std::set<SHTransform*>& childDelta) override;
+
+        void geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) override;
+        void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
+        void geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) override;
+        void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
 
         void set();
     };
