@@ -186,10 +186,13 @@ namespace VLR {
 
 
 
+#define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
+    static const ClassIdentifier ClassID; \
+    virtual const ClassIdentifier &getClass() const { return ClassID; }
+
     class TypeAwareClass {
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         template <class T>
         bool is() const {
@@ -215,8 +218,7 @@ namespace VLR {
         Context &m_context;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         Object(Context &context);
         virtual ~Object() {}

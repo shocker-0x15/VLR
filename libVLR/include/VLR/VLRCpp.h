@@ -78,7 +78,7 @@ namespace VLRCpp {
         VLRObject m_raw;
 
     public:
-        Object(const ContextConstRef &context) : m_context(context) {}
+        Object(const ContextConstRef &context) : m_context(context), m_raw(nullptr) {}
         virtual ~Object() {}
 
         template <typename VLRType>
@@ -1236,7 +1236,7 @@ namespace VLRCpp {
         GeometryShaderNodeRef m_geomShaderNode;
         StaticTransformRef m_identityTransform;
 
-        Context() {}
+        Context() : m_rawContext(nullptr) {}
 
         void initialize(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize,
                         const int32_t* devices, uint32_t numDevices) {

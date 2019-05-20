@@ -30,8 +30,7 @@ namespace VLR {
         mutable bool m_initOptiXObject;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static DataFormat getInternalFormat(DataFormat inputFormat, SpectrumType spectrumType);
 
@@ -88,8 +87,7 @@ namespace VLR {
         mutable bool m_copyDone;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         // JP: "linearData" はメモリ上のレイアウトがリニアであることを意味しており、ガンマカーブ云々を表しているのではない。
         // EN: "linearData" means data layout is linear, it doesn't mean gamma curve.
@@ -115,8 +113,7 @@ namespace VLR {
         mutable bool m_copyDone;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
                                DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace);

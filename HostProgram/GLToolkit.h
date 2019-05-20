@@ -347,7 +347,7 @@ namespace GLTK {
         Usage m_usage;
 
     public:
-        Buffer() : m_handle(0) {}
+        Buffer() : m_handle(0), m_stride(0), m_numElements(0) {}
         ~Buffer() {
             if (m_handle)
                 finalize();
@@ -474,7 +474,7 @@ namespace GLTK {
         uint32_t m_height;
 
     public:
-        Texture2D() : m_handle(0) {}
+        Texture2D() : m_handle(0), m_width(0), m_height(0) {}
         ~Texture2D() {
             if (m_handle)
                 finalize();
@@ -636,7 +636,7 @@ namespace GLTK {
         Target m_curTarget;
 
     public:
-        FrameBuffer() : m_handle(0) {}
+        FrameBuffer() : m_handle(0), m_depthRenderTargetHandle(0), m_width(0), m_height(0) {}
         ~FrameBuffer() {
             if (m_handle)
                 finalize();
@@ -762,7 +762,7 @@ namespace GLTK {
             }
         }
     public:
-        GraphicsShader() : m_handle(0) {}
+        GraphicsShader() : m_handle(0), m_VSHandle(0), m_PSHandle(0) {}
         ~GraphicsShader() {
             if (m_handle)
                 finalize();

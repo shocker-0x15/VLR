@@ -21,7 +21,7 @@ namespace VLR {
         }
         // used in this file
         ShaderNodeSocket(const ShaderNode* _node, ShaderNodeSocketType _socketType, uint32_t _option) :
-            node(_node) {
+            node(_node), socketInfoAsUInt(0) {
             info.outputType = (unsigned int)_socketType;
             info.option = _option;
         }
@@ -82,8 +82,7 @@ namespace VLR {
         void updateNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -106,8 +105,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -148,8 +146,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -191,8 +188,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -240,8 +236,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -290,8 +285,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -329,8 +323,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -368,8 +361,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -404,8 +396,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -440,8 +431,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -476,8 +466,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -512,8 +501,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -550,8 +538,7 @@ namespace VLR {
         void setupNodeDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);

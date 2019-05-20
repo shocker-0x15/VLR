@@ -28,8 +28,7 @@ namespace VLR {
         static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc);
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -55,8 +54,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -83,8 +81,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -115,8 +112,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -149,8 +145,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -187,8 +182,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -221,8 +215,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -251,8 +244,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -283,8 +275,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -312,8 +303,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -339,8 +329,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -367,8 +356,7 @@ namespace VLR {
         void setupMaterialDescriptor() const;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);

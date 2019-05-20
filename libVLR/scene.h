@@ -5,8 +5,7 @@
 namespace VLR {
     class Transform : public TypeAwareClass {
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         virtual ~Transform() {}
 
@@ -21,8 +20,7 @@ namespace VLR {
         Matrix4x4 m_invMatrix;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
 
@@ -206,8 +204,7 @@ namespace VLR {
         std::string m_name;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         Node(Context &context, const std::string &name) :
             Object(context), m_name(name) {}
@@ -230,8 +227,7 @@ namespace VLR {
         std::set<ParentNode*> m_parents;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -274,8 +270,7 @@ namespace VLR {
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -313,8 +308,7 @@ namespace VLR {
         SHGeometryInstance* m_shGeometryInstance;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -378,8 +372,7 @@ namespace VLR {
         void updateGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         ParentNode(Context &context, const std::string &name, const Transform* localToWorld);
         virtual ~ParentNode();
@@ -418,8 +411,7 @@ namespace VLR {
         std::set<ParentNode*> m_parents;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         InternalNode(Context &context, const std::string &name, const Transform* localToWorld);
 
@@ -448,8 +440,7 @@ namespace VLR {
         bool m_surfaceLightsAreSetup;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         RootNode(Context &context, const Transform* localToWorld);
         ~RootNode();
@@ -475,8 +466,7 @@ namespace VLR {
         float m_envRotationPhi;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         Scene(Context &context, const Transform* localToWorld);
         ~Scene();
@@ -518,8 +508,7 @@ namespace VLR {
 
     class Camera : public Object {
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -545,8 +534,7 @@ namespace VLR {
         Shared::PerspectiveCamera m_data;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
@@ -619,8 +607,7 @@ namespace VLR {
         Shared::EquirectangularCamera m_data;
 
     public:
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier &getClass() const { return ClassID; }
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         static void initialize(Context &context);
         static void finalize(Context &context);
