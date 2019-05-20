@@ -443,9 +443,12 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 
     Image2DRef imgDiffuse;
     Image2DTextureShaderNodeRef texDiffuse;
+    Image2DRef imgNormal;
+    Image2DTextureShaderNodeRef texNormal;
     Image2DRef imgAlpha;
     Image2DTextureShaderNodeRef texAlpha;
     
+    // Base Color
     if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
         texDiffuse = context->createImage2DTextureShaderNode();
         imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
@@ -459,11 +462,22 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
         mat->setAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
     }
 
+    // Normal
+    if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
+        imgNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+        texNormal = context->createImage2DTextureShaderNode();
+        texNormal->setImage(imgNormal);
+    }
+
+    // Alpha
     if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
         imgAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
         texAlpha = context->createImage2DTextureShaderNode();
         texAlpha->setImage(imgAlpha);
     }
+
+    if (imgNormal)
+        socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
 
     if (imgAlpha) {
         if (imgAlpha->getOriginalDataFormat() == VLRDataFormat_Gray8)
@@ -2239,6 +2253,56 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     }
 }
 
+void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene();
+
+    InternalNodeRef modelNode;
+
+    construct(context, ASSETS_DIR"San_Miguel/san-miguel.obj", false, true, &modelNode);
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(1.0f)));
+
+
+
+    auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/Direct_HDR_Capture_of_the_Sun_and_Sky/1400/probe_14-00_latlongmap.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    //auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
+    nodeEnvTex->setImage(imgEnv);
+    auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    //matEnv->setEmittance(RGBSpectrum(0.1f, 0.1f, 0.1f));
+    matEnv->setScale(100.0f);
+    shot->environmentRotation = 250 * M_PI / 180;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
+
+
+
+    shot->renderTargetSizeX = 1280;
+    shot->renderTargetSizeY = 720;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createPerspectiveCamera();
+
+        camera->setPosition(Point3D(6.255f, 1.427f, 6.772f));
+        camera->setOrientation(Quaternion(0.009f, 0.865f, -0.009f, 0.502f));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        float lensRadius = 0.0f;
+        camera->setSensitivity(lensRadius > 0.0f ? 1.0f / (M_PI * lensRadius * lensRadius) : 1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(lensRadius);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
     createMaterialTestScene(context, shot);
@@ -2251,4 +2315,5 @@ void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createPowerplantScene(context, shot);
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);
+    //createSanMiguelScene(context, shot);
 }

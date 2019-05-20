@@ -407,6 +407,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OpenGLMajorVersion);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OpenGLMinorVersion);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 #if defined(Platform_macOS)
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -437,6 +438,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             hpprintf("gl3w doesn't support OpenGL %u.%u\n", OpenGLMajorVersion, OpenGLMinorVersion);
             return -1;
         }
+
+        glEnable(GL_FRAMEBUFFER_SRGB);
+        GLTK::errorCheck();
 
 
 
@@ -1086,6 +1090,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                     outputTexture.unbind();
                 }
 
+                // TODO: need to rendering ImGui contents with degamma when sRGB is enabled.
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -1097,6 +1102,12 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
             // ----------------------------------------------------------------
             // JP: スケーリング
+
+            if (g_enableDebugRendering)
+                glDisable(GL_FRAMEBUFFER_SRGB);
+            else
+                glEnable(GL_FRAMEBUFFER_SRGB);
+            GLTK::errorCheck();
 
             int32_t display_w, display_h;
             glfwGetFramebufferSize(window, &display_w, &display_h);

@@ -30,7 +30,7 @@ void main(void) {
     else {
         opResult.rgb *= brightness;
         opResult.rgb = 1 - exp(-opResult.rgb);
-        opResult.rgb = sRGB_gamma(opResult.rgb);
+        // opResult.rgb = sRGB_gamma(opResult.rgb);
     }
     color = opResult;
 }

@@ -557,6 +557,8 @@ namespace VLR {
             m_data.setImagePlaneArea();
         }
         void setSensitivity(float sensitivity) {
+            if (!std::isfinite(sensitivity))
+                sensitivity = 1.0f;
             m_data.sensitivity = std::max(0.0f, sensitivity);
         }
         void setFovY(float fovY) {
@@ -626,6 +628,8 @@ namespace VLR {
             m_data.orientation = orientation;
         }
         void setSensitivity(float sensitivity) {
+            if (!std::isfinite(sensitivity))
+                sensitivity = 1.0f;
             m_data.sensitivity = std::max(0.0f, sensitivity);
         }
         void setAngles(float phiAngle, float thetaAngle) {
