@@ -167,10 +167,10 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        bool setNode0(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue0(float value);
-        bool setNode1(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue1(float value);
+        bool set0(const ShaderNodeSocket &outputSocket);
+        void set0(float value);
+        bool set1(const ShaderNodeSocket &outputSocket);
+        void set1(float value);
     };
 
 
@@ -211,12 +211,12 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        bool setNode0(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue0(float value);
-        bool setNode1(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue1(float value);
-        bool setNode2(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue2(float value);
+        bool set0(const ShaderNodeSocket &outputSocket);
+        void set0(float value);
+        bool set1(const ShaderNodeSocket &outputSocket);
+        void set1(float value);
+        bool set2(const ShaderNodeSocket &outputSocket);
+        void set2(float value);
     };
 
 
@@ -261,14 +261,14 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        bool setNode0(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue0(float value);
-        bool setNode1(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue1(float value);
-        bool setNode2(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue2(float value);
-        bool setNode3(const ShaderNodeSocket &outputSocket);
-        void setImmediateValue3(float value);
+        bool set0(const ShaderNodeSocket &outputSocket);
+        void set0(float value);
+        bool set1(const ShaderNodeSocket &outputSocket);
+        void set1(float value);
+        bool set2(const ShaderNodeSocket &outputSocket);
+        void set2(float value);
+        bool set3(const ShaderNodeSocket &outputSocket);
+        void set3(float value);
     };
 
 
@@ -304,11 +304,11 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        bool setNodeValue(const ShaderNodeSocket &outputSocket);
-        bool setNodeScale(const ShaderNodeSocket &outputSocket);
-        bool setNodeOffset(const ShaderNodeSocket &outputSocket);
-        void setImmediateValueScale(float value);
-        void setImmediateValueOffset(float value);
+        bool setValue(const ShaderNodeSocket &outputSocket);
+        bool setScale(const ShaderNodeSocket &outputSocket);
+        bool setOffset(const ShaderNodeSocket &outputSocket);
+        void setScale(float value);
+        void setOffset(float value);
     };
 
 
@@ -342,9 +342,9 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrumType(SpectrumType spectrumType);
-        void setImmediateValueColorSpace(ColorSpace colorSpace);
-        void setImmediateValueTriplet(float e0, float e1, float e2);
+        void setSpectrumType(SpectrumType spectrumType);
+        void setColorSpace(ColorSpace colorSpace);
+        void setTriplet(float e0, float e1, float e2);
     };
 
 
@@ -380,7 +380,7 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrum(SpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
+        void setSpectrum(SpectrumType spectrumType, float minLambda, float maxLambda, const float* values, uint32_t numSamples);
     };
 
 
@@ -415,7 +415,7 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        void setImmediateValueSpectrum(SpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
+        void setSpectrum(SpectrumType spectrumType, const float* lambdas, const float* values, uint32_t numSamples);
     };
 
 
@@ -450,9 +450,9 @@ namespace VLR {
             return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex;
         }
 
-        bool setNodeFloat3(const ShaderNodeSocket &outputSocket);
-        void setImmediateValueFloat3(const float value[3]);
-        void setImmediateValueSpectrumTypeAndColorSpace(SpectrumType spectrumType, ColorSpace colorSpace);
+        bool setFloat3(const ShaderNodeSocket &outputSocket);
+        void setFloat3(const float value[3]);
+        void setSpectrumTypeAndColorSpace(SpectrumType spectrumType, ColorSpace colorSpace);
     };
 
 
@@ -522,7 +522,7 @@ namespace VLR {
         void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y);
-        bool setNodeTexCoord(const ShaderNodeSocket &outputSocket);
+        bool setTexCoord(const ShaderNodeSocket &outputSocket);
     };
 
 
@@ -560,7 +560,7 @@ namespace VLR {
         void setImage(const Image2D* image);
         void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y);
-        bool setNodeTexCoord(const ShaderNodeSocket &outputSocket);
+        bool setTexCoord(const ShaderNodeSocket &outputSocket);
 
         void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;
     };

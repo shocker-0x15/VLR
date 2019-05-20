@@ -464,7 +464,7 @@ VLR_API VLRResult vlrFloat2ShaderNodeSetNode0(VLRFloat2ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float2ShaderNode);
 
-        if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
+        if (!node->set0(VLR::ShaderNodeSocket(node0)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -476,7 +476,7 @@ VLR_API VLRResult vlrFloat2ShaderNodeSetImmediateValue0(VLRFloat2ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float2ShaderNode);
 
-        node->setImmediateValue0(value);
+        node->set0(value);
 
         return VLRResult_NoError;
     }
@@ -487,7 +487,7 @@ VLR_API VLRResult vlrFloat2ShaderNodeSetNode1(VLRFloat2ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float2ShaderNode);
 
-        if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
+        if (!node->set1(VLR::ShaderNodeSocket(node1)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -499,7 +499,7 @@ VLR_API VLRResult vlrFloat2ShaderNodeSetImmediateValue1(VLRFloat2ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float2ShaderNode);
 
-        node->setImmediateValue1(value);
+        node->set1(value);
 
         return VLRResult_NoError;
     }
@@ -535,7 +535,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetNode0(VLRFloat3ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
+        if (!node->set0(VLR::ShaderNodeSocket(node0)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -547,7 +547,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue0(VLRFloat3ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        node->setImmediateValue0(value);
+        node->set0(value);
 
         return VLRResult_NoError;
     }
@@ -558,7 +558,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetNode1(VLRFloat3ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
+        if (!node->set1(VLR::ShaderNodeSocket(node1)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -570,7 +570,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue1(VLRFloat3ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        node->setImmediateValue1(value);
+        node->set1(value);
 
         return VLRResult_NoError;
     }
@@ -581,7 +581,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetNode2(VLRFloat3ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        if (!node->setNode2(VLR::ShaderNodeSocket(node2)))
+        if (!node->set2(VLR::ShaderNodeSocket(node2)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -593,7 +593,7 @@ VLR_API VLRResult vlrFloat3ShaderNodeSetImmediateValue2(VLRFloat3ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ShaderNode);
 
-        node->setImmediateValue2(value);
+        node->set2(value);
 
         return VLRResult_NoError;
     }
@@ -629,7 +629,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetNode0(VLRFloat4ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        if (!node->setNode0(VLR::ShaderNodeSocket(node0)))
+        if (!node->set0(VLR::ShaderNodeSocket(node0)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -641,7 +641,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue0(VLRFloat4ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        node->setImmediateValue0(value);
+        node->set0(value);
 
         return VLRResult_NoError;
     }
@@ -652,7 +652,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetNode1(VLRFloat4ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        if (!node->setNode1(VLR::ShaderNodeSocket(node1)))
+        if (!node->set1(VLR::ShaderNodeSocket(node1)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -664,7 +664,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue1(VLRFloat4ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        node->setImmediateValue1(value);
+        node->set1(value);
 
         return VLRResult_NoError;
     }
@@ -675,7 +675,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetNode2(VLRFloat4ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        if (!node->setNode2(VLR::ShaderNodeSocket(node2)))
+        if (!node->set2(VLR::ShaderNodeSocket(node2)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -687,7 +687,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue2(VLRFloat4ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        node->setImmediateValue2(value);
+        node->set2(value);
 
         return VLRResult_NoError;
     }
@@ -698,7 +698,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetNode3(VLRFloat4ShaderNode node, VLRShade
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        if (!node->setNode3(VLR::ShaderNodeSocket(node3)))
+        if (!node->set3(VLR::ShaderNodeSocket(node3)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -710,7 +710,7 @@ VLR_API VLRResult vlrFloat4ShaderNodeSetImmediateValue3(VLRFloat4ShaderNode node
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float4ShaderNode);
 
-        node->setImmediateValue3(value);
+        node->set3(value);
 
         return VLRResult_NoError;
     }
@@ -746,7 +746,7 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeValue(VLRScaleAndOffset
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ScaleAndOffsetFloatShaderNode);
 
-        if (!node->setNodeValue(VLR::ShaderNodeSocket(nodeValue)))
+        if (!node->setValue(VLR::ShaderNodeSocket(nodeValue)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -758,7 +758,7 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeScale(VLRScaleAndOffset
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ScaleAndOffsetFloatShaderNode);
 
-        if (!node->setNodeScale(VLR::ShaderNodeSocket(nodeScale)))
+        if (!node->setScale(VLR::ShaderNodeSocket(nodeScale)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -770,7 +770,7 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetNodeOffset(VLRScaleAndOffse
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ScaleAndOffsetFloatShaderNode);
 
-        if (!node->setNodeOffset(VLR::ShaderNodeSocket(nodeOffset)))
+        if (!node->setOffset(VLR::ShaderNodeSocket(nodeOffset)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -782,7 +782,7 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueScale(VLRScal
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ScaleAndOffsetFloatShaderNode);
 
-        node->setImmediateValueScale(value);
+        node->setScale(value);
 
         return VLRResult_NoError;
     }
@@ -793,7 +793,7 @@ VLR_API VLRResult vlrScaleAndOffsetFloatShaderNodeSetImmediateValueOffset(VLRSca
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::ScaleAndOffsetFloatShaderNode);
 
-        node->setImmediateValueOffset(value);
+        node->setOffset(value);
 
         return VLRResult_NoError;
     }
@@ -829,7 +829,7 @@ VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueSpectrumType(VLRT
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::TripletSpectrumShaderNode);
 
-        node->setImmediateValueSpectrumType((VLR::SpectrumType)spectrumType);
+        node->setSpectrumType((VLR::SpectrumType)spectrumType);
 
         return VLRResult_NoError;
     }
@@ -840,7 +840,7 @@ VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueColorSpace(VLRTri
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::TripletSpectrumShaderNode);
 
-        node->setImmediateValueColorSpace((VLR::ColorSpace)colorSpace);
+        node->setColorSpace((VLR::ColorSpace)colorSpace);
 
         return VLRResult_NoError;
     }
@@ -851,7 +851,7 @@ VLR_API VLRResult vlrTripletSpectrumShaderNodeSetImmediateValueTriplet(VLRTriple
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::TripletSpectrumShaderNode);
 
-        node->setImmediateValueTriplet(e0, e1, e2);
+        node->setTriplet(e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -889,7 +889,7 @@ VLR_API VLRResult vlrRegularSampledSpectrumShaderNodeSetImmediateValueSpectrum(V
         if (minLambda >= maxLambda || values == nullptr)
             return VLRResult_InvalidArgument;
 
-        node->setImmediateValueSpectrum((VLR::SpectrumType)spectrumType, minLambda, maxLambda, values, numSamples);
+        node->setSpectrum((VLR::SpectrumType)spectrumType, minLambda, maxLambda, values, numSamples);
 
         return VLRResult_NoError;
     }
@@ -927,7 +927,7 @@ VLR_API VLRResult vlrIrregularSampledSpectrumShaderNodeSetImmediateValueSpectrum
         if (lambdas == nullptr || values == nullptr)
             return VLRResult_InvalidArgument;
 
-        node->setImmediateValueSpectrum((VLR::SpectrumType)spectrumType, lambdas, values, numSamples);
+        node->setSpectrum((VLR::SpectrumType)spectrumType, lambdas, values, numSamples);
 
         return VLRResult_NoError;
     }
@@ -963,7 +963,7 @@ VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetNodeVector3D(VLRFloat3ToSpectr
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ToSpectrumShaderNode);
 
-        if (!node->setNodeFloat3(VLR::ShaderNodeSocket(nodeFloat3)))
+        if (!node->setFloat3(VLR::ShaderNodeSocket(nodeFloat3)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -975,7 +975,7 @@ VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueVector3D(VLRFloa
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ToSpectrumShaderNode);
 
-        node->setImmediateValueFloat3(value);
+        node->setFloat3(value);
 
         return VLRResult_NoError;
     }
@@ -986,7 +986,7 @@ VLR_API VLRResult vlrFloat3ToSpectrumShaderNodeSetImmediateValueSpectrumTypeAndC
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Float3ToSpectrumShaderNode);
 
-        node->setImmediateValueSpectrumTypeAndColorSpace((VLR::SpectrumType)spectrumType, (VLR::ColorSpace)colorSpace);
+        node->setSpectrumTypeAndColorSpace((VLR::SpectrumType)spectrumType, (VLR::ColorSpace)colorSpace);
 
         return VLRResult_NoError;
     }
@@ -1096,7 +1096,7 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeSetNodeTexCoord(VLRImage2DTextureSh
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Image2DTextureShaderNode);
 
-        if (!node->setNodeTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
+        if (!node->setTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1169,7 +1169,7 @@ VLR_API VLRResult vlrEnvironmentTextureShaderNodeSetNodeTexCoord(VLREnvironmentT
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::EnvironmentTextureShaderNode);
 
-        if (!node->setNodeTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
+        if (!node->setTexCoord(VLR::ShaderNodeSocket(nodeTexCoord)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1206,7 +1206,7 @@ VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial m
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MatteSurfaceMaterial);
 
-        if (!material->setNodeAlbedo(VLR::ShaderNodeSocket(node)))
+        if (!material->setAlbedo(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1218,7 +1218,7 @@ VLR_API VLRResult vlrMatteSurfaceMaterialSetImmediateValueAlbedo(VLRMatteSurface
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MatteSurfaceMaterial);
 
-        material->setImmediateValueAlbedo((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setAlbedo((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1254,7 +1254,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeCoeffR(VLRSpecularR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        if (!material->setNodeCoeffR(VLR::ShaderNodeSocket(node)))
+        if (!material->setCoeffR(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1266,7 +1266,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueCoeffR(VL
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        material->setImmediateValueCoeffR((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setCoeffR((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1277,7 +1277,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNodeEta(VLRSpecularRefl
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        if (!material->setNodeEta(VLR::ShaderNodeSocket(node)))
+        if (!material->setEta(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1289,7 +1289,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValueEta(VLRSp
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        material->setImmediateValueEta((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEta((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1300,7 +1300,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetNode_k(VLRSpecularRefle
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        if (!material->setNode_k(VLR::ShaderNodeSocket(node)))
+        if (!material->set_k(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1312,7 +1312,7 @@ VLR_API VLRResult vlrSpecularReflectionSurfaceMaterialSetImmediateValue_k(VLRSpe
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularReflectionSurfaceMaterial);
 
-        material->setImmediateValue_k((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->set_k((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1349,7 +1349,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeCoeff(VLRSpecularSc
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
+        if (!material->setCoeff(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1361,7 +1361,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueCoeff(VLR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        material->setImmediateValueCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1372,7 +1372,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaExt(VLRSpecularS
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        if (!material->setNodeEtaExt(VLR::ShaderNodeSocket(node)))
+        if (!material->setEtaExt(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1384,7 +1384,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaExt(VL
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        material->setImmediateValueEtaExt((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEtaExt((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1395,7 +1395,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetNodeEtaInt(VLRSpecularS
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        if (!material->setNodeEtaInt(VLR::ShaderNodeSocket(node)))
+        if (!material->setEtaInt(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1407,7 +1407,7 @@ VLR_API VLRResult vlrSpecularScatteringSurfaceMaterialSetImmediateValueEtaInt(VL
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::SpecularScatteringSurfaceMaterial);
 
-        material->setImmediateValueEtaInt((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEtaInt((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1443,7 +1443,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeEta(VLRMicrofacet
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        if (!material->setNodeEta(VLR::ShaderNodeSocket(node)))
+        if (!material->setEta(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1455,7 +1455,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueEta(VLR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        material->setImmediateValueEta((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEta((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1466,7 +1466,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNode_k(VLRMicrofacetR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        if (!material->setNode_k(VLR::ShaderNodeSocket(node)))
+        if (!material->set_k(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1478,7 +1478,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValue_k(VLRM
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        material->setImmediateValue_k((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->set_k((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1489,7 +1489,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetNodeRoughnessAnisotro
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
+        if (!material->setRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1501,7 +1501,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRoughne
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        material->setImmediateValueRoughness(value);
+        material->setRoughness(value);
 
         return VLRResult_NoError;
     }
@@ -1512,7 +1512,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueAnisotr
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        material->setImmediateValueAnisotropy(value);
+        material->setAnisotropy(value);
 
         return VLRResult_NoError;
     }
@@ -1523,7 +1523,7 @@ VLR_API VLRResult vlrMicrofacetReflectionSurfaceMaterialSetImmediateValueRotatio
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetReflectionSurfaceMaterial);
 
-        material->setImmediateValueRotation(value);
+        material->setRotation(value);
 
         return VLRResult_NoError;
     }
@@ -1559,7 +1559,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeCoeff(VLRMicrofac
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
+        if (!material->setCoeff(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1571,7 +1571,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueCoeff(V
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1582,7 +1582,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaExt(VLRMicrofa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        if (!material->setNodeEtaExt(VLR::ShaderNodeSocket(node)))
+        if (!material->setEtaExt(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1594,7 +1594,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaExt(
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueEtaExt((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEtaExt((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1605,7 +1605,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeEtaInt(VLRMicrofa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        if (!material->setNodeEtaInt(VLR::ShaderNodeSocket(node)))
+        if (!material->setEtaInt(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1617,7 +1617,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueEtaInt(
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueEtaInt((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEtaInt((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1628,7 +1628,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetNodeRoughnessAnisotro
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        if (!material->setNodeRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
+        if (!material->setRoughnessAnisotropyRotation(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1640,7 +1640,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRoughne
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueRoughness(value);
+        material->setRoughness(value);
 
         return VLRResult_NoError;
     }
@@ -1651,7 +1651,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueAnisotr
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueAnisotropy(value);
+        material->setAnisotropy(value);
 
         return VLRResult_NoError;
     }
@@ -1662,7 +1662,7 @@ VLR_API VLRResult vlrMicrofacetScatteringSurfaceMaterialSetImmediateValueRotatio
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::MicrofacetScatteringSurfaceMaterial);
 
-        material->setImmediateValueRotation(value);
+        material->setRotation(value);
 
         return VLRResult_NoError;
     }
@@ -1698,7 +1698,7 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeCoeff(VLRLamberti
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::LambertianScatteringSurfaceMaterial);
 
-        if (!material->setNodeCoeff(VLR::ShaderNodeSocket(node)))
+        if (!material->setCoeff(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1710,7 +1710,7 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueCoeff(V
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::LambertianScatteringSurfaceMaterial);
 
-        material->setImmediateValueCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setCoeff((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1721,7 +1721,7 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetNodeF0(VLRLambertianS
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::LambertianScatteringSurfaceMaterial);
 
-        if (!material->setNodeF0(VLR::ShaderNodeSocket(node)))
+        if (!material->setF0(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1733,7 +1733,7 @@ VLR_API VLRResult vlrLambertianScatteringSurfaceMaterialSetImmediateValueF0(VLRL
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::LambertianScatteringSurfaceMaterial);
 
-        material->setImmediateValueF0(value);
+        material->setF0(value);
 
         return VLRResult_NoError;
     }
@@ -1769,7 +1769,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetNodeBaseColor(VLRUE4SurfaceMaterial mat
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        if (!material->setNodeBaseColor(VLR::ShaderNodeSocket(node)))
+        if (!material->setBaseColor(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1781,7 +1781,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueBaseColor(VLRUE4SurfaceMa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        material->setImmediateValueBaseColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setBaseColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1792,7 +1792,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetNodeOcclusionRoughnessMetallic(VLRUE4Su
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        if (!material->setNodeOcclusionRoughnessMetallic(VLR::ShaderNodeSocket(node)))
+        if (!material->setOcclusionRoughnessMetallic(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1804,7 +1804,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueOcclusion(VLRUE4SurfaceMa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        material->setImmediateValueOcclusion(value);
+        material->setOcclusion(value);
 
         return VLRResult_NoError;
     }
@@ -1815,7 +1815,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueRoughness(VLRUE4SurfaceMa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        material->setImmediateValueRoughness(value);
+        material->setRoughness(value);
 
         return VLRResult_NoError;
     }
@@ -1826,7 +1826,7 @@ VLR_API VLRResult vlrUE4SufaceMaterialSetImmediateValueMetallic(VLRUE4SurfaceMat
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::UE4SurfaceMaterial);
 
-        material->setImmediateValueMetallic(value);
+        material->setMetallic(value);
 
         return VLRResult_NoError;
     }
@@ -1862,7 +1862,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeDiffuseColor(VLROldStyleSurfac
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        if (!material->setNodeDiffuseColor(VLR::ShaderNodeSocket(node)))
+        if (!material->setDiffuseColor(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1874,7 +1874,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueDiffuseColor(VLROldS
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        material->setImmediateValueDiffuseColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setDiffuseColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1885,7 +1885,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeSpecularColor(VLROldStyleSurfa
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        if (!material->setNodeSpecularColor(VLR::ShaderNodeSocket(node)))
+        if (!material->setSpecularColor(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1897,7 +1897,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueSpecularColor(VLROld
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        material->setImmediateValueSpecularColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setSpecularColor((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1908,7 +1908,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetNodeGlossiness(VLROldStyleSurfaceM
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        if (!material->setNodeGlossiness(VLR::ShaderNodeSocket(node)))
+        if (!material->setGlossiness(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1920,7 +1920,7 @@ VLR_API VLRResult vlrOldStyleSufaceMaterialSetImmediateValueGlossiness(VLROldSty
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::OldStyleSurfaceMaterial);
 
-        material->setImmediateValueGlossiness(value);
+        material->setGlossiness(value);
 
         return VLRResult_NoError;
     }
@@ -1956,7 +1956,7 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetNodeEmittance(VLRDiffuseEmi
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::DiffuseEmitterSurfaceMaterial);
 
-        if (!material->setNodeEmittance(VLR::ShaderNodeSocket(node)))
+        if (!material->setEmittance(VLR::ShaderNodeSocket(node)))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -1968,7 +1968,7 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueEmittance(VLR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::DiffuseEmitterSurfaceMaterial);
 
-        material->setImmediateValueEmittance((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEmittance((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -1979,7 +1979,7 @@ VLR_API VLRResult vlrDiffuseEmitterSurfaceMaterialSetImmediateValueScale(VLRDiff
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::DiffuseEmitterSurfaceMaterial);
 
-        material->setImmediateValueScale(value);
+        material->setScale(value);
 
         return VLRResult_NoError;
     }
@@ -2058,7 +2058,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceTextured(V
         if (!nonNullAndCheckType<VLR::EnvironmentTextureShaderNode>(node))
             return VLRResult_InvalidArgument;
 
-        if (!material->setNodeEmittanceTextured(node))
+        if (!material->setEmittanceTextured(node))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -2072,7 +2072,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetNodeEmittanceConstant(V
         if (!nonNullAndCheckType<VLR::ShaderNode>(node))
             return VLRResult_InvalidArgument;
 
-        if (!material->setNodeEmittanceConstant(node))
+        if (!material->setEmittanceConstant(node))
             return VLRResult_IncompatibleNodeType;
 
         return VLRResult_NoError;
@@ -2084,7 +2084,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueEmittance
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
 
-        material->setImmediateValueEmittance((VLR::ColorSpace)colorSpace, e0, e1, e2);
+        material->setEmittance((VLR::ColorSpace)colorSpace, e0, e1, e2);
 
         return VLRResult_NoError;
     }
@@ -2095,7 +2095,7 @@ VLR_API VLRResult vlrEnvironmentEmitterSurfaceMaterialSetImmediateValueScale(VLR
     try {
         VLR_RETURN_INVALID_INSTANCE(material, VLR::EnvironmentEmitterSurfaceMaterial);
 
-        material->setImmediateValueScale(value);
+        material->setScale(value);
 
         return VLRResult_NoError;
     }
