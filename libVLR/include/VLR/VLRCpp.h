@@ -1261,6 +1261,18 @@ namespace VLRCpp {
             return m_rawContext;
         }
 
+        uint32_t getNumDevices() const {
+            uint32_t numDevices;
+            errorCheck(vlrContextGetNumDevices(m_rawContext, &numDevices));
+            return numDevices;
+        }
+
+        int32_t getDeviceIndexAt(uint32_t index) const {
+            int32_t deviceIndex;
+            errorCheck(vlrContextGetDeviceIndexAt(m_rawContext, index, &deviceIndex));
+            return deviceIndex;
+        }
+
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {
             errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID));
         }

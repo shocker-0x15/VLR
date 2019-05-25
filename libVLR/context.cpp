@@ -105,24 +105,26 @@ namespace VLR {
         // JP: 使用するすべてのGPUがRTXをサポートしている(= Maxwell世代以降のGPU)か調べる。
         // EN: check if all the GPUs to use support RTX (i.e. Maxwell or later generation GPU).
         bool satisfyRequirements = true;
-        const int32_t* deviceIndices = devices;
         if (devices == nullptr || numDevices == 0) {
-            rtDeviceGetDeviceCount(&numDevices);
-            auto _devices = new int32_t[numDevices];
-            for (int i = 0; i < numDevices; ++i)
-                _devices[i] = i;
-            deviceIndices = _devices;
+            rtDeviceGetDeviceCount(&m_numDevices);
+            m_devices = new int32_t[m_numDevices];
+            for (int i = 0; i < m_numDevices; ++i)
+                m_devices[i] = i;
         }
-        for (int i = 0; i < numDevices; ++i) {
+        else {
+            m_numDevices = numDevices;
+            m_devices = new int32_t[m_numDevices];
+            std::copy_n(devices, m_numDevices, m_devices);
+        }
+        for (int i = 0; i < m_numDevices; ++i) {
             int32_t computeCapability[2];
-            checkError(rtDeviceGetAttribute(deviceIndices[i], RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability));
+            checkError(rtDeviceGetAttribute(m_devices[i], RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), computeCapability));
             satisfyRequirements &= computeCapability[0] >= 5;
             if (!satisfyRequirements)
                 break;
         }
-        if (devices == nullptr || numDevices == 0)
-            delete[] deviceIndices;
         if (!satisfyRequirements) {
+            delete[] m_devices;
             vlrprintf("Selected devices don't satisfy compute capability 5.0.\n");
             checkError(RT_ERROR_INVALID_CONTEXT);
             return;
@@ -142,6 +144,7 @@ namespace VLR {
         m_ID = getInstanceID();
 
         m_optixContext = optix::Context::create();
+        m_optixContext->setDevices(m_devices, m_devices + m_numDevices);
 
         m_optixContext->setEntryPointCount(EntryPoint::NumEntryPoints);
         m_optixContext->setRayTypeCount(Shared::RayType::NumTypes);
@@ -484,6 +487,8 @@ namespace VLR {
         m_optixContext->destroy();
 
         finalizeColorSystem();
+
+        delete[] m_devices;
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {

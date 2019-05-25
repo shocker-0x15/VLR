@@ -209,6 +209,32 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
 
 
 
+VLR_API VLRResult vlrContextGetNumDevices(VLRContext context, uint32_t* numDevices) {
+    try {
+        if (numDevices == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *numDevices = context->getNumDevices();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrContextGetDeviceIndexAt(VLRContext context, uint32_t index, int32_t* deviceIndex) {
+    try {
+        if (deviceIndex == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *deviceIndex = context->getDeviceIndexAt(index);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
 VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID) {
     try {
         context->bindOutputBuffer(width, height, bufferID);

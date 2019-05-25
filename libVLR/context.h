@@ -22,6 +22,8 @@ namespace VLR {
         uint32_t m_ID;
         optix::Context m_optixContext;
         bool m_RTXEnabled;
+        int32_t* m_devices;
+        uint32_t m_numDevices;
 
         optix::Program m_optixProgramShadowAnyHitDefault; // ---- Any Hit Program
         optix::Program m_optixProgramAnyHitWithAlpha; // -------- Any Hit Program
@@ -110,6 +112,14 @@ namespace VLR {
 
         bool RTXEnabled() const {
             return m_RTXEnabled;
+        }
+        uint32_t getNumDevices() const {
+            return m_numDevices;
+        }
+        int32_t getDeviceIndexAt(uint32_t idx) const {
+            if (idx >= m_numDevices)
+                return 0xFFFFFFFF;
+            return m_devices[idx];
         }
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID);
