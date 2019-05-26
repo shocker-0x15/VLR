@@ -1007,6 +1007,90 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
+void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene();
+
+    InternalNodeRef modelNode;
+
+    construct(context, "resources/material_test/mitsuba_knob.obj", false, false, &modelNode,
+              [](const VLRCpp::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
+                  using namespace VLRCpp;
+                  using namespace VLR;
+
+                  aiReturn ret;
+                  (void)ret;
+                  aiString strValue;
+                  float color[3];
+
+                  aiMat->Get(AI_MATKEY_NAME, strValue);
+
+                  SurfaceMaterialRef mat;
+                  ShaderNodeSocket socketNormal;
+                  ShaderNodeSocket socketAlpha;
+                  if (strcmp(strValue.C_Str(), "Base") == 0) {
+                      MatteSurfaceMaterialRef matteMat = context->createMatteSurfaceMaterial();
+                      matteMat->setAlbedo(VLRColorSpace_Rec709_D65, 1, 1, 1);
+
+                      mat = matteMat;
+                  }
+                  else if (strcmp(strValue.C_Str(), "Glossy") == 0) {
+                      auto mMat = context->createMicrofacetReflectionSurfaceMaterial();
+                      mMat->setEta(VLRColorSpace_Rec709_D65, 0.157099f, 0.144013f, 0.134847f); // Silver
+                      mMat->set_k(VLRColorSpace_Rec709_D65, 3.82431f, 3.1451f, 2.27711f);
+                      mMat->setRoughness(1.0f);
+                      mat = mMat;
+
+                      //auto ue4Mat = context->createUE4SurfaceMaterial();
+                      //ue4Mat->setBaseColor(VLRColorSpace_Rec709_D65_sRGBGamma, 1, 1, 1);
+                      //ue4Mat->setMetallic(0.0f);
+                      //ue4Mat->setRoughness(0.01f);
+                      //mat = ue4Mat;
+                  }
+
+                  return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+              },
+              [](const aiMesh* mesh) {
+                  return MeshAttributeTuple(true, VLRTangentType_RadialY);
+              });
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
+
+
+
+    auto imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr", VLRSpectrumType_LightSource, VLRColorSpace_Rec709_D65);
+    auto nodeEnvTex = context->createEnvironmentTextureShaderNode();
+    nodeEnvTex->setImage(imgEnv);
+    auto matEnv = context->createEnvironmentEmitterSurfaceMaterial();
+    matEnv->setEmittanceTextured(nodeEnvTex);
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
+
+
+
+    shot->renderTargetSizeX = 640;
+    shot->renderTargetSizeY = 640;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createPerspectiveCamera();
+
+        camera->setPosition(Point3D(0.0f, 2.5f, 5.0f));
+        camera->setOrientation(qRotateY<float>(M_PI) * qRotateX<float>(19 * M_PI / 180));
+
+        camera->setAspectRatio((float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->setSensitivity(1.0f);
+        camera->setFovY(40 * M_PI / 180);
+        camera->setLensRadius(0.0f);
+        camera->setObjectPlaneDistance(1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
 void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -2405,6 +2489,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
     createMaterialTestScene(context, shot);
+    //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
     //createColorInterpolationTestScene(context, shot);
     //createSubstanceManScene(context, shot);
