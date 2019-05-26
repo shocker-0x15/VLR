@@ -322,14 +322,6 @@ namespace VLR {
         surfPt->shadingFrame.y = cross(surfPt->shadingFrame.z, surfPt->shadingFrame.x);
     }
 
-
-
-    RT_FUNCTION Normal3D fetchNormal(const SurfacePoint &surfPt) {
-        Normal3D normalLocal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPt, sm_payload.wls);
-        normalLocal.y *= -1; // for DirectX format normal map
-        return normalLocal;
-    }
-
     // JP: 法線マップに従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the normal map.
     RT_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
@@ -381,6 +373,7 @@ namespace VLR {
         pv_progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
 
         modifyTangent(surfPt);
-        applyBumpMapping(fetchNormal(*surfPt), surfPt);
+        Normal3D localNormal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, sm_payload.wls);
+        applyBumpMapping(localNormal, surfPt);
     }
 }

@@ -103,7 +103,7 @@ RGB max(const RGB &v, float maxValue) {
     return RGB(std::fmax(v.r, maxValue), std::fmax(v.g, maxValue), std::fmax(v.b, maxValue));
 }
 
-static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename, float brightnessCoeff) {
+static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename, float brightnessCoeff, bool debugRendering) {
     using namespace VLR;
     using namespace VLRCpp;
 
@@ -117,12 +117,14 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
             RGB srcPix = output[y * width + x];
             uint32_t &pix = data[y * width + x];
 
-            if (srcPix.r < 0.0f || srcPix.g < 0.0f || srcPix.b < 0.0f)
+            if (srcPix.r < -0.001f || srcPix.g < -0.001f || srcPix.b < -0.001f)
                 hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-            srcPix *= brightnessCoeff;
             srcPix = max(srcPix, 0.0f);
-            srcPix = RGB::One() - exp(-srcPix);
-            srcPix = sRGB_gamma(srcPix);
+            if (!debugRendering) {
+                srcPix *= brightnessCoeff;
+                srcPix = RGB::One() - exp(-srcPix);
+                srcPix = sRGB_gamma(srcPix);
+            }
 
             //float Y = srcPix.g;
             //float b = srcPix.r + srcPix.g + srcPix.b;
@@ -291,8 +293,11 @@ class HostProgram {
             m_resizeRequested = true;
         m_outputBufferSizeChanged |= ImGui::Checkbox("Force Low Resolution", &m_forceLowResolution);
 
-        if (ImGui::Button("Save Output"))
-            saveOutputBufferAsImageFile(m_context, "output.bmp", m_brightnessCoeff);
+        if (ImGui::Button("Save Output")) {
+            const char* filename = "output.bmp";
+            saveOutputBufferAsImageFile(m_context, filename, m_brightnessCoeff, m_enableDebugRendering);
+            hpprintf("Image saved: %s\n", filename);
+        }
 
         ImGui::End();
     }
@@ -1248,7 +1253,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             if (elapsed > nextTimeToOutput || finish) {
                 char filename[256];
                 sprintf(filename, "%03u.bmp", imgIndex++);
-                saveOutputBufferAsImageFile(context, filename, shot.brightnessCoeff);
+                saveOutputBufferAsImageFile(context, filename, shot.brightnessCoeff, false);
                 hpprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 
                 if (finish)

@@ -113,11 +113,11 @@ namespace VLR {
         GeometryShaderNode(Context &context);
         ~GeometryShaderNode();
 
-        // Out Socket   | option |
-        // 0 (Point3D)  |      0 | Position
-        // 1 (Normal3D) |   0, 1 | Geometric Normal, Shading Normal
-        // 2 (Vector3D) |   0, 1 | Shading Tangent, Shading Bitangent
-        // 3 (Point3D)  |      0 | Texture Coordinates
+        // Out Socket | option |
+        // Point3D    |      0 | Position
+        // Normal3D   |   0, 1 | Geometric Normal, Shading Normal
+        // Vector3D   |   0, 1 | Shading Tangent, Shading Bitangent
+        // TexCoord   |      0 | Texture Coordinates
         ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
             if ((stype == ShaderNodeSocketType::Point3D && option < 1) ||
                 (stype == ShaderNodeSocketType::Normal3D && option < 2) ||
@@ -475,7 +475,7 @@ namespace VLR {
         ~ScaleAndOffsetUVTextureMap2DShaderNode();
 
         // Out Socket  | option |
-        // TexCoord    |      0 | TexCoord
+        // TexCoord    |      0 | Texture Coordinates
         ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
             if (stype == ShaderNodeSocketType::TextureCoordinates && option < 1)
                 return ShaderNodeSocket(this, stype, option);
@@ -509,6 +509,14 @@ namespace VLR {
         Image2DTextureShaderNode(Context &context);
         ~Image2DTextureShaderNode();
 
+        // Out Socket | option |
+        // float      |    0-3 | s0, s1, s2, s3
+        // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
+        // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
+        // float4     |      0 | (s0, s1, s2, s3)
+        // Normal3D   |    0-2 | DX Normal Map, GL Normal Map, Height Map
+        // Spectrum   |      0 | Spectrum
+        // Alpha      |    0-3 | s0, s1, s2, s3
         ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
             uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), stype, option);
             if (cIndex != 0xFFFFFFFF)

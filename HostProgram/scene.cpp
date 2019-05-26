@@ -659,7 +659,32 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f, 1.25f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(0.5f, 0.01f, 1.25f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 0.0f) });
 
+        //// Texture Coordinate Direction Check
+        //vertices.push_back(Vertex{ Point3D(-0.5f, 2.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        //vertices.push_back(Vertex{ Point3D(-0.5f, 1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        //vertices.push_back(Vertex{ Point3D(0.5f, 1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        //vertices.push_back(Vertex{ Point3D(0.5f, 2.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+
         cornellBox->setVertices(vertices.data(), vertices.size());
+
+        //// Texture Coordinate Direction Check
+        //{
+        //    auto nodeAlbedo = context->createImage2DTextureShaderNode();
+        //    nodeAlbedo->setImage(loadImage2D(context, "resources/2x2_heightmap.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
+        //    nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        //    auto matMatte = context->createMatteSurfaceMaterial();
+        //    matMatte->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+
+        //    auto nodeNormal = context->createImage2DTextureShaderNode();
+        //    nodeNormal->setImage(loadImage2D(context, "resources/2x2_heightmap.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
+        //    nodeNormal->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        //    nodeNormal->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
+
+        //    std::vector<uint32_t> matGroup = {
+        //        28, 29, 30, 28, 30, 31
+        //    };
+        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 2), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+        //}
 
         {
             auto image = loadImage2D(context, "resources/checkerboard_line.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
@@ -2261,7 +2286,81 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 
     InternalNodeRef modelNode;
 
-    construct(context, ASSETS_DIR"San_Miguel/san-miguel.obj", false, true, &modelNode);
+    const auto sanMiguelMaterialFunc = [](const VLRCpp::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+        hpprintf("Material: %s\n", strValue.C_Str());
+
+        MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
+        ShaderNodeSocket socketNormal;
+        ShaderNodeSocket socketAlpha;
+
+        Image2DRef imgDiffuse;
+        Image2DTextureShaderNodeRef texDiffuse;
+        Image2DRef imgNormal;
+        Image2DTextureShaderNodeRef texNormal;
+        Image2DRef imgAlpha;
+        Image2DTextureShaderNodeRef texAlpha;
+
+        bool heightBump = false;
+
+        // Base Color
+        if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+            texDiffuse = context->createImage2DTextureShaderNode();
+            imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+            texDiffuse->setImage(imgDiffuse);
+            mat->setAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        }
+        else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
+            mat->setAlbedo(VLRColorSpace_Rec709_D65, color[0], color[1], color[2]);
+        }
+        else {
+            mat->setAlbedo(VLRColorSpace_Rec709_D65, 1.0f, 0.0f, 1.0f);
+        }
+
+        // Normal
+        if (aiMat->Get(AI_MATKEY_TEXTURE_HEIGHT(0), strValue) == aiReturn_SUCCESS) {
+            imgNormal = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+            texNormal = context->createImage2DTextureShaderNode();
+            texNormal->setImage(imgNormal);
+
+            namespace filesystem = std::experimental::filesystem;
+            filesystem::path texPath = strValue.C_Str();
+            std::string stem = texPath.stem().string();
+            heightBump = stem.find("N_") == std::string::npos;
+        }
+
+        // Alpha
+        if (aiMat->Get(AI_MATKEY_TEXTURE_OPACITY(0), strValue) == aiReturn_SUCCESS) {
+            imgAlpha = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+            texAlpha = context->createImage2DTextureShaderNode();
+            texAlpha->setImage(imgAlpha);
+        }
+
+        if (imgNormal)
+            socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, heightBump ? 2 : 0);
+
+        if (imgAlpha) {
+            if (imgAlpha->getOriginalDataFormat() == VLRDataFormat_Gray8)
+                socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_float1, 0);
+            else
+                socketAlpha = texAlpha->getSocket(VLRShaderNodeSocketType_Alpha, 0);
+        }
+        else if (imgDiffuse && imgDiffuse->originalHasAlpha()) {
+            socketAlpha = texDiffuse->getSocket(VLRShaderNodeSocketType_Alpha, 0);
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, socketNormal, socketAlpha);
+    };
+
+    construct(context, ASSETS_DIR"San_Miguel/san-miguel.obj", false, true, &modelNode, sanMiguelMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(1.0f)));
 

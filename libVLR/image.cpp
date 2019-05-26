@@ -25,6 +25,8 @@ namespace VLR {
     sizeof(uvsA16Fx4),
     };
 
+    // TODO: ちょっとわかりにくい。
+    // ShaderNodeSocketのoptionとコンポーネント位置を分離して指定できるようにするとわかりやすそう。
     uint32_t getComponentStartIndex(DataFormat dataFormat, ShaderNodeSocketType stype, uint32_t index) {
         uint32_t ret = 0xFFFFFFFF;
 
@@ -62,8 +64,8 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index < 2)
-                    ret = index;
+                if (index < 3)
+                    ret = index; // JP: いずれのバンプマップにも対応可能。
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
@@ -106,7 +108,7 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index < 1)
+                if (index < 3)
                     ret = index;
                 break;
             case ShaderNodeSocketType::Spectrum:
@@ -134,6 +136,9 @@ namespace VLR {
                 if (index < 1)
                     ret = index;
                 break;
+            case ShaderNodeSocketType::Normal3D:
+                VLRAssert_NotImplemented();
+                break;
             case ShaderNodeSocketType::TextureCoordinates:
                 if (index < 1)
                     ret = index;
@@ -151,6 +156,10 @@ namespace VLR {
             case ShaderNodeSocketType::float1:
                 if (index < 1)
                     ret = index;
+                break;
+            case ShaderNodeSocketType::Normal3D:
+                if (index == 2)
+                    ret = index; // JP: Height Map のみサポート。
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
@@ -170,6 +179,10 @@ namespace VLR {
             case ShaderNodeSocketType::float2:
                 if (index < 1)
                     ret = index;
+                break;
+            case ShaderNodeSocketType::Normal3D:
+                if (index == 2)
+                    ret = index; // JP: Height Map のみサポート。
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)

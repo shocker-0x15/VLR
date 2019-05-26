@@ -58,9 +58,9 @@ static void devPrintf(const char* fmt, ...) {
 #endif
 
 #if 1
-#   define hpprintf devPrintf
+#   define hpprintf(fmt, ...) do { devPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
 #else
-#   define hpprintf printf
+#   define hpprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
 
 #ifdef ENABLE_ASSERT
