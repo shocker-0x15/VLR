@@ -63,17 +63,18 @@ namespace VLR {
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
             float sim = dot(surfPt.geometricNormal, surfPt.shadingFrame.z);
             bool opposite = sim < 0.0f;
-            sim = clamp(0.5f * std::fabs(sim), 0.0f, 1.0f);
-            //float gLength = clamp(0.5f + 100 * (surfPt.geometricNormal.length() - 1), 0.0f, 1.0f);
-            //float sLength = clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f);
-            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65, sim, opposite ? 0 : sim, opposite ? 0 : sim);
+            sim = std::fabs(sim);
+            const float coeff = 5.0f;
+            float sValue = 0.5f + coeff * (sim - 1);
+            sValue = clamp(sValue, 0.0f, 1.0f);
+            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65, sValue, opposite ? 0 : sValue, opposite ? 0 : sValue);
             break;
         }
         case DebugRenderingAttribute::ShadingFrameLengths:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                          clamp(0.5f + 100 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
-                                          clamp(0.5f + 100 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
-                                          clamp(0.5f + 100 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
+                                          clamp(0.5f + 30 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
+                                          clamp(0.5f + 30 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
+                                          clamp(0.5f + 30 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
             break;
         case DebugRenderingAttribute::ShadingFrameOrthogonality:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
