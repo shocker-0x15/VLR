@@ -333,7 +333,7 @@ namespace VLR {
             return 2 * Normal3D(texValue.y, texValue.z, texValue.w) - 1.0f; // OpenGL Normal Map
         }
         else if (socket.option == 2) {
-            const float coeff = 1.0f;
+            const float coeff = 5.0f;
             float dhdu = coeff * (texValue.y - texValue.x);
             float dhdv = coeff * (texValue.x - texValue.w);
             // cross(Vector3D(0, -1, dhdv), 

@@ -35,6 +35,7 @@ namespace VLR {
         optix::Program m_optixProgramException; // -------------- Exception Program
 
         optix::Program m_optixProgramDebugRenderingClosestHit;
+        optix::Program m_optixProgramDebugRenderingAnyHitWithAlpha;
         optix::Program m_optixProgramDebugRenderingMiss;
         optix::Program m_optixProgramDebugRenderingRayGeneration;
         optix::Program m_optixProgramDebugRenderingException;

@@ -2,6 +2,7 @@
 
 namespace VLR {
     struct DebugRenderingPayload {
+        KernelRNG rng;
         WavelengthSamples wls;
         SampledSpectrum value;
     };
@@ -72,9 +73,9 @@ namespace VLR {
         }
         case DebugRenderingAttribute::ShadingFrameLengths:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                          clamp(0.5f + 30 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
-                                          clamp(0.5f + 30 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
-                                          clamp(0.5f + 30 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
+                                          clamp(0.5f + 10 * (surfPt.shadingFrame.x.length() - 1), 0.0f, 1.0f),
+                                          clamp(0.5f + 10 * (surfPt.shadingFrame.y.length() - 1), 0.0f, 1.0f),
+                                          clamp(0.5f + 10 * (surfPt.shadingFrame.z.length() - 1), 0.0f, 1.0f));
             break;
         case DebugRenderingAttribute::ShadingFrameOrthogonality:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
@@ -87,6 +88,23 @@ namespace VLR {
         }
 
         return value;
+    }
+
+
+
+
+    // Common Any Hit Program for All Primitive Types and Materials
+    RT_PROGRAM void debugRenderingAnyHitWithAlpha() {
+        HitPointParameter hitPointParam = a_hitPointParam;
+        SurfacePoint surfPt;
+        float hypAreaPDF;
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+
+        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_debugPayload.wls);
+
+        // Stochastic Alpha Test
+        if (sm_debugPayload.rng.getFloat0cTo1o() >= alpha)
+            rtIgnoreIntersection();
     }
 
 
@@ -179,9 +197,11 @@ namespace VLR {
         optix::Ray ray = optix::make_Ray(asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), RayType::DebugPrimary, 0.0f, FLT_MAX);
 
         DebugRenderingPayload payload;
+        payload.rng = rng;
         payload.wls = wls;
         rtTrace(pv_topGroup, ray, payload);
-        pv_rngBuffer[sm_launchIndex] = rng;
+
+        pv_rngBuffer[sm_launchIndex] = payload.rng;
 
         if (pv_numAccumFrames == 1)
             pv_outputBuffer[sm_launchIndex].reset();

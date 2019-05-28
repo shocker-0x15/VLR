@@ -170,6 +170,7 @@ namespace VLR {
             std::string ptx = readTxtFile(exeDir / "ptxes/debug_rendering.ptx");
 
             m_optixProgramDebugRenderingClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingClosestHit");
+            m_optixProgramDebugRenderingAnyHitWithAlpha = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingAnyHitWithAlpha");
             m_optixProgramDebugRenderingMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingMiss");
             m_optixProgramDebugRenderingRayGeneration = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingRayGeneration");
             m_optixProgramDebugRenderingException = m_optixContext->createProgramFromPTXString(ptx, "VLR::debugRenderingException");
@@ -260,6 +261,7 @@ namespace VLR {
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Primary, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Scattered, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitWithAlpha);
+        m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingAnyHitWithAlpha);
 
 
 
@@ -473,6 +475,7 @@ namespace VLR {
         m_optixProgramDebugRenderingException->destroy();
         m_optixProgramDebugRenderingRayGeneration->destroy();
         m_optixProgramDebugRenderingMiss->destroy();
+        m_optixProgramDebugRenderingAnyHitWithAlpha->destroy();
         m_optixProgramDebugRenderingClosestHit->destroy();
 
         m_optixProgramException->destroy();
