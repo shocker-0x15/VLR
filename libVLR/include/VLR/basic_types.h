@@ -89,6 +89,9 @@ namespace VLR {
         RT_FUNCTION RealType minValue() const { using std::fmin; return fmin(x, fmin(y, z)); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
 
         RT_FUNCTION static constexpr Vector3DTemplate Zero() { return Vector3DTemplate(0); }
         RT_FUNCTION static constexpr Vector3DTemplate Ex() { return Vector3DTemplate(1, 0, 0); }
@@ -186,6 +189,9 @@ namespace VLR {
         RT_FUNCTION RealType minValue() const { using std::fmin; return fmin(fmin(x, y), fmin(z, w)); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z) || isnan(w); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z) || isinf(w); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
     };
 
 
@@ -296,6 +302,9 @@ namespace VLR {
         RT_FUNCTION RealType minValue() const { using std::fmin; return fmin(x, fmin(y, z)); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
     };
 
 
@@ -421,6 +430,9 @@ namespace VLR {
         RT_FUNCTION RealType minValue() const { return std::fmin(x, std::fmin(y, z)); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
 
         RT_FUNCTION static constexpr Point3DTemplate Zero() { return Point3DTemplate(0); }
     };
@@ -503,6 +515,9 @@ namespace VLR {
         RT_FUNCTION RealType minValue() const { return std::fmin(u, v); }
         RT_FUNCTION bool hasNaN() const { using std::isnan; return isnan(u) || isnan(v); }
         RT_FUNCTION bool hasInf() const { using std::isinf; return isinf(u) || isinf(v); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
 
         RT_FUNCTION static constexpr TexCoord2DTemplate Zero() { return TexCoord2DTemplate(0); }
     };
@@ -597,9 +612,11 @@ namespace VLR {
         RT_FUNCTION bool hasNaN() const {
             return minP.hasNaN() || maxP.hasNaN();
         }
-
         RT_FUNCTION bool hasInf() const {
             return minP.hasInf() || maxP.hasInf();
+        }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
         }
     };
 
@@ -768,6 +785,9 @@ namespace VLR {
         }
         RT_FUNCTION bool hasNaN() const { return c0.hasNaN() || c1.hasNaN() || c2.hasNaN(); }
         RT_FUNCTION bool hasInf() const { return c0.hasInf() || c1.hasInf() || c2.hasInf(); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
 
         void decompose(Vector3DTemplate<RealType>* scale, Vector3DTemplate<RealType>* rotation) {
             Matrix3x3Template<RealType> mat = *this;
@@ -1050,6 +1070,9 @@ namespace VLR {
         }
         RT_FUNCTION bool hasNaN() const { return c0.hasNaN() || c1.hasNaN() || c2.hasNaN() || c3.hasNaN(); }
         RT_FUNCTION bool hasInf() const { return c0.hasInf() || c1.hasInf() || c2.hasInf() || c3.hasInf(); }
+        RT_FUNCTION bool allFinite() const {
+            return !hasNaN() && !hasInf();
+        }
 
         void getArray(RealType array[16]) const {
             std::memcpy(array, this, sizeof(*this));

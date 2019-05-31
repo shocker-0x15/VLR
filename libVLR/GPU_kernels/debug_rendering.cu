@@ -21,7 +21,7 @@ namespace VLR {
 
 
     // for debug rendering
-    RT_FUNCTION TripletSpectrum DebugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
+    RT_FUNCTION TripletSpectrum debugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
         TripletSpectrum value;
 
         switch (attribute) {
@@ -117,6 +117,12 @@ namespace VLR {
         float hypAreaPDF;
         calcSurfacePoint(&surfPt, &hypAreaPDF);
 
+        //if (!surfPt.shadingFrame.x.allFinite() || !surfPt.shadingFrame.y.allFinite() || !surfPt.shadingFrame.z.allFinite())
+        //    vlrprintf("(%g, %g, %g), (%g, %g, %g), (%g, %g, %g)\n",
+        //              surfPt.shadingFrame.x.x, surfPt.shadingFrame.x.y, surfPt.shadingFrame.x.z,
+        //              surfPt.shadingFrame.y.x, surfPt.shadingFrame.y.y, surfPt.shadingFrame.y.z,
+        //              surfPt.shadingFrame.z.x, surfPt.shadingFrame.z.y, surfPt.shadingFrame.z.z);
+
         if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
             BSDF bsdf(matDesc, surfPt, wls);
@@ -127,7 +133,7 @@ namespace VLR {
             sm_debugPayload.value = progGetBaseColor((const uint32_t*)&bsdf);
         }
         else {
-            sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+            sm_debugPayload.value = debugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
         }
     }
 
@@ -168,7 +174,7 @@ namespace VLR {
             sm_debugPayload.value = SampledSpectrum::Zero();
         }
         else {
-            sm_debugPayload.value = DebugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+            sm_debugPayload.value = debugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
         }
     }
 
@@ -202,6 +208,11 @@ namespace VLR {
         rtTrace(pv_topGroup, ray, payload);
 
         pv_rngBuffer[sm_launchIndex] = payload.rng;
+
+        if (!payload.value.allFinite()) {
+            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
+            return;
+        }
 
         if (pv_numAccumFrames == 1)
             pv_outputBuffer[sm_launchIndex].reset();

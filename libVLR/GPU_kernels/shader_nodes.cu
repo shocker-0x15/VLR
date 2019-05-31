@@ -326,11 +326,12 @@ namespace VLR {
             texValue = optix::rtTex2DGather<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0);
         }
 
+        Normal3D ret(0.0f, 0.0f, 1.0f);
         if (socket.option == 0) {
-            return 2 * Normal3D(texValue.x, 1 - texValue.y, texValue.z) - 1.0f; // DirectX Normal Map
+            ret = 2 * Normal3D(texValue.x, 1 - texValue.y, texValue.z) - 1.0f; // DirectX Normal Map
         }
         else if (socket.option == 1) {
-            return 2 * Normal3D(texValue.y, texValue.z, texValue.w) - 1.0f; // OpenGL Normal Map
+            ret = 2 * Normal3D(texValue.y, texValue.z, texValue.w) - 1.0f; // OpenGL Normal Map
         }
         else if (socket.option == 2) {
             const float coeff = 5.0f;
@@ -338,10 +339,10 @@ namespace VLR {
             float dhdv = coeff * (texValue.x - texValue.w);
             // cross(Vector3D(0, -1, dhdv), 
             //       Vector3D(1,  0, dhdu))
-            return normalize(Normal3D(-dhdu, dhdv, 1));
+            ret = Normal3D(-dhdu, dhdv, 1);
         }
 
-        return Normal3D(0.0f, 0.0f, 1.0f);
+        return normalize(ret);
     }
 
     RT_CALLABLE_PROGRAM SampledSpectrum Image2DTextureShaderNode_Spectrum(const ShaderNodeSocket &socket,
