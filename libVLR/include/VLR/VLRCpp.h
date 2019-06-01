@@ -444,8 +444,11 @@ namespace VLRCpp {
             m_image = image;
             errorCheck(vlrImage2DTextureShaderNodeSetImage(get<VLRImage2DTextureShaderNode>(), m_image ? m_image->get<VLRImage2D>() : nullptr));
         }
-        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
-            errorCheck(vlrImage2DTextureShaderNodeSetFilterMode(get<VLRImage2DTextureShaderNode>(), minification, magnification, mipmapping));
+        void setBumpType(VLRBumpType bumpType) {
+            errorCheck(vlrImage2DTextureShaderNodeSetBumpType(get<VLRImage2DTextureShaderNode>(), bumpType));
+        }
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification) {
+            errorCheck(vlrImage2DTextureShaderNodeSetFilterMode(get<VLRImage2DTextureShaderNode>(), minification, magnification));
         }
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {
             errorCheck(vlrImage2DTextureShaderNodeSetWrapMode(get<VLRImage2DTextureShaderNode>(), x, y));

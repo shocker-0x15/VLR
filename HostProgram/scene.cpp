@@ -690,7 +690,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             auto image = loadImage2D(context, "resources/checkerboard_line.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             auto nodeAlbedo = context->createImage2DTextureShaderNode();
             nodeAlbedo->setImage(image);
-            nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+            nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
             auto matMatte = context->createMatteSurfaceMaterial();
             matMatte->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
 
@@ -858,7 +858,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
-        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
         nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
@@ -1268,7 +1268,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
-        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
         nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
@@ -1401,7 +1401,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         Image2DTextureShaderNodeRef nodeAlbedo = context->createImage2DTextureShaderNode();
         nodeAlbedo->setImage(image);
-        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
         nodeAlbedo->setTexCoord(nodeTexCoord->getSocket(VLRShaderNodeSocketType_TextureCoordinates, 0));
 
         MatteSurfaceMaterialRef mat = context->createMatteSurfaceMaterial();
@@ -1799,7 +1799,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             texDiffuse = context->createImage2DTextureShaderNode();
             imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
             texDiffuse->setImage(imgDiffuse);
-            texDiffuse->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+            texDiffuse->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
             mat->setAlbedo(texDiffuse->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
         }
         else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
@@ -2393,8 +2393,6 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
         Image2DRef imgAlpha;
         Image2DTextureShaderNodeRef texAlpha;
 
-        bool heightBump = false;
-
         // Base Color
         if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
             texDiffuse = context->createImage2DTextureShaderNode();
@@ -2418,7 +2416,10 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
             namespace filesystem = std::experimental::filesystem;
             filesystem::path texPath = strValue.C_Str();
             std::string stem = texPath.stem().string();
-            heightBump = stem.find("N_") == std::string::npos;
+            if (stem.find("N_") == std::string::npos)
+                texNormal->setBumpType(VLRBumpType_HeightMap);
+            else
+                texNormal->setBumpType(VLRBumpType_NormalMap_DirectX);
         }
 
         // Alpha
@@ -2429,7 +2430,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
         }
 
         if (imgNormal)
-            socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, heightBump ? 2 : 0);
+            socketNormal = texNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0);
 
         if (imgAlpha) {
             if (imgAlpha->getOriginalDataFormat() == VLRDataFormat_Gray8)

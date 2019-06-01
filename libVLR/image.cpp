@@ -27,7 +27,7 @@ namespace VLR {
 
     // TODO: ちょっとわかりにくい。
     // ShaderNodeSocketのoptionとコンポーネント位置を分離して指定できるようにするとわかりやすそう。
-    uint32_t getComponentStartIndex(DataFormat dataFormat, ShaderNodeSocketType stype, uint32_t index) {
+    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodeSocketType stype, uint32_t index) {
         uint32_t ret = 0xFFFFFFFF;
 
         switch (dataFormat) {
@@ -64,8 +64,11 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index < 3)
-                    ret = index; // JP: いずれのバンプマップにも対応可能。
+                // JP: いずれのバンプマップにも対応可能。
+                if (bumpType == BumpType::HeightMap && index < 4)
+                    ret = index;
+                else if (bumpType != BumpType::HeightMap && index < 2)
+                    ret = index;
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
@@ -108,7 +111,10 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index < 3)
+                // JP: いずれのバンプマップにも対応可能。
+                if (bumpType == BumpType::HeightMap && index < 3)
+                    ret = index;
+                else if (bumpType != BumpType::HeightMap && index < 1)
                     ret = index;
                 break;
             case ShaderNodeSocketType::Spectrum:
@@ -158,8 +164,9 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index == 2)
-                    ret = index; // JP: Height Map のみサポート。
+                // JP: Height Map のみサポート。
+                if (bumpType == BumpType::HeightMap && index < 1)
+                    ret = index;
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)
@@ -181,8 +188,9 @@ namespace VLR {
                     ret = index;
                 break;
             case ShaderNodeSocketType::Normal3D:
-                if (index == 2)
-                    ret = index; // JP: Height Map のみサポート。
+                // JP: Height Map のみサポート。
+                if (bumpType == BumpType::HeightMap && index < 2)
+                    ret = index;
                 break;
             case ShaderNodeSocketType::Spectrum:
                 if (index < 1)

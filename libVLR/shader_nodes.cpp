@@ -817,7 +817,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())) {
+        ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())), m_bumpType(BumpType::NormalMap_DirectX) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -846,6 +846,7 @@ namespace VLR {
         if (m_image->needsHW_sRGB_degamma() && colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
             colorSpace = ColorSpace::Rec709_D65;
         nodeData.colorSpace = (unsigned int)colorSpace;
+        nodeData.bumpType = (unsigned int)m_bumpType;
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         updateNodeDescriptor();
@@ -858,8 +859,13 @@ namespace VLR {
         setupNodeDescriptor();
     }
 
-    void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
-        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, (RTfiltermode)mipmapping);
+    void Image2DTextureShaderNode::setBumpType(BumpType bumpType) {
+        m_bumpType = bumpType;
+        setupNodeDescriptor();
+    }
+
+    void Image2DTextureShaderNode::setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification) {
+        m_optixTextureSampler->setFilteringModes((RTfiltermode)minification, (RTfiltermode)magnification, RT_FILTER_NONE);
     }
 
     void Image2DTextureShaderNode::setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y) {

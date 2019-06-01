@@ -156,6 +156,14 @@ namespace VLR {
 
 
 
+    enum class BumpType {
+        NormalMap_DirectX = 0,
+        NormalMap_OpenGL,
+        HeightMap
+    };
+
+
+
     enum class ShaderNodeSocketType {
         float1 = 0,
         float2,
@@ -712,12 +720,14 @@ namespace VLR {
                 unsigned int dataFormat : 5;
                 unsigned int spectrumType : 3;
                 unsigned int colorSpace : 3;
+                unsigned int bumpType : 2;
             };
             ShaderNodeSocket nodeTexCoord;
 
             RT_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
             RT_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
             RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
+            RT_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
         };
         static_assert(sizeof(Image2DTextureShaderNode) == 12, "Unexpected sizeof(Image2DTextureShaderNode).");
 

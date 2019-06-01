@@ -51,6 +51,14 @@ enum VLRDataFormat {
 
 
 
+enum VLRBumpType {
+    VLRBumpType_NormalMap_DirectX = 0,
+    VLRBumpType_NormalMap_OpenGL,
+    VLRBumpType_HeightMap,
+};
+
+
+
 enum VLRShaderNodeSocketType {
     VLRShaderNodeSocketType_float1 = 0,
     VLRShaderNodeSocketType_float2,
@@ -127,6 +135,7 @@ enum VLRDebugRenderingMode {
 typedef enum VLRSpectrumType VLRSpectrumType;
 typedef enum VLRColorSpace VLRColorSpace;
 typedef enum VLRDataFormat VLRDataFormat;
+typedef enum VLRBumpType VLRBumpType;
 typedef enum VLRShaderNodeSocketType VLRShaderNodeSocketType;
 typedef struct VLRShaderNodeSocket VLRShaderNodeSocket;
 typedef enum VLRTextureFilter VLRTextureFilter;

@@ -1096,11 +1096,22 @@ VLR_API VLRResult vlrImage2DTextureShaderNodeSetImage(VLRImage2DTextureShaderNod
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping) {
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetBumpType(VLRImage2DTextureShaderNode node, VLRBumpType bumpType) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Image2DTextureShaderNode);
 
-        node->setTextureFilterMode(minification, magnification, mipmapping);
+        node->setBumpType((VLR::BumpType)bumpType);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrImage2DTextureShaderNodeSetFilterMode(VLRImage2DTextureShaderNode node, VLRTextureFilter minification, VLRTextureFilter magnification) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, VLR::Image2DTextureShaderNode);
+
+        node->setTextureFilterMode(minification, magnification);
 
         return VLRResult_NoError;
     }

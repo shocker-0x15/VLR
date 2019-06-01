@@ -17,7 +17,7 @@ namespace VLR {
 
     extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats];
 
-    uint32_t getComponentStartIndex(DataFormat dataFormat, ShaderNodeSocketType stype, uint32_t index);
+    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodeSocketType stype, uint32_t index);
 
     class Image2D : public Object {
         uint32_t m_width, m_height;

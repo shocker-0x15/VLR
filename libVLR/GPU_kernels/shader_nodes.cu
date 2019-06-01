@@ -315,25 +315,32 @@ namespace VLR {
     RT_CALLABLE_PROGRAM Normal3D Image2DTextureShaderNode_Normal3D(const ShaderNodeSocket &socket,
                                                                    const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Image2DTextureShaderNode>(socket.nodeDescIndex);
+        BumpType bumpType = nodeData.getBumpType();
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
         optix::float4 texValue;
-        if (socket.option < 2)
+        if (bumpType != BumpType::HeightMap) {
             texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        }
         else {
             // w z
             // x y
-            texValue = optix::rtTex2DGather<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0);
+            texValue = optix::rtTex2DGather<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, socket.option);
         }
 
         Normal3D ret(0.0f, 0.0f, 1.0f);
-        if (socket.option == 0) {
-            ret = 2 * Normal3D(texValue.x, 1 - texValue.y, texValue.z) - 1.0f; // DirectX Normal Map
+        if (bumpType != BumpType::HeightMap && socket.option < 2) {
+            if (socket.option == 0)
+                ret = Normal3D(texValue.x, texValue.y, texValue.z);
+            else if (socket.option == 1)
+                ret = Normal3D(texValue.y, texValue.z, texValue.w);
+
+            ret = 2 * ret - 1.0f;
+
+            if (bumpType == BumpType::NormalMap_DirectX)
+                ret.y *= -1;
         }
-        else if (socket.option == 1) {
-            ret = 2 * Normal3D(texValue.y, texValue.z, texValue.w) - 1.0f; // OpenGL Normal Map
-        }
-        else if (socket.option == 2) {
+        else if (bumpType == BumpType::HeightMap) {
             const float coeff = 5.0f;
             float dhdu = coeff * (texValue.y - texValue.x);
             float dhdv = coeff * (texValue.x - texValue.w);

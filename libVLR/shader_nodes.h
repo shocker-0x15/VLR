@@ -496,6 +496,7 @@ namespace VLR {
 
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
+        BumpType m_bumpType;
         ShaderNodeSocket m_nodeTexCoord;
 
         void setupNodeDescriptor() const;
@@ -514,11 +515,11 @@ namespace VLR {
         // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
         // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
         // float4     |      0 | (s0, s1, s2, s3)
-        // Normal3D   |    0-2 | DX Normal Map, GL Normal Map, Height Map
+        // Normal3D   |    0-3 | DX Normal Map, GL Normal Map, Height Map, option 2, 3 are supported only with height map.
         // Spectrum   |      0 | Spectrum
         // Alpha      |    0-3 | s0, s1, s2, s3
         ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), stype, option);
+            uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), m_bumpType, stype, option);
             if (cIndex != 0xFFFFFFFF)
                 return ShaderNodeSocket(this, stype, cIndex);
             return ShaderNodeSocket();
@@ -528,7 +529,8 @@ namespace VLR {
         }
 
         void setImage(const Image2D* image);
-        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification, VLRTextureFilter mipmapping);
+        void setBumpType(BumpType bumpType);
+        void setTextureFilterMode(VLRTextureFilter minification, VLRTextureFilter magnification);
         void setTextureWrapMode(VLRTextureWrapMode x, VLRTextureWrapMode y);
         bool setTexCoord(const ShaderNodeSocket &outputSocket);
     };
