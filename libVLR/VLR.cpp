@@ -6,53 +6,11 @@
     typedef VLR::name* VLR ## name; \
     typedef const VLR::name* VLR ## name ## Const
 
-VLR_DEFINE_C_ALIAS(Object);
-
 VLR_DEFINE_C_ALIAS(Context);
 
-VLR_DEFINE_C_ALIAS(Image2D);
-VLR_DEFINE_C_ALIAS(LinearImage2D);
-VLR_DEFINE_C_ALIAS(BlockCompressedImage2D);
-
-VLR_DEFINE_C_ALIAS(ShaderNode);
-VLR_DEFINE_C_ALIAS(GeometryShaderNode);
-VLR_DEFINE_C_ALIAS(Float2ShaderNode);
-VLR_DEFINE_C_ALIAS(Float3ShaderNode);
-VLR_DEFINE_C_ALIAS(Float4ShaderNode);
-VLR_DEFINE_C_ALIAS(ScaleAndOffsetFloatShaderNode);
-VLR_DEFINE_C_ALIAS(TripletSpectrumShaderNode);
-VLR_DEFINE_C_ALIAS(RegularSampledSpectrumShaderNode);
-VLR_DEFINE_C_ALIAS(IrregularSampledSpectrumShaderNode);
-VLR_DEFINE_C_ALIAS(Float3ToSpectrumShaderNode);
-VLR_DEFINE_C_ALIAS(ScaleAndOffsetUVTextureMap2DShaderNode);
-VLR_DEFINE_C_ALIAS(Image2DTextureShaderNode);
-VLR_DEFINE_C_ALIAS(EnvironmentTextureShaderNode);
-
-VLR_DEFINE_C_ALIAS(SurfaceMaterial);
-VLR_DEFINE_C_ALIAS(MatteSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(SpecularReflectionSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(SpecularScatteringSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(MicrofacetReflectionSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(MicrofacetScatteringSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(LambertianScatteringSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(UE4SurfaceMaterial);
-VLR_DEFINE_C_ALIAS(OldStyleSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(DiffuseEmitterSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(MultiSurfaceMaterial);
-VLR_DEFINE_C_ALIAS(EnvironmentEmitterSurfaceMaterial);
-
-VLR_DEFINE_C_ALIAS(Transform);
-VLR_DEFINE_C_ALIAS(StaticTransform);
-
-VLR_DEFINE_C_ALIAS(Node);
-VLR_DEFINE_C_ALIAS(SurfaceNode);
-VLR_DEFINE_C_ALIAS(TriangleMeshSurfaceNode);
-VLR_DEFINE_C_ALIAS(InternalNode);
-VLR_DEFINE_C_ALIAS(Scene);
-
-VLR_DEFINE_C_ALIAS(Camera);
-VLR_DEFINE_C_ALIAS(PerspectiveCamera);
-VLR_DEFINE_C_ALIAS(EquirectangularCamera);
+#define VLR_PROCESS_CLASS VLR_DEFINE_C_ALIAS
+VLR_PROCESS_CLASS_LIST();
+#undef VLR_PROCESS_CLASS
 
 #include <VLR.h>
 

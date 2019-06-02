@@ -189,3 +189,52 @@ struct VLRVertex {
 #if !defined(__cplusplus)
 typedef struct VLRVertex VLRVertex;
 #endif
+
+
+
+#define VLR_PROCESS_CLASS_LIST() \
+    VLR_PROCESS_CLASS(Object); \
+ \
+    VLR_PROCESS_CLASS(Image2D); \
+    VLR_PROCESS_CLASS(LinearImage2D); \
+    VLR_PROCESS_CLASS(BlockCompressedImage2D); \
+ \
+    VLR_PROCESS_CLASS(ShaderNode); \
+    VLR_PROCESS_CLASS(GeometryShaderNode); \
+    VLR_PROCESS_CLASS(Float2ShaderNode); \
+    VLR_PROCESS_CLASS(Float3ShaderNode); \
+    VLR_PROCESS_CLASS(Float4ShaderNode); \
+    VLR_PROCESS_CLASS(ScaleAndOffsetFloatShaderNode); \
+    VLR_PROCESS_CLASS(TripletSpectrumShaderNode); \
+    VLR_PROCESS_CLASS(RegularSampledSpectrumShaderNode); \
+    VLR_PROCESS_CLASS(IrregularSampledSpectrumShaderNode); \
+    VLR_PROCESS_CLASS(Float3ToSpectrumShaderNode); \
+    VLR_PROCESS_CLASS(ScaleAndOffsetUVTextureMap2DShaderNode); \
+    VLR_PROCESS_CLASS(Image2DTextureShaderNode); \
+    VLR_PROCESS_CLASS(EnvironmentTextureShaderNode); \
+ \
+    VLR_PROCESS_CLASS(SurfaceMaterial); \
+    VLR_PROCESS_CLASS(MatteSurfaceMaterial); \
+    VLR_PROCESS_CLASS(SpecularReflectionSurfaceMaterial); \
+    VLR_PROCESS_CLASS(SpecularScatteringSurfaceMaterial); \
+    VLR_PROCESS_CLASS(MicrofacetReflectionSurfaceMaterial); \
+    VLR_PROCESS_CLASS(MicrofacetScatteringSurfaceMaterial); \
+    VLR_PROCESS_CLASS(LambertianScatteringSurfaceMaterial); \
+    VLR_PROCESS_CLASS(UE4SurfaceMaterial); \
+    VLR_PROCESS_CLASS(OldStyleSurfaceMaterial); \
+    VLR_PROCESS_CLASS(DiffuseEmitterSurfaceMaterial); \
+    VLR_PROCESS_CLASS(MultiSurfaceMaterial); \
+    VLR_PROCESS_CLASS(EnvironmentEmitterSurfaceMaterial); \
+ \
+    VLR_PROCESS_CLASS(Transform); \
+    VLR_PROCESS_CLASS(StaticTransform); \
+ \
+    VLR_PROCESS_CLASS(Node); \
+    VLR_PROCESS_CLASS(SurfaceNode); \
+    VLR_PROCESS_CLASS(TriangleMeshSurfaceNode); \
+    VLR_PROCESS_CLASS(InternalNode); \
+    VLR_PROCESS_CLASS(Scene); \
+ \
+    VLR_PROCESS_CLASS(Camera); \
+    VLR_PROCESS_CLASS(PerspectiveCamera); \
+    VLR_PROCESS_CLASS(EquirectangularCamera);

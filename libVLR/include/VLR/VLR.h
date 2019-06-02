@@ -34,6 +34,7 @@ extern "C" {
         VLRResult_InvalidArgument,
         VLRResult_IncompatibleNodeType,
         VLRResult_InternalError,
+        VLRResult_NumErrors
     };
 
 #if !defined(__cplusplus)
@@ -45,53 +46,11 @@ extern "C" {
         typedef struct VLR ## name ## _API* VLR ## name; \
         typedef const struct VLR ## name ## _API* VLR ## name ## Const
 
-    VLR_DEFINE_OPAQUE_TYPE(Object);
-
     VLR_DEFINE_OPAQUE_TYPE(Context);
 
-    VLR_DEFINE_OPAQUE_TYPE(Image2D);
-    VLR_DEFINE_OPAQUE_TYPE(LinearImage2D);
-    VLR_DEFINE_OPAQUE_TYPE(BlockCompressedImage2D);
-
-    VLR_DEFINE_OPAQUE_TYPE(ShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(GeometryShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(Float2ShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(Float3ShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(Float4ShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(ScaleAndOffsetFloatShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(TripletSpectrumShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(RegularSampledSpectrumShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(IrregularSampledSpectrumShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(Float3ToSpectrumShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(ScaleAndOffsetUVTextureMap2DShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(Image2DTextureShaderNode);
-    VLR_DEFINE_OPAQUE_TYPE(EnvironmentTextureShaderNode);
-
-    VLR_DEFINE_OPAQUE_TYPE(SurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(MatteSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(SpecularReflectionSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(SpecularScatteringSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(MicrofacetReflectionSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(MicrofacetScatteringSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(LambertianScatteringSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(UE4SurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(OldStyleSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(DiffuseEmitterSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(MultiSurfaceMaterial);
-    VLR_DEFINE_OPAQUE_TYPE(EnvironmentEmitterSurfaceMaterial);
-
-    VLR_DEFINE_OPAQUE_TYPE(Transform);
-    VLR_DEFINE_OPAQUE_TYPE(StaticTransform);
-
-    VLR_DEFINE_OPAQUE_TYPE(Node);
-    VLR_DEFINE_OPAQUE_TYPE(SurfaceNode);
-    VLR_DEFINE_OPAQUE_TYPE(TriangleMeshSurfaceNode);
-    VLR_DEFINE_OPAQUE_TYPE(InternalNode);
-    VLR_DEFINE_OPAQUE_TYPE(Scene);
-
-    VLR_DEFINE_OPAQUE_TYPE(Camera);
-    VLR_DEFINE_OPAQUE_TYPE(PerspectiveCamera);
-    VLR_DEFINE_OPAQUE_TYPE(EquirectangularCamera);
+#   define VLR_PROCESS_CLASS VLR_DEFINE_OPAQUE_TYPE
+    VLR_PROCESS_CLASS_LIST();
+#   undef VLR_PROCESS_CLASS
 #endif
 
 

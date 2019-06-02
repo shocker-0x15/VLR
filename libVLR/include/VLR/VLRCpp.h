@@ -9,64 +9,19 @@
 #include "basic_types.h"
 
 namespace VLRCpp {
-#define VLR_DECLARE_HOLDER_AND_REFERENCE(Name)\
-    class Name ## Holder;\
-    typedef std::shared_ptr<Name ## Holder> Name ## Ref
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Image2D);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(LinearImage2D);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(BlockCompressedImage2D);
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(ShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(GeometryShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Float2ShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Float4ShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(ScaleAndOffsetFloatShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(TripletSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(RegularSampledSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(IrregularSampledSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Float3ToSpectrumShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(ScaleAndOffsetUVTextureMap2DShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Image2DTextureShaderNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentTextureShaderNode);
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(SurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(MatteSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(SpecularReflectionSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(SpecularScatteringSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(MicrofacetReflectionSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(MicrofacetScatteringSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(LambertianScatteringSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(UE4SurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(OldStyleSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(DiffuseEmitterSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(MultiSurfaceMaterial);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(EnvironmentEmitterSurfaceMaterial);
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Transform);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(StaticTransform);
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Node);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(SurfaceNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(TriangleMeshSurfaceNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(InternalNode);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Scene);
-
-    VLR_DECLARE_HOLDER_AND_REFERENCE(Camera);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(PerspectiveCamera);
-    VLR_DECLARE_HOLDER_AND_REFERENCE(EquirectangularCamera);
-
     class Context;
     typedef std::shared_ptr<Context> ContextRef;
     typedef std::shared_ptr<const Context> ContextConstRef;
 
+#define VLR_DECLARE_HOLDER_AND_REFERENCE(Name)\
+    class Name ## Holder;\
+    typedef std::shared_ptr<Name ## Holder> Name ## Ref
+
+#define VLR_PROCESS_CLASS VLR_DECLARE_HOLDER_AND_REFERENCE
+    VLR_PROCESS_CLASS_LIST();
+#undef VLR_PROCESS_CLASS
 
 
-    static inline void errorCheck(VLRResult errorCode) {
-        if (errorCode != VLRResult_NoError)
-            throw std::runtime_error(vlrGetErrorMessage(errorCode));
-    }
 
     static inline VLRContext getRaw(const ContextConstRef &context);
 
@@ -76,6 +31,8 @@ namespace VLRCpp {
     protected:
         ContextConstRef m_context;
         VLRObject m_raw;
+
+        inline void errorCheck(VLRResult errorCode) const;
 
     public:
         Object(const ContextConstRef &context) : m_context(context), m_raw(nullptr) {}
@@ -1235,6 +1192,7 @@ namespace VLRCpp {
 
 
     class Context : public std::enable_shared_from_this<Context> {
+        std::set<VLRResult> m_enabledErrors;
         VLRContext m_rawContext;
         GeometryShaderNodeRef m_geomShaderNode;
         StaticTransformRef m_identityTransform;
@@ -1249,15 +1207,39 @@ namespace VLRCpp {
         }
 
     public:
+        void enableException(VLRResult errorCode) {
+            if (errorCode != VLRResult_NoError && errorCode < VLRResult_NumErrors)
+                m_enabledErrors.insert(errorCode);
+        }
+        void disableException(VLRResult errorCode) {
+            if (m_enabledErrors.count(errorCode))
+                m_enabledErrors.erase(errorCode);
+        }
+        void enableAllExceptions() {
+            for (int i = 0; i < VLRResult_NumErrors; ++i) {
+                if (i != VLRResult_NoError)
+                    m_enabledErrors.insert((VLRResult)i);
+            }
+        }
+        void disableAllExceptions() {
+            m_enabledErrors.clear();
+        }
+
         static ContextRef create(bool logging, bool enableRTX = true, uint32_t maxCallableDepth = 8, uint32_t stackSize = 0,
                                  const int32_t* devices = nullptr, uint32_t numDevices = 0) {
             auto ret = std::shared_ptr<Context>(new Context());
             ret->initialize(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
+            ret->enableAllExceptions();
             return ret;
         }
 
         ~Context() {
             errorCheck(vlrDestroyContext(m_rawContext));
+        }
+
+        void errorCheck(VLRResult errorCode) const {
+            if (m_enabledErrors.count(errorCode))
+                throw std::runtime_error(vlrGetErrorMessage(errorCode));
         }
 
         VLRContext get() const {
@@ -1442,6 +1424,12 @@ namespace VLRCpp {
             return std::make_shared<EquirectangularCameraHolder>(shared_from_this());
         }
     };
+
+
+
+    void Object::errorCheck(VLRResult errorCode) const {
+        m_context->errorCheck(errorCode);
+    }
 
 
 
