@@ -303,7 +303,7 @@ namespace VLR {
     case EnumName: { \
         using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
-        conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFor<ReturnType>(); \
+        conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
         break; \
     }
@@ -341,7 +341,7 @@ namespace VLR {
     case EnumName: { \
         using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
-        conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor<ReturnType>(); \
+        conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
         break; \
     }

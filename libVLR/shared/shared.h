@@ -394,16 +394,16 @@ namespace VLR {
 
 
         // ----------------------------------------------------------------
-        // JP: シェーダーノードソケット間の暗黙的な型キャストを定義する。
-        // EN: Define implicit type casting between shader node sockets.
+        // JP: シェーダーノードソケット間の暗黙的な型変換を定義する。
+        // EN: Define implicit type conversion between shader node sockets.
         
         template <typename Type>
         struct NodeTypeInfo {
             template <typename SrcType>
-            RT_FUNCTION static constexpr bool ConversionIsDefinedFor() {
+            RT_FUNCTION static constexpr bool ConversionIsDefinedFrom() {
                 return false;
             }
-            RT_FUNCTION static constexpr bool ConversionIsDefinedFor(ShaderNodeSocketType socketType);
+            RT_FUNCTION static constexpr bool ConversionIsDefinedFrom(ShaderNodeSocketType socketType);
             template <typename SrcType>
             RT_FUNCTION static Type convertFrom(const SrcType &) {
                 return Type();
@@ -411,7 +411,7 @@ namespace VLR {
         };
 
 #define VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(DstType, SrcType) \
-    template <> template <> HOST_INLINE constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFor<SrcType>() { return true; } \
+    template <> template <> HOST_INLINE constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
     template <> template <> HOST_INLINE DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
@@ -448,28 +448,28 @@ namespace VLR {
 #undef VLR_NODE_TYPE_INFO_DEFINE_CONVERSION
 
         template <typename Type>
-        RT_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFor(ShaderNodeSocketType socketType) {
+        RT_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFrom(ShaderNodeSocketType socketType) {
             switch (socketType) {
             case ShaderNodeSocketType::float1:
-                return ConversionIsDefinedFor<float>();
+                return ConversionIsDefinedFrom<float>();
             case ShaderNodeSocketType::float2:
-                return ConversionIsDefinedFor<optix::float2>();
+                return ConversionIsDefinedFrom<optix::float2>();
             case ShaderNodeSocketType::float3:
-                return ConversionIsDefinedFor<optix::float3>();
+                return ConversionIsDefinedFrom<optix::float3>();
             case ShaderNodeSocketType::float4:
-                return ConversionIsDefinedFor<optix::float4>();
+                return ConversionIsDefinedFrom<optix::float4>();
             case ShaderNodeSocketType::Point3D:
-                return ConversionIsDefinedFor<Point3D>();
+                return ConversionIsDefinedFrom<Point3D>();
             case ShaderNodeSocketType::Vector3D:
-                return ConversionIsDefinedFor<Vector3D>();
+                return ConversionIsDefinedFrom<Vector3D>();
             case ShaderNodeSocketType::Normal3D:
-                return ConversionIsDefinedFor<Normal3D>();
+                return ConversionIsDefinedFrom<Normal3D>();
             case ShaderNodeSocketType::Spectrum:
-                return ConversionIsDefinedFor<SampledSpectrum>();
+                return ConversionIsDefinedFrom<SampledSpectrum>();
             case ShaderNodeSocketType::Alpha:
-                return ConversionIsDefinedFor<float>();
+                return ConversionIsDefinedFrom<float>();
             case ShaderNodeSocketType::TextureCoordinates:
-                return ConversionIsDefinedFor<Point3D>();
+                return ConversionIsDefinedFrom<Point3D>();
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
@@ -477,7 +477,7 @@ namespace VLR {
             return false;
         }
 
-        // END: Define implicit type casting between shader node sockets.
+        // END: Define implicit type conversion between shader node sockets.
         // ----------------------------------------------------------------
 
 

@@ -204,7 +204,7 @@ namespace VLR {
     }
 
     bool Float2ShaderNode::set0(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -217,7 +217,7 @@ namespace VLR {
     }
 
     bool Float2ShaderNode::set1(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -274,7 +274,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::set0(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -287,7 +287,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::set1(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -300,7 +300,7 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::set2(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node2 = outputSocket;
         setupNodeDescriptor();
@@ -360,7 +360,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::set0(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node0 = outputSocket;
         setupNodeDescriptor();
@@ -373,7 +373,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::set1(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node1 = outputSocket;
         setupNodeDescriptor();
@@ -386,7 +386,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::set2(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node2 = outputSocket;
         setupNodeDescriptor();
@@ -399,7 +399,7 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::set3(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node3 = outputSocket;
         setupNodeDescriptor();
@@ -452,7 +452,7 @@ namespace VLR {
     }
 
     bool ScaleAndOffsetFloatShaderNode::setValue(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeValue = outputSocket;
         setupNodeDescriptor();
@@ -460,7 +460,7 @@ namespace VLR {
     }
 
     bool ScaleAndOffsetFloatShaderNode::setScale(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeScale = outputSocket;
         setupNodeDescriptor();
@@ -468,7 +468,7 @@ namespace VLR {
     }
 
     bool ScaleAndOffsetFloatShaderNode::setOffset(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeOffset = outputSocket;
         setupNodeDescriptor();
@@ -717,7 +717,7 @@ namespace VLR {
     }
 
     bool Float3ToSpectrumShaderNode::setFloat3(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeFloat3 = outputSocket;
         setupNodeDescriptor();
@@ -874,7 +874,7 @@ namespace VLR {
     }
 
     bool Image2DTextureShaderNode::setTexCoord(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeTexCoord = outputSocket;
         setupNodeDescriptor();
@@ -953,7 +953,7 @@ namespace VLR {
     }
 
     bool EnvironmentTextureShaderNode::setTexCoord(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeTexCoord = outputSocket;
         setupNodeDescriptor();

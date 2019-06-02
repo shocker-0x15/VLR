@@ -183,7 +183,7 @@ namespace VLR {
     }
 
     bool MatteSurfaceMaterial::setAlbedo(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeAlbedo = outputSocket;
         setupMaterialDescriptor();
@@ -253,7 +253,7 @@ namespace VLR {
     }
 
     bool SpecularReflectionSurfaceMaterial::setCoeffR(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeCoeffR = outputSocket;
         setupMaterialDescriptor();
@@ -266,7 +266,7 @@ namespace VLR {
     }
 
     bool SpecularReflectionSurfaceMaterial::setEta(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEta = outputSocket;
         setupMaterialDescriptor();
@@ -279,7 +279,7 @@ namespace VLR {
     }
 
     bool SpecularReflectionSurfaceMaterial::set_k(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node_k = outputSocket;
         setupMaterialDescriptor();
@@ -349,7 +349,7 @@ namespace VLR {
     }
 
     bool SpecularScatteringSurfaceMaterial::setCoeff(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -362,7 +362,7 @@ namespace VLR {
     }
 
     bool SpecularScatteringSurfaceMaterial::setEtaExt(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEtaExt = outputSocket;
         setupMaterialDescriptor();
@@ -375,7 +375,7 @@ namespace VLR {
     }
 
     bool SpecularScatteringSurfaceMaterial::setEtaInt(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEtaInt = outputSocket;
         setupMaterialDescriptor();
@@ -447,7 +447,7 @@ namespace VLR {
     }
 
     bool MicrofacetReflectionSurfaceMaterial::setEta(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEta = outputSocket;
         setupMaterialDescriptor();
@@ -460,7 +460,7 @@ namespace VLR {
     }
 
     bool MicrofacetReflectionSurfaceMaterial::set_k(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_node_k = outputSocket;
         setupMaterialDescriptor();
@@ -473,7 +473,7 @@ namespace VLR {
     }
 
     bool MicrofacetReflectionSurfaceMaterial::setRoughnessAnisotropyRotation(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeRoughnessAnisotropyRotation = outputSocket;
         setupMaterialDescriptor();
@@ -558,7 +558,7 @@ namespace VLR {
     }
 
     bool MicrofacetScatteringSurfaceMaterial::setCoeff(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -571,7 +571,7 @@ namespace VLR {
     }
 
     bool MicrofacetScatteringSurfaceMaterial::setEtaExt(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEtaExt = outputSocket;
         setupMaterialDescriptor();
@@ -584,7 +584,7 @@ namespace VLR {
     }
 
     bool MicrofacetScatteringSurfaceMaterial::setEtaInt(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEtaInt = outputSocket;
         setupMaterialDescriptor();
@@ -597,7 +597,7 @@ namespace VLR {
     }
 
     bool MicrofacetScatteringSurfaceMaterial::setRoughnessAnisotropyRotation(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeRoughnessAnisotropyRotation = outputSocket;
         setupMaterialDescriptor();
@@ -673,7 +673,7 @@ namespace VLR {
     }
 
     bool LambertianScatteringSurfaceMaterial::setCoeff(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeCoeff = outputSocket;
         setupMaterialDescriptor();
@@ -686,7 +686,7 @@ namespace VLR {
     }
 
     bool LambertianScatteringSurfaceMaterial::setF0(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeF0 = outputSocket;
         setupMaterialDescriptor();
@@ -754,7 +754,7 @@ namespace VLR {
     }
 
     bool UE4SurfaceMaterial::setBaseColor(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeBaseColor = outputSocket;
         setupMaterialDescriptor();
@@ -767,7 +767,7 @@ namespace VLR {
     }
 
     bool UE4SurfaceMaterial::setOcclusionRoughnessMetallic(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeOcclusionRoughnessMetallic = outputSocket;
         setupMaterialDescriptor();
@@ -847,7 +847,7 @@ namespace VLR {
     }
 
     bool OldStyleSurfaceMaterial::setDiffuseColor(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeDiffuseColor = outputSocket;
         setupMaterialDescriptor();
@@ -860,7 +860,7 @@ namespace VLR {
     }
 
     bool OldStyleSurfaceMaterial::setSpecularColor(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeSpecularColor = outputSocket;
         setupMaterialDescriptor();
@@ -873,7 +873,7 @@ namespace VLR {
     }
 
     bool OldStyleSurfaceMaterial::setGlossiness(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeGlossiness = outputSocket;
         setupMaterialDescriptor();
@@ -937,7 +937,7 @@ namespace VLR {
     }
 
     bool DiffuseEmitterSurfaceMaterial::setEmittance(const ShaderNodeSocket &outputSocket) {
-        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFor(outputSocket.getType()))
+        if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(outputSocket.getType()))
             return false;
         m_nodeEmittance = outputSocket;
         setupMaterialDescriptor();
