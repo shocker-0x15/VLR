@@ -3,7 +3,14 @@
 namespace VLR {
     template <typename T>
     RT_FUNCTION T* getData(uint32_t nodeDescIndex) {
-        return pv_smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        constexpr uint32_t sizeOfNodeInDW = sizeof(T) / 4;
+        if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS)
+            return pv_smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        else if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS)
+            return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        else if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS)
+            return pv_largeNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        return nullptr;
     }
 
 
@@ -57,11 +64,6 @@ namespace VLR {
 
 
 
-    template <>
-    RT_FUNCTION Float3ShaderNode* getData<Float3ShaderNode>(uint32_t nodeDescIndex) {
-        return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<Float3ShaderNode>();
-    }
-    
     RT_CALLABLE_PROGRAM float Float3ShaderNode_float1(const ShaderNodeSocket &socket,
                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ShaderNode>(socket.nodeDescIndex);
@@ -96,11 +98,6 @@ namespace VLR {
 
 
 
-    template <>
-    RT_FUNCTION Float4ShaderNode* getData<Float4ShaderNode>(uint32_t nodeDescIndex) {
-        return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<Float4ShaderNode>();
-    }
-    
     RT_CALLABLE_PROGRAM float Float4ShaderNode_float1(const ShaderNodeSocket &socket,
                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float4ShaderNode>(socket.nodeDescIndex);
@@ -155,11 +152,6 @@ namespace VLR {
 
 
 
-    template <>
-    RT_FUNCTION ScaleAndOffsetFloatShaderNode* getData<ScaleAndOffsetFloatShaderNode>(uint32_t nodeDescIndex) {
-        return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<ScaleAndOffsetFloatShaderNode>();
-    }
-    
     RT_CALLABLE_PROGRAM float ScaleAndOffsetFloatShaderNode_float1(const ShaderNodeSocket &socket,
                                                                    const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<ScaleAndOffsetFloatShaderNode>(socket.nodeDescIndex);
@@ -179,13 +171,6 @@ namespace VLR {
 
 
 
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-    template <>
-    RT_FUNCTION RegularSampledSpectrumShaderNode* getData<RegularSampledSpectrumShaderNode>(uint32_t nodeDescIndex) {
-        return pv_largeNodeDescriptorBuffer[nodeDescIndex].getData<RegularSampledSpectrumShaderNode>();
-    }
-#endif
-    
     RT_CALLABLE_PROGRAM SampledSpectrum RegularSampledSpectrumShaderNode_Spectrum(const ShaderNodeSocket &socket,
                                                                                   const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<RegularSampledSpectrumShaderNode>(socket.nodeDescIndex);
@@ -197,13 +182,6 @@ namespace VLR {
     }
 
 
-
-#if defined(VLR_USE_SPECTRAL_RENDERING)
-    template <>
-    RT_FUNCTION IrregularSampledSpectrumShaderNode* getData<IrregularSampledSpectrumShaderNode>(uint32_t nodeDescIndex) {
-        return pv_largeNodeDescriptorBuffer[nodeDescIndex].getData<IrregularSampledSpectrumShaderNode>();
-    }
-#endif
 
     RT_CALLABLE_PROGRAM SampledSpectrum IrregularSampledSpectrumShaderNode_Spectrum(const ShaderNodeSocket &socket,
                                                                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
@@ -217,11 +195,6 @@ namespace VLR {
 
 
 
-    template <>
-    RT_FUNCTION Float3ToSpectrumShaderNode* getData<Float3ToSpectrumShaderNode>(uint32_t nodeDescIndex) {
-        return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<Float3ToSpectrumShaderNode>();
-    }
-    
     RT_CALLABLE_PROGRAM SampledSpectrum Float3ToSpectrumShaderNode_Spectrum(const ShaderNodeSocket &socket,
                                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ToSpectrumShaderNode>(socket.nodeDescIndex);

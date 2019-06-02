@@ -669,21 +669,23 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         //// Texture Coordinate Direction Check
         //{
-        //    auto nodeAlbedo = context->createImage2DTextureShaderNode();
-        //    nodeAlbedo->setImage(loadImage2D(context, "resources/2x2_heightmap.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
-        //    nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        //    //auto nodeAlbedo = context->createImage2DTextureShaderNode();
+        //    //nodeAlbedo->setImage(loadImage2D(context, "resources/mountain_heightmap.png", VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
+        //    //nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
         //    auto matMatte = context->createMatteSurfaceMaterial();
-        //    matMatte->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        //    //matMatte->setAlbedo(nodeAlbedo->getSocket(VLRShaderNodeSocketType_Spectrum, 0));
+        //    matMatte->setAlbedo(VLRColorSpace_Rec709_D65, 0.8f, 0.8f, 0.8f);
 
         //    auto nodeNormal = context->createImage2DTextureShaderNode();
-        //    nodeNormal->setImage(loadImage2D(context, "resources/2x2_heightmap.png", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
-        //    nodeNormal->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest, VLRTextureFilter_None);
+        //    nodeNormal->setImage(loadImage2D(context, "resources/mountain_heightmap.jpg", VLRSpectrumType_NA, VLRColorSpace_Rec709_D65));
+        //    nodeNormal->setBumpType(VLRBumpType_HeightMap);
+        //    nodeNormal->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
         //    nodeNormal->setTextureWrapMode(VLRTextureWrapMode_ClampToEdge, VLRTextureWrapMode_ClampToEdge);
 
         //    std::vector<uint32_t> matGroup = {
         //        28, 29, 30, 28, 30, 31
         //    };
-        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 2), ShaderNodeSocket(), VLRTangentType_TC0Direction);
+        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getSocket(VLRShaderNodeSocketType_Normal3D, 0), ShaderNodeSocket(), VLRTangentType_TC0Direction);
         //}
 
         {
