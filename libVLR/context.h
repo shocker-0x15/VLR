@@ -197,21 +197,18 @@ namespace VLR {
 
 
 
-#define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
-    static const ClassIdentifier ClassID; \
-    virtual const ClassIdentifier &getClass() const { return ClassID; }
-
     class TypeAwareClass {
     public:
-        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier& getClass() const { return ClassID; }
 
         template <class T>
-        bool is() const {
+        constexpr bool is() const {
             return &getClass() == &T::ClassID;
         }
 
         template <class T>
-        bool isMemberOf() const {
+        constexpr bool isMemberOf() const {
             const ClassIdentifier* curClass = &getClass();
             while (curClass) {
                 if (curClass == &T::ClassID)
@@ -221,6 +218,10 @@ namespace VLR {
             return false;
         }
     };
+
+#define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
+    static const ClassIdentifier ClassID; \
+    virtual const ClassIdentifier &getClass() const override { return ClassID; }
 
 
 

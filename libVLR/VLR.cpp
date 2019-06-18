@@ -355,9 +355,10 @@ VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCo
     try {
         if (image == nullptr || data == nullptr || sizes == nullptr)
             return VLRResult_InvalidArgument;
-        for (int m = 0; m < mipCount; ++m)
+        for (int m = 0; m < mipCount; ++m) {
             if (data[m] == nullptr)
                 return VLRResult_InvalidArgument;
+        }
 
         *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height,
                                                  (VLR::DataFormat)dataFormat, (VLR::SpectrumType)spectrumType, (VLR::ColorSpace)colorSpace);

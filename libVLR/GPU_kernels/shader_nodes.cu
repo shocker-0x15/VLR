@@ -389,7 +389,7 @@ namespace VLR {
                                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<EnvironmentTextureShaderNode>(socket.nodeDescIndex);
 
-        Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
+        Point3D texCoord = Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f);
         optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)

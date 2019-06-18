@@ -59,6 +59,14 @@ enum VLRBumpType {
 
 
 
+enum VLRParameterFormFlag {
+    VLRParameterFormFlag_ImmediateValue = 1 << 0,
+    VLRParameterFormFlag_Node = 1 << 1,
+    VLRParameterFormFlag_Both = (VLRParameterFormFlag_ImmediateValue | VLRParameterFormFlag_Node)
+};
+
+
+
 enum VLRShaderNodeSocketType {
     VLRShaderNodeSocketType_float1 = 0,
     VLRShaderNodeSocketType_float2,
@@ -136,6 +144,7 @@ typedef enum VLRSpectrumType VLRSpectrumType;
 typedef enum VLRColorSpace VLRColorSpace;
 typedef enum VLRDataFormat VLRDataFormat;
 typedef enum VLRBumpType VLRBumpType;
+typedef enum VLRParameterFormFlag VLRParameterFormFlag;
 typedef enum VLRShaderNodeSocketType VLRShaderNodeSocketType;
 typedef struct VLRShaderNodeSocket VLRShaderNodeSocket;
 typedef enum VLRTextureFilter VLRTextureFilter;
@@ -148,6 +157,13 @@ typedef enum VLRDebugRenderingMode VLRDebugRenderingMode;
 #endif
 
 
+
+struct VLRImmediateSpectrum {
+    const char* colorSpace;
+    float e0;
+    float e1;
+    float e2;
+};
 
 struct VLRPoint3D {
     float x, y, z;
@@ -198,6 +214,8 @@ typedef struct VLRVertex VLRVertex;
     VLR_PROCESS_CLASS(Image2D); \
     VLR_PROCESS_CLASS(LinearImage2D); \
     VLR_PROCESS_CLASS(BlockCompressedImage2D); \
+ \
+    VLR_PROCESS_CLASS(ParameterInfo); \
  \
     VLR_PROCESS_CLASS(ShaderNode); \
     VLR_PROCESS_CLASS(GeometryShaderNode); \

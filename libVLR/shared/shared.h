@@ -737,7 +737,6 @@ namespace VLR {
                 unsigned int dataFormat : 5;
                 unsigned int colorSpace : 3;
             };
-            ShaderNodeSocket nodeTexCoord;
 
             RT_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
             RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }

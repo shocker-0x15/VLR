@@ -93,6 +93,12 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrParameterInfoGetName(VLRParameterInfoConst paramInfo, const char** name);
+    VLR_API VLRResult vlrParameterInfoGetSocketForm(VLRParameterInfoConst paramInfo, VLRSocketFormFlag* socketForm);
+    VLR_API VLRResult vlrParameterInfoGetType(VLRParameterInfoConst paramInfo, VLRParameterType* type);
+
+
+
     VLR_API VLRResult vlrShaderNodeGetSocket(VLRShaderNodeConst node, VLRShaderNodeSocketType socketType, uint32_t option, 
                                              VLRShaderNodeSocket* socket);
 
@@ -175,6 +181,9 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrSurfaceMaterialGetNumParameters(VLRSurfaceMaterialConst material, uint32_t* numParams);
+    VLR_API VLRResult vlrSurfaceMaterialGetParameterInfo(VLRSurfaceMaterialConst material, uint32_t index, VLRParameterInfo* paramInfo);
+    
     VLR_API VLRResult vlrMatteSurfaceMaterialCreate(VLRContext context, VLRMatteSurfaceMaterial* material);
     VLR_API VLRResult vlrMatteSurfaceMaterialDestroy(VLRContext context, VLRMatteSurfaceMaterial material);
     VLR_API VLRResult vlrMatteSurfaceMaterialSetNodeAlbedo(VLRMatteSurfaceMaterial material, VLRShaderNodeSocket node);

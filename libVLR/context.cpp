@@ -368,14 +368,15 @@ namespace VLR {
 
 
 
-        RTsize defaultStackSize = m_optixContext->getStackSize();
+        RTsize defaultStackSize = 0;
         if (m_RTXEnabled) {
             if (stackSize > 0)
                 vlrprintf("Specified stack size is ignored in RTX mode.\n");
         }
         else {
-            vlrprintf("Default Stack Size: %llu\n", defaultStackSize);
+            defaultStackSize = m_optixContext->getStackSize();
 
+            vlrprintf("Default Stack Size: %llu\n", defaultStackSize);
             vlrprintf("Requested Stack Size: %u\n", stackSize);
         }
 
