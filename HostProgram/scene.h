@@ -10,10 +10,10 @@
 
 struct SurfaceMaterialAttributeTuple {
     VLRCpp::SurfaceMaterialRef material;
-    VLRCpp::ShaderNodeSocket nodeNormal;
-    VLRCpp::ShaderNodeSocket nodeAlpha;
+    VLRCpp::ShaderNodePlug nodeNormal;
+    VLRCpp::ShaderNodePlug nodeAlpha;
 
-    SurfaceMaterialAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const VLRCpp::ShaderNodeSocket &_nodeNormal, const VLRCpp::ShaderNodeSocket &_nodeAlpha) :
+    SurfaceMaterialAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material, const VLRCpp::ShaderNodePlug &_nodeNormal, const VLRCpp::ShaderNodePlug &_nodeAlpha) :
         material(_material), nodeNormal(_nodeNormal), nodeAlpha(_nodeAlpha) {}
 };
 

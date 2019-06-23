@@ -26,8 +26,8 @@ namespace VLR {
     };
 
     // TODO: ちょっとわかりにくい。
-    // ShaderNodeSocketのoptionとコンポーネント位置を分離して指定できるようにするとわかりやすそう。
-    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodeSocketType stype, uint32_t index) {
+    // ShaderNodePlugのoptionとコンポーネント位置を分離して指定できるようにするとわかりやすそう。
+    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodePlugType ptype, uint32_t index) {
         uint32_t ret = 0xFFFFFFFF;
 
         switch (dataFormat) {
@@ -38,47 +38,47 @@ namespace VLR {
         case DataFormat::BC2:
         case DataFormat::BC3:
         case DataFormat::BC7: {
-            switch (stype) {
-            case ShaderNodeSocketType::float1:
+            switch (ptype) {
+            case ShaderNodePlugType::float1:
                 if (index < 4)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float2:
+            case ShaderNodePlugType::float2:
                 if (index < 3)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float3:
+            case ShaderNodePlugType::float3:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float4:
+            case ShaderNodePlugType::float4:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Point3D:
+            case ShaderNodePlugType::Point3D:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Vector3D:
+            case ShaderNodePlugType::Vector3D:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Normal3D:
+            case ShaderNodePlugType::Normal3D:
                 // JP: いずれのバンプマップにも対応可能。
                 if (bumpType == BumpType::HeightMap && index < 4)
                     ret = index;
                 else if (bumpType != BumpType::HeightMap && index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Spectrum:
+            case ShaderNodePlugType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Alpha:
+            case ShaderNodePlugType::Alpha:
                 if (index < 1)
                     ret = 3;
                 break;
-            case ShaderNodeSocketType::TextureCoordinates:
+            case ShaderNodePlugType::TextureCoordinates:
                 if (index < 3)
                     ret = index;
                 break;
@@ -89,39 +89,39 @@ namespace VLR {
         }
         case DataFormat::BC6H:
         case DataFormat::BC6H_Signed: {
-            switch (stype) {
-            case ShaderNodeSocketType::float1:
+            switch (ptype) {
+            case ShaderNodePlugType::float1:
                 if (index < 3)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float2:
+            case ShaderNodePlugType::float2:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float3:
+            case ShaderNodePlugType::float3:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Point3D:
+            case ShaderNodePlugType::Point3D:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Vector3D:
+            case ShaderNodePlugType::Vector3D:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Normal3D:
+            case ShaderNodePlugType::Normal3D:
                 // JP: いずれのバンプマップにも対応可能。
                 if (bumpType == BumpType::HeightMap && index < 3)
                     ret = index;
                 else if (bumpType != BumpType::HeightMap && index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Spectrum:
+            case ShaderNodePlugType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::TextureCoordinates:
+            case ShaderNodePlugType::TextureCoordinates:
                 if (index < 2)
                     ret = index;
                 break;
@@ -133,19 +133,19 @@ namespace VLR {
         case DataFormat::RG32Fx2:
         case DataFormat::BC5:
         case DataFormat::BC5_Signed: {
-            switch (stype) {
-            case ShaderNodeSocketType::float1:
+            switch (ptype) {
+            case ShaderNodePlugType::float1:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float2:
+            case ShaderNodePlugType::float2:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Normal3D:
+            case ShaderNodePlugType::Normal3D:
                 VLRAssert_NotImplemented();
                 break;
-            case ShaderNodeSocketType::TextureCoordinates:
+            case ShaderNodePlugType::TextureCoordinates:
                 if (index < 1)
                     ret = index;
                 break;
@@ -158,17 +158,17 @@ namespace VLR {
         case DataFormat::Gray8:
         case DataFormat::BC4:
         case DataFormat::BC4_Signed: {
-            switch (stype) {
-            case ShaderNodeSocketType::float1:
+            switch (ptype) {
+            case ShaderNodePlugType::float1:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Normal3D:
+            case ShaderNodePlugType::Normal3D:
                 // JP: Height Map のみサポート。
                 if (bumpType == BumpType::HeightMap && index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Spectrum:
+            case ShaderNodePlugType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
@@ -178,29 +178,29 @@ namespace VLR {
             break;
         }
         case DataFormat::GrayA8x2: {
-            switch (stype) {
-            case ShaderNodeSocketType::float1:
+            switch (ptype) {
+            case ShaderNodePlugType::float1:
                 if (index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::float2:
+            case ShaderNodePlugType::float2:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Normal3D:
+            case ShaderNodePlugType::Normal3D:
                 // JP: Height Map のみサポート。
                 if (bumpType == BumpType::HeightMap && index < 2)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Spectrum:
+            case ShaderNodePlugType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Alpha:
+            case ShaderNodePlugType::Alpha:
                 if (index < 1)
                     ret = 1;
                 break;
-            case ShaderNodeSocketType::TextureCoordinates:
+            case ShaderNodePlugType::TextureCoordinates:
                 if (index < 1)
                     ret = index;
                 break;
@@ -211,12 +211,12 @@ namespace VLR {
         }
         case DataFormat::uvsA8x4:
         case DataFormat::uvsA16Fx4: {
-            switch (stype) {
-            case ShaderNodeSocketType::Spectrum:
+            switch (ptype) {
+            case ShaderNodePlugType::Spectrum:
                 if (index < 1)
                     ret = index;
                 break;
-            case ShaderNodeSocketType::Alpha:
+            case ShaderNodePlugType::Alpha:
                 if (index < 1)
                     ret = 3;
                 break;
@@ -317,7 +317,7 @@ namespace VLR {
 
     Image2D::Image2D(Context &context, uint32_t width, uint32_t height,
                      DataFormat originalDataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
-        Object(context), m_width(width), m_height(height), 
+        Connectable(context), m_width(width), m_height(height),
         m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace),
         m_initOptiXObject(false)
     {
@@ -662,6 +662,9 @@ namespace VLR {
 
 
     
+
+    std::vector<ParameterInfo> LinearImage2D::ParameterInfos;
+
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
                                  DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
@@ -1073,6 +1076,8 @@ namespace VLR {
 
 
 
+    std::vector<ParameterInfo> BlockCompressedImage2D::ParameterInfos;
+    
     BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, 
                                                    DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {

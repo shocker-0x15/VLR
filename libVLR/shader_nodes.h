@@ -3,49 +3,9 @@
 #include "image.h"
 
 namespace VLR {
-    struct ParameterInfo {
-        const char* name;
-        VLRParameterFormFlag formFlags;
-        const char* typeName;
-        uint32_t tupleSize; // 0 means variable sized array
-
-        ParameterInfo() :
-            name(nullptr),
-            formFlags((VLRParameterFormFlag)0),
-            typeName(nullptr), tupleSize(0) {}
-        ParameterInfo(const char* _name,
-                      VLRParameterFormFlag _formFlags,
-                      const char* _typeName, uint32_t _tupleSize = 1) :
-            name(_name),
-            formFlags(_formFlags),
-            typeName(_typeName), tupleSize(_tupleSize) {}
-    };
-
-    extern const char* ParameterFloat;
-    extern const char* ParameterPoint3D;
-    extern const char* ParameterVector3D;
-    extern const char* ParameterNormal3D;
-    extern const char* ParameterSpectrum;
-    extern const char* ParameterAlpha;
-    extern const char* ParameterTextureCoordinates;
-
-    extern const char* ParameterImage;
-    extern const char* ParameterSurfaceMaterial;
-
-    extern const char* ParameterSpectrumType;
-    extern const char* ParameterColorSpace;
-    extern const char* ParameterBumpType;
-    extern const char* ParameterTextureFilter;
-    extern const char* ParameterTextureWrapMode;
-
-    extern const std::map<std::string, std::map<std::string, uint32_t>> g_enumTables;
-    extern const std::map<std::string, std::map<uint32_t, std::string>> g_invEnumTables;
-
-
-
     class ShaderNode;
 
-    struct ShaderNodeSocket {
+    struct ShaderNodePlug {
         const ShaderNode* node;
         union {
             struct Info {
@@ -53,44 +13,42 @@ namespace VLR {
                 unsigned int option : 2;
             } info;
             static_assert(sizeof(Info) == sizeof(uint32_t), "sizeof(Info) is expected to be 4.");
-            uint32_t socketInfoAsUInt;
+            uint32_t plugInfoAsUInt;
         };
 
-        ShaderNodeSocket() : node(nullptr), socketInfoAsUInt(0) {
+        ShaderNodePlug() : node(nullptr), plugInfoAsUInt(0) {
             info.outputType = 0;
         }
         // used in this file
-        ShaderNodeSocket(const ShaderNode* _node, ShaderNodeSocketType _socketType, uint32_t _option) :
-            node(_node), socketInfoAsUInt(0) {
-            info.outputType = (unsigned int)_socketType;
+        ShaderNodePlug(const ShaderNode* _node, ShaderNodePlugType _plugType, uint32_t _option) :
+            node(_node), plugInfoAsUInt(0) {
+            info.outputType = (unsigned int)_plugType;
             info.option = _option;
         }
         // used in VLR.cpp
-        ShaderNodeSocket(const VLRShaderNodeSocket &_socket) :
-            node((const ShaderNode*)_socket.nodeRef), socketInfoAsUInt(_socket.info) {}
+        ShaderNodePlug(const VLRShaderNodePlug &_plug) :
+            node((const ShaderNode*)_plug.nodeRef), plugInfoAsUInt(_plug.info) {}
 
-        ShaderNodeSocketType getType() const {
-            return (ShaderNodeSocketType)info.outputType;
+        ShaderNodePlugType getType() const {
+            return (ShaderNodePlugType)info.outputType;
         }
 
-        VLRShaderNodeSocket getOpaqueType() const {
-            VLRShaderNodeSocket ret;
+        VLRShaderNodePlug getOpaqueType() const {
+            VLRShaderNodePlug ret;
             ret.nodeRef = (uintptr_t)node;
-            ret.info = socketInfoAsUInt;
+            ret.info = plugInfoAsUInt;
             return ret;
         }
 
-        Shared::ShaderNodeSocket getSharedType() const;
+        Shared::ShaderNodePlug getSharedType() const;
     };
 
 
 
-    class ShaderNode : public Object {
+    class ShaderNode : public Connectable {
     protected:
-        virtual const std::vector<ParameterInfo>& getParamInfos() const = 0;
-
         struct OptiXProgramSet {
-            optix::Program callablePrograms[nextPowerOf2((uint32_t)ShaderNodeSocketType::NumTypes)];
+            optix::Program callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
             uint32_t nodeProcedureSetIndex;
         };
     public:
@@ -105,11 +63,11 @@ namespace VLR {
         };
         int32_t m_nodeSizeClass;
 
-        struct SocketTypeToProgramPair {
-            ShaderNodeSocketType stype;
+        struct PlugTypeToProgramPair {
+            ShaderNodePlugType ptype;
             const char* programName;
         };
-        static void commonInitializeProcedure(Context &context, const SocketTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
+        static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
         template <typename T>
@@ -133,65 +91,12 @@ namespace VLR {
         static void finalize(Context &context);
 
         ShaderNode(Context &context, size_t sizeOfNode);
-        virtual ~ShaderNode();
+        ~ShaderNode();
 
-        virtual bool get(const char* paramName, const char** enumValue) const {
-            return false;
-        };
-        virtual bool get(const char* paramName, Point3D* point) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, Vector3D* vector) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, Normal3D* normal) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, float* values, uint32_t length) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, const float** values, uint32_t* length) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, const Image2D** image) const {
-            return false;
-        }
-        virtual bool get(const char* paramName, ShaderNodeSocket* socket) const {
-            return false;
-        }
+        virtual ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const = 0;
 
-        virtual bool set(const char* paramName, const char* enumValue) {
-            return false;
-        };
-        virtual bool set(const char* paramName, const Point3D &point) {
-            return false;
-        }
-        virtual bool set(const char* paramName, const Vector3D &vector) {
-            return false;
-        }
-        virtual bool set(const char* paramName, const Normal3D &normal) {
-            return false;
-        }
-        virtual bool set(const char* paramName, const float* values, uint32_t length) {
-            return false;
-        }
-        virtual bool set(const char* paramName, const Image2D* image) {
-            return false;
-        }
-        virtual bool set(const char* paramName, const ShaderNodeSocket &socket) {
-            return false;
-        }
-
-        virtual ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const = 0;
-        
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
     };
-
-#define VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS() \
-    static std::vector<ParameterInfo> ParameterInfos; \
-    const std::vector<ParameterInfo>& getParamInfos() const override { \
-        return ParameterInfos; \
-    }
 
 #define VLR_SHADER_NODE_DECLARE_PROGRAM_SET() \
     static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets; \
@@ -202,7 +107,7 @@ namespace VLR {
 
 
     class GeometryShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, GeometryShaderNode*> Instances;
@@ -218,18 +123,18 @@ namespace VLR {
         GeometryShaderNode(Context &context);
         ~GeometryShaderNode();
 
-        // Out Socket | option |
-        // Point3D    |      0 | Position
-        // Normal3D   |   0, 1 | Geometric Normal, Shading Normal
-        // Vector3D   |   0, 1 | Shading Tangent, Shading Bitangent
-        // TexCoord   |      0 | Texture Coordinates
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == ShaderNodeSocketType::Point3D && option < 1) ||
-                (stype == ShaderNodeSocketType::Normal3D && option < 2) ||
-                (stype == ShaderNodeSocketType::Vector3D && option < 2) ||
-                (stype == ShaderNodeSocketType::TextureCoordinates && option < 1))
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Point3D  |      0 | Position
+        // Normal3D |   0, 1 | Geometric Normal, Shading Normal
+        // Vector3D |   0, 1 | Shading Tangent, Shading Bitangent
+        // TexCoord |      0 | Texture Coordinates
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if ((ptype == ShaderNodePlugType::Point3D && option < 1) ||
+                (ptype == ShaderNodePlugType::Normal3D && option < 2) ||
+                (ptype == ShaderNodePlugType::Vector3D && option < 2) ||
+                (ptype == ShaderNodePlugType::TextureCoordinates && option < 1))
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
 
         static GeometryShaderNode* getInstance(Context &context);
@@ -238,12 +143,12 @@ namespace VLR {
 
 
     class Float2ShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
-        ShaderNodeSocket m_node0;
-        ShaderNodeSocket m_node1;
+        ShaderNodePlug m_node0;
+        ShaderNodePlug m_node1;
         float m_imm0;
         float m_imm1;
 
@@ -259,32 +164,32 @@ namespace VLR {
         ~Float2ShaderNode();
 
         bool get(const char* paramName, float* values, uint32_t length) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const float* values, uint32_t length) override;
-        bool set(const char* paramName, const ShaderNodeSocket& socket);
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
 
-        // Out Socket | option |
-        // float      |    0-1 | s0, s1
-        // float2     |      0 | (s0, s1)
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == ShaderNodeSocketType::float1 && option < 2) ||
-                (stype == ShaderNodeSocketType::float2 && option < 1))
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // float    |    0-1 | s0, s1
+        // float2   |      0 | (s0, s1)
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if ((ptype == ShaderNodePlugType::float1 && option < 2) ||
+                (ptype == ShaderNodePlugType::float2 && option < 1))
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class Float3ShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
-        ShaderNodeSocket m_node0;
-        ShaderNodeSocket m_node1;
-        ShaderNodeSocket m_node2;
+        ShaderNodePlug m_node0;
+        ShaderNodePlug m_node1;
+        ShaderNodePlug m_node2;
         float m_imm0;
         float m_imm1;
         float m_imm2;
@@ -301,35 +206,35 @@ namespace VLR {
         ~Float3ShaderNode();
 
         bool get(const char* paramName, float* values, uint32_t length) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const float* values, uint32_t length) override;
-        bool set(const char* paramName, const ShaderNodeSocket& socket);
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
 
-        // Out Socket | option |
-        // float      |    0-2 | s0, s1, s2
-        // float2     |    0-1 | (s0, s1), (s1, s2)
-        // float3     |      0 | (s0, s1, s2)
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == ShaderNodeSocketType::float1 && option < 3) ||
-                (stype == ShaderNodeSocketType::float2 && option < 2) ||
-                (stype == ShaderNodeSocketType::float3 && option < 1))
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // float    |    0-2 | s0, s1, s2
+        // float2   |    0-1 | (s0, s1), (s1, s2)
+        // float3   |      0 | (s0, s1, s2)
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if ((ptype == ShaderNodePlugType::float1 && option < 3) ||
+                (ptype == ShaderNodePlugType::float2 && option < 2) ||
+                (ptype == ShaderNodePlugType::float3 && option < 1))
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class Float4ShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
-        ShaderNodeSocket m_node0;
-        ShaderNodeSocket m_node1;
-        ShaderNodeSocket m_node2;
-        ShaderNodeSocket m_node3;
+        ShaderNodePlug m_node0;
+        ShaderNodePlug m_node1;
+        ShaderNodePlug m_node2;
+        ShaderNodePlug m_node3;
         float m_imm0;
         float m_imm1;
         float m_imm2;
@@ -347,36 +252,36 @@ namespace VLR {
         ~Float4ShaderNode();
 
         bool get(const char* paramName, float* values, uint32_t length) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const float* values, uint32_t length) override;
-        bool set(const char* paramName, const ShaderNodeSocket& socket);
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
 
-        // Out Socket | option |
-        // float      |    0-3 | s0, s1, s2, s3
-        // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
-        // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
-        // float4     |      0 | (s0, s1, s2, s3)
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if ((stype == ShaderNodeSocketType::float1 && option < 4) ||
-                (stype == ShaderNodeSocketType::float2 && option < 3) ||
-                (stype == ShaderNodeSocketType::float3 && option < 2) ||
-                (stype == ShaderNodeSocketType::float4 && option < 1))
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // float    |    0-3 | s0, s1, s2, s3
+        // float2   |    0-2 | (s0, s1), (s1, s2), (s2, s3)
+        // float3   |    0-1 | (s0, s1, s2), (s1, s2, s3)
+        // float4   |      0 | (s0, s1, s2, s3)
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if ((ptype == ShaderNodePlugType::float1 && option < 4) ||
+                (ptype == ShaderNodePlugType::float2 && option < 3) ||
+                (ptype == ShaderNodePlugType::float3 && option < 2) ||
+                (ptype == ShaderNodePlugType::float4 && option < 1))
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class ScaleAndOffsetFloatShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
-        ShaderNodeSocket m_nodeValue;
-        ShaderNodeSocket m_nodeScale;
-        ShaderNodeSocket m_nodeOffset;
+        ShaderNodePlug m_nodeValue;
+        ShaderNodePlug m_nodeScale;
+        ShaderNodePlug m_nodeOffset;
         float m_immScale;
         float m_immOffset;
 
@@ -392,24 +297,24 @@ namespace VLR {
         ~ScaleAndOffsetFloatShaderNode();
 
         bool get(const char* paramName, float* values, uint32_t length) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const float* values, uint32_t length) override;
-        bool set(const char* paramName, const ShaderNodeSocket& socket);
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
 
-        // Out Socket | option |
-        // float      |      0 | s0
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::float1 && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // float    |      0 | s0
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::float1 && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class TripletSpectrumShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -434,19 +339,19 @@ namespace VLR {
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        // Out Socket   | option |
-        // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Spectrum |      0 | Spectrum
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Spectrum && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class RegularSampledSpectrumShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -474,19 +379,19 @@ namespace VLR {
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        // Out Socket   | option |
-        // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Spectrum |      0 | Spectrum
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Spectrum && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class IrregularSampledSpectrumShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -512,23 +417,23 @@ namespace VLR {
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        // Out Socket   | option |
-        // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Spectrum |      0 | Spectrum
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Spectrum && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class Float3ToSpectrumShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
-        ShaderNodeSocket m_nodeFloat3;
+        ShaderNodePlug m_nodeFloat3;
         float m_immFloat3[3];
         SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
@@ -546,25 +451,25 @@ namespace VLR {
 
         bool get(const char* paramName, const char** enumValue) const override;
         bool get(const char* paramName, float* values, uint32_t length) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const override;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
-        bool set(const char* paramName, const ShaderNodeSocket &socket) override;
+        bool set(const char* paramName, const ShaderNodePlug & plug) override;
 
-        // Out Socket   | option |
-        // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Spectrum |      0 | Spectrum
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Spectrum && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class ScaleAndOffsetUVTextureMap2DShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -586,19 +491,19 @@ namespace VLR {
 
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        // Out Socket  | option |
-        // TexCoord    |      0 | Texture Coordinates
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::TextureCoordinates && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // TexCoord |      0 | Texture Coordinates
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::TextureCoordinates && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class Image2DTextureShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
@@ -610,7 +515,7 @@ namespace VLR {
         VLRTextureFilter m_magFilter;
         VLRTextureWrapMode m_wrapU;
         VLRTextureWrapMode m_wrapV;
-        ShaderNodeSocket m_nodeTexCoord;
+        ShaderNodePlug m_nodeTexCoord;
 
         void setupNodeDescriptor();
 
@@ -625,32 +530,32 @@ namespace VLR {
 
         bool get(const char* paramName, const char** enumValue) const override;
         bool get(const char* paramName, const Image2D** image) const override;
-        bool get(const char* paramName, ShaderNodeSocket* socket) const override;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const Image2D* image) override;
-        bool set(const char* paramName, const ShaderNodeSocket &socket) override;
+        bool set(const char* paramName, const ShaderNodePlug &plug) override;
 
-        // Out Socket | option |
-        // float      |    0-3 | s0, s1, s2, s3
-        // float2     |    0-2 | (s0, s1), (s1, s2), (s2, s3)
-        // float3     |    0-1 | (s0, s1, s2), (s1, s2, s3)
-        // float4     |      0 | (s0, s1, s2, s3)
-        // Normal3D   |    0-3 | DX Normal Map, GL Normal Map, Height Map, option 2, 3 are supported only with height map.
-        // Spectrum   |      0 | Spectrum
-        // Alpha      |    0-3 | s0, s1, s2, s3
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), m_bumpType, stype, option);
+        // Out Plug | option |
+        // float    |    0-3 | s0, s1, s2, s3
+        // float2   |    0-2 | (s0, s1), (s1, s2), (s2, s3)
+        // float3   |    0-1 | (s0, s1, s2), (s1, s2, s3)
+        // float4   |      0 | (s0, s1, s2, s3)
+        // Normal3D |    0-3 | DX Normal Map, GL Normal Map, Height Map, option 2, 3 are supported only with height map.
+        // Spectrum |      0 | Spectrum
+        // Alpha    |    0-3 | s0, s1, s2, s3
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            uint32_t cIndex = getComponentStartIndex(m_image->getDataFormat(), m_bumpType, ptype, option);
             if (cIndex != 0xFFFFFFFF)
-                return ShaderNodeSocket(this, stype, cIndex);
-            return ShaderNodeSocket();
+                return ShaderNodePlug(this, ptype, cIndex);
+            return ShaderNodePlug();
         }
     };
 
 
 
     class EnvironmentTextureShaderNode : public ShaderNode {
-        VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS();
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
@@ -677,17 +582,18 @@ namespace VLR {
         bool set(const char* paramName, const char* enumValue) override;
         bool set(const char* paramName, const Image2D* image) override;
 
-        // Out Socket   | option |
-        // Spectrum     |      0 | Spectrum
-        ShaderNodeSocket getSocket(ShaderNodeSocketType stype, uint32_t option) const override {
-            if (stype == ShaderNodeSocketType::Spectrum && option < 1)
-                return ShaderNodeSocket(this, stype, option);
-            return ShaderNodeSocket();
+        // Out Plug | option |
+        // Spectrum |      0 | Spectrum
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Spectrum && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
         }
 
         void createImportanceMap(RegularConstantContinuousDistribution2D* importanceMap) const;
     };
-}
+
+
 
 #undef VLR_SHADER_NODE_DECLARE_PROGRAM_SET
-#undef VLR_SHADER_NODE_DECLARE_PARAMETER_INFOS
+}

@@ -122,7 +122,7 @@ namespace VLR {
         MatteSurfaceMaterial::finalize(context);
     }
 
-    SurfaceMaterial::SurfaceMaterial(Context &context) : Object(context) {
+    SurfaceMaterial::SurfaceMaterial(Context &context) : Connectable(context) {
         m_matIndex = m_context.allocateSurfaceMaterialDescriptor();
     }
 
@@ -193,12 +193,12 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool MatteSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool MatteSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "albedo") == 0) {
-            *spectrum = m_immAlbedo.getPublicType();
+            *spectrum = m_immAlbedo;
         }
         else {
             return false;
@@ -207,12 +207,12 @@ namespace VLR {
         return true;
     }
 
-    bool MatteSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool MatteSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "albedo") == 0) {
-            *socket = m_nodeAlbedo;
+            *plug = m_nodeAlbedo;
         }
         else {
             return false;
@@ -221,7 +221,7 @@ namespace VLR {
         return true;
     }
 
-    bool MatteSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool MatteSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "albedo") == 0) {
             m_immAlbedo = spectrum;
         }
@@ -233,12 +233,12 @@ namespace VLR {
         return true;
     }
 
-    bool MatteSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool MatteSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "albedo") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeAlbedo = socket;
+            m_nodeAlbedo = plug;
         }
         else {
             return false;
@@ -318,18 +318,18 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool SpecularReflectionSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool SpecularReflectionSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *spectrum = m_immCoeff.getPublicType();
+            *spectrum = m_immCoeff;
         }
         else if (std::strcmp(paramName, "eta") == 0) {
-            *spectrum = m_immEta.getPublicType();
+            *spectrum = m_immEta;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            *spectrum = m_imm_k.getPublicType();
+            *spectrum = m_imm_k;
         }
         else {
             return false;
@@ -338,18 +338,18 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularReflectionSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool SpecularReflectionSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *socket = m_nodeCoeff;
+            *plug = m_nodeCoeff;
         }
         else if (std::strcmp(paramName, "eta") == 0) {
-            *socket = m_nodeEta;
+            *plug = m_nodeEta;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            *socket = m_node_k;
+            *plug = m_node_k;
         }
         else {
             return false;
@@ -358,7 +358,7 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularReflectionSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool SpecularReflectionSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "coeff") == 0) {
             m_immCoeff = spectrum;
         }
@@ -376,24 +376,24 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool SpecularReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "coeff") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeCoeff = socket;
+            m_nodeCoeff = plug;
         }
         else if (std::strcmp(paramName, "eta") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEta = socket;
+            m_nodeEta = plug;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_node_k = socket;
+            m_node_k = plug;
         }
         else {
             return false;
@@ -473,18 +473,18 @@ namespace VLR {
         m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
     }
 
-    bool SpecularScatteringSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool SpecularScatteringSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *spectrum = m_immCoeff.getPublicType();
+            *spectrum = m_immCoeff;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            *spectrum = m_immEtaExt.getPublicType();
+            *spectrum = m_immEtaExt;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            *spectrum = m_immEtaInt.getPublicType();
+            *spectrum = m_immEtaInt;
         }
         else {
             return false;
@@ -493,18 +493,18 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularScatteringSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool SpecularScatteringSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *socket = m_nodeCoeff;
+            *plug = m_nodeCoeff;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            *socket = m_nodeEtaExt;
+            *plug = m_nodeEtaExt;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            *socket = m_nodeEtaInt;
+            *plug = m_nodeEtaInt;
         }
         else {
             return false;
@@ -513,7 +513,7 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularScatteringSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool SpecularScatteringSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "coeff") == 0) {
             m_immCoeff = spectrum;
         }
@@ -531,24 +531,24 @@ namespace VLR {
         return true;
     }
 
-    bool SpecularScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool SpecularScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "coeff") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeCoeff = socket;
+            m_nodeCoeff = plug;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEtaExt = socket;
+            m_nodeEtaExt = plug;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEtaInt = socket;
+            m_nodeEtaInt = plug;
         }
         else {
             return false;
@@ -662,15 +662,15 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool MicrofacetReflectionSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "eta") == 0) {
-            *spectrum = m_immEta.getPublicType();
+            *spectrum = m_immEta;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            *spectrum = m_imm_k.getPublicType();
+            *spectrum = m_imm_k;
         }
         else {
             return false;
@@ -679,18 +679,18 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool MicrofacetReflectionSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "eta") == 0) {
-            *socket = m_nodeEta;
+            *plug = m_nodeEta;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            *socket = m_node_k;
+            *plug = m_node_k;
         }
         else if (std::strcmp(paramName, "roughness/anisotropy/rotation") == 0) {
-            *socket = m_nodeRoughnessAnisotropyRotation;
+            *plug = m_nodeRoughnessAnisotropyRotation;
         }
         else {
             return false;
@@ -726,7 +726,7 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool MicrofacetReflectionSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "eta") == 0) {
             m_immEta = spectrum;
         }
@@ -741,24 +741,24 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool MicrofacetReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "eta") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEta = socket;
+            m_nodeEta = plug;
         }
         else if (std::strcmp(paramName, "k") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_node_k = socket;
+            m_node_k = plug;
         }
         else if (std::strcmp(paramName, "roughness/anisotropy/rotation") == 0) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeRoughnessAnisotropyRotation = socket;
+            m_nodeRoughnessAnisotropyRotation = plug;
         }
         else {
             return false;
@@ -780,7 +780,7 @@ namespace VLR {
             ParameterInfo("coeff", VLRParameterFormFlag_Both, ParameterSpectrum),
             ParameterInfo("eta ext", VLRParameterFormFlag_Both, ParameterSpectrum),
             ParameterInfo("eta Int", VLRParameterFormFlag_Both, ParameterSpectrum),
-            ParameterInfo("roughness anisotropy rotation", VLRParameterFormFlag_Node, ParameterFloat, 3),
+            ParameterInfo("roughness/anisotropy/rotation", VLRParameterFormFlag_Node, ParameterFloat, 3),
             ParameterInfo("roughness", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("anisotropy", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("rotation", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
@@ -876,18 +876,18 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool MicrofacetScatteringSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *spectrum = m_immCoeff.getPublicType();
+            *spectrum = m_immCoeff;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            *spectrum = m_immEtaExt.getPublicType();
+            *spectrum = m_immEtaExt;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            *spectrum = m_immEtaInt.getPublicType();
+            *spectrum = m_immEtaInt;
         }
         else {
             return false;
@@ -896,21 +896,21 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool MicrofacetScatteringSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *socket = m_nodeCoeff;
+            *plug = m_nodeCoeff;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            *socket = m_nodeEtaExt;
+            *plug = m_nodeEtaExt;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            *socket = m_nodeEtaInt;
+            *plug = m_nodeEtaInt;
         }
         else if (std::strcmp(paramName, "roughness/anisotropy/rotation") == 0) {
-            *socket = m_nodeRoughnessAnisotropyRotation;
+            *plug = m_nodeRoughnessAnisotropyRotation;
         }
         else {
             return false;
@@ -946,7 +946,7 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool MicrofacetScatteringSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "coeff") == 0) {
             m_immCoeff = spectrum;
         }
@@ -964,30 +964,30 @@ namespace VLR {
         return true;
     }
 
-    bool MicrofacetScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool MicrofacetScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "coeff") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeCoeff = socket;
+            m_nodeCoeff = plug;
         }
         else if (std::strcmp(paramName, "eta ext") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEtaExt = socket;
+            m_nodeEtaExt = plug;
         }
         else if (std::strcmp(paramName, "eta int") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEtaInt = socket;
+            m_nodeEtaInt = plug;
         }
         else if (std::strcmp(paramName, "roughness/anisotropy/rotation") == 0) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeRoughnessAnisotropyRotation = socket;
+            m_nodeRoughnessAnisotropyRotation = plug;
         }
         else {
             return false;
@@ -1079,12 +1079,12 @@ namespace VLR {
         return true;
     }
 
-    bool LambertianScatteringSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool LambertianScatteringSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *spectrum = m_immCoeff.getPublicType();
+            *spectrum = m_immCoeff;
         }
         else {
             return false;
@@ -1093,15 +1093,15 @@ namespace VLR {
         return true;
     }
 
-    bool LambertianScatteringSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool LambertianScatteringSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "coeff") == 0) {
-            *socket = m_nodeCoeff;
+            *plug = m_nodeCoeff;
         }
         else if (std::strcmp(paramName, "f0") == 0) {
-            *socket = m_nodeF0;
+            *plug = m_nodeF0;
         }
         else {
             return false;
@@ -1125,7 +1125,7 @@ namespace VLR {
         return true;
     }
 
-    bool LambertianScatteringSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool LambertianScatteringSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "coeff") == 0) {
             m_immCoeff = spectrum;
         }
@@ -1137,18 +1137,18 @@ namespace VLR {
         return true;
     }
 
-    bool LambertianScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool LambertianScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "coeff") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeCoeff = socket;
+            m_nodeCoeff = plug;
         }
         else if (std::strcmp(paramName, "f0") == 0) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeF0 = socket;
+            m_nodeF0 = plug;
         }
         else {
             return false;
@@ -1168,7 +1168,7 @@ namespace VLR {
     void UE4SurfaceMaterial::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
             ParameterInfo("base color", VLRParameterFormFlag_Both, ParameterSpectrum),
-            ParameterInfo("occlusion roughness metallic", VLRParameterFormFlag_Node, ParameterFloat, 3),
+            ParameterInfo("occlusion/roughness/metallic", VLRParameterFormFlag_Node, ParameterFloat, 3),
             ParameterInfo("occlusion", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("roughness", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("metallic", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
@@ -1257,12 +1257,12 @@ namespace VLR {
         return true;
     }
 
-    bool UE4SurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool UE4SurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "base color") == 0) {
-            *spectrum = m_immBaseColor.getPublicType();
+            *spectrum = m_immBaseColor;
         }
         else {
             return false;
@@ -1271,15 +1271,15 @@ namespace VLR {
         return true;
     }
 
-    bool UE4SurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool UE4SurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "base color") == 0) {
-            *socket = m_nodeBaseColor;
+            *plug = m_nodeBaseColor;
         }
         else if (std::strcmp(paramName, "occlusion/roughness/metallic") == 0) {
-            *socket = m_nodeOcclusionRoughnessMetallic;
+            *plug = m_nodeOcclusionRoughnessMetallic;
         }
         else {
             return false;
@@ -1315,7 +1315,7 @@ namespace VLR {
         return true;
     }
 
-    bool UE4SurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool UE4SurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "base color") == 0) {
             m_immBaseColor = spectrum;
         }
@@ -1327,18 +1327,18 @@ namespace VLR {
         return true;
     }
 
-    bool UE4SurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool UE4SurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "base color") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeBaseColor = socket;
+            m_nodeBaseColor = plug;
         }
         else if (std::strcmp(paramName, "occlusion/roughness/metallic") == 0) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeOcclusionRoughnessMetallic = socket;
+            m_nodeOcclusionRoughnessMetallic = plug;
         }
         else {
             return false;
@@ -1435,15 +1435,15 @@ namespace VLR {
         return true;
     }
 
-    bool OldStyleSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool OldStyleSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "diffuse") == 0) {
-            *spectrum = m_immDiffuseColor.getPublicType();
+            *spectrum = m_immDiffuseColor;
         }
         else if (std::strcmp(paramName, "specular") == 0) {
-            *spectrum = m_immSpecularColor.getPublicType();
+            *spectrum = m_immSpecularColor;
         }
         else {
             return false;
@@ -1452,18 +1452,18 @@ namespace VLR {
         return true;
     }
 
-    bool OldStyleSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool OldStyleSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "diffuse") == 0) {
-            *socket = m_nodeDiffuseColor;
+            *plug = m_nodeDiffuseColor;
         }
         else if (std::strcmp(paramName, "specular") == 0) {
-            *socket = m_nodeSpecularColor;
+            *plug = m_nodeSpecularColor;
         }
         else if (std::strcmp(paramName, "glossiness") == 0) {
-            *socket = m_nodeGlossiness;
+            *plug = m_nodeGlossiness;
         }
         else {
             return false;
@@ -1487,7 +1487,7 @@ namespace VLR {
         return true;
     }
 
-    bool OldStyleSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool OldStyleSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "diffuse") == 0) {
             m_immDiffuseColor = spectrum;
         }
@@ -1502,24 +1502,24 @@ namespace VLR {
         return true;
     }
 
-    bool OldStyleSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool OldStyleSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "diffuse") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeDiffuseColor = socket;
+            m_nodeDiffuseColor = plug;
         }
         else if (std::strcmp(paramName, "specular") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeSpecularColor = socket;
+            m_nodeSpecularColor = plug;
         }
         else if (std::strcmp(paramName, "glossiness") == 0) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeGlossiness = socket;
+            m_nodeGlossiness = plug;
         }
         else {
             return false;
@@ -1609,12 +1609,12 @@ namespace VLR {
         return true;
     }
 
-    bool DiffuseEmitterSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool DiffuseEmitterSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "emittance") == 0) {
-            *spectrum = m_immEmittance.getPublicType();
+            *spectrum = m_immEmittance;
         }
         else {
             return false;
@@ -1623,12 +1623,12 @@ namespace VLR {
         return true;
     }
 
-    bool DiffuseEmitterSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool DiffuseEmitterSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "emittance") == 0) {
-            *socket = m_nodeEmittance;
+            *plug = m_nodeEmittance;
         }
         else {
             return false;
@@ -1652,7 +1652,7 @@ namespace VLR {
         return true;
     }
 
-    bool DiffuseEmitterSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool DiffuseEmitterSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "emittance") == 0) {
             m_immEmittance = spectrum;
         }
@@ -1664,12 +1664,12 @@ namespace VLR {
         return true;
     }
 
-    bool DiffuseEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool DiffuseEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "emittance") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEmittance = socket;
+            m_nodeEmittance = plug;
         }
         else {
             return false;
@@ -1884,12 +1884,12 @@ namespace VLR {
         return true;
     }
 
-    bool EnvironmentEmitterSurfaceMaterial::get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
+    bool EnvironmentEmitterSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
         if (spectrum == nullptr)
             return false;
 
         if (std::strcmp(paramName, "emittance") == 0) {
-            *spectrum = m_immEmittance.getPublicType();
+            *spectrum = m_immEmittance;
         }
         else {
             return false;
@@ -1898,12 +1898,12 @@ namespace VLR {
         return true;
     }
 
-    bool EnvironmentEmitterSurfaceMaterial::get(const char* paramName, ShaderNodeSocket* socket) const {
-        if (socket == nullptr)
+    bool EnvironmentEmitterSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
             return false;
 
         if (std::strcmp(paramName, "emittance") == 0) {
-            *socket = m_nodeEmittance;
+            *plug = m_nodeEmittance;
         }
         else {
             return false;
@@ -1927,7 +1927,7 @@ namespace VLR {
         return true;
     }
 
-    bool EnvironmentEmitterSurfaceMaterial::set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+    bool EnvironmentEmitterSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
         if (std::strcmp(paramName, "emittance") == 0) {
             m_immEmittance = spectrum;
             if (m_importanceMap.isInitialized())
@@ -1941,12 +1941,12 @@ namespace VLR {
         return true;
     }
 
-    bool EnvironmentEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodeSocket& socket) {
+    bool EnvironmentEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (std::strcmp(paramName, "emittance") == 0) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(socket.getType()))
+            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
-            m_nodeEmittance = socket;
+            m_nodeEmittance = plug;
             if (m_importanceMap.isInitialized())
                 m_importanceMap.finalize(m_context);
         }

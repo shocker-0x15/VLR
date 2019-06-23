@@ -17,6 +17,7 @@
     <ClCompile Include="image.cpp" />
     <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="common.cpp" />
+    <ClCompile Include="connectable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -70,6 +71,7 @@
     </ClInclude>
     <ClInclude Include="image.h" />
     <ClInclude Include="slot_finder.h" />
+    <ClInclude Include="connectable.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

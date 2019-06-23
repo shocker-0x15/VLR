@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "context.h"
+#include "connectable.h"
 
 namespace VLR {
     struct RGB8x3 { uint8_t r, g, b; };
@@ -17,9 +17,9 @@ namespace VLR {
 
     extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats];
 
-    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodeSocketType stype, uint32_t index);
+    uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodePlugType ptype, uint32_t index);
 
-    class Image2D : public Object {
+    class Image2D : public Connectable {
         uint32_t m_width, m_height;
         DataFormat m_originalDataFormat;
         DataFormat m_dataFormat;
@@ -83,6 +83,8 @@ namespace VLR {
 
 
     class LinearImage2D : public Image2D {
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
+
         std::vector<uint8_t> m_data;
         mutable bool m_copyDone;
 
@@ -109,6 +111,8 @@ namespace VLR {
 
 
     class BlockCompressedImage2D : public Image2D {
+        VLR_DECLARE_CONNECTABLE_INTERFACE();
+
         std::vector<std::vector<uint8_t>> m_data;
         mutable bool m_copyDone;
 

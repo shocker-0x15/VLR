@@ -51,14 +51,6 @@ enum VLRDataFormat {
 
 
 
-enum VLRBumpType {
-    VLRBumpType_NormalMap_DirectX = 0,
-    VLRBumpType_NormalMap_OpenGL,
-    VLRBumpType_HeightMap,
-};
-
-
-
 enum VLRParameterFormFlag {
     VLRParameterFormFlag_ImmediateValue = 1 << 0,
     VLRParameterFormFlag_Node = 1 << 1,
@@ -67,21 +59,21 @@ enum VLRParameterFormFlag {
 
 
 
-enum VLRShaderNodeSocketType {
-    VLRShaderNodeSocketType_float1 = 0,
-    VLRShaderNodeSocketType_float2,
-    VLRShaderNodeSocketType_float3,
-    VLRShaderNodeSocketType_float4,
-    VLRShaderNodeSocketType_Point3D,
-    VLRShaderNodeSocketType_Vector3D,
-    VLRShaderNodeSocketType_Normal3D,
-    VLRShaderNodeSocketType_Spectrum,
-    VLRShaderNodeSocketType_Alpha,
-    VLRShaderNodeSocketType_TextureCoordinates,
-    NumVLRShaderNodeSocketTypes
+enum VLRShaderNodePlugType {
+    VLRShaderNodePlugType_float1 = 0,
+    VLRShaderNodePlugType_float2,
+    VLRShaderNodePlugType_float3,
+    VLRShaderNodePlugType_float4,
+    VLRShaderNodePlugType_Point3D,
+    VLRShaderNodePlugType_Vector3D,
+    VLRShaderNodePlugType_Normal3D,
+    VLRShaderNodePlugType_Spectrum,
+    VLRShaderNodePlugType_Alpha,
+    VLRShaderNodePlugType_TextureCoordinates,
+    NumVLRShaderNodePlugTypes
 };
 
-struct VLRShaderNodeSocket {
+struct VLRShaderNodePlug {
     uintptr_t nodeRef;
     uint32_t info;
 };
@@ -143,10 +135,9 @@ enum VLRDebugRenderingMode {
 typedef enum VLRSpectrumType VLRSpectrumType;
 typedef enum VLRColorSpace VLRColorSpace;
 typedef enum VLRDataFormat VLRDataFormat;
-typedef enum VLRBumpType VLRBumpType;
 typedef enum VLRParameterFormFlag VLRParameterFormFlag;
-typedef enum VLRShaderNodeSocketType VLRShaderNodeSocketType;
-typedef struct VLRShaderNodeSocket VLRShaderNodeSocket;
+typedef enum VLRShaderNodePlugType VLRShaderNodePlugType;
+typedef struct VLRShaderNodePlug VLRShaderNodePlug;
 typedef enum VLRTextureFilter VLRTextureFilter;
 typedef enum VLRTextureWrapMode VLRTextureWrapMode;
 typedef enum VLRTangentType VLRTangentType;
@@ -186,6 +177,7 @@ struct VLRQuaternion {
 };
 
 #if !defined(__cplusplus)
+typedef struct VLRImmediateSpectrum VLRImmediateSpectrum;
 typedef struct VLRPoint3D VLRPoint3D;
 typedef struct VLRNormal3D VLRNormal3D;
 typedef struct VLRVector3D VLRVector3D;
@@ -210,49 +202,28 @@ typedef struct VLRVertex VLRVertex;
 
 #define VLR_PROCESS_CLASS_LIST() \
     VLR_PROCESS_CLASS(Object); \
- \
+\
+    VLR_PROCESS_CLASS(ParameterInfo); \
+\
+    VLR_PROCESS_CLASS(Connectable); \
+\
     VLR_PROCESS_CLASS(Image2D); \
     VLR_PROCESS_CLASS(LinearImage2D); \
     VLR_PROCESS_CLASS(BlockCompressedImage2D); \
- \
-    VLR_PROCESS_CLASS(ParameterInfo); \
- \
+\
     VLR_PROCESS_CLASS(ShaderNode); \
-    VLR_PROCESS_CLASS(GeometryShaderNode); \
-    VLR_PROCESS_CLASS(Float2ShaderNode); \
-    VLR_PROCESS_CLASS(Float3ShaderNode); \
-    VLR_PROCESS_CLASS(Float4ShaderNode); \
-    VLR_PROCESS_CLASS(ScaleAndOffsetFloatShaderNode); \
-    VLR_PROCESS_CLASS(TripletSpectrumShaderNode); \
-    VLR_PROCESS_CLASS(RegularSampledSpectrumShaderNode); \
-    VLR_PROCESS_CLASS(IrregularSampledSpectrumShaderNode); \
-    VLR_PROCESS_CLASS(Float3ToSpectrumShaderNode); \
-    VLR_PROCESS_CLASS(ScaleAndOffsetUVTextureMap2DShaderNode); \
-    VLR_PROCESS_CLASS(Image2DTextureShaderNode); \
-    VLR_PROCESS_CLASS(EnvironmentTextureShaderNode); \
- \
+\
     VLR_PROCESS_CLASS(SurfaceMaterial); \
-    VLR_PROCESS_CLASS(MatteSurfaceMaterial); \
-    VLR_PROCESS_CLASS(SpecularReflectionSurfaceMaterial); \
-    VLR_PROCESS_CLASS(SpecularScatteringSurfaceMaterial); \
-    VLR_PROCESS_CLASS(MicrofacetReflectionSurfaceMaterial); \
-    VLR_PROCESS_CLASS(MicrofacetScatteringSurfaceMaterial); \
-    VLR_PROCESS_CLASS(LambertianScatteringSurfaceMaterial); \
-    VLR_PROCESS_CLASS(UE4SurfaceMaterial); \
-    VLR_PROCESS_CLASS(OldStyleSurfaceMaterial); \
-    VLR_PROCESS_CLASS(DiffuseEmitterSurfaceMaterial); \
-    VLR_PROCESS_CLASS(MultiSurfaceMaterial); \
-    VLR_PROCESS_CLASS(EnvironmentEmitterSurfaceMaterial); \
- \
+\
     VLR_PROCESS_CLASS(Transform); \
     VLR_PROCESS_CLASS(StaticTransform); \
- \
+\
     VLR_PROCESS_CLASS(Node); \
     VLR_PROCESS_CLASS(SurfaceNode); \
     VLR_PROCESS_CLASS(TriangleMeshSurfaceNode); \
     VLR_PROCESS_CLASS(InternalNode); \
     VLR_PROCESS_CLASS(Scene); \
- \
+\
     VLR_PROCESS_CLASS(Camera); \
     VLR_PROCESS_CLASS(PerspectiveCamera); \
     VLR_PROCESS_CLASS(EquirectangularCamera);

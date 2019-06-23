@@ -30,11 +30,13 @@ namespace VLR {
 
     VLR_DEFINE_CLASS_ID(TypeAwareClass, Object);
 
-    VLR_DEFINE_CLASS_ID(Object, Image2D);
+    VLR_DEFINE_CLASS_ID(Object, Connectable);
+
+    VLR_DEFINE_CLASS_ID(Connectable, Image2D);
     VLR_DEFINE_CLASS_ID(Image2D, LinearImage2D);
     VLR_DEFINE_CLASS_ID(Image2D, BlockCompressedImage2D);
 
-    VLR_DEFINE_CLASS_ID(Object, ShaderNode);
+    VLR_DEFINE_CLASS_ID(Connectable, ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, GeometryShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float2ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float3ShaderNode);
@@ -48,7 +50,7 @@ namespace VLR {
     VLR_DEFINE_CLASS_ID(ShaderNode, Image2DTextureShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, EnvironmentTextureShaderNode);
 
-    VLR_DEFINE_CLASS_ID(Object, SurfaceMaterial);
+    VLR_DEFINE_CLASS_ID(Connectable, SurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, MatteSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, SpecularReflectionSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, SpecularScatteringSurfaceMaterial);

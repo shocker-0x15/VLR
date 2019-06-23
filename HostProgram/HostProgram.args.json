@@ -3,6 +3,10 @@
   "Id": "6430930f-4932-457f-ac9c-aed74facc5c7",
   "Items": [
     {
+      "Id": "ef680aae-1129-4f34-9da3-9621b4c4274b",
+      "Command": "--nodisplay"
+    },
+    {
       "Id": "0594cc28-c876-4c2b-81f9-eca8aaaedcb4",
       "Command": "--list"
     },

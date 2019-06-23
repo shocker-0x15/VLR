@@ -265,8 +265,8 @@ namespace VLR {
         optix::Buffer m_optixVertexBuffer;
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<const SurfaceMaterial*> m_materials;
-        std::vector<ShaderNodeSocket> m_nodeNormals;
-        std::vector<ShaderNodeSocket> m_nodeAlphas;
+        std::vector<ShaderNodePlug> m_nodeNormals;
+        std::vector<ShaderNodePlug> m_nodeAlphas;
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
 
     public:
@@ -287,7 +287,7 @@ namespace VLR {
 
         void setVertices(std::vector<Vertex> &&vertices);
         void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                              const ShaderNodeSocket &nodeNormal, const ShaderNodeSocket &alpha, VLRTangentType tangentType);
+                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug &alpha, VLRTangentType tangentType);
     };
 
 

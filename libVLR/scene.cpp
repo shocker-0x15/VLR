@@ -502,7 +502,7 @@ namespace VLR {
     }
 
     void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                                                   const ShaderNodeSocket &nodeNormal, const ShaderNodeSocket &nodeAlpha, VLRTangentType tangentType) {
+                                                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha, VLRTangentType tangentType) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -569,13 +569,13 @@ namespace VLR {
                 nodeNormalIsValid = true;
             }
             else {
-                vlrprintf("%s: Invalid socket type for normal is passed.\n", m_name.c_str());
-                m_nodeNormals.push_back(ShaderNodeSocket());
+                vlrprintf("%s: Invalid plug type for normal is passed.\n", m_name.c_str());
+                m_nodeNormals.push_back(ShaderNodePlug());
                 nodeNormalIsValid = false;
             }
         }
         else {
-            m_nodeNormals.push_back(ShaderNodeSocket());
+            m_nodeNormals.push_back(ShaderNodePlug());
             nodeNormalIsValid = false;
         }
         if (nodeAlpha.node) {
@@ -584,13 +584,13 @@ namespace VLR {
                 nodeAlphaIsValid = true;
             }
             else {
-                vlrprintf("%s: Invalid socket type for alpha is passed.\n", m_name.c_str());
-                m_nodeAlphas.push_back(ShaderNodeSocket());
+                vlrprintf("%s: Invalid plug type for alpha is passed.\n", m_name.c_str());
+                m_nodeAlphas.push_back(ShaderNodePlug());
                 nodeAlphaIsValid = false;
             }
         }
         else {
-            m_nodeAlphas.push_back(ShaderNodeSocket());
+            m_nodeAlphas.push_back(ShaderNodePlug());
             nodeAlphaIsValid = false;
         }
 
@@ -620,13 +620,13 @@ namespace VLR {
             Shared::TangentType sTangentType = (Shared::TangentType)tangentType;
             optixGeomInst["VLR::pv_tangentType"]->setUserData(sizeof(tangentType), &tangentType);
 
-            Shared::ShaderNodeSocket sNodeNormal = Shared::ShaderNodeSocket::Invalid();
+            Shared::ShaderNodePlug sNodeNormal = Shared::ShaderNodePlug::Invalid();
             if (nodeNormalIsValid)
                 sNodeNormal = nodeNormal.getSharedType();
             optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
 
             optixGeomInst->setMaterialCount(1);
-            Shared::ShaderNodeSocket sNodeAlpha = Shared::ShaderNodeSocket::Invalid();
+            Shared::ShaderNodePlug sNodeAlpha = Shared::ShaderNodePlug::Invalid();
             if (nodeAlphaIsValid) {
                 optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
                 sNodeAlpha = nodeAlpha.getSharedType();

@@ -125,6 +125,7 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cpp_compile_test.cpp" />
     <ClCompile Include="c_compile_test.c" />
     <ClCompile Include="ext\src\gl3w\gl3w.c" />
     <ClCompile Include="ext\src\imGui\imgui.cpp" />
@@ -151,6 +152,7 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     <ClInclude Include="ext\include\imGui\imstb_textedit.h" />
     <ClInclude Include="ext\include\imGui\imstb_truetype.h" />
     <ClInclude Include="GLToolkit.h" />
+    <ClInclude Include="parameter.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="StopWatch.h" />
   </ItemGroup>

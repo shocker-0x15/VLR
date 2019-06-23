@@ -166,8 +166,8 @@ namespace VLR {
     rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
     rtDeclareVariable(TangentType, pv_tangentType, , ) = TangentType::TC0Direction;
-    rtDeclareVariable(ShaderNodeSocket, pv_nodeNormal, , );
-    rtDeclareVariable(ShaderNodeSocket, pv_nodeAlpha, , );
+    rtDeclareVariable(ShaderNodePlug, pv_nodeNormal, , );
+    rtDeclareVariable(ShaderNodePlug, pv_nodeAlpha, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
 

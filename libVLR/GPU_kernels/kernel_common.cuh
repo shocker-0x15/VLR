@@ -292,31 +292,31 @@ namespace VLR {
 
     
     template <typename T>
-    RT_FUNCTION T calcNode(ShaderNodeSocket socket, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        if (socket.isValid()) {
-            int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
+    RT_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        if (plug.isValid()) {
+            int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
             bool conversionDefined = false;
             T ret = T();
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
+        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodeSocketType)socket.socketType) {
-                VLR_DEFINE_CASE(float, ShaderNodeSocketType::float1);
-                VLR_DEFINE_CASE(optix::float2, ShaderNodeSocketType::float2);
-                VLR_DEFINE_CASE(optix::float3, ShaderNodeSocketType::float3);
-                VLR_DEFINE_CASE(optix::float4, ShaderNodeSocketType::float4);
-                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::Point3D);
-                VLR_DEFINE_CASE(Vector3D, ShaderNodeSocketType::Vector3D);
-                VLR_DEFINE_CASE(Normal3D, ShaderNodeSocketType::Normal3D);
-                VLR_DEFINE_CASE(float, ShaderNodeSocketType::Alpha);
-                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::TextureCoordinates);
+            switch ((ShaderNodePlugType)plug.plugType) {
+                VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
+                VLR_DEFINE_CASE(optix::float2, ShaderNodePlugType::float2);
+                VLR_DEFINE_CASE(optix::float3, ShaderNodePlugType::float3);
+                VLR_DEFINE_CASE(optix::float4, ShaderNodePlugType::float4);
+                VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::Point3D);
+                VLR_DEFINE_CASE(Vector3D, ShaderNodePlugType::Vector3D);
+                VLR_DEFINE_CASE(Normal3D, ShaderNodePlugType::Normal3D);
+                VLR_DEFINE_CASE(float, ShaderNodePlugType::Alpha);
+                VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::TextureCoordinates);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
@@ -330,32 +330,32 @@ namespace VLR {
         return defaultValue;
     }
 
-    RT_FUNCTION SampledSpectrum calcNode(ShaderNodeSocket socket, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-        if (socket.isValid()) {
-            int32_t programID = pv_nodeProcedureSetBuffer[socket.nodeType].progs[socket.socketType];
+    RT_FUNCTION SampledSpectrum calcNode(ShaderNodePlug plug, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        if (plug.isValid()) {
+            int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
             bool conversionDefined = false;
             SampledSpectrum ret = SampledSpectrum::Zero();
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodeSocket &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(socket, surfPt, wls)); \
+        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodeSocketType)socket.socketType) {
-                VLR_DEFINE_CASE(float, ShaderNodeSocketType::float1);
-                VLR_DEFINE_CASE(optix::float2, ShaderNodeSocketType::float2);
-                VLR_DEFINE_CASE(optix::float3, ShaderNodeSocketType::float3);
-                VLR_DEFINE_CASE(optix::float4, ShaderNodeSocketType::float4);
-                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::Point3D);
-                VLR_DEFINE_CASE(Vector3D, ShaderNodeSocketType::Vector3D);
-                VLR_DEFINE_CASE(Normal3D, ShaderNodeSocketType::Normal3D);
-                VLR_DEFINE_CASE(SampledSpectrum, ShaderNodeSocketType::Spectrum);
-                VLR_DEFINE_CASE(float, ShaderNodeSocketType::Alpha);
-                VLR_DEFINE_CASE(Point3D, ShaderNodeSocketType::TextureCoordinates);
+            switch ((ShaderNodePlugType)plug.plugType) {
+                VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
+                VLR_DEFINE_CASE(optix::float2, ShaderNodePlugType::float2);
+                VLR_DEFINE_CASE(optix::float3, ShaderNodePlugType::float3);
+                VLR_DEFINE_CASE(optix::float4, ShaderNodePlugType::float4);
+                VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::Point3D);
+                VLR_DEFINE_CASE(Vector3D, ShaderNodePlugType::Vector3D);
+                VLR_DEFINE_CASE(Normal3D, ShaderNodePlugType::Normal3D);
+                VLR_DEFINE_CASE(SampledSpectrum, ShaderNodePlugType::Spectrum);
+                VLR_DEFINE_CASE(float, ShaderNodePlugType::Alpha);
+                VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::TextureCoordinates);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
