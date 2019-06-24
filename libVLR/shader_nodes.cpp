@@ -1644,7 +1644,7 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "image") == 0) {
-            *image = m_image;
+            *image = m_image != NullImages.at(m_context.getID()) ? m_image : nullptr;
         }
         else {
             return false;
@@ -1833,7 +1833,7 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "image") == 0) {
-            *image = m_image;
+            *image = m_image != NullImages.at(m_context.getID()) ? m_image : nullptr;
         }
         else {
             return false;

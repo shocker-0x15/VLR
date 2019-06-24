@@ -118,11 +118,11 @@ namespace VLR {
         }
 
         uint32_t getNumParameters() const {
-            auto paramInfos = getParamInfos();
+            const auto &paramInfos = getParamInfos();
             return (uint32_t)paramInfos.size();
         }
         const ParameterInfo* getParameterInfo(uint32_t index) const {
-            auto paramInfos = getParamInfos();
+            const auto &paramInfos = getParamInfos();
             if (index < paramInfos.size())
                 return &paramInfos[index];
             return nullptr;

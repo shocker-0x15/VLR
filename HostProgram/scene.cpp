@@ -543,7 +543,11 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
             Vector3D tangent, bitangent;
             if (mesh->mTangents == nullptr)
                 Normal3D(n.x, n.y, n.z).makeCoordinateSystem(&tangent, &bitangent);
-            const aiVector3D &t = mesh->mTangents ? mesh->mTangents[v] : aiVector3D(tangent[0], tangent[1], tangent[2]);
+            aiVector3D t(NAN, NAN, NAN);
+            if (mesh->mTangents)
+                t = mesh->mTangents[v];
+            if (!std::isfinite(t.x) || !std::isfinite(t.y) || !std::isfinite(t.z))
+                t = aiVector3D(tangent[0], tangent[1], tangent[2]);
             const aiVector3D &uv = mesh->mNumUVComponents[0] > 0 ? mesh->mTextureCoords[0][v] : aiVector3D(0, 0, 0);
 
             Vertex outVtx{ Point3D(p.x, p.y, p.z), Normal3D(n.x, n.y, n.z), Vector3D(t.x, t.y, t.z), TexCoord2D(uv.x, uv.y) };
@@ -610,6 +614,16 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
 }
 
 
+
+void printParameterInfos(const VLRCpp::ConnectableRef& connectable) {
+    uint32_t numParams = connectable->getNumParameters();
+    for (int i = 0; i < numParams; ++i) {
+        auto paramInfo = connectable->getParameterInfo(i);
+
+        hpprintf("%u: name: %s\n", i, paramInfo.getName());
+        hpprintf("   type: %s, size: %u, flags: %u\n", paramInfo.getType(), paramInfo.getTupleSize(), (uint32_t)paramInfo.getFormFlags());
+    }
+}
 
 #define ASSETS_DIR "resources/assets/"
 
@@ -986,7 +1000,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     nodeEnvTex->set("image", imgEnv);
     auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
     matEnv->set("emittance", nodeEnvTex->getPlug(VLRShaderNodePlugType_Spectrum, 0));
-    //matEnv->set("emittance", RGBSpectrum(0.1f, 0.1f, 0.1f));
+    //matEnv->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 0.1f, 0.1f, 0.1f });
     shot->environmentRotation = -M_PI / 2;
     shot->scene->setEnvironment(matEnv, shot->environmentRotation);
 
@@ -1176,16 +1190,16 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //    std::vector<Vertex> vertices;
 
     //    // Light
-    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
-    //    vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
-    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
-    //    vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+    //    vertices.push_back(Vertex{ Point3D(-1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, 1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+    //    vertices.push_back(Vertex{ Point3D(1.5f, 0.0f, -1.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
 
     //    light->setVertices(vertices.data(), vertices.size());
 
     //    {
     //        SurfaceMaterialRef matLight = context->createSurfaceMaterial("DiffuseEmitter");
-    //        matLight->set("emittance", VLRImmediateSpectrum{ "Rec709", 50.0f, 50.0f, 50.0f });
+    //        matLight->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 300.0f, 300.0f, 300.0f });
 
     //        std::vector<uint32_t> matGroup = {
     //            0, 1, 2, 0, 2, 3
@@ -1193,7 +1207,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //        light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), VLRTangentType_TC0Direction);
     //    }
     //}
-    //InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
+    //InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 1.5f) * rotateX<float>(M_PI)));
     //lightNode->addChild(light);
     //shot->scene->addChild(lightNode);
 

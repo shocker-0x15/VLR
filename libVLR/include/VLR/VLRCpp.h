@@ -62,6 +62,46 @@ namespace VLRCpp {
 
 
 
+    struct ParameterInfo {
+        ContextConstRef context;
+        VLRParameterInfoConst raw;
+
+        ParameterInfo(const ContextConstRef &_context, VLRParameterInfoConst _raw) : context(_context), raw(_raw) {}
+
+        inline VLRResult errorCheck(VLRResult errorCode) const;
+
+        const char* getName(VLRResult* error = nullptr) const {
+            const char* ret = nullptr;
+            VLRResult err = errorCheck(vlrParameterInfoGetName(raw, &ret));
+            if (error)
+              *error = err;
+            return ret;
+        }
+        const char* getType(VLRResult* error = nullptr) const {
+            const char* ret = nullptr;
+            VLRResult err = errorCheck(vlrParameterInfoGetType(raw, &ret));
+            if (error)
+              *error = err;
+            return ret;
+        }
+        uint32_t getTupleSize(VLRResult* error = nullptr) const {
+            uint32_t ret;
+            VLRResult err = errorCheck(vlrParameterInfoGetTupleSize(raw, &ret));
+            if (error)
+              *error = err;
+            return ret;
+        }
+        VLRParameterFormFlag getFormFlags(VLRResult* error = nullptr) const {
+            VLRParameterFormFlag ret;
+            VLRResult err = errorCheck(vlrParameterInfoGetSocketForm(raw, &ret));
+            if (error)
+              *error = err;
+            return ret;
+        }
+    };
+
+
+
     class ConnectableHolder : public ObjectHolder {
         std::map<const char*, ObjectRef> m_objects;
 
@@ -153,10 +193,10 @@ namespace VLRCpp {
             errorCheck(vlrConnectableGetNumParameters(getRaw<VLRConnectable>(), &numParams));
             return numParams;
         }
-        VLRParameterInfoConst getParameterInfo(uint32_t index) const {
+        ParameterInfo getParameterInfo(uint32_t index) const {
             VLRParameterInfoConst paramInfo;
             errorCheck(vlrConnectableGetParameterInfo(getRaw<VLRConnectable>(), index, &paramInfo));
-            return paramInfo;
+            return ParameterInfo(m_context, paramInfo);
         }
     };
 
@@ -250,6 +290,10 @@ namespace VLRCpp {
         VLRResult err = errorCheck(vlrConnectableGetImage2D(getRaw<VLRConnectable>(), paramName, &cImage));
         if (err != VLRResult_NoError)
             return false;
+        if (cImage == nullptr) {
+            *image = Image2DRef();
+            return true;
+        }
         VLRAssert(m_objects.count(paramName) > 0, "Object not owend.");
         *image = std::dynamic_pointer_cast<Image2DHolder>(m_objects.at(paramName));
         return true;
@@ -259,6 +303,10 @@ namespace VLRCpp {
         VLRResult err = errorCheck(vlrConnectableGetSurfaceMaterial(getRaw<VLRConnectable>(), paramName, &cMaterial));
         if (err != VLRResult_NoError)
             return false;
+        if (cMaterial == nullptr) {
+            *material = SurfaceMaterialRef();
+            return true;
+        }
         VLRAssert(m_objects.count(paramName) > 0, "Object not owend.");
         *material = std::dynamic_pointer_cast<SurfaceMaterialHolder>(m_objects.at(paramName));
         return true;
@@ -268,13 +316,19 @@ namespace VLRCpp {
         VLRResult err = errorCheck(vlrConnectableGetShaderNodePlug(getRaw<VLRConnectable>(), paramName, &cPlug));
         if (err != VLRResult_NoError)
             return false;
+        if (cPlug.nodeRef == (uintptr_t)nullptr) {
+            *plug = ShaderNodePlug();
+            return true;
+        }
         VLRAssert(m_objects.count(paramName) > 0, "Object not owend.");
         *plug = ShaderNodePlug(std::dynamic_pointer_cast<ShaderNodeHolder>(m_objects.at(paramName)), cPlug);
         return true;
     }
 
     bool ConnectableHolder::set(const char* paramName, const Image2DRef& image) {
-        VLRImage2D cImage = image->getRaw<VLRImage2D>();
+        VLRImage2D cImage = nullptr;
+        if (image)
+            cImage = image->getRaw<VLRImage2D>();
         VLRResult err = errorCheck(vlrConnectableSetImage2D(getRaw<VLRConnectable>(), paramName, cImage));
         if (err != VLRResult_NoError)
             return false;
@@ -282,7 +336,9 @@ namespace VLRCpp {
         return true;
     }
     bool ConnectableHolder::set(const char* paramName, const SurfaceMaterialRef& material) {
-        VLRSurfaceMaterial cMaterial = material->getRaw<VLRSurfaceMaterial>();
+        VLRSurfaceMaterial cMaterial = nullptr;
+        if (material)
+            cMaterial = material->getRaw<VLRSurfaceMaterial>();
         VLRResult err = errorCheck(vlrConnectableSetSurfaceMaterial(getRaw<VLRConnectable>(), paramName, cMaterial));
         if (err != VLRResult_NoError)
             return false;
@@ -814,6 +870,12 @@ namespace VLRCpp {
 
     VLRResult ObjectHolder::errorCheck(VLRResult errorCode) const {
         return m_context->errorCheck(errorCode);
+    }
+
+
+
+    VLRResult ParameterInfo::errorCheck(VLRResult errorCode) const {
+        return context->errorCheck(errorCode);
     }
 
 

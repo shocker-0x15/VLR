@@ -618,7 +618,7 @@ VLR_API VLRResult vlrConnectableGetSurfaceMaterial(VLRConnectableConst material,
 }
 
 VLR_API VLRResult vlrConnectableGetShaderNodePlug(VLRConnectableConst node, const char* paramName,
-                                                  VLRShaderNodePlug* socket) {
+                                                  VLRShaderNodePlug* plug) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Connectable);
 
@@ -626,7 +626,7 @@ VLR_API VLRResult vlrConnectableGetShaderNodePlug(VLRConnectableConst node, cons
         if (!node->get(paramName, &iValue))
             return VLRResult_InvalidArgument;
 
-        *socket = iValue.getOpaqueType();
+        *plug = iValue.getOpaqueType();
 
         return VLRResult_NoError;
     }
@@ -755,11 +755,11 @@ VLR_API VLRResult vlrConnectableSetSurfaceMaterial(VLRConnectable material, cons
 }
 
 VLR_API VLRResult vlrConnectableSetShaderNodePlug(VLRConnectable node, const char* paramName,
-                                                  VLRShaderNodePlug socket) {
+                                                  VLRShaderNodePlug plug) {
     try {
         VLR_RETURN_INVALID_INSTANCE(node, VLR::Connectable);
 
-        if (!node->set(paramName, socket))
+        if (!node->set(paramName, plug))
             return VLRResult_InvalidArgument;
 
         return VLRResult_NoError;

@@ -314,9 +314,11 @@ namespace VLR {
                 ret.y *= -1;
         }
         else if (bumpType == BumpType::HeightMap) {
-            const float coeff = 5.0f;
-            float dhdu = coeff * (texValue.y - texValue.x);
-            float dhdv = coeff * (texValue.x - texValue.w);
+            optix::uint3 texSize = optix::rtTexSize(nodeData.textureID);
+
+            const float coeff = 10.0f / 1024;
+            float dhdu = (coeff * texSize.x) * (texValue.y - texValue.x);
+            float dhdv = (coeff * texSize.y) * (texValue.x - texValue.w);
             // cross(Vector3D(0, -1, dhdv), 
             //       Vector3D(1,  0, dhdu))
             ret = Normal3D(-dhdu, dhdv, 1);
