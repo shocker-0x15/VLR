@@ -42,6 +42,66 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
   Automatically manages lifetime of objects via std::shared_ptr.
 * HostProgram - A program to demonstrate how to use VLR
 
+## API
+Code Example using VLRCpp (C++ wrapper)
+
+```cpp
+using namespace VLRCpp;
+
+ContextRef context = Context::create(enableLogging);
+
+SceneRef scene = context->createScene();
+
+TriangleMeshSurfaceNodeRef cornellBox = context->createTriangleMeshSurfaceNode("Cornell Box");
+{
+    // ...
+    cornellBox->setVertices(vertices, numVertices);
+    // ...
+
+    {
+        Image2DRef image = loadImage2D(context, "checkerboard.png", 
+                                       VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+
+        ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
+        nodeAlbedo->set("image", image);
+        nodeAlbedo->set("min filter", "Nearest");
+        nodeAlbedo->set("mag filter", "Nearest");
+
+        SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
+        mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+
+        std::vector<uint32_t> matGroup = {
+            0, 1, 2, 0, 2, 3
+        };
+        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), mat, 
+                                     ShaderNodePlug(), ShaderNodePlug(), 
+                                     VLRTangentType_TC0Direction);
+    }
+
+    {
+        // ...
+    }
+
+    // ...
+}
+
+InternalNodeRef transformNode = context->createInternalNode("trf A");
+transformNode->setTransform(context->createStaticTransform(scale(2.0f)));
+transformNode->addChild(cornellBox);
+scene->addChild(transformNode);
+
+CameraRef camera = context->createCamera("Perspective");
+camera->set("position", Point3D(0, 1.5f, 6.0f));
+camera->set("aspect", (float)renderTargetSizeX / renderTargetSizeY);
+camera->set("sensitivity", 1.0f);
+camera->set("fovy", 40 * M_PI / 180);
+camera->set("lens radius", 0.0f);
+
+context->bindOutputBuffer(1024, 1024, 0);
+
+context->render(scene, camera, 1, firstFrame, &numAccumFrames);
+```
+
 ## TODO
 - [ ] Efficient Sampling from Many Lights
 - [ ] Scene Editor
@@ -51,7 +111,7 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1903) & Visual Studio 2019 (16.1.1)
+* Windows 10 (1903) & Visual Studio 2019 (16.1.3)
 * Core i9-9900K, 32GB, RTX 2070 8GB
 * NVIDIA Driver 430.64
 

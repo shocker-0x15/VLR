@@ -1209,8 +1209,6 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, enableRTX, maxCallableDepth, stackSize,
                                                          deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
 
-    context->enableAllExceptions();
-
     Shot shot;
     createScene(context, &shot);
 

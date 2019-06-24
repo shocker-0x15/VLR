@@ -316,6 +316,7 @@ namespace VLR {
         else if (bumpType == BumpType::HeightMap) {
             optix::uint3 texSize = optix::rtTexSize(nodeData.textureID);
 
+            // TODO: provide a way to adjust the coefficient.
             const float coeff = 10.0f / 1024;
             float dhdu = (coeff * texSize.x) * (texValue.y - texValue.x);
             float dhdv = (coeff * texSize.y) * (texValue.x - texValue.w);
