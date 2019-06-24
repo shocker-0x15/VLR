@@ -17,6 +17,7 @@ namespace VLR {
     const char* ParameterBumpType = "BumpType";
     const char* ParameterTextureFilter = "TextureFilter";
     const char* ParameterTextureWrapMode = "TextureWrapMode";
+    const char* ParameterCameraType = "CameraType";
 
     static bool s_enumTableInitialized = false;
     static const std::map<std::string, std::vector<std::pair<const char*, uint32_t>>> s_enumTables = {
@@ -58,6 +59,12 @@ namespace VLR {
                 {"Clamp to Border", (uint32_t)VLRTextureWrapMode_ClampToBorder},
             }
         },
+        {
+            ParameterCameraType, {
+                {"Perspective", (uint32_t)CameraType::Perspective},
+                {"Equirectangular", (uint32_t)CameraType::Equirectangular}
+            }
+        },
     };
     static std::map<std::string, std::map<std::string, uint32_t>> s_enumNameToIntTables;
     static std::map<std::string, std::map<uint32_t, std::string>> s_enumIntToNameTables;
@@ -87,7 +94,7 @@ namespace VLR {
         if (s_enumTables.count(typeName) == 0)
             return 0;
 
-        auto table = s_enumTables.at(typeName);
+        const auto &table = s_enumTables.at(typeName);
         return (uint32_t)table.size();
     }
     
@@ -98,7 +105,7 @@ namespace VLR {
         if (s_enumTables.count(typeName) == 0)
             return nullptr;
 
-        auto table = s_enumTables.at(typeName);
+        const auto &table = s_enumTables.at(typeName);
         if (index >= table.size())
             return nullptr;
 
@@ -112,7 +119,7 @@ namespace VLR {
         if (s_enumNameToIntTables.count(typeName) == 0)
             return 0xFFFFFFFF;
 
-        auto table = s_enumNameToIntTables.at(typeName);
+        const auto &table = s_enumNameToIntTables.at(typeName);
         if (table.count(member) == 0)
             return 0xFFFFFFFF;
 
@@ -126,7 +133,7 @@ namespace VLR {
         if (s_enumIntToNameTables.count(typeName) == 0)
             return nullptr;
 
-        auto table = s_enumIntToNameTables.at(typeName);
+        const auto &table = s_enumIntToNameTables.at(typeName);
         if (table.count(value) == 0)
             return nullptr;
 

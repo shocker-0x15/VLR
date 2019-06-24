@@ -518,7 +518,7 @@ namespace VLR {
         virtual ~Camera() {}
 
         virtual void set() const = 0;
-        virtual VLRCameraType getType() const = 0;
+        virtual CameraType getType() const = 0;
     };
 
 
@@ -542,8 +542,8 @@ namespace VLR {
         PerspectiveCamera(Context &context);
 
         void set() const override;
-        VLRCameraType getType() const override {
-            return VLRCameraType_Perspective;
+        CameraType getType() const override {
+            return CameraType::Perspective;
         }
 
         void setPosition(const Point3D &position) {
@@ -617,8 +617,8 @@ namespace VLR {
         EquirectangularCamera(Context &context);
 
         void set() const override;
-        VLRCameraType getType() const override {
-            return VLRCameraType_Equirectangular;
+        CameraType getType() const override {
+            return CameraType::Equirectangular;
         }
 
         void setPosition(const Point3D &position) {
@@ -632,9 +632,11 @@ namespace VLR {
                 sensitivity = 1.0f;
             m_data.sensitivity = std::max(0.0f, sensitivity);
         }
-        void setAngles(float phiAngle, float thetaAngle) {
-            m_data.phiAngle = VLR::clamp<float>(phiAngle, 0.01f, 2 * M_PI);
-            m_data.thetaAngle = VLR::clamp<float>(thetaAngle, 0.01f, M_PI);
+        void setPhiAngle(float angle) {
+            m_data.phiAngle = VLR::clamp<float>(angle, 0.01f, 2 * M_PI);
+        }
+        void setThetaAngle(float angle) {
+            m_data.thetaAngle = VLR::clamp<float>(angle, 0.01f, M_PI);
         }
 
         void getPosition(Point3D* position) const {
@@ -646,9 +648,11 @@ namespace VLR {
         void getSensitivity(float* sensitivity) const {
             *sensitivity = m_data.sensitivity;
         }
-        void getAngles(float* phiAngle, float* thetaAngle) const {
-            *phiAngle = m_data.phiAngle;
-            *thetaAngle = m_data.thetaAngle;
+        void getPhiAngle(float* angle) const {
+            *angle = m_data.phiAngle;
+        }
+        void getThetaAngle(float* angle) const {
+            *angle = m_data.thetaAngle;
         }
     };
 }

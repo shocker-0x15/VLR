@@ -1327,339 +1327,326 @@ VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationP
 
 
 
-VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, VLRCameraType* type) {
+VLR_API VLRResult vlrCameraCreate(VLRContext context, const char* typeName, VLRCamera* camera) {
+    try {
+        std::string sTypeName = typeName;
+        if (sTypeName == "Perspective") {
+            *camera = new VLR::PerspectiveCamera(*context);
+        }
+        else if (sTypeName == "Equirectangular") {
+            *camera = new VLR::EquirectangularCamera(*context);
+        }
+        else {
+            return VLRResult_InvalidArgument;
+        }
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrCameraDestroy(VLRContext context, VLRCamera camera) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
+
+        delete camera;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, const char** type) {
     try {
         VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
         if (type == nullptr)
             return VLRResult_InvalidArgument;
 
-        *type = camera->getType();
+        *type = VLR::getEnumMemberFromValue(VLR::ParameterCameraType, (uint32_t)camera->getType());
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-
-
-
-VLR_API VLRResult vlrPerspectiveCameraCreate(VLRContext context, VLRPerspectiveCamera* camera) {
+VLR_API VLRResult vlrCameraGetPoint3D(VLRCameraConst camera, const char* paramName, VLRPoint3D* value) {
     try {
-        if (camera == nullptr)
-            return VLRResult_InvalidArgument;
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        *camera = new VLR::PerspectiveCamera(*context);
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (const VLR::PerspectiveCamera*)camera;
+
+            if (std::strcmp(paramName, "position") == 0) {
+                VLR::Point3D iValue;
+                sCamera->getPosition(&iValue);
+                value->x = iValue.x;
+                value->y = iValue.y;
+                value->z = iValue.z;
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (const VLR::EquirectangularCamera*)camera;
+
+            if (std::strcmp(paramName, "position") == 0) {
+                VLR::Point3D iValue;
+                sCamera->getPosition(&iValue);
+                value->x = iValue.x;
+                value->y = iValue.y;
+                value->z = iValue.z;
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraDestroy(VLRContext context, VLRPerspectiveCamera camera) {
+VLR_API VLRResult vlrCameraGetQuaternion(VLRCameraConst camera, const char* paramName, VLRQuaternion* value) {
     try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        delete camera;
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (const VLR::PerspectiveCamera*)camera;
+
+            if (std::strcmp(paramName, "orientation") == 0) {
+                VLR::Quaternion iValue;
+                sCamera->getOrientation(&iValue);
+                value->x = iValue.x;
+                value->y = iValue.y;
+                value->z = iValue.z;
+                value->w = iValue.w;
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (const VLR::EquirectangularCamera*)camera;
+
+            if (std::strcmp(paramName, "orientation") == 0) {
+                VLR::Quaternion iValue;
+                sCamera->getOrientation(&iValue);
+                value->x = iValue.x;
+                value->y = iValue.y;
+                value->z = iValue.z;
+                value->w = iValue.w;
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetPosition(VLRPerspectiveCamera camera, const VLRPoint3D* position) {
+VLR_API VLRResult vlrCameraGetFloat(VLRCameraConst camera, const char* paramName, float* value) {
     try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (position == nullptr)
-            return VLRResult_InvalidArgument;
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        camera->setPosition(*(VLR::Point3D*)position);
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (const VLR::PerspectiveCamera*)camera;
+
+            if (std::strcmp(paramName, "aspect") == 0) {
+                sCamera->getAspectRatio(value);
+            }
+            else if (std::strcmp(paramName, "sensitivity") == 0) {
+                sCamera->getSensitivity(value);
+            }
+            else if (std::strcmp(paramName, "fovy") == 0) {
+                sCamera->getFovY(value);
+            }
+            else if (std::strcmp(paramName, "lens radius") == 0) {
+                sCamera->getLensRadius(value);
+            }
+            else if (std::strcmp(paramName, "op distance") == 0) {
+                sCamera->getObjectPlaneDistance(value);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (const VLR::EquirectangularCamera*)camera;
+
+            if (std::strcmp(paramName, "sensitivity") == 0) {
+                sCamera->getSensitivity(value);
+            }
+            else if (std::strcmp(paramName, "h angle") == 0) {
+                sCamera->getPhiAngle(value);
+            }
+            else if (std::strcmp(paramName, "v angle") == 0) {
+                sCamera->getThetaAngle(value);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetOrientation(VLRPerspectiveCamera camera, const VLRQuaternion* orientation) {
+VLR_API VLRResult vlrCameraSetPoint3D(VLRCamera camera, const char* paramName, const VLRPoint3D* value) {
     try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (orientation == nullptr)
-            return VLRResult_InvalidArgument;
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        camera->setOrientation(*(VLR::Quaternion*)orientation);
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (VLR::PerspectiveCamera*)camera;
+
+            if (std::strcmp(paramName, "position") == 0) {
+                VLR::Point3D iValue(value->x, value->y, value->z);
+                sCamera->setPosition(iValue);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (VLR::EquirectangularCamera*)camera;
+
+            if (std::strcmp(paramName, "position") == 0) {
+                VLR::Point3D iValue(value->x, value->y, value->z);
+                sCamera->setPosition(iValue);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetAspectRatio(VLRPerspectiveCamera camera, float aspect) {
+VLR_API VLRResult vlrCameraSetQuaternion(VLRCamera camera, const char* paramName, const VLRQuaternion* value) {
     try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        camera->setAspectRatio(aspect);
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (VLR::PerspectiveCamera*)camera;
+
+            if (std::strcmp(paramName, "orientation") == 0) {
+                VLR::Quaternion iValue(value->x, value->y, value->z, value->w);
+                sCamera->setOrientation(iValue);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (VLR::EquirectangularCamera*)camera;
+
+            if (std::strcmp(paramName, "orientation") == 0) {
+                VLR::Quaternion iValue(value->x, value->y, value->z, value->w);
+                sCamera->setOrientation(iValue);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrPerspectiveCameraSetSensitivity(VLRPerspectiveCamera camera, float sensitivity) {
+VLR_API VLRResult vlrCameraSetFloat(VLRCamera camera, const char* paramName, float value) {
     try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
+        VLR_RETURN_INVALID_INSTANCE(camera, VLR::Camera);
 
-        camera->setSensitivity(sensitivity);
+        switch (camera->getType()) {
+        case VLR::CameraType::Perspective: {
+            auto sCamera = (VLR::PerspectiveCamera*)camera;
 
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
+            if (std::strcmp(paramName, "aspect") == 0) {
+                sCamera->setAspectRatio(value);
+            }
+            else if (std::strcmp(paramName, "sensitivity") == 0) {
+                sCamera->setSensitivity(value);
+            }
+            else if (std::strcmp(paramName, "fovy") == 0) {
+                sCamera->setFovY(value);
+            }
+            else if (std::strcmp(paramName, "lens radius") == 0) {
+                sCamera->setLensRadius(value);
+            }
+            else if (std::strcmp(paramName, "op distance") == 0) {
+                sCamera->setObjectPlaneDistance(value);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        case VLR::CameraType::Equirectangular: {
+            auto sCamera = (VLR::EquirectangularCamera*)camera;
 
-VLR_API VLRResult vlrPerspectiveCameraSetFovY(VLRPerspectiveCamera camera, float fovY) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-
-        camera->setFovY(fovY);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraSetLensRadius(VLRPerspectiveCamera camera, float lensRadius) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-
-        camera->setLensRadius(lensRadius);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraSetObjectPlaneDistance(VLRPerspectiveCamera camera, float distance) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-
-        camera->setObjectPlaneDistance(distance);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetPosition(VLRPerspectiveCameraConst camera, VLRPoint3D* position) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (position == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getPosition((VLR::Point3D*)position);
+            if (std::strcmp(paramName, "sensitivity") == 0) {
+                sCamera->setSensitivity(value);
+            }
+            else if (std::strcmp(paramName, "h angle") == 0) {
+                sCamera->setPhiAngle(value);
+            }
+            else if (std::strcmp(paramName, "v angle") == 0) {
+                sCamera->setThetaAngle(value);
+            }
+            else {
+                return VLRResult_InvalidArgument;
+            }
+            break;
+        }
+        default:
+            VLRAssert_ShouldNotBeCalled();
+            break;
+        }
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
-
-VLR_API VLRResult vlrPerspectiveCameraGetOrientation(VLRPerspectiveCameraConst camera, VLRQuaternion* orientation) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (orientation == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getOrientation((VLR::Quaternion*)orientation);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetAspectRatio(VLRPerspectiveCameraConst camera, float* aspect) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (aspect == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getAspectRatio(aspect);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetSensitivity(VLRPerspectiveCameraConst camera, float* sensitivity) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (sensitivity == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getSensitivity(sensitivity);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetFovY(VLRPerspectiveCameraConst camera, float* fovY) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (fovY == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getFovY(fovY);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetLensRadius(VLRPerspectiveCameraConst camera, float* lensRadius) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (lensRadius == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getLensRadius(lensRadius);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrPerspectiveCameraGetObjectPlaneDistance(VLRPerspectiveCameraConst camera, float* distance) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::PerspectiveCamera);
-        if (distance == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getObjectPlaneDistance(distance);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-
-
-VLR_API VLRResult vlrEquirectangularCameraCreate(VLRContext context, VLREquirectangularCamera* camera) {
-    try {
-        if (camera == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *camera = new VLR::EquirectangularCamera(*context);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraDestroy(VLRContext context, VLREquirectangularCamera camera) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-
-        delete camera;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraSetPosition(VLREquirectangularCamera camera, const VLRPoint3D* position) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (position == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->setPosition(*(VLR::Point3D*)position);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraSetOrientation(VLREquirectangularCamera camera, const VLRQuaternion* orientation) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (orientation == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->setOrientation(*(VLR::Quaternion*)orientation);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraSetSensitivity(VLREquirectangularCamera camera, float sensitivity) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-
-        camera->setSensitivity(sensitivity);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraSetAngles(VLREquirectangularCamera camera, float phiAngle, float thetaAngle) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-
-        camera->setAngles(phiAngle, thetaAngle);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraGetPosition(VLREquirectangularCameraConst camera, VLRPoint3D* position) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (position == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getPosition((VLR::Point3D*)position);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraGetOrientation(VLREquirectangularCameraConst camera, VLRQuaternion* orientation) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (orientation == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getOrientation((VLR::Quaternion*)orientation);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraGetSensitivity(VLREquirectangularCameraConst camera, float* sensitivity) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (sensitivity == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getSensitivity(sensitivity);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrEquirectangularCameraGetAngles(VLREquirectangularCameraConst camera, float* phiAngle, float* thetaAngle) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(camera, VLR::EquirectangularCamera);
-        if (phiAngle == nullptr || thetaAngle == nullptr)
-            return VLRResult_InvalidArgument;
-
-        camera->getAngles(phiAngle, thetaAngle);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-

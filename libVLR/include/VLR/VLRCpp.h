@@ -156,7 +156,7 @@ namespace VLRCpp {
         inline bool get(const char* paramName, SurfaceMaterialRef* material) const;
         inline bool get(const char* paramName, ShaderNodePlug* plug) const;
 
-        inline bool set(const char* paramName, const char* enumValue) {
+        inline bool set(const char* paramName, const char* enumValue) const {
             VLRResult err = errorCheck(vlrConnectableSetEnumValue(getRaw<VLRConnectable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
@@ -172,16 +172,16 @@ namespace VLRCpp {
             VLRResult err = errorCheck(vlrConnectableSetNormal3D(getRaw<VLRConnectable>(), paramName, (VLRNormal3D*)&value));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, float value) {
+        inline bool set(const char* paramName, float value) const {
             VLRResult err = errorCheck(vlrConnectableSetFloat(getRaw<VLRConnectable>(), paramName, value));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, const float* values, uint32_t length) {
+        inline bool set(const char* paramName, const float* values, uint32_t length) const {
             VLRResult err = errorCheck(vlrConnectableSetFloatTuple(getRaw<VLRConnectable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const Image2DRef& image);
-        inline bool set(const char* paramName, const VLRImmediateSpectrum& spectrum) {
+        inline bool set(const char* paramName, const VLRImmediateSpectrum& spectrum) const {
             VLRResult err = errorCheck(vlrConnectableSetImmediateSpectrum(getRaw<VLRConnectable>(), paramName, &spectrum));
             return err == VLRResult_NoError;
         }
@@ -610,108 +610,65 @@ namespace VLRCpp {
 
     class CameraHolder : public ObjectHolder {
     public:
-        CameraHolder(const ContextConstRef &context) : ObjectHolder(context) {}
-
-        VLRCameraType getCameraType() const {
-            VLRCameraType type;
-            errorCheck(vlrCameraGetType(getRaw<VLRCamera>(), &type));
-            return type;
-        }
-    };
-
-
-
-    class PerspectiveCameraHolder : public CameraHolder {
-    public:
-        PerspectiveCameraHolder(const ContextConstRef &context) :
-            CameraHolder(context) {
-            errorCheck(vlrPerspectiveCameraCreate(getRawContext(m_context), (VLRPerspectiveCamera*)&m_raw));
-        }
-        ~PerspectiveCameraHolder() {
-            errorCheck(vlrPerspectiveCameraDestroy(getRawContext(m_context), getRaw<VLRPerspectiveCamera>()));
+        CameraHolder(const ContextConstRef &context, const char* typeName) : ObjectHolder(context) {
+            errorCheck(vlrCameraCreate(getRawContext(m_context), typeName, (VLRCamera*)&m_raw));
         }
 
-        void setPosition(const VLR::Point3D &position) {
-            errorCheck(vlrPerspectiveCameraSetPosition(getRaw<VLRPerspectiveCamera>(), (VLRPoint3D*)&position));
+        const char* getType() const {
+            const char* ret = nullptr;
+            errorCheck(vlrCameraGetType(getRaw<VLRCamera>(), &ret));
+            return ret;
         }
-        void setOrientation(const VLR::Quaternion &orientation) {
-            errorCheck(vlrPerspectiveCameraSetOrientation(getRaw<VLRPerspectiveCamera>(), (VLRQuaternion*)&orientation));
+        bool get(const char* paramName, VLR::Point3D* value) const {
+            VLRPoint3D cValue;
+            VLRResult err = errorCheck(vlrCameraGetPoint3D(getRaw<VLRCamera>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Point3D(cValue.x, cValue.y, cValue.z);
+            return true;
         }
-        void setAspectRatio(float aspect) {
-            errorCheck(vlrPerspectiveCameraSetAspectRatio(getRaw<VLRPerspectiveCamera>(), aspect));
+        bool get(const char* paramName, VLR::Quaternion* value) const {
+            VLRQuaternion cValue;
+            VLRResult err = errorCheck(vlrCameraGetQuaternion(getRaw<VLRCamera>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Quaternion(cValue.x, cValue.y, cValue.z, cValue.w);
+            return true;
         }
-        void setSensitivity(float sensitivity) {
-            errorCheck(vlrPerspectiveCameraSetSensitivity(getRaw<VLRPerspectiveCamera>(), sensitivity));
+        bool get(const char* paramName, float* value) const {
+            float temp;
+            VLRResult err = errorCheck(vlrCameraGetFloat(getRaw<VLRCamera>(), paramName, &temp));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = temp;
+            return true;
         }
-        void setFovY(float fovY) {
-            errorCheck(vlrPerspectiveCameraSetFovY(getRaw<VLRPerspectiveCamera>(), fovY));
+        bool set(const char* paramName, const VLR::Point3D& value) const {
+            VLRPoint3D cValue;
+            cValue.x = value.x;
+            cValue.y = value.y;
+            cValue.z = value.z;
+            VLRResult err = errorCheck(vlrCameraSetPoint3D(getRaw<VLRCamera>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            return true;
         }
-        void setLensRadius(float lensRadius) {
-            errorCheck(vlrPerspectiveCameraSetLensRadius(getRaw<VLRPerspectiveCamera>(), lensRadius));
+        bool set(const char* paramName, const VLR::Quaternion &value) const {
+            VLRQuaternion cValue;
+            cValue.x = value.x;
+            cValue.y = value.y;
+            cValue.z = value.z;
+            cValue.w = value.w;
+            VLRResult err = errorCheck(vlrCameraSetQuaternion(getRaw<VLRCamera>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            return true;
         }
-        void setObjectPlaneDistance(float distance) {
-            errorCheck(vlrPerspectiveCameraSetObjectPlaneDistance(getRaw<VLRPerspectiveCamera>(), distance));
-        }
-
-        void getPosition(VLR::Point3D* position) {
-            errorCheck(vlrPerspectiveCameraGetPosition(getRaw<VLRPerspectiveCamera>(), (VLRPoint3D*)position));
-        }
-        void getOrientation(VLR::Quaternion* orientation) {
-            errorCheck(vlrPerspectiveCameraGetOrientation(getRaw<VLRPerspectiveCamera>(), (VLRQuaternion*)orientation));
-        }
-        void getAspectRatio(float* aspect) {
-            errorCheck(vlrPerspectiveCameraGetAspectRatio(getRaw<VLRPerspectiveCamera>(), aspect));
-        }
-        void getSensitivity(float* sensitivity) {
-            errorCheck(vlrPerspectiveCameraGetSensitivity(getRaw<VLRPerspectiveCamera>(), sensitivity));
-        }
-        void getFovY(float* fovY) {
-            errorCheck(vlrPerspectiveCameraGetFovY(getRaw<VLRPerspectiveCamera>(), fovY));
-        }
-        void getLensRadius(float* lensRadius) {
-            errorCheck(vlrPerspectiveCameraGetLensRadius(getRaw<VLRPerspectiveCamera>(), lensRadius));
-        }
-        void getObjectPlaneDistance(float* distance) {
-            errorCheck(vlrPerspectiveCameraGetObjectPlaneDistance(getRaw<VLRPerspectiveCamera>(), distance));
-        }
-    };
-
-
-
-    class EquirectangularCameraHolder : public CameraHolder {
-    public:
-        EquirectangularCameraHolder(const ContextConstRef &context) :
-            CameraHolder(context) {
-            errorCheck(vlrEquirectangularCameraCreate(getRawContext(m_context), (VLREquirectangularCamera*)&m_raw));
-        }
-        ~EquirectangularCameraHolder() {
-            errorCheck(vlrEquirectangularCameraDestroy(getRawContext(m_context), getRaw<VLREquirectangularCamera>()));
-        }
-
-        void setPosition(const VLR::Point3D &position) {
-            errorCheck(vlrEquirectangularCameraSetPosition(getRaw<VLREquirectangularCamera>(), (VLRPoint3D*)&position));
-        }
-        void setOrientation(const VLR::Quaternion &orientation) {
-            errorCheck(vlrEquirectangularCameraSetOrientation(getRaw<VLREquirectangularCamera>(), (VLRQuaternion*)&orientation));
-        }
-        void setSensitivity(float sensitivity) {
-            errorCheck(vlrEquirectangularCameraSetSensitivity(getRaw<VLREquirectangularCamera>(), sensitivity));
-        }
-        void setAngles(float phiAngle, float thetaAngle) {
-            errorCheck(vlrEquirectangularCameraSetAngles(getRaw<VLREquirectangularCamera>(), phiAngle, thetaAngle));
-        }
-
-        void getPosition(VLR::Point3D* position) {
-            errorCheck(vlrEquirectangularCameraGetPosition(getRaw<VLREquirectangularCamera>(), (VLRPoint3D*)position));
-        }
-        void getOrientation(VLR::Quaternion* orientation) {
-            errorCheck(vlrEquirectangularCameraGetOrientation(getRaw<VLREquirectangularCamera>(), (VLRQuaternion*)orientation));
-        }
-        void getSensitivity(float* sensitivity) {
-            errorCheck(vlrEquirectangularCameraGetSensitivity(getRaw<VLREquirectangularCamera>(), sensitivity));
-        }
-        void getAngles(float* phiAngle, float* thetaAngle) {
-            errorCheck(vlrEquirectangularCameraGetAngles(getRaw<VLREquirectangularCamera>(), phiAngle, thetaAngle));
+        bool set(const char* paramName, float value) const {
+            VLRResult err = errorCheck(vlrCameraSetFloat(getRaw<VLRCamera>(), paramName, value));
+            if (err != VLRResult_NoError)
+                return false;
+            return true;
         }
     };
 
@@ -857,12 +814,8 @@ namespace VLRCpp {
             return std::make_shared<SceneHolder>(shared_from_this(), transform ? transform : getIdentityTransform());
         }
 
-        PerspectiveCameraRef createPerspectiveCamera() const {
-            return std::make_shared<PerspectiveCameraHolder>(shared_from_this());
-        }
-
-        EquirectangularCameraRef createEquirectangularCamera() const {
-            return std::make_shared<EquirectangularCameraHolder>(shared_from_this());
+        CameraRef createCamera(const char* typeName) const {
+            return std::make_shared<CameraHolder>(shared_from_this(), typeName);
         }
     };
 

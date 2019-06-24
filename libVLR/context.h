@@ -10,6 +10,13 @@ namespace VLR {
 
 
 
+    enum class CameraType {
+        Perspective = 0,
+        Equirectangular,
+    };
+
+
+
     class Scene;
     class Camera;
 

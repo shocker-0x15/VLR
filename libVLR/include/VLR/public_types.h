@@ -113,11 +113,6 @@ enum VLRNodeType {
     VLRNodeType_InternalNode,
 };
 
-enum VLRCameraType {
-    VLRCameraType_Perspective = 0,
-    VLRCameraType_Equirectangular,
-};
-
 enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_BaseColor = 0,
     VLRDebugRenderingMode_GeometricNormal,
@@ -143,7 +138,6 @@ typedef enum VLRTextureWrapMode VLRTextureWrapMode;
 typedef enum VLRTangentType VLRTangentType;
 typedef enum VLRTransformType VLRTransformType;
 typedef enum VLRNodeType VLRNodeType;
-typedef enum VLRCameraType VLRCameraType;
 typedef enum VLRDebugRenderingMode VLRDebugRenderingMode;
 #endif
 
@@ -224,6 +218,4 @@ typedef struct VLRVertex VLRVertex;
     VLR_PROCESS_CLASS(InternalNode); \
     VLR_PROCESS_CLASS(Scene); \
 \
-    VLR_PROCESS_CLASS(Camera); \
-    VLR_PROCESS_CLASS(PerspectiveCamera); \
-    VLR_PROCESS_CLASS(EquirectangularCamera);
+    VLR_PROCESS_CLASS(Camera);

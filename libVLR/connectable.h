@@ -37,6 +37,7 @@ namespace VLR {
     extern const char* ParameterBumpType;
     extern const char* ParameterTextureFilter;
     extern const char* ParameterTextureWrapMode;
+    extern const char* ParameterCameraType;
 
     uint32_t getNumEnumMembers(const char* typeName);
     const char* getEnumMemberAt(const char* typeName, uint32_t index);
