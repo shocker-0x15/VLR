@@ -46,36 +46,46 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
 Code Example using VLRCpp (C++ wrapper)
 
 ```cpp
+using namespace VLR;
 using namespace VLRCpp;
 
 ContextRef context = Context::create(enableLogging);
 
 SceneRef scene = context->createScene();
 
-TriangleMeshSurfaceNodeRef cornellBox = context->createTriangleMeshSurfaceNode("Cornell Box");
+TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mesh 1");
 {
+    Vertex vertices[] = {
+        Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 5.0f) },
+        // ...
+    };
     // ...
-    cornellBox->setVertices(vertices, numVertices);
-    // ...
+    mesh->setVertices(vertices, lengthof(vertices));
 
     {
-        Image2DRef image = loadImage2D(context, "checkerboard.png", 
-                                       VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+        Image2DRef imgAlbedo = loadImage2D(context, "checkerboard.png", 
+                                           VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+        Image2DRef imgNormalAlpha = loadImage2D(context, "normal_alpha.png", 
+                                                VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
-        nodeAlbedo->set("image", image);
+        nodeAlbedo->set("image", imgAlbedo);
         nodeAlbedo->set("min filter", "Nearest");
         nodeAlbedo->set("mag filter", "Nearest");
+
+        ShaderNodeRef nodeNormalAlpha = context->createShaderNode("Image2DTexture");
+        nodeAlbedo->set("image", imgNormalAlpha);
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        std::vector<uint32_t> matGroup = {
+        uint32_t matGroup[] = {
             0, 1, 2, 0, 2, 3
         };
-        cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), mat, 
-                                     ShaderNodePlug(), ShaderNodePlug(), 
-                                     VLRTangentType_TC0Direction);
+        mesh->addMaterialGroup(matGroup, lengthof(matGroup), mat, 
+                               nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Normal3D, 0), // normal map
+                               nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0), // alpha map
+                               VLRTangentType_TC0Direction); // tangent direction
     }
 
     {
@@ -87,7 +97,7 @@ TriangleMeshSurfaceNodeRef cornellBox = context->createTriangleMeshSurfaceNode("
 
 InternalNodeRef transformNode = context->createInternalNode("trf A");
 transformNode->setTransform(context->createStaticTransform(scale(2.0f)));
-transformNode->addChild(cornellBox);
+transformNode->addChild(mesh);
 scene->addChild(transformNode);
 
 CameraRef camera = context->createCamera("Perspective");
