@@ -51,6 +51,8 @@ using namespace VLRCpp;
 
 ContextRef context = Context::create(enableLogging);
 
+// Construct a scene by defining meshes and materials.
+
 SceneRef scene = context->createScene();
 
 TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mesh 1");
@@ -76,6 +78,7 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
         ShaderNodeRef nodeNormalAlpha = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", imgNormalAlpha);
 
+        // You can flexibly define a material by connecting shader nodes.
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
@@ -88,18 +91,16 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
                                VLRTangentType_TC0Direction); // tangent direction
     }
 
-    {
-        // ...
-    }
-
     // ...
 }
 
+// You can construct a scene graph with transforms
 InternalNodeRef transformNode = context->createInternalNode("trf A");
 transformNode->setTransform(context->createStaticTransform(scale(2.0f)));
 transformNode->addChild(mesh);
 scene->addChild(transformNode);
 
+// Setup a camera
 CameraRef camera = context->createCamera("Perspective");
 camera->set("position", Point3D(0, 1.5f, 6.0f));
 camera->set("aspect", (float)renderTargetSizeX / renderTargetSizeY);
@@ -107,8 +108,10 @@ camera->set("sensitivity", 1.0f);
 camera->set("fovy", 40 * M_PI / 180);
 camera->set("lens radius", 0.0f);
 
+// Setup the output buffer (OpenGL buffer can also be attached)
 context->bindOutputBuffer(1024, 1024, 0);
 
+// Let's render the scene!
 context->render(scene, camera, 1, firstFrame, &numAccumFrames);
 ```
 
