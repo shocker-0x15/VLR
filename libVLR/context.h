@@ -10,6 +10,19 @@ namespace VLR {
 
 
 
+    enum TextureFilter {
+        Nearest = 0,
+        Linear,
+        None
+    };
+
+    enum TextureWrapMode {
+        Repeat = 0,
+        ClampToEdge,
+        Mirror,
+        ClampToBorder,
+    };
+    
     enum class CameraType {
         Perspective = 0,
         Equirectangular,

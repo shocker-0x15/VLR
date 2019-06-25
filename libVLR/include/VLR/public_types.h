@@ -80,21 +80,6 @@ struct VLRShaderNodePlug {
 
 
 
-enum VLRTextureFilter {
-    VLRTextureFilter_Nearest = 0,
-    VLRTextureFilter_Linear,
-    VLRTextureFilter_None
-};
-
-enum VLRTextureWrapMode {
-    VLRTextureWrapMode_Repeat = 0,
-    VLRTextureWrapMode_ClampToEdge,
-    VLRTextureWrapMode_Mirror,
-    VLRTextureWrapMode_ClampToBorder,
-};
-
-
-
 enum VLRTangentType {
     VLRTangentType_TC0Direction = 0,
     VLRTangentType_RadialX,
@@ -133,8 +118,6 @@ typedef enum VLRDataFormat VLRDataFormat;
 typedef enum VLRParameterFormFlag VLRParameterFormFlag;
 typedef enum VLRShaderNodePlugType VLRShaderNodePlugType;
 typedef struct VLRShaderNodePlug VLRShaderNodePlug;
-typedef enum VLRTextureFilter VLRTextureFilter;
-typedef enum VLRTextureWrapMode VLRTextureWrapMode;
 typedef enum VLRTangentType VLRTangentType;
 typedef enum VLRTransformType VLRTransformType;
 typedef enum VLRNodeType VLRNodeType;

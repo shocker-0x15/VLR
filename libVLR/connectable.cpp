@@ -46,17 +46,17 @@ namespace VLR {
         },
         {
             ParameterTextureFilter, {
-                {"Nearest", (uint32_t)VLRTextureFilter_Nearest},
-                {"Linear", (uint32_t)VLRTextureFilter_Linear},
-                {"None", (uint32_t)VLRTextureFilter_None},
+                {"Nearest", (uint32_t)TextureFilter::Nearest},
+                {"Linear", (uint32_t)TextureFilter::Linear},
+                {"None", (uint32_t)TextureFilter::None},
             }
         },
         {
             ParameterTextureWrapMode, {
-                {"Repeat", (uint32_t)VLRTextureWrapMode_Repeat},
-                {"Clamp to Edge", (uint32_t)VLRTextureWrapMode_ClampToEdge},
-                {"Mirror", (uint32_t)VLRTextureWrapMode_Mirror},
-                {"Clamp to Border", (uint32_t)VLRTextureWrapMode_ClampToBorder},
+                {"Repeat", (uint32_t)TextureWrapMode::Repeat},
+                {"Clamp to Edge", (uint32_t)TextureWrapMode::ClampToEdge},
+                {"Mirror", (uint32_t)TextureWrapMode::Mirror},
+                {"Clamp to Border", (uint32_t)TextureWrapMode::ClampToBorder},
             }
         },
         {

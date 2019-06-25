@@ -1566,8 +1566,8 @@ namespace VLR {
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
         m_bumpType(BumpType::NormalMap_DirectX),
-        m_minFilter(VLRTextureFilter_Linear), m_magFilter(VLRTextureFilter_Linear),
-        m_wrapU(VLRTextureWrapMode_Repeat), m_wrapV(VLRTextureWrapMode_Repeat) {
+        m_minFilter(TextureFilter::Linear), m_magFilter(TextureFilter::Linear),
+        m_wrapU(TextureWrapMode::Repeat), m_wrapV(TextureWrapMode::Repeat) {
         optix::Context optixContext = context.getOptiXContext();
         m_optixTextureSampler = optixContext->createTextureSampler();
         m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
@@ -1680,28 +1680,28 @@ namespace VLR {
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_minFilter = (VLRTextureFilter)v;
+            m_minFilter = (TextureFilter)v;
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
             uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_magFilter = (VLRTextureFilter)v;
+            m_magFilter = (TextureFilter)v;
         }
         else if (std::strcmp(paramName, "wrap u") == 0) {
             uint32_t v = getEnumValueFromMember(ParameterTextureWrapMode, enumValue);
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_wrapU = (VLRTextureWrapMode)v;
+            m_wrapU = (TextureWrapMode)v;
         }
         else if (std::strcmp(paramName, "wrap v") == 0) {
             uint32_t v = getEnumValueFromMember(ParameterTextureWrapMode, enumValue);
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_wrapV = (VLRTextureWrapMode)v;
+            m_wrapV = (TextureWrapMode)v;
         }
         else {
             return false;
@@ -1848,14 +1848,14 @@ namespace VLR {
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_minFilter = (VLRTextureFilter)v;
+            m_minFilter = (TextureFilter)v;
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
             uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
             if (v == 0xFFFFFFFF)
                 return false;
 
-            m_magFilter = (VLRTextureFilter)v;
+            m_magFilter = (TextureFilter)v;
         }
         else {
             return false;

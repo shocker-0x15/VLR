@@ -511,10 +511,10 @@ namespace VLR {
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
         BumpType m_bumpType;
-        VLRTextureFilter m_minFilter;
-        VLRTextureFilter m_magFilter;
-        VLRTextureWrapMode m_wrapU;
-        VLRTextureWrapMode m_wrapV;
+        TextureFilter m_minFilter;
+        TextureFilter m_magFilter;
+        TextureWrapMode m_wrapU;
+        TextureWrapMode m_wrapV;
         ShaderNodePlug m_nodeTexCoord;
 
         void setupNodeDescriptor();
@@ -562,8 +562,8 @@ namespace VLR {
 
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
-        VLRTextureFilter m_minFilter;
-        VLRTextureFilter m_magFilter;
+        TextureFilter m_minFilter;
+        TextureFilter m_magFilter;
 
         void setupNodeDescriptor();
 

@@ -28,7 +28,7 @@
     },
     {
       "Id": "a99c0bd0-4300-45b5-b15c-8cfddf6c2e3e",
-      "Command": "-maxcallabledepth 8"
+      "Command": "--maxcallabledepth 8"
     },
     {
       "Id": "d388d70f-0e7c-4182-b62b-714ef2401f4a",
