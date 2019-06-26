@@ -480,7 +480,7 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
         plugNormal = texNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0);
 
     if (imgAlpha) {
-        if (imgAlpha->getOriginalDataFormat() == "Gray8")
+        if (std::strcmp(imgAlpha->getOriginalDataFormat(), "Gray8") == 0)
             plugAlpha = texAlpha->getPlug(VLRShaderNodePlugType_float1, 0);
         else
             plugAlpha = texAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0);
@@ -2470,7 +2470,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
             plugNormal = texNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0);
 
         if (imgAlpha) {
-            if (imgAlpha->getOriginalDataFormat() == "Gray8")
+            if (std::strcmp(imgAlpha->getOriginalDataFormat(), "Gray8") == 0)
                 plugAlpha = texAlpha->getPlug(VLRShaderNodePlugType_float1, 0);
             else
                 plugAlpha = texAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0);
