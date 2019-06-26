@@ -66,9 +66,9 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
 
     {
         Image2DRef imgAlbedo = loadImage2D(context, "checkerboard.png", 
-                                           VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma);
+                                           "Reflectance", "Rec709(D65) sRGB Gamma");
         Image2DRef imgNormalAlpha = loadImage2D(context, "normal_alpha.png", 
-                                                VLRSpectrumType_NA, VLRColorSpace_Rec709_D65);
+                                                "NA", "Rec709(D65)");
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", imgAlbedo);
@@ -88,7 +88,7 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
         mesh->addMaterialGroup(matGroup, lengthof(matGroup), mat, 
                                nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Normal3D, 0), // normal map
                                nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0), // alpha map
-                               VLRTangentType_TC0Direction); // tangent direction
+                               "TC0 Direction"); // tangent direction
     }
 
     // ...

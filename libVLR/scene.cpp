@@ -502,7 +502,7 @@ namespace VLR {
     }
 
     void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                                                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha, VLRTangentType tangentType) {
+                                                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha, TangentType tangentType) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -617,7 +617,6 @@ namespace VLR {
             optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
 
-            Shared::TangentType sTangentType = (Shared::TangentType)tangentType;
             optixGeomInst["VLR::pv_tangentType"]->setUserData(sizeof(tangentType), &tangentType);
 
             Shared::ShaderNodePlug sNodeNormal = Shared::ShaderNodePlug::Invalid();

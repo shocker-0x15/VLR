@@ -19,9 +19,9 @@ struct SurfaceMaterialAttributeTuple {
 
 struct MeshAttributeTuple {
     bool visible;
-    VLRTangentType tangentType;
+    const char* tangentType;
 
-    MeshAttributeTuple(bool _visible, VLRTangentType _tangentType) : visible(_visible), tangentType(_tangentType) {}
+    MeshAttributeTuple(bool _visible, const char* _tangentType) : visible(_visible), tangentType(_tangentType) {}
 };
 
 typedef SurfaceMaterialAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);

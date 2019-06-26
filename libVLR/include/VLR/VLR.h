@@ -80,17 +80,17 @@ extern "C" {
     VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width);
     VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height);
     VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride);
-    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, VLRDataFormat* format);
+    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format);
     VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha);
 
     VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                              uint8_t* linearData, uint32_t width, uint32_t height,
-                                             VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
+                                             const char* format, const char* spectrumType, const char* colorSpace);
     VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image);
 
     VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
                                                       uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                                      VLRDataFormat dataFormat, VLRSpectrumType spectrumType, VLRColorSpace colorSpace);
+                                                      const char* dataFormat, const char* spectrumType, const char* colorSpace);
     VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image);
 
 
@@ -189,7 +189,7 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, const VLRVertex* vertices, uint32_t numVertices);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
                                                                  VLRSurfaceMaterialConst material, VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeAlpha,
-                                                                 VLRTangentType tangentType);
+                                                                 const char* tangentType);
 
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
                                             const char* name, VLRTransformConst transform);

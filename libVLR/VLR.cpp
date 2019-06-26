@@ -300,11 +300,11 @@ VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, VLRDataFormat* format) {
+VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format) {
     try {
         VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
 
-        *format = (VLRDataFormat)image->getOriginalDataFormat();
+        *format = VLR::getEnumMemberFromValue(image->getOriginalDataFormat());
 
         return VLRResult_NoError;
     }
@@ -326,13 +326,15 @@ VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlp
 
 VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
                                          uint8_t* linearData, uint32_t width, uint32_t height,
-                                         VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+                                         const char* format, const char* spectrumType, const char* colorSpace) {
     try {
         if (image == nullptr || linearData == nullptr)
             return VLRResult_InvalidArgument;
 
         *image = new VLR::LinearImage2D(*context, linearData, width, height,
-                                        (VLR::DataFormat)format, (VLR::SpectrumType)spectrumType, (VLR::ColorSpace)colorSpace);
+                                        VLR::getEnumValueFromMember<VLR::DataFormat>(format),
+                                        VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
+                                        VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
 
         return VLRResult_NoError;
     }
@@ -354,7 +356,7 @@ VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D i
 
 VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
                                                   uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                                  VLRDataFormat dataFormat, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) {
+                                                  const char* dataFormat, const char* spectrumType, const char* colorSpace) {
     try {
         if (image == nullptr || data == nullptr || sizes == nullptr)
             return VLRResult_InvalidArgument;
@@ -364,7 +366,9 @@ VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCo
         }
 
         *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height,
-                                                 (VLR::DataFormat)dataFormat, (VLR::SpectrumType)spectrumType, (VLR::ColorSpace)colorSpace);
+                                                 VLR::getEnumValueFromMember<VLR::DataFormat>(dataFormat),
+                                                 VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
+                                                 VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
 
         return VLRResult_NoError;
     }
@@ -1039,7 +1043,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
 
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
                                                              VLRSurfaceMaterialConst material, VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeAlpha,
-                                                             VLRTangentType tangentType) {
+                                                             const char* tangentType) {
     try {
         VLR_RETURN_INVALID_INSTANCE(surfaceNode, VLR::TriangleMeshSurfaceNode);
         if (indices == nullptr || !nonNullAndCheckType<VLR::SurfaceMaterial>(material))
@@ -1052,7 +1056,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
         surfaceNode->addMaterialGroup(std::move(vecIndices), material,
             VLR::ShaderNodePlug(nodeNormal),
             VLR::ShaderNodePlug(nodeAlpha),
-            tangentType);
+            VLR::getEnumValueFromMember<VLR::TangentType>(tangentType));
 
         return VLRResult_NoError;
     }
@@ -1364,7 +1368,7 @@ VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, const char** type) {
         if (type == nullptr)
             return VLRResult_InvalidArgument;
 
-        *type = VLR::getEnumMemberFromValue(VLR::ParameterCameraType, (uint32_t)camera->getType());
+        *type = VLR::getEnumMemberFromValue(camera->getType());
 
         return VLRResult_NoError;
     }

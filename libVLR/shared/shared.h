@@ -180,6 +180,15 @@ namespace VLR {
 
 
 
+    enum class TangentType {
+        TC0Direction = 0,
+        RadialX,
+        RadialY,
+        RadialZ,
+    };
+
+
+
     namespace Shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
@@ -610,16 +619,6 @@ namespace VLR {
             ShadingFrameLengths,
             ShadingFrameOrthogonality,
             NumAttributes
-        };
-
-
-
-        enum class TangentType {
-            TC0Direction = 0,
-            RadialX,
-            RadialY,
-            RadialZ,
-            NumTypes
         };
 
 

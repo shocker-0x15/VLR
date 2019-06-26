@@ -18,7 +18,7 @@ static void C_CompileTest() {
     CHECK(vlrCreateContext(&context, true, true, 8, 0, NULL, 0));
 
     VLRLinearImage2D imageA;
-    CHECK(vlrLinearImage2DCreate(context, &imageA, NULL, 128, 128, VLRDataFormat_RGBA8x4, VLRSpectrumType_Reflectance, VLRColorSpace_Rec709_D65_sRGBGamma));
+    CHECK(vlrLinearImage2DCreate(context, &imageA, NULL, 128, 128, "RGBA8x4", "Reflectance", "Rec709(D65) sRGB Gamma"));
 
     uint32_t width;
     CHECK(vlrImage2DGetWidth(imageA, &width));

@@ -10,13 +10,13 @@ namespace VLR {
 
 
 
-    enum TextureFilter {
+    enum class TextureFilter {
         Nearest = 0,
         Linear,
         None
     };
 
-    enum TextureWrapMode {
+    enum class TextureWrapMode {
         Repeat = 0,
         ClampToEdge,
         Mirror,

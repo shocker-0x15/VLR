@@ -14,9 +14,9 @@ namespace VLR {
         ImmediateSpectrum(ColorSpace _colorSpace, float _e0, float _e1, float _e2) :
             colorSpace(_colorSpace), e0(_e0), e1(_e1), e2(_e2) {}
         ImmediateSpectrum(const VLRImmediateSpectrum& spectrum) {
-            uint32_t v = getEnumValueFromMember(ParameterColorSpace, spectrum.colorSpace);
-            if (v != 0xFFFFFFFF) {
-                colorSpace = (ColorSpace)v;
+            auto v = getEnumValueFromMember<ColorSpace>(spectrum.colorSpace);
+            if (v != (ColorSpace)0xFFFFFFFF) {
+                colorSpace = v;
                 e0 = spectrum.e0;
                 e1 = spectrum.e1;
                 e2 = spectrum.e2;
@@ -30,7 +30,7 @@ namespace VLR {
         }
         VLRImmediateSpectrum getPublicType() const {
             VLRImmediateSpectrum ret;
-            ret.colorSpace = getEnumMemberFromValue(ParameterColorSpace, (uint32_t)colorSpace);
+            ret.colorSpace = getEnumMemberFromValue(colorSpace);
             ret.e0 = e0;
             ret.e1 = e1;
             ret.e2 = e2;

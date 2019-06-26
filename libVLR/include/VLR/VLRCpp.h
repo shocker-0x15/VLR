@@ -221,8 +221,8 @@ namespace VLRCpp {
             errorCheck(vlrImage2DGetStride(getRaw<VLRImage2D>(), &stride));
             return stride;
         }
-        VLRDataFormat getOriginalDataFormat() const {
-            VLRDataFormat format;
+        const char* getOriginalDataFormat() const {
+            const char* format;
             errorCheck(vlrImage2DGetOriginalDataFormat(getRaw<VLRImage2D>(), &format));
             return format;
         }
@@ -237,7 +237,9 @@ namespace VLRCpp {
 
     class LinearImage2DHolder : public Image2DHolder {
     public:
-        LinearImage2DHolder(const ContextConstRef &context, const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) :
+        LinearImage2DHolder(const ContextConstRef &context,
+                            const uint8_t* linearData, uint32_t width, uint32_t height,
+                            const char* format, const char* spectrumType, const char* colorSpace) :
             Image2DHolder(context) {
             errorCheck(vlrLinearImage2DCreate(getRawContext(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, spectrumType, colorSpace));
         }
@@ -250,7 +252,9 @@ namespace VLRCpp {
 
     class BlockCompressedImage2DHolder : public Image2DHolder {
     public:
-        BlockCompressedImage2DHolder(const ContextConstRef &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat dataFormat, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) :
+        BlockCompressedImage2DHolder(const ContextConstRef &context,
+                                     const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+                                     const char* dataFormat, const char* spectrumType, const char* colorSpace) :
             Image2DHolder(context) {
             errorCheck(vlrBlockCompressedImage2DCreate(getRawContext(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, spectrumType, colorSpace));
         }
@@ -444,7 +448,7 @@ namespace VLRCpp {
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
                               const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha,
-                              VLRTangentType tangentType) {
+                              const char* tangentType) {
             m_materials.push_back(material);
             m_nodeNormals.push_back(nodeNormal);
             m_nodeAlphas.push_back(nodeAlpha);
@@ -770,12 +774,18 @@ namespace VLRCpp {
 
 
 
-        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) const {
-            return std::make_shared<LinearImage2DHolder>(shared_from_this(), linearData, width, height, format, spectrumType, colorSpace);
+        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height,
+                                             const char* format, const char* spectrumType, const char* colorSpace) const {
+            return std::make_shared<LinearImage2DHolder>(shared_from_this(),
+                                                         linearData, width, height,
+                                                         format, spectrumType, colorSpace);
         }
 
-        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, VLRDataFormat format, VLRSpectrumType spectrumType, VLRColorSpace colorSpace) const {
-            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(), data, sizes, mipCount, width, height, format, spectrumType, colorSpace);
+        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+                                                               const char* format, const char* spectrumType, const char* colorSpace) const {
+            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(),
+                                                                  data, sizes, mipCount, width, height,
+                                                                  format, spectrumType, colorSpace);
         }
 
 

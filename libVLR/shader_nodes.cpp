@@ -808,8 +808,8 @@ namespace VLR {
     // static
     void TripletSpectrumShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
-            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, ParameterSpectrumType),
-            ParameterInfo("color space", VLRParameterFormFlag_ImmediateValue, ParameterColorSpace),
+            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, EnumSpectrumType),
+            ParameterInfo("color space", VLRParameterFormFlag_ImmediateValue, EnumColorSpace),
             ParameterInfo("triplet", VLRParameterFormFlag_ImmediateValue, ParameterFloat, 3),
         };
 
@@ -854,11 +854,11 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterSpectrumType, (uint32_t)m_spectrumType);
+            *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "color space") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterColorSpace, (uint32_t)m_colorSpace);
+            *enumValue = getEnumMemberFromValue(m_colorSpace);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -889,18 +889,18 @@ namespace VLR {
 
     bool TripletSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterSpectrumType, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<SpectrumType>(enumValue);
+            if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
-            m_spectrumType = (SpectrumType)v;
+            m_spectrumType = v;
         }
         else if (std::strcmp(paramName, "color space") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterColorSpace, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<ColorSpace>(enumValue);
+            if (v == (ColorSpace)0xFFFFFFFF)
                 return false;
 
-            m_colorSpace = (ColorSpace)v;
+            m_colorSpace = v;
         }
         else {
             return false;
@@ -939,7 +939,7 @@ namespace VLR {
     // static
     void RegularSampledSpectrumShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
-            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, ParameterSpectrumType),
+            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, EnumSpectrumType),
             ParameterInfo("min wavelength", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("max wavelength", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("values", VLRParameterFormFlag_ImmediateValue, ParameterFloat, 0),
@@ -1002,7 +1002,7 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterSpectrumType, (uint32_t)m_spectrumType);
+            *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1055,11 +1055,11 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterSpectrumType, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<SpectrumType>(enumValue);
+            if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
-            m_spectrumType = (SpectrumType)v;
+            m_spectrumType = v;
         }
         else {
             return false;
@@ -1107,7 +1107,7 @@ namespace VLR {
     // static
     void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
-            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, ParameterSpectrumType),
+            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, EnumSpectrumType),
             ParameterInfo("wavelengths", VLRParameterFormFlag_ImmediateValue, ParameterFloat, 0),
             ParameterInfo("values", VLRParameterFormFlag_ImmediateValue, ParameterFloat, 0),
         };
@@ -1173,7 +1173,7 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterSpectrumType, (uint32_t)m_spectrumType);
+            *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1207,11 +1207,11 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterSpectrumType, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<SpectrumType>(enumValue);
+            if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
-            m_spectrumType = (SpectrumType)v;
+            m_spectrumType = v;
         }
         else {
             return false;
@@ -1255,8 +1255,8 @@ namespace VLR {
     // static
     void Float3ToSpectrumShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
-            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, ParameterSpectrumType),
-            ParameterInfo("color space", VLRParameterFormFlag_ImmediateValue, ParameterColorSpace),
+            ParameterInfo("spectrum type", VLRParameterFormFlag_ImmediateValue, EnumSpectrumType),
+            ParameterInfo("color space", VLRParameterFormFlag_ImmediateValue, EnumColorSpace),
             ParameterInfo("value", VLRParameterFormFlag_Both, ParameterFloat, 3),
         };
 
@@ -1305,11 +1305,11 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterSpectrumType, (uint32_t)m_spectrumType);
+            *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "color space") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterColorSpace, (uint32_t)m_colorSpace);
+            *enumValue = getEnumMemberFromValue(m_colorSpace);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1354,18 +1354,18 @@ namespace VLR {
 
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
         if (std::strcmp(paramName, "spectrum type") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterSpectrumType, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<SpectrumType>(enumValue);
+            if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
-            m_spectrumType = (SpectrumType)v;
+            m_spectrumType = v;
         }
         else if (std::strcmp(paramName, "color space") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterColorSpace, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<ColorSpace>(enumValue);
+            if (v == (ColorSpace)0xFFFFFFFF)
                 return false;
 
-            m_colorSpace = (ColorSpace)v;
+            m_colorSpace = v;
         }
         else {
             return false;
@@ -1523,11 +1523,11 @@ namespace VLR {
     void Image2DTextureShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
             ParameterInfo("image", VLRParameterFormFlag_Node, ParameterImage),
-            ParameterInfo("bump type", VLRParameterFormFlag_ImmediateValue, ParameterBumpType),
-            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, ParameterTextureFilter),
-            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, ParameterTextureFilter),
-            ParameterInfo("wrap u", VLRParameterFormFlag_ImmediateValue, ParameterTextureWrapMode),
-            ParameterInfo("wrap v", VLRParameterFormFlag_ImmediateValue, ParameterTextureWrapMode),
+            ParameterInfo("bump type", VLRParameterFormFlag_ImmediateValue, EnumBumpType),
+            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
+            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
+            ParameterInfo("wrap u", VLRParameterFormFlag_ImmediateValue, EnumTextureWrapMode),
+            ParameterInfo("wrap v", VLRParameterFormFlag_ImmediateValue, EnumTextureWrapMode),
             ParameterInfo("texcoord", VLRParameterFormFlag_Node, ParameterTextureCoordinates),
         };
 
@@ -1613,23 +1613,23 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "bump type") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterBumpType, (uint32_t)m_bumpType);
+            *enumValue = getEnumMemberFromValue(m_bumpType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "min filter") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureFilter, (uint32_t)m_minFilter);
+            *enumValue = getEnumMemberFromValue(m_minFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureFilter, (uint32_t)m_magFilter);
+            *enumValue = getEnumMemberFromValue(m_magFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "wrap u") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureWrapMode, (uint32_t)m_wrapU);
+            *enumValue = getEnumMemberFromValue(m_wrapU);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "wrap v") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureWrapMode, (uint32_t)m_wrapV);
+            *enumValue = getEnumMemberFromValue(m_wrapV);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1669,39 +1669,39 @@ namespace VLR {
 
     bool Image2DTextureShaderNode::set(const char* paramName, const char* enumValue) {
         if (std::strcmp(paramName, "bump type") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterBumpType, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<BumpType>(enumValue);
+            if (v == (BumpType)0xFFFFFFFF)
                 return false;
 
-            m_bumpType = (BumpType)v;
+            m_bumpType = v;
         }
         else if (std::strcmp(paramName, "min filter") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
+            if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
-            m_minFilter = (TextureFilter)v;
+            m_minFilter = v;
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
+            if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
-            m_magFilter = (TextureFilter)v;
+            m_magFilter = v;
         }
         else if (std::strcmp(paramName, "wrap u") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureWrapMode, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
+            if (v == (TextureWrapMode)0xFFFFFFFF)
                 return false;
 
-            m_wrapU = (TextureWrapMode)v;
+            m_wrapU = v;
         }
         else if (std::strcmp(paramName, "wrap v") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureWrapMode, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
+            if (v == (TextureWrapMode)0xFFFFFFFF)
                 return false;
 
-            m_wrapV = (TextureWrapMode)v;
+            m_wrapV = v;
         }
         else {
             return false;
@@ -1749,8 +1749,8 @@ namespace VLR {
     void EnvironmentTextureShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
             ParameterInfo("image", VLRParameterFormFlag_Node, ParameterImage),
-            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, ParameterTextureFilter),
-            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, ParameterTextureFilter),
+            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
+            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
         };
 
         if (ParameterInfos.size() == 0) {
@@ -1814,11 +1814,11 @@ namespace VLR {
             return false;
 
         if (std::strcmp(paramName, "min filter") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureFilter, (uint32_t)m_minFilter);
+            *enumValue = getEnumMemberFromValue(m_minFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
-            *enumValue = getEnumMemberFromValue(ParameterTextureFilter, (uint32_t)m_magFilter);
+            *enumValue = getEnumMemberFromValue(m_magFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1844,18 +1844,18 @@ namespace VLR {
 
     bool EnvironmentTextureShaderNode::set(const char* paramName, const char* enumValue) {
         if (std::strcmp(paramName, "min filter") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
+            if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
-            m_minFilter = (TextureFilter)v;
+            m_minFilter = v;
         }
         else if (std::strcmp(paramName, "mag filter") == 0) {
-            uint32_t v = getEnumValueFromMember(ParameterTextureFilter, enumValue);
-            if (v == 0xFFFFFFFF)
+            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
+            if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
-            m_magFilter = (TextureFilter)v;
+            m_magFilter = v;
         }
         else {
             return false;

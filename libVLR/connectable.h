@@ -32,17 +32,21 @@ namespace VLR {
     extern const char* ParameterImage;
     extern const char* ParameterSurfaceMaterial;
 
-    extern const char* ParameterSpectrumType;
-    extern const char* ParameterColorSpace;
-    extern const char* ParameterBumpType;
-    extern const char* ParameterTextureFilter;
-    extern const char* ParameterTextureWrapMode;
-    extern const char* ParameterCameraType;
+    extern const char* EnumSpectrumType;
+    extern const char* EnumColorSpace;
+    extern const char* EnumDataFormat;
+    extern const char* EnumBumpType;
+    extern const char* EnumTextureFilter;
+    extern const char* EnumTextureWrapMode;
+    extern const char* EnumTangentType;
+    extern const char* EnumCameraType;
 
     uint32_t getNumEnumMembers(const char* typeName);
     const char* getEnumMemberAt(const char* typeName, uint32_t index);
-    uint32_t getEnumValueFromMember(const char* typeName, const char* member);
-    const char* getEnumMemberFromValue(const char* typeName, uint32_t value);
+    template <typename EnumType>
+    EnumType getEnumValueFromMember(const char* member);
+    template <typename EnumType>
+    const char* getEnumMemberFromValue(EnumType value);
 
 
 
