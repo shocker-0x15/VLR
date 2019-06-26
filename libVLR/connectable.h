@@ -3,6 +3,10 @@
 #include "context.h"
 
 namespace VLR {
+    bool testParamName(const std::string &paramNameA, const std::string &paramNameB);
+
+
+
     struct ParameterInfo {
         const char* name;
         VLRParameterFormFlag formFlags;

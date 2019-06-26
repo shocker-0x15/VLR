@@ -229,6 +229,14 @@ namespace VLR {
     std::unique_ptr<T> createUnique(ArgTypes&&... args) {
         return std::unique_ptr<T>(new T(std::forward<ArgTypes>(args)...));
     }
+
+
+
+    inline std::string tolower(std::string str) {
+        const auto tolower = [](unsigned char c) { return std::tolower(c); };
+        std::transform(str.cbegin(), str.cend(), str.begin(), tolower);
+        return str;
+    }
 #endif
 }
 

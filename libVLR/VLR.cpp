@@ -776,40 +776,40 @@ VLR_API VLRResult vlrConnectableSetShaderNodePlug(VLRConnectable node, const cha
 VLR_API VLRResult vlrShaderNodeCreate(VLRContext context, const char* typeName, VLRShaderNode* node) {
     try {
         std::string sTypeName = typeName;
-        if (sTypeName == "Geometry") {
+        if (VLR::testParamName(sTypeName, "Geometry")) {
             *node = new VLR::GeometryShaderNode(*context);
         }
-        else if (sTypeName == "Float2") {
+        else if (VLR::testParamName(sTypeName, "Float2")) {
             *node = new VLR::Float2ShaderNode(*context);
         }
-        else if (sTypeName == "Float3") {
+        else if (VLR::testParamName(sTypeName, "Float3")) {
             *node = new VLR::Float3ShaderNode(*context);
         }
-        else if (sTypeName == "Float4") {
+        else if (VLR::testParamName(sTypeName, "Float4")) {
             *node = new VLR::Float4ShaderNode(*context);
         }
-        else if (sTypeName == "ScaleAndOffsetFloat") {
+        else if (VLR::testParamName(sTypeName, "ScaleAndOffsetFloat")) {
             *node = new VLR::ScaleAndOffsetFloatShaderNode(*context);
         }
-        else if (sTypeName == "TripletSpectrum") {
+        else if (VLR::testParamName(sTypeName, "TripletSpectrum")) {
             *node = new VLR::TripletSpectrumShaderNode(*context);
         }
-        else if (sTypeName == "RegularSampledSpectrum") {
+        else if (VLR::testParamName(sTypeName, "RegularSampledSpectrum")) {
             *node = new VLR::RegularSampledSpectrumShaderNode(*context);
         }
-        else if (sTypeName == "IrregularSampledSpectrum") {
+        else if (VLR::testParamName(sTypeName, "IrregularSampledSpectrum")) {
             *node = new VLR::IrregularSampledSpectrumShaderNode(*context);
         }
-        else if (sTypeName == "Float3ToSpectrum") {
+        else if (VLR::testParamName(sTypeName, "Float3ToSpectrum")) {
             *node = new VLR::Float3ToSpectrumShaderNode(*context);
         }
-        else if (sTypeName == "ScaleAndOffsetUVTextureMap2D") {
+        else if (VLR::testParamName(sTypeName, "ScaleAndOffsetUVTextureMap2D")) {
             *node = new VLR::ScaleAndOffsetUVTextureMap2DShaderNode(*context);
         }
-        else if (sTypeName == "Image2DTexture") {
+        else if (VLR::testParamName(sTypeName, "Image2DTexture")) {
             *node = new VLR::Image2DTextureShaderNode(*context);
         }
-        else if (sTypeName == "EnvironmentTexture") {
+        else if (VLR::testParamName(sTypeName, "EnvironmentTexture")) {
             *node = new VLR::EnvironmentTextureShaderNode(*context);
         }
         else {
@@ -851,37 +851,37 @@ VLR_API VLRResult vlrShaderNodeGetPlug(VLRShaderNodeConst node, VLRShaderNodePlu
 VLR_API VLRResult vlrSurfaceMaterialCreate(VLRContext context, const char* typeName, VLRSurfaceMaterial* material) {
     try {
         std::string sTypeName = typeName;
-        if (sTypeName == "Matte") {
+        if (VLR::testParamName(sTypeName, "Matte")) {
             *material = new VLR::MatteSurfaceMaterial(*context);
         }
-        else if (sTypeName == "SpecularReflection") {
+        else if (VLR::testParamName(sTypeName, "SpecularReflection")) {
             *material = new VLR::SpecularReflectionSurfaceMaterial(*context);
         }
-        else if (sTypeName == "SpecularScattering") {
+        else if (VLR::testParamName(sTypeName, "SpecularScattering")) {
             *material = new VLR::SpecularScatteringSurfaceMaterial(*context);
         }
-        else if (sTypeName == "MicrofacetReflection") {
+        else if (VLR::testParamName(sTypeName, "MicrofacetReflection")) {
             *material = new VLR::MicrofacetReflectionSurfaceMaterial(*context);
         }
-        else if (sTypeName == "MicrofacetScattering") {
+        else if (VLR::testParamName(sTypeName, "MicrofacetScattering")) {
             *material = new VLR::MicrofacetScatteringSurfaceMaterial(*context);
         }
-        else if (sTypeName == "LambertianScattering") {
+        else if (VLR::testParamName(sTypeName, "LambertianScattering")) {
             *material = new VLR::LambertianScatteringSurfaceMaterial(*context);
         }
-        else if (sTypeName == "UE4") {
+        else if (VLR::testParamName(sTypeName, "UE4")) {
             *material = new VLR::UE4SurfaceMaterial(*context);
         }
-        else if (sTypeName == "OldStyle") {
+        else if (VLR::testParamName(sTypeName, "OldStyle")) {
             *material = new VLR::OldStyleSurfaceMaterial(*context);
         }
-        else if (sTypeName == "DiffuseEmitter") {
+        else if (VLR::testParamName(sTypeName, "DiffuseEmitter")) {
             *material = new VLR::DiffuseEmitterSurfaceMaterial(*context);
         }
-        else if (sTypeName == "Multi") {
+        else if (VLR::testParamName(sTypeName, "Multi")) {
             *material = new VLR::MultiSurfaceMaterial(*context);
         }
-        else if (sTypeName == "EnvironmentEmitter") {
+        else if (VLR::testParamName(sTypeName, "EnvironmentEmitter")) {
             *material = new VLR::EnvironmentEmitterSurfaceMaterial(*context);
         }
         else {
@@ -1334,10 +1334,10 @@ VLR_API VLRResult vlrSceneSetEnvironmentRotation(VLRScene scene, float rotationP
 VLR_API VLRResult vlrCameraCreate(VLRContext context, const char* typeName, VLRCamera* camera) {
     try {
         std::string sTypeName = typeName;
-        if (sTypeName == "Perspective") {
+        if (VLR::testParamName(sTypeName, "Perspective")) {
             *camera = new VLR::PerspectiveCamera(*context);
         }
-        else if (sTypeName == "Equirectangular") {
+        else if (VLR::testParamName(sTypeName, "Equirectangular")) {
             *camera = new VLR::EquirectangularCamera(*context);
         }
         else {
@@ -1383,7 +1383,7 @@ VLR_API VLRResult vlrCameraGetPoint3D(VLRCameraConst camera, const char* paramNa
         case VLR::CameraType::Perspective: {
             auto sCamera = (const VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "position") == 0) {
+            if (VLR::testParamName(paramName, "position")) {
                 VLR::Point3D iValue;
                 sCamera->getPosition(&iValue);
                 value->x = iValue.x;
@@ -1398,7 +1398,7 @@ VLR_API VLRResult vlrCameraGetPoint3D(VLRCameraConst camera, const char* paramNa
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (const VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "position") == 0) {
+            if (VLR::testParamName(paramName, "position")) {
                 VLR::Point3D iValue;
                 sCamera->getPosition(&iValue);
                 value->x = iValue.x;
@@ -1428,7 +1428,7 @@ VLR_API VLRResult vlrCameraGetQuaternion(VLRCameraConst camera, const char* para
         case VLR::CameraType::Perspective: {
             auto sCamera = (const VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "orientation") == 0) {
+            if (VLR::testParamName(paramName, "orientation")) {
                 VLR::Quaternion iValue;
                 sCamera->getOrientation(&iValue);
                 value->x = iValue.x;
@@ -1444,7 +1444,7 @@ VLR_API VLRResult vlrCameraGetQuaternion(VLRCameraConst camera, const char* para
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (const VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "orientation") == 0) {
+            if (VLR::testParamName(paramName, "orientation")) {
                 VLR::Quaternion iValue;
                 sCamera->getOrientation(&iValue);
                 value->x = iValue.x;
@@ -1475,19 +1475,19 @@ VLR_API VLRResult vlrCameraGetFloat(VLRCameraConst camera, const char* paramName
         case VLR::CameraType::Perspective: {
             auto sCamera = (const VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "aspect") == 0) {
+            if (VLR::testParamName(paramName, "aspect")) {
                 sCamera->getAspectRatio(value);
             }
-            else if (std::strcmp(paramName, "sensitivity") == 0) {
+            else if (VLR::testParamName(paramName, "sensitivity")) {
                 sCamera->getSensitivity(value);
             }
-            else if (std::strcmp(paramName, "fovy") == 0) {
+            else if (VLR::testParamName(paramName, "fovy")) {
                 sCamera->getFovY(value);
             }
-            else if (std::strcmp(paramName, "lens radius") == 0) {
+            else if (VLR::testParamName(paramName, "lens radius")) {
                 sCamera->getLensRadius(value);
             }
-            else if (std::strcmp(paramName, "op distance") == 0) {
+            else if (VLR::testParamName(paramName, "op distance")) {
                 sCamera->getObjectPlaneDistance(value);
             }
             else {
@@ -1498,13 +1498,13 @@ VLR_API VLRResult vlrCameraGetFloat(VLRCameraConst camera, const char* paramName
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (const VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "sensitivity") == 0) {
+            if (VLR::testParamName(paramName, "sensitivity")) {
                 sCamera->getSensitivity(value);
             }
-            else if (std::strcmp(paramName, "h angle") == 0) {
+            else if (VLR::testParamName(paramName, "h angle")) {
                 sCamera->getPhiAngle(value);
             }
-            else if (std::strcmp(paramName, "v angle") == 0) {
+            else if (VLR::testParamName(paramName, "v angle")) {
                 sCamera->getThetaAngle(value);
             }
             else {
@@ -1530,7 +1530,7 @@ VLR_API VLRResult vlrCameraSetPoint3D(VLRCamera camera, const char* paramName, c
         case VLR::CameraType::Perspective: {
             auto sCamera = (VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "position") == 0) {
+            if (VLR::testParamName(paramName, "position")) {
                 VLR::Point3D iValue(value->x, value->y, value->z);
                 sCamera->setPosition(iValue);
             }
@@ -1542,7 +1542,7 @@ VLR_API VLRResult vlrCameraSetPoint3D(VLRCamera camera, const char* paramName, c
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "position") == 0) {
+            if (VLR::testParamName(paramName, "position")) {
                 VLR::Point3D iValue(value->x, value->y, value->z);
                 sCamera->setPosition(iValue);
             }
@@ -1569,7 +1569,7 @@ VLR_API VLRResult vlrCameraSetQuaternion(VLRCamera camera, const char* paramName
         case VLR::CameraType::Perspective: {
             auto sCamera = (VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "orientation") == 0) {
+            if (VLR::testParamName(paramName, "orientation")) {
                 VLR::Quaternion iValue(value->x, value->y, value->z, value->w);
                 sCamera->setOrientation(iValue);
             }
@@ -1581,7 +1581,7 @@ VLR_API VLRResult vlrCameraSetQuaternion(VLRCamera camera, const char* paramName
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "orientation") == 0) {
+            if (VLR::testParamName(paramName, "orientation")) {
                 VLR::Quaternion iValue(value->x, value->y, value->z, value->w);
                 sCamera->setOrientation(iValue);
             }
@@ -1608,19 +1608,19 @@ VLR_API VLRResult vlrCameraSetFloat(VLRCamera camera, const char* paramName, flo
         case VLR::CameraType::Perspective: {
             auto sCamera = (VLR::PerspectiveCamera*)camera;
 
-            if (std::strcmp(paramName, "aspect") == 0) {
+            if (VLR::testParamName(paramName, "aspect")) {
                 sCamera->setAspectRatio(value);
             }
-            else if (std::strcmp(paramName, "sensitivity") == 0) {
+            else if (VLR::testParamName(paramName, "sensitivity")) {
                 sCamera->setSensitivity(value);
             }
-            else if (std::strcmp(paramName, "fovy") == 0) {
+            else if (VLR::testParamName(paramName, "fovy")) {
                 sCamera->setFovY(value);
             }
-            else if (std::strcmp(paramName, "lens radius") == 0) {
+            else if (VLR::testParamName(paramName, "lens radius")) {
                 sCamera->setLensRadius(value);
             }
-            else if (std::strcmp(paramName, "op distance") == 0) {
+            else if (VLR::testParamName(paramName, "op distance")) {
                 sCamera->setObjectPlaneDistance(value);
             }
             else {
@@ -1631,13 +1631,13 @@ VLR_API VLRResult vlrCameraSetFloat(VLRCamera camera, const char* paramName, flo
         case VLR::CameraType::Equirectangular: {
             auto sCamera = (VLR::EquirectangularCamera*)camera;
 
-            if (std::strcmp(paramName, "sensitivity") == 0) {
+            if (VLR::testParamName(paramName, "sensitivity")) {
                 sCamera->setSensitivity(value);
             }
-            else if (std::strcmp(paramName, "h angle") == 0) {
+            else if (VLR::testParamName(paramName, "h angle")) {
                 sCamera->setPhiAngle(value);
             }
-            else if (std::strcmp(paramName, "v angle") == 0) {
+            else if (VLR::testParamName(paramName, "v angle")) {
                 sCamera->setThetaAngle(value);
             }
             else {

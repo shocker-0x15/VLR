@@ -1,6 +1,12 @@
 #include "connectable.h"
 
 namespace VLR {
+    bool testParamName(const std::string& paramNameA, const std::string& paramNameB) {
+        return tolower(paramNameA) == tolower(paramNameB);
+    }
+
+
+
     const char* ParameterFloat = "Float";
     const char* ParameterPoint3D = "Point3D";
     const char* ParameterVector3D = "Vector3D";
@@ -20,6 +26,12 @@ namespace VLR {
     const char* EnumTextureWrapMode = "TextureWrapMode";
     const char* EnumTangentType = "TangentType";
     const char* EnumCameraType = "CameraType";
+
+    struct EnumNameComparator {
+        bool operator()(const std::string& strA, const std::string& strB) const {
+            return tolower(strA) < tolower(strB);
+        }
+    };
 
     static bool s_enumTableInitialized = false;
     static const std::map<std::string, std::vector<std::pair<const char*, uint32_t>>> s_enumTables = {
@@ -99,7 +111,7 @@ namespace VLR {
             }
         },
     };
-    static std::map<std::string, std::map<std::string, uint32_t>> s_enumNameToIntTables;
+    static std::map<std::string, std::map<std::string, uint32_t, EnumNameComparator>> s_enumNameToIntTables;
     static std::map<std::string, std::map<uint32_t, std::string>> s_enumIntToNameTables;
 
 

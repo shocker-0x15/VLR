@@ -256,14 +256,20 @@ namespace DDS {
 
 static std::map<std::tuple<std::string, std::string, std::string>, VLRCpp::Image2DRef> s_image2DCache;
 
-// TODO: colorSpace should be determined from read image?
+// TODO: Should colorSpace be determined from the read image?
 static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, const std::string &spectrumType, const std::string &colorSpace) {
     using namespace VLRCpp;
     using namespace VLR;
 
     Image2DRef ret;
 
-    auto key = std::make_tuple(filepath, spectrumType, colorSpace);
+    const auto tolower = [](std::string str) {
+        const auto tolower = [](unsigned char c) { return std::tolower(c); };
+        std::transform(str.cbegin(), str.cend(), str.begin(), tolower);
+        return str;
+    };
+
+    auto key = std::make_tuple(filepath, tolower(spectrumType), tolower(colorSpace));
     if (s_image2DCache.count(key))
         return s_image2DCache.at(key);
 

@@ -221,13 +221,13 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
@@ -244,10 +244,10 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             *plug = m_node0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             *plug = m_node1;
         }
         else {
@@ -261,13 +261,13 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             m_imm0 = values[0];
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
@@ -282,13 +282,13 @@ namespace VLR {
     }
 
     bool Float2ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -363,19 +363,19 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm1;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (length != 1)
                 return false;
 
@@ -392,13 +392,13 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             *plug = m_node0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             *plug = m_node1;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             *plug = m_node2;
         }
         else {
@@ -412,19 +412,19 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             m_imm0 = values[0];
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
             m_imm1 = values[0];
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (length != 1)
                 return false;
 
@@ -439,19 +439,19 @@ namespace VLR {
     }
 
     bool Float3ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node1 = plug;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -530,25 +530,25 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm1;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (length != 1)
                 return false;
 
             values[0] = m_imm2;
         }
-        else if (std::strcmp(paramName, "3") == 0) {
+        else if (testParamName(paramName, "3")) {
             if (length != 1)
                 return false;
 
@@ -565,16 +565,16 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             *plug = m_node0;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             *plug = m_node1;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             *plug = m_node2;
         }
-        else if (std::strcmp(paramName, "3") == 0) {
+        else if (testParamName(paramName, "3")) {
             *plug = m_node3;
         }
         else {
@@ -588,25 +588,25 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (length != 1)
                 return false;
 
             m_imm0 = values[0];
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (length != 1)
                 return false;
 
             m_imm1 = values[0];
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (length != 1)
                 return false;
 
             m_imm2 = values[0];
         }
-        else if (std::strcmp(paramName, "3") == 0) {
+        else if (testParamName(paramName, "3")) {
             if (length != 1)
                 return false;
 
@@ -621,25 +621,25 @@ namespace VLR {
     }
 
     bool Float4ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
-        if (std::strcmp(paramName, "0") == 0) {
+        if (testParamName(paramName, "0")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
-        else if (std::strcmp(paramName, "1") == 0) {
+        else if (testParamName(paramName, "1")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node1 = plug;
         }
-        else if (std::strcmp(paramName, "2") == 0) {
+        else if (testParamName(paramName, "2")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node2 = plug;
         }
-        else if (std::strcmp(paramName, "3") == 0) {
+        else if (testParamName(paramName, "3")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -710,13 +710,13 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "scale") == 0) {
+        if (testParamName(paramName, "scale")) {
             if (length != 1)
                 return false;
 
             values[0] = m_immScale;
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             if (length != 1)
                 return false;
 
@@ -733,13 +733,13 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             *plug = m_nodeValue;
         }
-        else if (std::strcmp(paramName, "scale") == 0) {
+        else if (testParamName(paramName, "scale")) {
             *plug = m_nodeScale;
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             *plug = m_nodeOffset;
         }
         else {
@@ -753,13 +753,13 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "scale") == 0) {
+        if (testParamName(paramName, "scale")) {
             if (length != 1)
                 return false;
 
             m_immScale = values[0];
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             if (length != 1)
                 return false;
 
@@ -774,19 +774,19 @@ namespace VLR {
     }
 
     bool ScaleAndOffsetFloatShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeValue = plug;
         }
-        else if (std::strcmp(paramName, "scale") == 0) {
+        else if (testParamName(paramName, "scale")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeScale = plug;
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -853,11 +853,11 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "color space") == 0) {
+        else if (testParamName(paramName, "color space")) {
             *enumValue = getEnumMemberFromValue(m_colorSpace);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -872,7 +872,7 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "triplet") == 0) {
+        if (testParamName(paramName, "triplet")) {
             if (length != 3)
                 return false;
 
@@ -888,14 +888,14 @@ namespace VLR {
     }
 
     bool TripletSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
             if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
             m_spectrumType = v;
         }
-        else if (std::strcmp(paramName, "color space") == 0) {
+        else if (testParamName(paramName, "color space")) {
             auto v = getEnumValueFromMember<ColorSpace>(enumValue);
             if (v == (ColorSpace)0xFFFFFFFF)
                 return false;
@@ -914,7 +914,7 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "triplet") == 0) {
+        if (testParamName(paramName, "triplet")) {
             if (length != 3)
                 return false;
 
@@ -1001,7 +1001,7 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -1016,13 +1016,13 @@ namespace VLR {
         if (values == nullptr)
             return true;
 
-        if (std::strcmp(paramName, "min wavelength") == 0) {
+        if (testParamName(paramName, "min wavelength")) {
             if (length != 1)
                 return false;
 
             values[0] = m_minLambda;
         }
-        else if (std::strcmp(paramName, "max wavelength") == 0) {
+        else if (testParamName(paramName, "max wavelength")) {
             if (length != 1)
                 return false;
 
@@ -1039,7 +1039,7 @@ namespace VLR {
         if (values == nullptr || length == nullptr)
             return true;
 
-        if (std::strcmp(paramName, "values") == 0) {
+        if (testParamName(paramName, "values")) {
             *values = m_values;
             *length = m_numSamples;
         }
@@ -1054,7 +1054,7 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
             if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
@@ -1070,19 +1070,19 @@ namespace VLR {
     }
 
     bool RegularSampledSpectrumShaderNode::set(const char* paramName, const float* values, uint32_t length) {
-        if (std::strcmp(paramName, "min wavelength") == 0) {
+        if (testParamName(paramName, "min wavelength")) {
             if (length != 1)
                 return false;
 
             m_minLambda = values[0];
         }
-        else if (std::strcmp(paramName, "max wavelength") == 0) {
+        else if (testParamName(paramName, "max wavelength")) {
             if (length != 1)
                 return false;
 
             m_maxLambda = values[0];
         }
-        else if (std::strcmp(paramName, "values") == 0) {
+        else if (testParamName(paramName, "values")) {
             if (m_values)
                 delete[] m_values;
 
@@ -1172,7 +1172,7 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -1187,11 +1187,11 @@ namespace VLR {
         if (values == nullptr || length == nullptr)
             return true;
 
-        if (std::strcmp(paramName, "wavelengths") == 0) {
+        if (testParamName(paramName, "wavelengths")) {
             *values = m_lambdas;
             *length = m_numSamples;
         }
-        else if (std::strcmp(paramName, "values") == 0) {
+        else if (testParamName(paramName, "values")) {
             *values = m_values;
             *length = m_numSamples;
         }
@@ -1206,7 +1206,7 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
             if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
@@ -1222,7 +1222,7 @@ namespace VLR {
     }
 
     bool IrregularSampledSpectrumShaderNode::set(const char* paramName, const float* values, uint32_t length) {
-        if (std::strcmp(paramName, "wavelengths") == 0) {
+        if (testParamName(paramName, "wavelengths")) {
             if (m_lambdas)
                 delete[] m_lambdas;
 
@@ -1230,7 +1230,7 @@ namespace VLR {
             m_lambdas = new float[m_numSamples];
             std::copy_n(values, m_numSamples, m_lambdas);
         }
-        else if (std::strcmp(paramName, "values") == 0) {
+        else if (testParamName(paramName, "values")) {
             if (m_values)
                 delete[] m_values;
 
@@ -1304,11 +1304,11 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             *enumValue = getEnumMemberFromValue(m_spectrumType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "color space") == 0) {
+        else if (testParamName(paramName, "color space")) {
             *enumValue = getEnumMemberFromValue(m_colorSpace);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -1323,7 +1323,7 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             if (length != 3)
                 return false;
 
@@ -1342,7 +1342,7 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             *plug = m_nodeFloat3;
         }
         else {
@@ -1353,14 +1353,14 @@ namespace VLR {
     }
 
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
-        if (std::strcmp(paramName, "spectrum type") == 0) {
+        if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
             if (v == (SpectrumType)0xFFFFFFFF)
                 return false;
 
             m_spectrumType = v;
         }
-        else if (std::strcmp(paramName, "color space") == 0) {
+        else if (testParamName(paramName, "color space")) {
             auto v = getEnumValueFromMember<ColorSpace>(enumValue);
             if (v == (ColorSpace)0xFFFFFFFF)
                 return false;
@@ -1379,7 +1379,7 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             if (length != 3)
                 return false;
 
@@ -1396,7 +1396,7 @@ namespace VLR {
     }
 
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const ShaderNodePlug &plug) {
-        if (std::strcmp(paramName, "value") == 0) {
+        if (testParamName(paramName, "value")) {
             if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -1465,14 +1465,14 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "scale") == 0) {
+        if (testParamName(paramName, "scale")) {
             if (length != 2)
                 return false;
 
             values[0] = m_scale[0];
             values[1] = m_scale[1];
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             if (length != 2)
                 return false;
 
@@ -1490,14 +1490,14 @@ namespace VLR {
         if (values == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "scale") == 0) {
+        if (testParamName(paramName, "scale")) {
             if (length != 2)
                 return false;
 
             m_scale[0] = values[0];
             m_scale[1] = values[1];
         }
-        else if (std::strcmp(paramName, "offset") == 0) {
+        else if (testParamName(paramName, "offset")) {
             if (length != 2)
                 return false;
 
@@ -1612,23 +1612,23 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "bump type") == 0) {
+        if (testParamName(paramName, "bump type")) {
             *enumValue = getEnumMemberFromValue(m_bumpType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "min filter") == 0) {
+        else if (testParamName(paramName, "min filter")) {
             *enumValue = getEnumMemberFromValue(m_minFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "mag filter") == 0) {
+        else if (testParamName(paramName, "mag filter")) {
             *enumValue = getEnumMemberFromValue(m_magFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "wrap u") == 0) {
+        else if (testParamName(paramName, "wrap u")) {
             *enumValue = getEnumMemberFromValue(m_wrapU);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "wrap v") == 0) {
+        else if (testParamName(paramName, "wrap v")) {
             *enumValue = getEnumMemberFromValue(m_wrapV);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -1643,7 +1643,7 @@ namespace VLR {
         if (image == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "image") == 0) {
+        if (testParamName(paramName, "image")) {
             *image = m_image != NullImages.at(m_context.getID()) ? m_image : nullptr;
         }
         else {
@@ -1657,7 +1657,7 @@ namespace VLR {
         if (plug == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "texcoord") == 0) {
+        if (testParamName(paramName, "texcoord")) {
             *plug = m_nodeTexCoord;
         }
         else {
@@ -1668,35 +1668,35 @@ namespace VLR {
     }
 
     bool Image2DTextureShaderNode::set(const char* paramName, const char* enumValue) {
-        if (std::strcmp(paramName, "bump type") == 0) {
+        if (testParamName(paramName, "bump type")) {
             auto v = getEnumValueFromMember<BumpType>(enumValue);
             if (v == (BumpType)0xFFFFFFFF)
                 return false;
 
             m_bumpType = v;
         }
-        else if (std::strcmp(paramName, "min filter") == 0) {
+        else if (testParamName(paramName, "min filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
             if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
             m_minFilter = v;
         }
-        else if (std::strcmp(paramName, "mag filter") == 0) {
+        else if (testParamName(paramName, "mag filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
             if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
             m_magFilter = v;
         }
-        else if (std::strcmp(paramName, "wrap u") == 0) {
+        else if (testParamName(paramName, "wrap u")) {
             auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
             if (v == (TextureWrapMode)0xFFFFFFFF)
                 return false;
 
             m_wrapU = v;
         }
-        else if (std::strcmp(paramName, "wrap v") == 0) {
+        else if (testParamName(paramName, "wrap v")) {
             auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
             if (v == (TextureWrapMode)0xFFFFFFFF)
                 return false;
@@ -1712,7 +1712,7 @@ namespace VLR {
     }
 
     bool Image2DTextureShaderNode::set(const char* paramName, const Image2D* image) {
-        if (std::strcmp(paramName, "image") == 0) {
+        if (testParamName(paramName, "image")) {
             m_image = image ? image : NullImages.at(m_context.getID());
         }
         else {
@@ -1724,7 +1724,7 @@ namespace VLR {
     }
 
     bool Image2DTextureShaderNode::set(const char* paramName, const ShaderNodePlug &plug) {
-        if (std::strcmp(paramName, "texcoord") == 0) {
+        if (testParamName(paramName, "texcoord")) {
             if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
@@ -1813,11 +1813,11 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "min filter") == 0) {
+        if (testParamName(paramName, "min filter")) {
             *enumValue = getEnumMemberFromValue(m_minFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (std::strcmp(paramName, "mag filter") == 0) {
+        else if (testParamName(paramName, "mag filter")) {
             *enumValue = getEnumMemberFromValue(m_magFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
@@ -1832,7 +1832,7 @@ namespace VLR {
         if (image == nullptr)
             return false;
 
-        if (std::strcmp(paramName, "image") == 0) {
+        if (testParamName(paramName, "image")) {
             *image = m_image != NullImages.at(m_context.getID()) ? m_image : nullptr;
         }
         else {
@@ -1843,14 +1843,14 @@ namespace VLR {
     }
 
     bool EnvironmentTextureShaderNode::set(const char* paramName, const char* enumValue) {
-        if (std::strcmp(paramName, "min filter") == 0) {
+        if (testParamName(paramName, "min filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
             if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
 
             m_minFilter = v;
         }
-        else if (std::strcmp(paramName, "mag filter") == 0) {
+        else if (testParamName(paramName, "mag filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
             if (v == (TextureFilter)0xFFFFFFFF)
                 return false;
@@ -1866,7 +1866,7 @@ namespace VLR {
     }
 
     bool EnvironmentTextureShaderNode::set(const char* paramName, const Image2D* image) {
-        if (std::strcmp(paramName, "image") == 0) {
+        if (testParamName(paramName, "image")) {
             m_image = image ? image : NullImages.at(m_context.getID());
         }
         else {
