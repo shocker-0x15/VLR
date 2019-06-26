@@ -76,7 +76,7 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
         nodeAlbedo->set("mag filter", "Nearest");
 
         ShaderNodeRef nodeNormalAlpha = context->createShaderNode("Image2DTexture");
-        nodeAlbedo->set("image", imgNormalAlpha);
+        nodeNormalAlpha->set("image", imgNormalAlpha);
 
         // You can flexibly define a material by connecting shader nodes.
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
