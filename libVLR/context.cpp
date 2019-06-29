@@ -363,9 +363,10 @@ namespace VLR {
 
         m_optixContext["VLR::pv_materialDescriptorBuffer"]->set(m_optixSurfaceMaterialDescriptorBuffer);
 
-        SurfaceNode::initialize(*this);
+        Image2D::initialize(*this);
         ShaderNode::initialize(*this);
         SurfaceMaterial::initialize(*this);
+        SurfaceNode::initialize(*this);
         Camera::initialize(*this);
 
         vlrprintf(" done.\n");
@@ -427,9 +428,10 @@ namespace VLR {
             m_outputBuffer->destroy();
 
         Camera::finalize(*this);
+        SurfaceNode::finalize(*this);
         SurfaceMaterial::finalize(*this);
         ShaderNode::finalize(*this);
-        SurfaceNode::finalize(*this);
+        Image2D::finalize(*this);
 
         m_surfMatDescSlotFinder.finalize();
         m_optixSurfaceMaterialDescriptorBuffer->destroy();

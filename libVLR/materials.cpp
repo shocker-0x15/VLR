@@ -175,6 +175,7 @@ namespace VLR {
     void MatteSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context) :
@@ -293,6 +294,7 @@ namespace VLR {
     void SpecularReflectionSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context) :
@@ -448,6 +450,7 @@ namespace VLR {
     void SpecularScatteringSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context) :
@@ -606,6 +609,7 @@ namespace VLR {
     void MicrofacetReflectionSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context) :
@@ -817,6 +821,7 @@ namespace VLR {
     void MicrofacetScatteringSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context) :
@@ -1041,6 +1046,7 @@ namespace VLR {
     void LambertianScatteringSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context) :
@@ -1205,6 +1211,7 @@ namespace VLR {
     void UE4SurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context) :
@@ -1393,6 +1400,7 @@ namespace VLR {
     void OldStyleSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     OldStyleSurfaceMaterial::OldStyleSurfaceMaterial(Context &context) :
@@ -1573,6 +1581,7 @@ namespace VLR {
     void DiffuseEmitterSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
@@ -1725,6 +1734,7 @@ namespace VLR {
     void MultiSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     MultiSurfaceMaterial::MultiSurfaceMaterial(Context &context) :
@@ -1847,6 +1857,7 @@ namespace VLR {
     void EnvironmentEmitterSurfaceMaterial::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :

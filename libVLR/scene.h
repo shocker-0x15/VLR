@@ -505,6 +505,7 @@ namespace VLR {
 
         static std::string s_cameras_ptx;
         static void commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet);
+        static void commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet);
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

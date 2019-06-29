@@ -32,6 +32,9 @@ namespace VLR {
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
         static DataFormat getInternalFormat(DataFormat inputFormat, SpectrumType spectrumType);
 
         Image2D(Context &context, uint32_t width, uint32_t height,
@@ -91,6 +94,9 @@ namespace VLR {
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
         // JP: "linearData" はメモリ上のレイアウトがリニアであることを意味しており、ガンマカーブ云々を表しているのではない。
         // EN: "linearData" means data layout is linear, it doesn't mean gamma curve.
         LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
@@ -118,6 +124,9 @@ namespace VLR {
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
         BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
                                DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace);

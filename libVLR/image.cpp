@@ -235,6 +235,18 @@ namespace VLR {
 
 
 
+    // static
+    void Image2D::initialize(Context &context) {
+        LinearImage2D::initialize(context);
+        BlockCompressedImage2D::initialize(context);
+    }
+
+    // static
+    void Image2D::finalize(Context &context) {
+        BlockCompressedImage2D::finalize(context);
+        LinearImage2D::finalize(context);
+    }
+
     DataFormat Image2D::getInternalFormat(DataFormat inputFormat, SpectrumType spectrumType) {
         const auto asis = [](DataFormat inputFormat) {
             switch (inputFormat) {
@@ -665,6 +677,14 @@ namespace VLR {
 
     std::vector<ParameterInfo> LinearImage2D::ParameterInfos;
 
+    // static
+    void LinearImage2D::initialize(Context &context) {
+    }
+
+    // static
+    void LinearImage2D::finalize(Context &context) {
+    }
+
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
                                  DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
@@ -1077,6 +1097,14 @@ namespace VLR {
 
 
     std::vector<ParameterInfo> BlockCompressedImage2D::ParameterInfos;
+
+    // static
+    void BlockCompressedImage2D::initialize(Context& context) {
+    }
+
+    // static
+    void BlockCompressedImage2D::finalize(Context& context) {
+    }
     
     BlockCompressedImage2D::BlockCompressedImage2D(Context &context, const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height, 
                                                    DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :

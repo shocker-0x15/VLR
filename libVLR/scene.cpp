@@ -1266,6 +1266,14 @@ namespace VLR {
         programSet->callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
         programSet->callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, identifiers[1]);
     }
+
+    // static
+    void Camera::commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet) {
+        if (programSet.callableProgramSampleLensPosition) {
+            programSet.callableProgramSampleIDF->destroy();
+            programSet.callableProgramSampleLensPosition->destroy();
+        }
+    }
     
     // static
     void Camera::initialize(Context &context) {
@@ -1317,10 +1325,7 @@ namespace VLR {
     // static
     void PerspectiveCamera::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-
-        programSet.callableProgramSampleIDF->destroy();
-        programSet.callableProgramSampleLensPosition->destroy();
-
+        commonFinalizeProcedure(context, programSet);
         OptiXProgramSets.erase(context.getID());
     }
 
@@ -1503,11 +1508,8 @@ namespace VLR {
 
     // static
     void EquirectangularCamera::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
-
-        programSet.callableProgramSampleIDF->destroy();
-        programSet.callableProgramSampleLensPosition->destroy();
-
+        OptiXProgramSet& programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
         OptiXProgramSets.erase(context.getID());
     }
 

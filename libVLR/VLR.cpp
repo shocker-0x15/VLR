@@ -276,131 +276,6 @@ VLR_API VLRResult vlrObjectGetType(VLRObjectConst object, const char** typeName)
 
 
 
-VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
-        if (width == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *width = image->getWidth();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
-        if (height == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *height = image->getHeight();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
-
-        *stride = image->getStride();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
-
-        *format = VLR::getEnumMemberFromValue(image->getOriginalDataFormat());
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
-
-        *hasAlpha = image->originalHasAlpha();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-
-
-VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                         uint8_t* linearData, uint32_t width, uint32_t height,
-                                         const char* format, const char* spectrumType, const char* colorSpace) {
-    try {
-        if (image == nullptr || linearData == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *image = new VLR::LinearImage2D(*context, linearData, width, height,
-                                        VLR::getEnumValueFromMember<VLR::DataFormat>(format),
-                                        VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
-                                        VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::LinearImage2D);
-
-        delete image;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-
-
-VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
-                                                  uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                                  const char* dataFormat, const char* spectrumType, const char* colorSpace) {
-    try {
-        if (image == nullptr || data == nullptr || sizes == nullptr)
-            return VLRResult_InvalidArgument;
-        for (int m = 0; m < mipCount; ++m) {
-            if (data[m] == nullptr)
-                return VLRResult_InvalidArgument;
-        }
-
-        *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height,
-                                                 VLR::getEnumValueFromMember<VLR::DataFormat>(dataFormat),
-                                                 VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
-                                                 VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(image, VLR::BlockCompressedImage2D);
-
-        delete image;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-
-
 VLR_API VLRResult vlrParameterInfoGetName(VLRParameterInfoConst paramInfo, const char** name) {
     try {
         //VLR_RETURN_INVALID_INSTANCE(paramInfo, VLR::ParameterInfo);
@@ -810,6 +685,131 @@ VLR_API VLRResult vlrQueryableSetShaderNodePlug(VLRQueryable node, const char* p
 
         if (!node->set(paramName, plug))
             return VLRResult_InvalidArgument;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
+        if (width == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *width = image->getWidth();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
+        if (height == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *height = image->getHeight();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
+
+        *stride = image->getStride();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
+
+        *format = VLR::getEnumMemberFromValue(image->getOriginalDataFormat());
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::Image2D);
+
+        *hasAlpha = image->originalHasAlpha();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
+                                         uint8_t* linearData, uint32_t width, uint32_t height,
+                                         const char* format, const char* spectrumType, const char* colorSpace) {
+    try {
+        if (image == nullptr || linearData == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *image = new VLR::LinearImage2D(*context, linearData, width, height,
+                                        VLR::getEnumValueFromMember<VLR::DataFormat>(format),
+                                        VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
+                                        VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::LinearImage2D);
+
+        delete image;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
+                                                  uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+                                                  const char* dataFormat, const char* spectrumType, const char* colorSpace) {
+    try {
+        if (image == nullptr || data == nullptr || sizes == nullptr)
+            return VLRResult_InvalidArgument;
+        for (int m = 0; m < mipCount; ++m) {
+            if (data[m] == nullptr)
+                return VLRResult_InvalidArgument;
+        }
+
+        *image = new VLR::BlockCompressedImage2D(*context, data, sizes, mipCount, width, height,
+                                                 VLR::getEnumValueFromMember<VLR::DataFormat>(dataFormat),
+                                                 VLR::getEnumValueFromMember<VLR::SpectrumType>(spectrumType),
+                                                 VLR::getEnumValueFromMember<VLR::ColorSpace>(colorSpace));
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(image, VLR::BlockCompressedImage2D);
+
+        delete image;
 
         return VLRResult_NoError;
     }

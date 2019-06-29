@@ -148,6 +148,7 @@ namespace VLR {
 
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     GeometryShaderNode::GeometryShaderNode(Context &context) :
@@ -200,6 +201,7 @@ namespace VLR {
     void Float2ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     Float2ShaderNode::Float2ShaderNode(Context &context) :
@@ -340,6 +342,7 @@ namespace VLR {
     void Float3ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     Float3ShaderNode::Float3ShaderNode(Context &context) :
@@ -505,6 +508,7 @@ namespace VLR {
     void Float4ShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     Float4ShaderNode::Float4ShaderNode(Context &context) :
@@ -689,6 +693,7 @@ namespace VLR {
     void ScaleAndOffsetFloatShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
@@ -835,6 +840,7 @@ namespace VLR {
     void TripletSpectrumShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
@@ -967,6 +973,7 @@ namespace VLR {
     void RegularSampledSpectrumShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
@@ -1134,6 +1141,7 @@ namespace VLR {
     void IrregularSampledSpectrumShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
@@ -1282,6 +1290,7 @@ namespace VLR {
     void Float3ToSpectrumShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
@@ -1445,6 +1454,7 @@ namespace VLR {
     void ScaleAndOffsetUVTextureMap2DShaderNode::finalize(Context &context) {
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
@@ -1565,6 +1575,7 @@ namespace VLR {
 
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
@@ -1781,6 +1792,7 @@ namespace VLR {
 
         OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :

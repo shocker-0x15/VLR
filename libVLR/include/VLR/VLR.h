@@ -81,24 +81,6 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width);
-    VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height);
-    VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride);
-    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format);
-    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha);
-
-    VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
-                                             uint8_t* linearData, uint32_t width, uint32_t height,
-                                             const char* format, const char* spectrumType, const char* colorSpace);
-    VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image);
-
-    VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
-                                                      uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                                      const char* dataFormat, const char* spectrumType, const char* colorSpace);
-    VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image);
-
-
-
     VLR_API VLRResult vlrParameterInfoGetName(VLRParameterInfoConst paramInfo, const char** name);
     VLR_API VLRResult vlrParameterInfoGetSocketForm(VLRParameterInfoConst paramInfo, VLRParameterFormFlag* form);
     VLR_API VLRResult vlrParameterInfoGetType(VLRParameterInfoConst paramInfo, const char** type);
@@ -162,6 +144,24 @@ extern "C" {
                                                      VLRSurfaceMaterialConst value);
     VLR_API VLRResult vlrQueryableSetShaderNodePlug(VLRQueryable node, const char* paramName,
                                                     VLRShaderNodePlug plug);
+
+
+
+    VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width);
+    VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height);
+    VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride);
+    VLR_API VLRResult vlrImage2DGetOriginalDataFormat(VLRImage2DConst image, const char** format);
+    VLR_API VLRResult vlrImage2DOriginalHasAlpha(VLRImage2DConst image, bool* hasAlpha);
+
+    VLR_API VLRResult vlrLinearImage2DCreate(VLRContext context, VLRLinearImage2D* image,
+                                             uint8_t* linearData, uint32_t width, uint32_t height,
+                                             const char* format, const char* spectrumType, const char* colorSpace);
+    VLR_API VLRResult vlrLinearImage2DDestroy(VLRContext context, VLRLinearImage2D image);
+
+    VLR_API VLRResult vlrBlockCompressedImage2DCreate(VLRContext context, VLRBlockCompressedImage2D* image,
+                                                      uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+                                                      const char* dataFormat, const char* spectrumType, const char* colorSpace);
+    VLR_API VLRResult vlrBlockCompressedImage2DDestroy(VLRContext context, VLRBlockCompressedImage2D image);
 
 
 
