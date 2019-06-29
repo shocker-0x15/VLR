@@ -77,6 +77,10 @@ extern "C" {
 
 
 
+    VLR_API VLRResult vlrObjectGetType(VLRObjectConst object, const char** typeName);
+
+
+
     VLR_API VLRResult vlrImage2DGetWidth(VLRImage2DConst image, uint32_t* width);
     VLR_API VLRResult vlrImage2DGetHeight(VLRImage2DConst image, uint32_t* height);
     VLR_API VLRResult vlrImage2DGetStride(VLRImage2DConst image, uint32_t* stride);
@@ -105,55 +109,59 @@ extern "C" {
     VLR_API VLRResult vlrGetNumEnumMembers(const char* typeName, uint32_t* numMembers);
     VLR_API VLRResult vlrGetEnumMember(const char* typeName, uint32_t index, const char** value);
     
-    // Connectable
-    // Image2D, ShaderNode, SurfaceMaterial
+    // Queryable
+    // Image2D, ShaderNode, SurfaceMaterial, Camera
 
-    VLR_API VLRResult vlrConnectableGetNumParameters(VLRConnectableConst node, uint32_t* numParams);
-    VLR_API VLRResult vlrConnectableGetParameterInfo(VLRConnectableConst node, uint32_t index, VLRParameterInfoConst* paramInfo);
+    VLR_API VLRResult vlrQueryableGetNumParameters(VLRQueryableConst node, uint32_t* numParams);
+    VLR_API VLRResult vlrQueryableGetParameterInfo(VLRQueryableConst node, uint32_t index, VLRParameterInfoConst* paramInfo);
 
-    VLR_API VLRResult vlrConnectableGetEnumValue(VLRConnectableConst node, const char* paramName,
-                                                 const char** value);
-    VLR_API VLRResult vlrConnectableGetPoint3D(VLRConnectableConst node, const char* paramName,
-                                               VLRPoint3D* value);
-    VLR_API VLRResult vlrConnectableGetVector3D(VLRConnectableConst node, const char* paramName,
-                                                VLRVector3D* value);
-    VLR_API VLRResult vlrConnectableGetNormal3D(VLRConnectableConst node, const char* paramName,
-                                                VLRNormal3D* value);
-    VLR_API VLRResult vlrConnectableGetFloat(VLRConnectableConst node, const char* paramName,
-                                             float* value);
-    VLR_API VLRResult vlrConnectableGetFloatTuple(VLRConnectableConst node, const char* paramName,
-                                                  float* values, uint32_t length);
-    VLR_API VLRResult vlrConnectableGetFloatArray(VLRConnectableConst node, const char* paramName,
-                                                  const float** values, uint32_t* length);
-    VLR_API VLRResult vlrConnectableGetImage2D(VLRConnectableConst node, const char* paramName,
-                                               VLRImage2DConst* image);
-    VLR_API VLRResult vlrConnectableGetImmediateSpectrum(VLRConnectableConst node, const char* paramName,
-                                                         VLRImmediateSpectrum* value);
-    VLR_API VLRResult vlrConnectableGetSurfaceMaterial(VLRConnectableConst node, const char* paramName,
-                                                       VLRSurfaceMaterialConst* value);
-    VLR_API VLRResult vlrConnectableGetShaderNodePlug(VLRConnectableConst node, const char* paramName,
-                                                      VLRShaderNodePlug* plug);
+    VLR_API VLRResult vlrQueryableGetEnumValue(VLRQueryableConst node, const char* paramName,
+                                               const char** value);
+    VLR_API VLRResult vlrQueryableGetPoint3D(VLRQueryableConst node, const char* paramName,
+                                             VLRPoint3D* value);
+    VLR_API VLRResult vlrQueryableGetVector3D(VLRQueryableConst node, const char* paramName,
+                                              VLRVector3D* value);
+    VLR_API VLRResult vlrQueryableGetNormal3D(VLRQueryableConst node, const char* paramName,
+                                              VLRNormal3D* value);
+    VLR_API VLRResult vlrQueryableGetQuaternion(VLRQueryableConst node, const char* paramName,
+                                                VLRQuaternion* value);
+    VLR_API VLRResult vlrQueryableGetFloat(VLRQueryableConst node, const char* paramName,
+                                           float* value);
+    VLR_API VLRResult vlrQueryableGetFloatTuple(VLRQueryableConst node, const char* paramName,
+                                                float* values, uint32_t length);
+    VLR_API VLRResult vlrQueryableGetFloatArray(VLRQueryableConst node, const char* paramName,
+                                                const float** values, uint32_t* length);
+    VLR_API VLRResult vlrQueryableGetImage2D(VLRQueryableConst node, const char* paramName,
+                                             VLRImage2DConst* image);
+    VLR_API VLRResult vlrQueryableGetImmediateSpectrum(VLRQueryableConst node, const char* paramName,
+                                                       VLRImmediateSpectrum* value);
+    VLR_API VLRResult vlrQueryableGetSurfaceMaterial(VLRQueryableConst node, const char* paramName,
+                                                     VLRSurfaceMaterialConst* value);
+    VLR_API VLRResult vlrQueryableGetShaderNodePlug(VLRQueryableConst node, const char* paramName,
+                                                    VLRShaderNodePlug* plug);
 
-    VLR_API VLRResult vlrConnectableSetEnumValue(VLRConnectable node, const char* paramName,
-                                                 const char* value);
-    VLR_API VLRResult vlrConnectableSetPoint3D(VLRConnectable node, const char* paramName,
-                                               const VLRPoint3D* value);
-    VLR_API VLRResult vlrConnectableSetVector3D(VLRConnectable node, const char* paramName,
-                                                const VLRVector3D* value);
-    VLR_API VLRResult vlrConnectableSetNormal3D(VLRConnectable node, const char* paramName,
-                                                const VLRNormal3D* value);
-    VLR_API VLRResult vlrConnectableSetFloat(VLRConnectable node, const char* paramName,
-                                             float value);
-    VLR_API VLRResult vlrConnectableSetFloatTuple(VLRConnectable node, const char* paramName,
-                                                  const float* values, uint32_t length);
-    VLR_API VLRResult vlrConnectableSetImage2D(VLRConnectable node, const char* paramName,
-                                               VLRImage2DConst image);
-    VLR_API VLRResult vlrConnectableSetImmediateSpectrum(VLRConnectable node, const char* paramName,
-                                                         const VLRImmediateSpectrum* value);
-    VLR_API VLRResult vlrConnectableSetSurfaceMaterial(VLRConnectable node, const char* paramName,
-                                                       VLRSurfaceMaterialConst value);
-    VLR_API VLRResult vlrConnectableSetShaderNodePlug(VLRConnectable node, const char* paramName,
-                                                      VLRShaderNodePlug plug);
+    VLR_API VLRResult vlrQueryableSetEnumValue(VLRQueryable node, const char* paramName,
+                                               const char* value);
+    VLR_API VLRResult vlrQueryableSetPoint3D(VLRQueryable node, const char* paramName,
+                                             const VLRPoint3D* value);
+    VLR_API VLRResult vlrQueryableSetVector3D(VLRQueryable node, const char* paramName,
+                                              const VLRVector3D* value);
+    VLR_API VLRResult vlrQueryableSetNormal3D(VLRQueryable node, const char* paramName,
+                                              const VLRNormal3D* value);
+    VLR_API VLRResult vlrQueryableSetQuaternion(VLRQueryable node, const char* paramName,
+                                                const VLRQuaternion* value);
+    VLR_API VLRResult vlrQueryableSetFloat(VLRQueryable node, const char* paramName,
+                                           float value);
+    VLR_API VLRResult vlrQueryableSetFloatTuple(VLRQueryable node, const char* paramName,
+                                                const float* values, uint32_t length);
+    VLR_API VLRResult vlrQueryableSetImage2D(VLRQueryable node, const char* paramName,
+                                             VLRImage2DConst image);
+    VLR_API VLRResult vlrQueryableSetImmediateSpectrum(VLRQueryable node, const char* paramName,
+                                                       const VLRImmediateSpectrum* value);
+    VLR_API VLRResult vlrQueryableSetSurfaceMaterial(VLRQueryable node, const char* paramName,
+                                                     VLRSurfaceMaterialConst value);
+    VLR_API VLRResult vlrQueryableSetShaderNodePlug(VLRQueryable node, const char* paramName,
+                                                    VLRShaderNodePlug plug);
 
 
 
@@ -170,8 +178,6 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrTransformGetType(VLRTransformConst transform, VLRTransformType* type);
-
     VLR_API VLRResult vlrStaticTransformCreate(VLRContext context, VLRStaticTransform* transform, 
                                                const float mat[16]);
     VLR_API VLRResult vlrStaticTransformDestroy(VLRContext context, VLRStaticTransform transform);
@@ -181,7 +187,6 @@ extern "C" {
 
     VLR_API VLRResult vlrNodeSetName(VLRNode node, const char* name);
     VLR_API VLRResult vlrNodeGetName(VLRNodeConst node, const char** name);
-    VLR_API VLRResult vlrNodeGetType(VLRNodeConst node, VLRNodeType* type);
     
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(VLRContext context, VLRTriangleMeshSurfaceNode* surfaceNode,
                                                        const char* name);
@@ -220,14 +225,6 @@ extern "C" {
 
     VLR_API VLRResult vlrCameraCreate(VLRContext context, const char* typeName, VLRCamera* camera);
     VLR_API VLRResult vlrCameraDestroy(VLRContext context, VLRCamera camera);
-    
-    VLR_API VLRResult vlrCameraGetType(VLRCameraConst camera, const char** type);
-    VLR_API VLRResult vlrCameraGetPoint3D(VLRCameraConst camera, const char* paramName, VLRPoint3D* value);
-    VLR_API VLRResult vlrCameraGetQuaternion(VLRCameraConst camera, const char* paramName, VLRQuaternion* value);
-    VLR_API VLRResult vlrCameraGetFloat(VLRCameraConst camera, const char* paramName, float* value);
-    VLR_API VLRResult vlrCameraSetPoint3D(VLRCamera camera, const char* paramName, const VLRPoint3D* value);
-    VLR_API VLRResult vlrCameraSetQuaternion(VLRCamera camera, const char* paramName, const VLRQuaternion* value);
-    VLR_API VLRResult vlrCameraSetFloat(VLRCamera camera, const char* paramName, float value);
 #if defined(__cplusplus)
 }
 #endif

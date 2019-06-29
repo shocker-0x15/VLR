@@ -621,7 +621,7 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
 
 
 
-void printParameterInfos(const VLRCpp::ConnectableRef& connectable) {
+void printParameterInfos(const VLRCpp::QueryableRef& connectable) {
     uint32_t numParams = connectable->getNumParameters();
     for (int i = 0; i < numParams; ++i) {
         auto paramInfo = connectable->getParameterInfo(i);

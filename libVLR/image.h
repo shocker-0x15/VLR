@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "connectable.h"
+#include "queryable.h"
 
 namespace VLR {
     struct RGB8x3 { uint8_t r, g, b; };
@@ -19,7 +19,7 @@ namespace VLR {
 
     uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodePlugType ptype, uint32_t index);
 
-    class Image2D : public Connectable {
+    class Image2D : public Queryable {
         uint32_t m_width, m_height;
         DataFormat m_originalDataFormat;
         DataFormat m_dataFormat;
@@ -83,7 +83,7 @@ namespace VLR {
 
 
     class LinearImage2D : public Image2D {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         std::vector<uint8_t> m_data;
         mutable bool m_copyDone;
@@ -111,7 +111,7 @@ namespace VLR {
 
 
     class BlockCompressedImage2D : public Image2D {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         std::vector<std::vector<uint8_t>> m_data;
         mutable bool m_copyDone;

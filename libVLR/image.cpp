@@ -317,7 +317,7 @@ namespace VLR {
 
     Image2D::Image2D(Context &context, uint32_t width, uint32_t height,
                      DataFormat originalDataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
-        Connectable(context), m_width(width), m_height(height),
+        Queryable(context), m_width(width), m_height(height),
         m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace),
         m_initOptiXObject(false)
     {

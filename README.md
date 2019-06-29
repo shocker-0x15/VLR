@@ -124,9 +124,10 @@ context->render(scene, camera, 1, firstFrame, &numAccumFrames);
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1903) & Visual Studio 2019 (16.1.3)
+* Windows 10 (1903) & Visual Studio 2019 (16.1.4)
 * Core i9-9900K, 32GB, RTX 2070 8GB
-* NVIDIA Driver 430.64
+* NVIDIA Driver 430.64\
+  430.86 has a bug where the program fails to bind an OpenGL buffer object to the output buffer.
 
 動作させるにあたっては以下のライブラリが必要です。\
 It requires the following libraries.

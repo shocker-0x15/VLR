@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+#if defined(__CUDACC__)
+#   define VLR_Device
+#   define RT_FUNCTION __forceinline__ __device__
+#   define RT_FUNCTION_NOINLINE __noinline__ __device__
+#   define RT_VARIABLE __constant__
+#   define HOST_INLINE
+#   define HOST_STATIC_CONSTEXPR
+
+#   define vlrDevPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#endif
+
 #include "common.h"
 
 #define VLR_ENABLE_VALIDATION

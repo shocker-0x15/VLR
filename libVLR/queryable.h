@@ -29,6 +29,7 @@ namespace VLR {
     extern const char* ParameterPoint3D;
     extern const char* ParameterVector3D;
     extern const char* ParameterNormal3D;
+    extern const char* ParameterQuaternion;
     extern const char* ParameterSpectrum;
     extern const char* ParameterAlpha;
     extern const char* ParameterTextureCoordinates;
@@ -43,7 +44,6 @@ namespace VLR {
     extern const char* EnumTextureFilter;
     extern const char* EnumTextureWrapMode;
     extern const char* EnumTangentType;
-    extern const char* EnumCameraType;
 
     uint32_t getNumEnumMembers(const char* typeName);
     const char* getEnumMemberAt(const char* typeName, uint32_t index);
@@ -59,13 +59,13 @@ namespace VLR {
     class SurfaceMaterial;
     struct ShaderNodePlug;
     
-    class Connectable : public Object {
+    class Queryable : public Object {
         virtual const std::vector<ParameterInfo>& getParamInfos() const = 0;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
-        Connectable(Context& context) : Object(context) {}
+        Queryable(Context& context) : Object(context) {}
 
         virtual bool get(const char* paramName, const char** enumValue) const {
             return false;
@@ -77,6 +77,9 @@ namespace VLR {
             return false;
         }
         virtual bool get(const char* paramName, Normal3D* value) const {
+            return false;
+        }
+        virtual bool get(const char* paramName, Quaternion* value) const {
             return false;
         }
         virtual bool get(const char* paramName, float* values, uint32_t length) const {
@@ -101,13 +104,16 @@ namespace VLR {
         virtual bool set(const char* paramName, const char* enumValue) {
             return false;
         }
-        virtual bool set(const char* paramName, const Point3D &value) const {
+        virtual bool set(const char* paramName, const Point3D &value) {
             return false;
         }
-        virtual bool set(const char* paramName, const Vector3D &value) const {
+        virtual bool set(const char* paramName, const Vector3D &value) {
             return false;
         }
-        virtual bool set(const char* paramName, const Normal3D &value) const {
+        virtual bool set(const char* paramName, const Normal3D &value) {
+            return false;
+        }
+        virtual bool set(const char* paramName, const Quaternion& value) {
             return false;
         }
         virtual bool set(const char* paramName, const float* values, uint32_t length) {
@@ -138,7 +144,7 @@ namespace VLR {
         }
     };
 
-#define VLR_DECLARE_CONNECTABLE_INTERFACE() \
+#define VLR_DECLARE_QUERYABLE_INTERFACE() \
     static std::vector<ParameterInfo> ParameterInfos; \
     const std::vector<ParameterInfo> &getParamInfos() const override { \
         return ParameterInfos; \

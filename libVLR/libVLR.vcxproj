@@ -142,7 +142,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
   <ItemGroup>
     <ClCompile Include="context.cpp" />
     <ClCompile Include="image.cpp" />
-    <ClCompile Include="connectable.cpp" />
+    <ClCompile Include="queryable.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
     <ClCompile Include="shared\spectrum_types.cpp" />
     <ClCompile Include="common.cpp" />
@@ -165,7 +165,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="include\VLR\VLRCpp.h" />
     <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
-    <ClInclude Include="connectable.h" />
+    <ClInclude Include="queryable.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared\basic_types_internal.h" />
     <ClInclude Include="shared\common_internal.h" />

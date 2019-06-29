@@ -24,19 +24,21 @@ namespace VLR {
     Object::Object(Context &context) : m_context(context) {
     }
 
-#define VLR_DEFINE_CLASS_ID(BaseType, Type) const ClassIdentifier Type::ClassID = ClassIdentifier(&BaseType::ClassID)
+#define VLR_DEFINE_CLASS_ID(BaseType, Type) \
+    const char* Type::TypeName = #Type; \
+    const ClassIdentifier Type::ClassID = ClassIdentifier(&BaseType::ClassID)
 
     const ClassIdentifier TypeAwareClass::ClassID = ClassIdentifier((ClassIdentifier*)nullptr);
 
     VLR_DEFINE_CLASS_ID(TypeAwareClass, Object);
 
-    VLR_DEFINE_CLASS_ID(Object, Connectable);
+    VLR_DEFINE_CLASS_ID(Object, Queryable);
 
-    VLR_DEFINE_CLASS_ID(Connectable, Image2D);
+    VLR_DEFINE_CLASS_ID(Queryable, Image2D);
     VLR_DEFINE_CLASS_ID(Image2D, LinearImage2D);
     VLR_DEFINE_CLASS_ID(Image2D, BlockCompressedImage2D);
 
-    VLR_DEFINE_CLASS_ID(Connectable, ShaderNode);
+    VLR_DEFINE_CLASS_ID(Queryable, ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, GeometryShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float2ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float3ShaderNode);
@@ -50,7 +52,7 @@ namespace VLR {
     VLR_DEFINE_CLASS_ID(ShaderNode, Image2DTextureShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, EnvironmentTextureShaderNode);
 
-    VLR_DEFINE_CLASS_ID(Connectable, SurfaceMaterial);
+    VLR_DEFINE_CLASS_ID(Queryable, SurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, MatteSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, SpecularReflectionSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, SpecularScatteringSurfaceMaterial);
@@ -75,7 +77,7 @@ namespace VLR {
     VLR_DEFINE_CLASS_ID(ParentNode, RootNode);
     VLR_DEFINE_CLASS_ID(Object, Scene);
 
-    VLR_DEFINE_CLASS_ID(Object, Camera);
+    VLR_DEFINE_CLASS_ID(Queryable, Camera);
     VLR_DEFINE_CLASS_ID(Camera, PerspectiveCamera);
     VLR_DEFINE_CLASS_ID(Camera, EquirectangularCamera);
 
@@ -578,8 +580,8 @@ namespace VLR {
 
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         if (firstFrame) {
-            scene.set();
-            camera->set();
+            scene.setup();
+            camera->setup();
 
             optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 
@@ -609,8 +611,8 @@ namespace VLR {
 
         optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         if (firstFrame) {
-            scene.set();
-            camera->set();
+            scene.setup();
+            camera->setup();
 
             optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 

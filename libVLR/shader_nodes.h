@@ -45,7 +45,7 @@ namespace VLR {
 
 
 
-    class ShaderNode : public Connectable {
+    class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
             optix::Program callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
@@ -67,6 +67,7 @@ namespace VLR {
             ShaderNodePlugType ptype;
             const char* programName;
         };
+        static std::string s_shader_nodes_ptx;
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
@@ -107,7 +108,7 @@ namespace VLR {
 
 
     class GeometryShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, GeometryShaderNode*> Instances;
@@ -143,7 +144,7 @@ namespace VLR {
 
 
     class Float2ShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -183,7 +184,7 @@ namespace VLR {
 
 
     class Float3ShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -227,7 +228,7 @@ namespace VLR {
 
 
     class Float4ShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -275,7 +276,7 @@ namespace VLR {
 
 
     class ScaleAndOffsetFloatShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -314,7 +315,7 @@ namespace VLR {
 
 
     class TripletSpectrumShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -351,7 +352,7 @@ namespace VLR {
 
 
     class RegularSampledSpectrumShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -391,7 +392,7 @@ namespace VLR {
 
 
     class IrregularSampledSpectrumShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -429,7 +430,7 @@ namespace VLR {
 
 
     class Float3ToSpectrumShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -469,7 +470,7 @@ namespace VLR {
 
 
     class ScaleAndOffsetUVTextureMap2DShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
 
@@ -503,7 +504,7 @@ namespace VLR {
 
 
     class Image2DTextureShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
@@ -555,7 +556,7 @@ namespace VLR {
 
 
     class EnvironmentTextureShaderNode : public ShaderNode {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;

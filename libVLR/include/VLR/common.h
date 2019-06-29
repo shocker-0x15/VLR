@@ -1,13 +1,6 @@
 ﻿#pragma once
 
-#if defined(__CUDACC__)
-#   define VLR_Device
-#   define RT_FUNCTION __forceinline__ __device__
-#   define RT_FUNCTION_NOINLINE __noinline__ __device__
-#   define RT_VARIABLE __constant__
-#   define HOST_INLINE
-#   define HOST_STATIC_CONSTEXPR
-#else
+#if defined(__cplusplus) && !defined(VLR_Device)
 #   define VLR_Host
 #   define RT_FUNCTION
 #   define RT_FUNCTION_NOINLINE
@@ -35,14 +28,10 @@
 #   undef near
 #   undef far
 #   undef RGB
-#   if defined(VLR_Platform_Windows_MSVC)
-#      if defined(VLR_API_EXPORTS)
-#          define VLR_CPP_API __declspec(dllexport)
-#      else
-#          define VLR_CPP_API __declspec(dllimport)
-#      endif
+#   if defined(VLR_API_EXPORTS)
+#       define VLR_CPP_API __declspec(dllexport)
 #   else
-#      define VLR_CPP_API
+#       define VLR_CPP_API __declspec(dllimport)
 #   endif
 #else
 #   define VLR_CPP_API
@@ -73,26 +62,19 @@
 #   define ENABLE_ASSERT
 #endif
 
-// vlrDevPrintf
+// vlrDevPrintf / vlrprintf
 #if defined(VLR_Host)
 #   if defined(VLR_Platform_Windows_MSVC)
 VLR_CPP_API void vlrDevPrintf(const char* fmt, ...);
 #   else
 #       define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
-#else
-#   define vlrDevPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
-#endif
 
-// vlrprintf
-#if defined(VLR_Host)
 #   if defined(VLR_USE_DEVPRINTF) && defined(VLR_Platform_Windows_MSVC)
 #       define vlrprintf(fmt, ...) do { vlrDevPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
 #   else
 #       define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
-#else
-#   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
 #endif
 
 #if defined(ENABLE_ASSERT)
@@ -193,7 +175,7 @@ namespace VLR {
     }
     template <typename RealType>
     RT_FUNCTION HOST_INLINE constexpr RealType pow5(RealType x) {
-        return x * x * x * x *x;
+        return x * x * x * x * x;
     }
 
     template <typename T>

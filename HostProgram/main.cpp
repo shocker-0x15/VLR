@@ -248,7 +248,7 @@ class HostProgram {
     VLRCpp::CameraRef m_perspectiveCamera;
     VLRCpp::CameraRef m_equirectangularCamera;
     VLRCpp::CameraRef m_camera;
-    const char* m_cameraType;
+    std::string m_cameraType;
 
     VLR::Point3D m_cameraPosition;
     VLR::Quaternion m_cameraOrientation;
@@ -339,7 +339,7 @@ class HostProgram {
         const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
         m_cameraSettingsChanged |= ImGui::Combo("Camera Type", (int32_t*)& m_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
 
-        if (std::strcmp(m_cameraType, "Perspective") == 0) {
+        if (m_cameraType == "PerspectiveCamera") {
             m_cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &m_fovYInDeg, 1, 179, "%.3f", 2.0f);
             m_cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &m_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
             m_cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &m_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
@@ -348,7 +348,7 @@ class HostProgram {
 
             m_camera = m_perspectiveCamera;
         }
-        else if (std::strcmp(m_cameraType, "Equirectangular") == 0) {
+        else if (m_cameraType == "EquirectangularCamera") {
             m_cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &m_phiAngle, M_PI / 18, 2 * M_PI);
             m_cameraSettingsChanged |= ImGui::SliderFloat("Theta Angle", &m_thetaAngle, M_PI / 18, 1 * M_PI);
 
@@ -413,7 +413,7 @@ class HostProgram {
                     ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
                     if (m_selectedNodes.count(curChild))
                         node_flags |= ImGuiTreeNodeFlags_Selected;
-                    if (child->getNodeType() == VLRNodeType_InternalNode) {
+                    if (child->getType() == "InternalNode") {
                         bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
                         bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
                         if (ImGui::IsItemClicked() && mouseOnLabel)
@@ -450,7 +450,7 @@ class HostProgram {
                     ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
                     if (m_selectedNodes.count(curChild))
                         node_flags |= ImGuiTreeNodeFlags_Selected;
-                    if (child->getNodeType() == VLRNodeType_InternalNode) {
+                    if (child->getType() == "InternalNode") {
                         bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)i, node_flags, child->getName());
                         bool mouseOnLabel = (ImGui::GetMousePos().x - ImGui::GetItemRectMin().x) > ImGui::GetTreeNodeToLabelSpacing();
                         if (ImGui::IsItemClicked() && mouseOnLabel)
@@ -521,7 +521,7 @@ class HostProgram {
             }
 
             static char m_nodeName[256];
-            static VLRNodeType m_nodeType = (VLRNodeType)-1;
+            static std::string m_nodeType = "";
             static InternalNodeRef m_internalNode;
             static Vector3D m_nodeScale;
             static Vector3D m_nodeRotation;
@@ -530,12 +530,12 @@ class HostProgram {
                 size_t copySize = std::min(std::strlen(onlyOneSelectedNode->getName()), sizeof(m_nodeName) - 1);
                 std::memcpy(m_nodeName, onlyOneSelectedNode->getName(), copySize);
                 m_nodeName[copySize] = '\0';
-                m_nodeType = onlyOneSelectedNode->getNodeType();
+                m_nodeType = onlyOneSelectedNode->getType();
 
-                if (m_nodeType == VLRNodeType_InternalNode) {
+                if (m_nodeType == "InternalNode") {
                     m_internalNode = std::dynamic_pointer_cast<InternalNodeHolder>(onlyOneSelectedNode);
                     TransformRef tr = m_internalNode->getTransform();
-                    if (tr->getTransformType() == VLRTransformType_Static) {
+                    if (tr->getType() == "StaticTransform") {
                         Matrix4x4 mat, invMat;
                         auto sTr = std::dynamic_pointer_cast<StaticTransformHolder>(tr);
                         sTr->getMatrices(&mat, &invMat);
@@ -548,7 +548,7 @@ class HostProgram {
             }
             else if (m_selectedNodes.size() != 1) {
                 m_nodeName[0] = '\0';
-                m_nodeType = (VLRNodeType)-1;
+                m_nodeType = "";
             }
 
             if (onlyOneSelectedNode) {
@@ -561,7 +561,7 @@ class HostProgram {
                 ImGui::PopID();
 
                 if (m_selectedNodes.size() == 1) {
-                    if (m_nodeType == VLRNodeType_InternalNode) {
+                    if (m_nodeType == "InternalNode") {
                         // TODO: tabでフォーカスを動かしたときも編集を確定させる。
                         //       ImGuiにバグがあるっぽい？
                         bool trChanged = false;
@@ -593,7 +593,7 @@ class HostProgram {
 
     void setViewport(const VLRCpp::CameraRef& camera) {
         m_cameraType = camera->getType();
-        if (std::strcmp(m_cameraType, "Perspective") == 0) {
+        if (m_cameraType == "PerspectiveCamera") {
             camera->get("position", &m_cameraPosition);
             camera->get("orientation", &m_cameraOrientation);
             camera->get("sensitivity", &m_persSensitivity);
@@ -1023,7 +1023,7 @@ public:
                 m_sceneChanged = false;
                 showSceneWindow();
 
-                if (std::strcmp(m_cameraType, "Perspective") == 0) {
+                if (m_cameraType == "PerspectiveCamera") {
                     m_perspectiveCamera->set("position", m_cameraPosition);
                     m_perspectiveCamera->set("orientation", m_tempCameraOrientation);
                     if (m_cameraSettingsChanged) {
@@ -1034,7 +1034,7 @@ public:
                         m_perspectiveCamera->set("op distance", m_objPlaneDistance);
                     }
                 }
-                else if (std::strcmp(m_cameraType, "Equirectangular") == 0) {
+                else if (m_cameraType == "EquirectangularCamera") {
                     m_equirectangularCamera->set("position", m_cameraPosition);
                     m_equirectangularCamera->set("orientation", m_tempCameraOrientation);
                     if (m_cameraSettingsChanged) {
@@ -1208,6 +1208,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, enableRTX, maxCallableDepth, stackSize,
                                                          deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
+
+    context->enableAllExceptions();
 
     Shot shot;
     createScene(context, &shot);

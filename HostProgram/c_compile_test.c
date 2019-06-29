@@ -32,5 +32,5 @@ static void C_CompileTest() {
 
     VLRShaderNodePlug plugImageNodeSpectrum;
     CHECK(vlrShaderNodeGetPlug(imageNode, VLRShaderNodePlugType_Spectrum, 0, &plugImageNodeSpectrum));
-    CHECK(vlrConnectableSetShaderNodePlug(ue4Mat, "base color", plugImageNodeSpectrum));
+    CHECK(vlrQueryableSetShaderNodePlug(ue4Mat, "base color", plugImageNodeSpectrum));
 }

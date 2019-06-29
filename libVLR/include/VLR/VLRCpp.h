@@ -13,8 +13,8 @@
 
 namespace VLRCpp {
     class Context;
-    typedef std::shared_ptr<Context> ContextRef;
-    typedef std::shared_ptr<const Context> ContextConstRef;
+    using ContextRef = std::shared_ptr<Context>;
+    using ContextConstRef = std::shared_ptr<const Context>;
 
     // e.g. Object
     // class ObjectHolder;
@@ -42,6 +42,12 @@ namespace VLRCpp {
     public:
         ObjectHolder(const ContextConstRef &context) : m_context(context), m_raw(nullptr) {}
         virtual ~ObjectHolder() {}
+
+        std::string getType() const {
+            const char* ret;
+            errorCheck(vlrObjectGetType(m_raw, &ret));
+            return ret;
+        }
 
         template <typename VLRType>
         VLRType getRaw() const { return (VLRType)m_raw; }
@@ -102,87 +108,99 @@ namespace VLRCpp {
 
 
 
-    class ConnectableHolder : public ObjectHolder {
+    class QueryableHolder : public ObjectHolder {
         std::map<const char*, ObjectRef> m_objects;
 
     public:
-        ConnectableHolder(const ContextConstRef& context) : ObjectHolder(context) {}
+        QueryableHolder(const ContextConstRef& context) : ObjectHolder(context) {}
 
         inline bool get(const char* paramName, const char** enumValue) const {
-            VLRResult err = errorCheck(vlrConnectableGetEnumValue(getRaw<VLRConnectable>(), paramName, enumValue));
+            VLRResult err = errorCheck(vlrQueryableGetEnumValue(getRaw<VLRQueryable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, VLR::Point3D* value) const {
             VLRPoint3D cValue;
-            VLRResult err = errorCheck(vlrConnectableGetPoint3D(getRaw<VLRConnectable>(), paramName, &cValue));
-            value->x = cValue.x;
-            value->y = cValue.y;
-            value->z = cValue.z;
-            return err == VLRResult_NoError;
+            VLRResult err = errorCheck(vlrQueryableGetPoint3D(getRaw<VLRQueryable>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Point3D(cValue.x, cValue.y, cValue.z);
+            return true;
         }
         inline bool get(const char* paramName, VLR::Vector3D* value) const {
             VLRVector3D cValue;
-            VLRResult err = errorCheck(vlrConnectableGetVector3D(getRaw<VLRConnectable>(), paramName, &cValue));
-            value->x = cValue.x;
-            value->y = cValue.y;
-            value->z = cValue.z;
-            return err == VLRResult_NoError;
+            VLRResult err = errorCheck(vlrQueryableGetVector3D(getRaw<VLRQueryable>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Vector3D(cValue.x, cValue.y, cValue.z);
+            return true;
         }
         inline bool get(const char* paramName, VLR::Normal3D* value) const {
             VLRNormal3D cValue;
-            VLRResult err = errorCheck(vlrConnectableGetNormal3D(getRaw<VLRConnectable>(), paramName, &cValue));
-            value->x = cValue.x;
-            value->y = cValue.y;
-            value->z = cValue.z;
-            return err == VLRResult_NoError;
+            VLRResult err = errorCheck(vlrQueryableGetNormal3D(getRaw<VLRQueryable>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Normal3D(cValue.x, cValue.y, cValue.z);
+            return true;
+        }
+        inline bool get(const char* paramName, VLR::Quaternion* value) const {
+            VLRQuaternion cValue;
+            VLRResult err = errorCheck(vlrQueryableGetQuaternion(getRaw<VLRQueryable>(), paramName, &cValue));
+            if (err != VLRResult_NoError)
+                return false;
+            *value = VLR::Quaternion(cValue.x, cValue.y, cValue.z, cValue.w);
+            return true;
         }
         inline bool get(const char* paramName, float* value) const {
-            VLRResult err = errorCheck(vlrConnectableGetFloat(getRaw<VLRConnectable>(), paramName, value));
+            VLRResult err = errorCheck(vlrQueryableGetFloat(getRaw<VLRQueryable>(), paramName, value));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, float* values, uint32_t length) const {
-            VLRResult err = errorCheck(vlrConnectableGetFloatTuple(getRaw<VLRConnectable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableGetFloatTuple(getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, const float** values, uint32_t* length) const {
-            VLRResult err = errorCheck(vlrConnectableGetFloatArray(getRaw<VLRConnectable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableGetFloatArray(getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, Image2DRef* image) const;
         inline bool get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
-            VLRResult err = errorCheck(vlrConnectableGetImmediateSpectrum(getRaw<VLRConnectable>(), paramName, spectrum));
+            VLRResult err = errorCheck(vlrQueryableGetImmediateSpectrum(getRaw<VLRQueryable>(), paramName, spectrum));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, SurfaceMaterialRef* material) const;
         inline bool get(const char* paramName, ShaderNodePlug* plug) const;
 
         inline bool set(const char* paramName, const char* enumValue) const {
-            VLRResult err = errorCheck(vlrConnectableSetEnumValue(getRaw<VLRConnectable>(), paramName, enumValue));
+            VLRResult err = errorCheck(vlrQueryableSetEnumValue(getRaw<VLRQueryable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const VLR::Point3D& value) const {
-            VLRResult err = errorCheck(vlrConnectableSetPoint3D(getRaw<VLRConnectable>(), paramName, (VLRPoint3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetPoint3D(getRaw<VLRQueryable>(), paramName, (VLRPoint3D*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const VLR::Vector3D& value) const {
-            VLRResult err = errorCheck(vlrConnectableSetVector3D(getRaw<VLRConnectable>(), paramName, (VLRVector3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetVector3D(getRaw<VLRQueryable>(), paramName, (VLRVector3D*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const VLR::Normal3D& value) const {
-            VLRResult err = errorCheck(vlrConnectableSetNormal3D(getRaw<VLRConnectable>(), paramName, (VLRNormal3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetNormal3D(getRaw<VLRQueryable>(), paramName, (VLRNormal3D*)&value));
+            return err == VLRResult_NoError;
+        }
+        inline bool set(const char* paramName, const VLR::Quaternion& value) const {
+            VLRResult err = errorCheck(vlrQueryableSetQuaternion(getRaw<VLRQueryable>(), paramName, (VLRQuaternion*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, float value) const {
-            VLRResult err = errorCheck(vlrConnectableSetFloat(getRaw<VLRConnectable>(), paramName, value));
+            VLRResult err = errorCheck(vlrQueryableSetFloat(getRaw<VLRQueryable>(), paramName, value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const float* values, uint32_t length) const {
-            VLRResult err = errorCheck(vlrConnectableSetFloatTuple(getRaw<VLRConnectable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableSetFloatTuple(getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const Image2DRef& image);
         inline bool set(const char* paramName, const VLRImmediateSpectrum& spectrum) const {
-            VLRResult err = errorCheck(vlrConnectableSetImmediateSpectrum(getRaw<VLRConnectable>(), paramName, &spectrum));
+            VLRResult err = errorCheck(vlrQueryableSetImmediateSpectrum(getRaw<VLRQueryable>(), paramName, &spectrum));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const SurfaceMaterialRef& material);
@@ -190,21 +208,21 @@ namespace VLRCpp {
 
         uint32_t getNumParameters() const {
             uint32_t numParams;
-            errorCheck(vlrConnectableGetNumParameters(getRaw<VLRConnectable>(), &numParams));
+            errorCheck(vlrQueryableGetNumParameters(getRaw<VLRQueryable>(), &numParams));
             return numParams;
         }
         ParameterInfo getParameterInfo(uint32_t index) const {
             VLRParameterInfoConst paramInfo;
-            errorCheck(vlrConnectableGetParameterInfo(getRaw<VLRConnectable>(), index, &paramInfo));
+            errorCheck(vlrQueryableGetParameterInfo(getRaw<VLRQueryable>(), index, &paramInfo));
             return ParameterInfo(m_context, paramInfo);
         }
     };
 
 
 
-    class Image2DHolder : public ConnectableHolder {
+    class Image2DHolder : public QueryableHolder {
     public:
-        Image2DHolder(const ContextConstRef &context) : ConnectableHolder(context) {}
+        Image2DHolder(const ContextConstRef &context) : QueryableHolder(context) {}
 
         uint32_t getWidth() const {
             uint32_t width;
@@ -265,9 +283,9 @@ namespace VLRCpp {
 
 
 
-    class ShaderNodeHolder : public ConnectableHolder {
+    class ShaderNodeHolder : public QueryableHolder {
     public:
-        ShaderNodeHolder(const ContextConstRef &context, const char* typeName) : ConnectableHolder(context) {
+        ShaderNodeHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrShaderNodeCreate(getRawContext(m_context), typeName, (VLRShaderNode*)&m_raw));
         }
 
@@ -280,18 +298,18 @@ namespace VLRCpp {
 
 
 
-    class SurfaceMaterialHolder : public ConnectableHolder {
+    class SurfaceMaterialHolder : public QueryableHolder {
     public:
-        SurfaceMaterialHolder(const ContextConstRef &context, const char* typeName) : ConnectableHolder(context) {
+        SurfaceMaterialHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrSurfaceMaterialCreate(getRawContext(m_context), typeName, (VLRSurfaceMaterial*)&m_raw));
         }
     };
 
 
 
-    bool ConnectableHolder::get(const char* paramName, Image2DRef* image) const {
+    bool QueryableHolder::get(const char* paramName, Image2DRef* image) const {
         VLRImage2DConst cImage;
-        VLRResult err = errorCheck(vlrConnectableGetImage2D(getRaw<VLRConnectable>(), paramName, &cImage));
+        VLRResult err = errorCheck(vlrQueryableGetImage2D(getRaw<VLRQueryable>(), paramName, &cImage));
         if (err != VLRResult_NoError)
             return false;
         if (cImage == nullptr) {
@@ -302,9 +320,9 @@ namespace VLRCpp {
         *image = std::dynamic_pointer_cast<Image2DHolder>(m_objects.at(paramName));
         return true;
     }
-    bool ConnectableHolder::get(const char* paramName, SurfaceMaterialRef* material) const {
+    bool QueryableHolder::get(const char* paramName, SurfaceMaterialRef* material) const {
         VLRSurfaceMaterialConst cMaterial;
-        VLRResult err = errorCheck(vlrConnectableGetSurfaceMaterial(getRaw<VLRConnectable>(), paramName, &cMaterial));
+        VLRResult err = errorCheck(vlrQueryableGetSurfaceMaterial(getRaw<VLRQueryable>(), paramName, &cMaterial));
         if (err != VLRResult_NoError)
             return false;
         if (cMaterial == nullptr) {
@@ -315,9 +333,9 @@ namespace VLRCpp {
         *material = std::dynamic_pointer_cast<SurfaceMaterialHolder>(m_objects.at(paramName));
         return true;
     }
-    bool ConnectableHolder::get(const char* paramName, ShaderNodePlug* plug) const {
+    bool QueryableHolder::get(const char* paramName, ShaderNodePlug* plug) const {
         VLRShaderNodePlug cPlug;
-        VLRResult err = errorCheck(vlrConnectableGetShaderNodePlug(getRaw<VLRConnectable>(), paramName, &cPlug));
+        VLRResult err = errorCheck(vlrQueryableGetShaderNodePlug(getRaw<VLRQueryable>(), paramName, &cPlug));
         if (err != VLRResult_NoError)
             return false;
         if (cPlug.nodeRef == (uintptr_t)nullptr) {
@@ -329,28 +347,28 @@ namespace VLRCpp {
         return true;
     }
 
-    bool ConnectableHolder::set(const char* paramName, const Image2DRef& image) {
+    bool QueryableHolder::set(const char* paramName, const Image2DRef& image) {
         VLRImage2D cImage = nullptr;
         if (image)
             cImage = image->getRaw<VLRImage2D>();
-        VLRResult err = errorCheck(vlrConnectableSetImage2D(getRaw<VLRConnectable>(), paramName, cImage));
+        VLRResult err = errorCheck(vlrQueryableSetImage2D(getRaw<VLRQueryable>(), paramName, cImage));
         if (err != VLRResult_NoError)
             return false;
         m_objects[paramName] = image;
         return true;
     }
-    bool ConnectableHolder::set(const char* paramName, const SurfaceMaterialRef& material) {
+    bool QueryableHolder::set(const char* paramName, const SurfaceMaterialRef& material) {
         VLRSurfaceMaterial cMaterial = nullptr;
         if (material)
             cMaterial = material->getRaw<VLRSurfaceMaterial>();
-        VLRResult err = errorCheck(vlrConnectableSetSurfaceMaterial(getRaw<VLRConnectable>(), paramName, cMaterial));
+        VLRResult err = errorCheck(vlrQueryableSetSurfaceMaterial(getRaw<VLRQueryable>(), paramName, cMaterial));
         if (err != VLRResult_NoError)
             return false;
         m_objects[paramName] = material;
         return true;
     }
-    bool ConnectableHolder::set(const char* paramName, const ShaderNodePlug& plug) {
-        VLRResult err = errorCheck(vlrConnectableSetShaderNodePlug(getRaw<VLRConnectable>(), paramName, plug.plug));
+    bool QueryableHolder::set(const char* paramName, const ShaderNodePlug& plug) {
+        VLRResult err = errorCheck(vlrQueryableSetShaderNodePlug(getRaw<VLRQueryable>(), paramName, plug.plug));
         if (err != VLRResult_NoError)
             return false;
         VLRShaderNode cShaderNode = plug.node->getRaw<VLRShaderNode>();
@@ -363,12 +381,6 @@ namespace VLRCpp {
     class TransformHolder : public ObjectHolder {
     public:
         TransformHolder(const ContextConstRef &context) : ObjectHolder(context) {}
-
-        VLRTransformType getTransformType() const {
-            VLRTransformType type;
-            errorCheck(vlrTransformGetType(getRaw<VLRTransform>(), &type));
-            return type;
-        }
     };
 
 
@@ -404,11 +416,6 @@ namespace VLRCpp {
     public:
         NodeHolder(const ContextConstRef &context) : ObjectHolder(context) {}
 
-        VLRNodeType getNodeType() const {
-            VLRNodeType type;
-            errorCheck(vlrNodeGetType(getRaw<VLRNode>(), &type));
-            return type;
-        }
         void setName(const std::string &name) const {
             errorCheck(vlrNodeSetName(getRaw<VLRNode>(), name.c_str()));
         }
@@ -612,67 +619,10 @@ namespace VLRCpp {
 
 
 
-    class CameraHolder : public ObjectHolder {
+    class CameraHolder : public QueryableHolder {
     public:
-        CameraHolder(const ContextConstRef &context, const char* typeName) : ObjectHolder(context) {
+        CameraHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrCameraCreate(getRawContext(m_context), typeName, (VLRCamera*)&m_raw));
-        }
-
-        const char* getType() const {
-            const char* ret = nullptr;
-            errorCheck(vlrCameraGetType(getRaw<VLRCamera>(), &ret));
-            return ret;
-        }
-        bool get(const char* paramName, VLR::Point3D* value) const {
-            VLRPoint3D cValue;
-            VLRResult err = errorCheck(vlrCameraGetPoint3D(getRaw<VLRCamera>(), paramName, &cValue));
-            if (err != VLRResult_NoError)
-                return false;
-            *value = VLR::Point3D(cValue.x, cValue.y, cValue.z);
-            return true;
-        }
-        bool get(const char* paramName, VLR::Quaternion* value) const {
-            VLRQuaternion cValue;
-            VLRResult err = errorCheck(vlrCameraGetQuaternion(getRaw<VLRCamera>(), paramName, &cValue));
-            if (err != VLRResult_NoError)
-                return false;
-            *value = VLR::Quaternion(cValue.x, cValue.y, cValue.z, cValue.w);
-            return true;
-        }
-        bool get(const char* paramName, float* value) const {
-            float temp;
-            VLRResult err = errorCheck(vlrCameraGetFloat(getRaw<VLRCamera>(), paramName, &temp));
-            if (err != VLRResult_NoError)
-                return false;
-            *value = temp;
-            return true;
-        }
-        bool set(const char* paramName, const VLR::Point3D& value) const {
-            VLRPoint3D cValue;
-            cValue.x = value.x;
-            cValue.y = value.y;
-            cValue.z = value.z;
-            VLRResult err = errorCheck(vlrCameraSetPoint3D(getRaw<VLRCamera>(), paramName, &cValue));
-            if (err != VLRResult_NoError)
-                return false;
-            return true;
-        }
-        bool set(const char* paramName, const VLR::Quaternion &value) const {
-            VLRQuaternion cValue;
-            cValue.x = value.x;
-            cValue.y = value.y;
-            cValue.z = value.z;
-            cValue.w = value.w;
-            VLRResult err = errorCheck(vlrCameraSetQuaternion(getRaw<VLRCamera>(), paramName, &cValue));
-            if (err != VLRResult_NoError)
-                return false;
-            return true;
-        }
-        bool set(const char* paramName, float value) const {
-            VLRResult err = errorCheck(vlrCameraSetFloat(getRaw<VLRCamera>(), paramName, value));
-            if (err != VLRResult_NoError)
-                return false;
-            return true;
         }
     };
 

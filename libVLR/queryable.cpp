@@ -1,4 +1,4 @@
-#include "connectable.h"
+#include "queryable.h"
 
 namespace VLR {
     bool testParamName(const std::string& paramNameA, const std::string& paramNameB) {
@@ -11,6 +11,7 @@ namespace VLR {
     const char* ParameterPoint3D = "Point3D";
     const char* ParameterVector3D = "Vector3D";
     const char* ParameterNormal3D = "Normal3D";
+    const char* ParameterQuaternion = "Quaternion";
     const char* ParameterSpectrum = "Spectrum";
     const char* ParameterAlpha = "Alpha";
     const char* ParameterTextureCoordinates = "TextureCoordinates";
@@ -25,7 +26,6 @@ namespace VLR {
     const char* EnumTextureFilter = "TextureFilter";
     const char* EnumTextureWrapMode = "TextureWrapMode";
     const char* EnumTangentType = "TangentType";
-    const char* EnumCameraType = "CameraType";
 
     struct EnumNameComparator {
         bool operator()(const std::string& strA, const std::string& strB) const {
@@ -102,12 +102,6 @@ namespace VLR {
                 {"Radial X", (uint32_t)TangentType::RadialX},
                 {"Radial Y", (uint32_t)TangentType::RadialY},
                 {"Radial Z", (uint32_t)TangentType::RadialZ},
-            }
-        },
-        {
-            EnumCameraType, {
-                {"Perspective", (uint32_t)CameraType::Perspective},
-                {"Equirectangular", (uint32_t)CameraType::Equirectangular}
             }
         },
     };
@@ -209,7 +203,6 @@ namespace VLR {
     VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(TextureFilter);
     VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(TextureWrapMode);
     VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(TangentType);
-    VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(CameraType);
 
     VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(SpectrumType);
     VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(ColorSpace);
@@ -218,7 +211,6 @@ namespace VLR {
     VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(TextureFilter);
     VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(TextureWrapMode);
     VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(TangentType);
-    VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(CameraType);
 
 #undef VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE
 #undef VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER

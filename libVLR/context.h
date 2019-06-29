@@ -22,11 +22,6 @@ namespace VLR {
         Mirror,
         ClampToBorder,
     };
-    
-    enum class CameraType {
-        Perspective = 0,
-        Equirectangular,
-    };
 
 
 
@@ -219,6 +214,7 @@ namespace VLR {
 
     class TypeAwareClass {
     public:
+        virtual const char* getType() const = 0;
         static const ClassIdentifier ClassID;
         virtual const ClassIdentifier& getClass() const { return ClassID; }
 
@@ -240,6 +236,8 @@ namespace VLR {
     };
 
 #define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
+    static const char* TypeName; \
+    virtual const char* getType() const { return TypeName; } \
     static const ClassIdentifier ClassID; \
     virtual const ClassIdentifier &getClass() const override { return ClassID; }
 

@@ -9,7 +9,6 @@ namespace VLR {
 
         virtual ~Transform() {}
 
-        virtual VLRTransformType getType() const = 0;
         virtual bool isStatic() const = 0;
     };
 
@@ -24,7 +23,6 @@ namespace VLR {
 
         StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
 
-        VLRTransformType getType() const override { return VLRTransformType_Static; }
         bool isStatic() const override { return true; }
 
         StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
@@ -213,7 +211,6 @@ namespace VLR {
         virtual void setName(const std::string &name) {
             m_name = name;
         }
-        virtual VLRNodeType getType() const = 0;
 
         const std::string &getName() const {
             return m_name;
@@ -277,10 +274,6 @@ namespace VLR {
 
         TriangleMeshSurfaceNode(Context &context, const std::string &name);
         ~TriangleMeshSurfaceNode();
-
-        VLRNodeType getType() const override {
-            return VLRNodeType_TriangleMeshSurfaceNode;
-        }
 
         void addParent(ParentNode* parent) override;
         void removeParent(ParentNode* parent) override;
@@ -378,9 +371,6 @@ namespace VLR {
         virtual ~ParentNode();
 
         void setName(const std::string &name) override;
-        VLRNodeType getType() const override {
-            return VLRNodeType_InternalNode;
-        }
 
         virtual void transformAddEvent(const std::set<SHTransform*>& childDelta) = 0;
         virtual void transformRemoveEvent(const std::set<SHTransform*>& childDelta) = 0;
@@ -501,12 +491,21 @@ namespace VLR {
         void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
         void setEnvironmentRotation(float rotationPhi);
 
-        void set();
+        void setup();
     };
 
 
 
-    class Camera : public Object {
+    class Camera : public Queryable {
+    protected:
+        struct OptiXProgramSet {
+            optix::Program callableProgramSampleLensPosition;
+            optix::Program callableProgramSampleIDF;
+        };
+
+        static std::string s_cameras_ptx;
+        static void commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet);
+
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
@@ -514,20 +513,16 @@ namespace VLR {
         static void finalize(Context &context);
 
         Camera(Context &context) : 
-            Object(context) {}
+            Queryable(context) {}
         virtual ~Camera() {}
 
-        virtual void set() const = 0;
-        virtual CameraType getType() const = 0;
+        virtual void setup() const = 0;
     };
 
 
 
     class PerspectiveCamera : public Camera {
-        struct OptiXProgramSet {
-            optix::Program callableProgramSampleLensPosition;
-            optix::Program callableProgramSampleIDF;
-        };
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -541,68 +536,21 @@ namespace VLR {
 
         PerspectiveCamera(Context &context);
 
-        void set() const override;
-        CameraType getType() const override {
-            return CameraType::Perspective;
-        }
+        bool get(const char* paramName, Point3D* value) const override;
+        bool get(const char* paramName, Quaternion* value) const override;
+        bool get(const char* paramName, float* values, uint32_t length) const override;
 
-        void setPosition(const Point3D &position) {
-            m_data.position = position;
-        }
-        void setOrientation(const Quaternion &orientation) {
-            m_data.orientation = orientation;
-        }
-        void setAspectRatio(float aspect) {
-            m_data.aspect = std::max(0.001f, aspect);
-            m_data.setImagePlaneArea();
-        }
-        void setSensitivity(float sensitivity) {
-            if (!std::isfinite(sensitivity))
-                sensitivity = 1.0f;
-            m_data.sensitivity = std::max(0.0f, sensitivity);
-        }
-        void setFovY(float fovY) {
-            m_data.fovY = VLR::clamp<float>(fovY, 0.0001f, M_PI * 0.999f);
-            m_data.setImagePlaneArea();
-        }
-        void setLensRadius(float lensRadius) {
-            m_data.lensRadius = std::max(0.0f, lensRadius);
-        }
-        void setObjectPlaneDistance(float distance) {
-            m_data.objPlaneDistance = std::max(0.0f, distance);
-            m_data.setImagePlaneArea();
-        }
+        bool set(const char* paramName, const Point3D &value) override;
+        bool set(const char* paramName, const Quaternion &value) override;
+        bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void getPosition(Point3D* position) const {
-            *position = m_data.position;
-        }
-        void getOrientation(Quaternion* orientation) const {
-            *orientation = m_data.orientation;
-        }
-        void getAspectRatio(float* aspect) const {
-            *aspect = m_data.aspect;
-        }
-        void getSensitivity(float* sensitivity) const {
-            *sensitivity = m_data.sensitivity;
-        }
-        void getFovY(float* fovY) const {
-            *fovY = m_data.fovY;
-        }
-        void getLensRadius(float* lensRadius) const {
-            *lensRadius = m_data.lensRadius;
-        }
-        void getObjectPlaneDistance(float* distance) const {
-            *distance = m_data.objPlaneDistance;
-        }
+        void setup() const override;
     };
 
 
 
     class EquirectangularCamera : public Camera {
-        struct OptiXProgramSet {
-            optix::Program callableProgramSampleLensPosition;
-            optix::Program callableProgramSampleIDF;
-        };
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -616,43 +564,14 @@ namespace VLR {
 
         EquirectangularCamera(Context &context);
 
-        void set() const override;
-        CameraType getType() const override {
-            return CameraType::Equirectangular;
-        }
+        bool get(const char* paramName, Point3D* value) const override;
+        bool get(const char* paramName, Quaternion* value) const override;
+        bool get(const char* paramName, float* values, uint32_t length) const override;
 
-        void setPosition(const Point3D &position) {
-            m_data.position = position;
-        }
-        void setOrientation(const Quaternion &orientation) {
-            m_data.orientation = orientation;
-        }
-        void setSensitivity(float sensitivity) {
-            if (!std::isfinite(sensitivity))
-                sensitivity = 1.0f;
-            m_data.sensitivity = std::max(0.0f, sensitivity);
-        }
-        void setPhiAngle(float angle) {
-            m_data.phiAngle = VLR::clamp<float>(angle, 0.01f, 2 * M_PI);
-        }
-        void setThetaAngle(float angle) {
-            m_data.thetaAngle = VLR::clamp<float>(angle, 0.01f, M_PI);
-        }
+        bool set(const char* paramName, const Point3D& value) override;
+        bool set(const char* paramName, const Quaternion& value) override;
+        bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void getPosition(Point3D* position) const {
-            *position = m_data.position;
-        }
-        void getOrientation(Quaternion* orientation) const {
-            *orientation = m_data.orientation;
-        }
-        void getSensitivity(float* sensitivity) const {
-            *sensitivity = m_data.sensitivity;
-        }
-        void getPhiAngle(float* angle) const {
-            *angle = m_data.phiAngle;
-        }
-        void getThetaAngle(float* angle) const {
-            *angle = m_data.thetaAngle;
-        }
+        void setup() const override;
     };
 }

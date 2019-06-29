@@ -15,9 +15,11 @@ namespace VLR {
 
 
 
+    std::string ShaderNode::s_shader_nodes_ptx;
+    
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
+        const std::string &ptx = s_shader_nodes_ptx;
 
         optix::Context optixContext = context.getOptiXContext();
 
@@ -57,6 +59,8 @@ namespace VLR {
 
     // static
     void ShaderNode::initialize(Context &context) {
+        s_shader_nodes_ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
+
         GeometryShaderNode::initialize(context);
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
@@ -87,7 +91,7 @@ namespace VLR {
         GeometryShaderNode::finalize(context);
     }
 
-    ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Connectable(context) {
+    ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {
         size_t sizeOfNodeInDW = sizeOfNode / 4;
         if (sizeOfNodeInDW <= VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS) {
             m_nodeSizeClass = 0;

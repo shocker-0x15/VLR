@@ -34,17 +34,6 @@ struct VLRShaderNodePlug {
 
 
 
-enum VLRTransformType {
-    VLRTransformType_Static = 0,
-};
-
-enum VLRNodeType {
-    VLRNodeType_TriangleMeshSurfaceNode = 0,
-    VLRNodeType_InternalNode,
-};
-
-
-
 enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_BaseColor = 0,
     VLRDebugRenderingMode_GeometricNormal,
@@ -62,8 +51,6 @@ enum VLRDebugRenderingMode {
 typedef enum VLRParameterFormFlag VLRParameterFormFlag;
 typedef enum VLRShaderNodePlugType VLRShaderNodePlugType;
 typedef struct VLRShaderNodePlug VLRShaderNodePlug;
-typedef enum VLRTransformType VLRTransformType;
-typedef enum VLRNodeType VLRNodeType;
 typedef enum VLRDebugRenderingMode VLRDebugRenderingMode;
 #endif
 
@@ -125,7 +112,7 @@ typedef struct VLRVertex VLRVertex;
 \
     VLR_PROCESS_CLASS(ParameterInfo); \
 \
-    VLR_PROCESS_CLASS(Connectable); \
+    VLR_PROCESS_CLASS(Queryable); \
 \
     VLR_PROCESS_CLASS(Image2D); \
     VLR_PROCESS_CLASS(LinearImage2D); \

@@ -1235,7 +1235,7 @@ namespace VLR {
         m_envRotationPhi = rotationPhi;
     }
 
-    void Scene::set() {
+    void Scene::setup() {
         m_rootNode.set();
 
         optix::Context optixContext = m_context.getOptiXContext();
@@ -1255,8 +1255,22 @@ namespace VLR {
 
 
 
+    std::string Camera::s_cameras_ptx;
+
+    // static
+    void Camera::commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet) {
+        const std::string& ptx = s_cameras_ptx;
+
+        optix::Context optixContext = context.getOptiXContext();
+
+        programSet->callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
+        programSet->callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, identifiers[1]);
+    }
+    
     // static
     void Camera::initialize(Context &context) {
+        s_cameras_ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
+
         PerspectiveCamera::initialize(context);
         EquirectangularCamera::initialize(context);
     }
@@ -1269,18 +1283,33 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, PerspectiveCamera::OptiXProgramSet> PerspectiveCamera::OptiXProgramSets;
+    std::vector<ParameterInfo> PerspectiveCamera::ParameterInfos;
+    
+    std::map<uint32_t, Camera::OptiXProgramSet> PerspectiveCamera::OptiXProgramSets;
 
     // static
     void PerspectiveCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
+        const ParameterInfo paramInfos[] = {
+            ParameterInfo("position", VLRParameterFormFlag_ImmediateValue, ParameterPoint3D),
+            ParameterInfo("orientation", VLRParameterFormFlag_ImmediateValue, ParameterQuaternion),
+            ParameterInfo("aspect", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("sensitivity", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("fovy", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("lens radius", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("op distance", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+        };
 
+        if (ParameterInfos.size() == 0) {
+            ParameterInfos.resize(lengthof(paramInfos));
+            std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
+        }
+
+        const char* identifiers[] = {
+            "VLR::PerspectiveCamera_sampleLensPosition",
+            "VLR::PerspectiveCamera_sampleIDF"
+        };
         OptiXProgramSet programSet;
-
-        optix::Context optixContext = context.getOptiXContext();
-
-        programSet.callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, "VLR::PerspectiveCamera_sampleLensPosition");
-        programSet.callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, "VLR::PerspectiveCamera_sampleIDF");
+        commonInitializeProcedure(context, identifiers, &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1307,7 +1336,132 @@ namespace VLR {
         m_data.setImagePlaneArea();
     }
 
-    void PerspectiveCamera::set() const {
+    bool PerspectiveCamera::get(const char* paramName, Point3D* value) const {
+        if (testParamName(paramName, "position")) {
+            *value = m_data.position;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PerspectiveCamera::get(const char* paramName, Quaternion* value) const {
+        if (testParamName(paramName, "orientation")) {
+            *value = m_data.orientation;
+        }
+        else {
+            return false;
+        }
+    }
+
+    bool PerspectiveCamera::get(const char* paramName, float* values, uint32_t length) const {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "aspect")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.aspect;
+        }
+        else if (testParamName(paramName, "sensitivity")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.sensitivity;
+        }
+        else if (testParamName(paramName, "fovy")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.fovY;
+        }
+        else if (testParamName(paramName, "lens radius")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.lensRadius;
+        }
+        else if (testParamName(paramName, "op distance")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.objPlaneDistance;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PerspectiveCamera::set(const char* paramName, const Point3D& value) {
+        if (testParamName(paramName, "position")) {
+            m_data.position = value;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PerspectiveCamera::set(const char* paramName, const Quaternion& value) {
+        if (testParamName(paramName, "orientation")) {
+            m_data.orientation = value;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PerspectiveCamera::set(const char* paramName, const float* values, uint32_t length) {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "aspect")) {
+            if (length != 1)
+                return false;
+
+            m_data.aspect = std::max(0.001f, values[0]);
+        }
+        else if (testParamName(paramName, "sensitivity")) {
+            if (length != 1)
+                return false;
+
+            m_data.sensitivity = std::max(0.0f, std::isfinite(values[0]) ? values[0] : 1.0f);
+        }
+        else if (testParamName(paramName, "fovy")) {
+            if (length != 1)
+                return false;
+
+            m_data.fovY = VLR::clamp<float>(values[0], 0.0001f, M_PI * 0.999f);
+        }
+        else if (testParamName(paramName, "lens radius")) {
+            if (length != 1)
+                return false;
+
+            m_data.lensRadius = std::max(0.0f, values[0]);
+        }
+        else if (testParamName(paramName, "op distance")) {
+            if (length != 1)
+                return false;
+
+            m_data.objPlaneDistance = std::max(0.0f, values[0]);
+        }
+        else {
+            return false;
+        }
+        m_data.setImagePlaneArea();
+
+        return true;
+    }
+
+    void PerspectiveCamera::setup() const {
         optix::Context optixContext = m_context.getOptiXContext();
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -1318,18 +1472,31 @@ namespace VLR {
 
 
 
-    std::map<uint32_t, EquirectangularCamera::OptiXProgramSet> EquirectangularCamera::OptiXProgramSets;
+    std::vector<ParameterInfo> EquirectangularCamera::ParameterInfos;
+    
+    std::map<uint32_t, Camera::OptiXProgramSet> EquirectangularCamera::OptiXProgramSets;
 
     // static
     void EquirectangularCamera::initialize(Context &context) {
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
+        const ParameterInfo paramInfos[] = {
+            ParameterInfo("position", VLRParameterFormFlag_ImmediateValue, ParameterPoint3D),
+            ParameterInfo("orientation", VLRParameterFormFlag_ImmediateValue, ParameterQuaternion),
+            ParameterInfo("sensitivity", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("h angle", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("v angle", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+        };
 
+        if (ParameterInfos.size() == 0) {
+            ParameterInfos.resize(lengthof(paramInfos));
+            std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
+        }
+
+        const char* identifiers[] = {
+            "VLR::EquirectangularCamera_sampleLensPosition",
+            "VLR::EquirectangularCamera_sampleIDF"
+        };
         OptiXProgramSet programSet;
-
-        optix::Context optixContext = context.getOptiXContext();
-
-        programSet.callableProgramSampleLensPosition = optixContext->createProgramFromPTXString(ptx, "VLR::EquirectangularCamera_sampleLensPosition");
-        programSet.callableProgramSampleIDF = optixContext->createProgramFromPTXString(ptx, "VLR::EquirectangularCamera_sampleIDF");
+        commonInitializeProcedure(context, identifiers, &programSet);
 
         OptiXProgramSets[context.getID()] = programSet;
     }
@@ -1353,7 +1520,107 @@ namespace VLR {
         m_data.sensitivity = 1.0f;
     }
 
-    void EquirectangularCamera::set() const {
+    bool EquirectangularCamera::get(const char* paramName, Point3D* value) const {
+        if (testParamName(paramName, "position")) {
+            *value = m_data.position;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool EquirectangularCamera::get(const char* paramName, Quaternion* value) const {
+        if (testParamName(paramName, "orientation")) {
+            *value = m_data.orientation;
+        }
+        else {
+            return false;
+        }
+    }
+
+    bool EquirectangularCamera::get(const char* paramName, float* values, uint32_t length) const {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "sensitivity")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.sensitivity;
+        }
+        else if (testParamName(paramName, "h angle")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.phiAngle;
+        }
+        else if (testParamName(paramName, "v angle")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_data.thetaAngle;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool EquirectangularCamera::set(const char* paramName, const Point3D& value) {
+        if (testParamName(paramName, "position")) {
+            m_data.position = value;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool EquirectangularCamera::set(const char* paramName, const Quaternion& value) {
+        if (testParamName(paramName, "orientation")) {
+            m_data.orientation = value;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool EquirectangularCamera::set(const char* paramName, const float* values, uint32_t length) {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "sensitivity")) {
+            if (length != 1)
+                return false;
+
+            m_data.sensitivity = std::max(0.0f, std::isfinite(values[0]) ? values[0] : 1.0f);
+        }
+        else if (testParamName(paramName, "h angle")) {
+            if (length != 1)
+                return false;
+
+            m_data.phiAngle = VLR::clamp<float>(values[0], 0.01f, 2 * M_PI);
+        }
+        else if (testParamName(paramName, "v angle")) {
+            if (length != 1)
+                return false;
+
+            m_data.thetaAngle = VLR::clamp<float>(values[0], 0.01f, M_PI);
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    void EquirectangularCamera::setup() const {
         optix::Context optixContext = m_context.getOptiXContext();
         OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 

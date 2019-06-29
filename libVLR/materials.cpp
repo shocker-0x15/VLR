@@ -1,10 +1,11 @@
 ﻿#include "materials.h"
 
 namespace VLR {
+    std::string SurfaceMaterial::s_materials_ptx;
+
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
-        // TODO: read once per context.
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx");
+        const std::string &ptx = s_materials_ptx;
 
         optix::Context optixContext = context.getOptiXContext();
 
@@ -95,6 +96,8 @@ namespace VLR {
 
     // static
     void SurfaceMaterial::initialize(Context &context) {
+        s_materials_ptx = readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx");
+
         MatteSurfaceMaterial::initialize(context);
         SpecularReflectionSurfaceMaterial::initialize(context);
         SpecularScatteringSurfaceMaterial::initialize(context);
@@ -123,7 +126,7 @@ namespace VLR {
         MatteSurfaceMaterial::finalize(context);
     }
 
-    SurfaceMaterial::SurfaceMaterial(Context &context) : Connectable(context) {
+    SurfaceMaterial::SurfaceMaterial(Context &context) : Queryable(context) {
         m_matIndex = m_context.allocateSurfaceMaterialDescriptor();
     }
 

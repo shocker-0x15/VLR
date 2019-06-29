@@ -43,7 +43,7 @@ namespace VLR {
 
 
 
-    class SurfaceMaterial : public Connectable {
+    class SurfaceMaterial : public Queryable {
     protected:
         struct OptiXProgramSet {
             optix::Program callableProgramSetupBSDF;
@@ -63,6 +63,7 @@ namespace VLR {
 
         uint32_t m_matIndex;
 
+        static std::string s_materials_ptx;
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
         static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc);
@@ -86,7 +87,7 @@ namespace VLR {
 
 
     class MatteSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -114,7 +115,7 @@ namespace VLR {
 
 
     class SpecularReflectionSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -146,7 +147,7 @@ namespace VLR {
 
 
     class SpecularScatteringSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -178,7 +179,7 @@ namespace VLR {
 
 
     class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -214,7 +215,7 @@ namespace VLR {
 
 
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -252,7 +253,7 @@ namespace VLR {
 
 
     class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -284,7 +285,7 @@ namespace VLR {
 
 
     class UE4SurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -318,7 +319,7 @@ namespace VLR {
 
 
     class OldStyleSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -352,7 +353,7 @@ namespace VLR {
 
 
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -385,7 +386,7 @@ namespace VLR {
 
 
     class MultiSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
@@ -412,7 +413,7 @@ namespace VLR {
 
 
     class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
-        VLR_DECLARE_CONNECTABLE_INTERFACE();
+        VLR_DECLARE_QUERYABLE_INTERFACE();
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
