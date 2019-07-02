@@ -672,7 +672,6 @@ namespace VLR {
         }
     }
 
-
     
 
     std::vector<ParameterInfo> LinearImage2D::ParameterInfos;

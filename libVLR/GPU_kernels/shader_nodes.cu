@@ -4,11 +4,11 @@ namespace VLR {
     template <typename T>
     RT_FUNCTION T* getData(uint32_t nodeDescIndex) {
         constexpr uint32_t sizeOfNodeInDW = sizeof(T) / 4;
-        if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS)
+        if /*constexpr*/ (sizeOfNodeInDW <= sizeof(SmallNodeDescriptor))
             return pv_smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();
-        else if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS)
+        else if /*constexpr*/ (sizeOfNodeInDW <= sizeof(MediumNodeDescriptor))
             return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<T>();
-        else if /*constexpr*/ (sizeOfNodeInDW <= VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS)
+        else if /*constexpr*/ (sizeOfNodeInDW <= sizeof(LargeNodeDescriptor))
             return pv_largeNodeDescriptorBuffer[nodeDescIndex].getData<T>();
         return nullptr;
     }

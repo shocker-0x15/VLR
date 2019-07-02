@@ -109,26 +109,26 @@ typedef struct VLRVertex VLRVertex;
 
 #define VLR_PROCESS_CLASS_LIST() \
     VLR_PROCESS_CLASS(Object); \
-\
+ \
     VLR_PROCESS_CLASS(ParameterInfo); \
-\
+ \
     VLR_PROCESS_CLASS(Queryable); \
-\
+ \
     VLR_PROCESS_CLASS(Image2D); \
     VLR_PROCESS_CLASS(LinearImage2D); \
     VLR_PROCESS_CLASS(BlockCompressedImage2D); \
-\
+ \
     VLR_PROCESS_CLASS(ShaderNode); \
-\
+ \
     VLR_PROCESS_CLASS(SurfaceMaterial); \
-\
+ \
     VLR_PROCESS_CLASS(Transform); \
     VLR_PROCESS_CLASS(StaticTransform); \
-\
+ \
     VLR_PROCESS_CLASS(Node); \
     VLR_PROCESS_CLASS(SurfaceNode); \
     VLR_PROCESS_CLASS(TriangleMeshSurfaceNode); \
     VLR_PROCESS_CLASS(InternalNode); \
     VLR_PROCESS_CLASS(Scene); \
-\
+ \
     VLR_PROCESS_CLASS(Camera);

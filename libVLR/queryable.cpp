@@ -165,17 +165,17 @@ namespace VLR {
 #define VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(EnumType) \
     template <> \
     EnumType getEnumValueFromMember(const char* member) { \
-    if (!s_enumTableInitialized) \
-        initializeEnumTables(); \
+        if (!s_enumTableInitialized) \
+            initializeEnumTables(); \
  \
-    if (s_enumNameToIntTables.count(Enum ## EnumType) == 0) \
-        return (EnumType)0xFFFFFFFF; \
+        if (s_enumNameToIntTables.count(Enum ## EnumType) == 0) \
+            return (EnumType)0xFFFFFFFF; \
  \
-    const auto& table = s_enumNameToIntTables.at(Enum ## EnumType); \
-    if (table.count(member) == 0) \
-        return (EnumType)0xFFFFFFFF; \
+        const auto& table = s_enumNameToIntTables.at(Enum ## EnumType); \
+        if (table.count(member) == 0) \
+            return (EnumType)0xFFFFFFFF; \
  \
-    return (EnumType)table.at(member); \
+        return (EnumType)table.at(member); \
     } \
     template EnumType getEnumValueFromMember<EnumType>(const char* member)
 

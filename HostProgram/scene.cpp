@@ -1034,6 +1034,142 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
+void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene();
+
+    InternalNodeRef modelNode;
+
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        float offset[2] = { 0, 0 };
+        float scale[2] = { 10, 20 };
+        auto nodeTexCoord = context->createShaderNode("ScaleAndOffsetUVTextureMap2D");
+        nodeTexCoord->set("offset", offset, 2);
+        nodeTexCoord->set("scale", scale, 2);
+
+        Image2DRef image = loadImage2D(context, pathPrefix + "grid_80p_white_18p_gray.png", "Reflectance", "Rec709(D65) sRGB Gamma");
+
+        ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
+        nodeAlbedo->set("image", image);
+        nodeAlbedo->set("min filter", "Nearest");
+        nodeAlbedo->set("mag filter", "Nearest");
+        nodeAlbedo->set("texcoord", nodeTexCoord->getPlug(VLRShaderNodePlugType_TextureCoordinates, 0));
+
+        SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
+        mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+    });
+    shot->scene->addChild(modelNode);
+
+
+
+    auto light = context->createTriangleMeshSurfaceNode("light");
+    {
+        std::vector<Vertex> vertices;
+
+        // Light
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, 0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.0f, -0.5f), Normal3D(0, 1, 0), Vector3D(1, 0, 0), TexCoord2D(1.0f, 0.0f) });
+
+        light->setVertices(vertices.data(), vertices.size());
+
+        {
+            auto matLight = context->createSurfaceMaterial("DiffuseEmitter");
+            matLight->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 150.0f, 150.0f, 150.0f });
+
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3
+            };
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+        }
+    }
+    auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 0.0f) * rotateX<float>(M_PI)));
+    lightNode->addChild(light);
+    shot->scene->addChild(lightNode);
+
+
+
+    construct(context, ASSETS_DIR"rounded_box.obj", false, false, &modelNode, 
+              [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugAlpha;
+        if (strcmp(strValue.C_Str(), "Material.001") == 0) {
+            auto mfMat = context->createSurfaceMaterial("MicrofacetReflection");
+            // Aluminum
+            mfMat->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.27579f, 0.940922f, 0.574879f });
+            mfMat->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 7.30257f, 6.33458f, 5.16694f });
+            mfMat->set("roughness", 0.2f);
+            mfMat->set("anisotropy", 0.9f);
+            mfMat->set("rotation", 0.25f);
+
+            mat = mfMat;
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+    },
+              [](const aiMesh* mesh) {
+        return MeshAttributeTuple(true, "Radial Y");
+    });
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context->createStaticTransform(
+        translate<float>(0, 1.0f, 0) * scale(0.75f) * 
+        rotateX<float>(10 * M_PI / 180) * rotateY<float>(45 * M_PI / 180) * rotateX<float>(15 * M_PI / 180)
+    ));
+
+
+
+    //auto imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", "Light Source", "Rec709(D65)");
+    //auto nodeEnvTex = context->createShaderNode("EnvironmentTexture");
+    //nodeEnvTex->set("image", imgEnv);
+    //auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
+    //matEnv->set("emittance", nodeEnvTex->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+    ////matEnv->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 0.1f, 0.1f, 0.1f });
+    //shot->environmentRotation = -M_PI / 2;
+    //shot->scene->setEnvironment(matEnv, shot->environmentRotation);
+
+
+
+    shot->renderTargetSizeX = 1024;
+    shot->renderTargetSizeY = 1024;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createCamera("Perspective");
+
+        camera->set("position", Point3D(0.0f, 2.5f, 5.0f));
+        camera->set("orientation", qRotateY<float>(M_PI) * qRotateX<float>(18 * M_PI / 180));
+
+        camera->set("aspect", (float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->set("sensitivity", 1.0f);
+        camera->set("fovy", 40 * M_PI / 180);
+        camera->set("lens radius", 0.0f);
+        camera->set("op distance", 1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
 void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -2533,6 +2669,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
     createMaterialTestScene(context, shot);
+    //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
     //createColorInterpolationTestScene(context, shot);

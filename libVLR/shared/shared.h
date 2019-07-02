@@ -367,9 +367,9 @@ namespace VLR {
         };
         static_assert(sizeof(ShaderNodePlug) == 4, "Unexpected Size");
 
-        struct SmallNodeDescriptor {
-#define VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS (4)
-            uint32_t data[VLR_MAX_NUM_SMALL_NODE_DESCRIPTOR_SLOTS];
+        template <uint32_t Size>
+        struct NodeDescriptor {
+            uint32_t data[Size];
 
             template <typename T>
             RT_FUNCTION T* getData() const {
@@ -378,27 +378,9 @@ namespace VLR {
             }
         };
 
-        struct MediumNodeDescriptor {
-#define VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS (16)
-            uint32_t data[VLR_MAX_NUM_MEDIUM_NODE_DESCRIPTOR_SLOTS];
-
-            template <typename T>
-            RT_FUNCTION T* getData() const {
-                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
-                return (T*)data;
-            }
-        };
-
-        struct LargeNodeDescriptor {
-#   define VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS (64)
-            uint32_t data[VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS];
-
-            template <typename T>
-            RT_FUNCTION T* getData() const {
-                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
-                return (T*)data;
-            }
-        };
+        using SmallNodeDescriptor = NodeDescriptor<4>;
+        using MediumNodeDescriptor = NodeDescriptor<16>;
+        using LargeNodeDescriptor = NodeDescriptor<64>;
 
 
 
@@ -678,13 +660,13 @@ namespace VLR {
         struct RegularSampledSpectrumShaderNode {
             float minLambda;
             float maxLambda;
-            float values[VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 3];
+            float values[sizeof(LargeNodeDescriptor) - 3];
             uint32_t numSamples;
         };
 
         struct IrregularSampledSpectrumShaderNode {
-            float lambdas[(VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 1) / 2];
-            float values[(VLR_MAX_NUM_LARGE_NODE_DESCRIPTOR_SLOTS - 1) / 2];
+            float lambdas[(sizeof(LargeNodeDescriptor) - 1) / 2];
+            float values[(sizeof(LargeNodeDescriptor) - 1) / 2];
             uint32_t numSamples;
         };
 #else
