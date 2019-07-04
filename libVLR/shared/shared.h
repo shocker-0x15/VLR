@@ -376,6 +376,8 @@ namespace VLR {
                 VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
+
+            RT_FUNCTION static constexpr uint32_t NumDWSlots() { return Size; }
         };
 
         using SmallNodeDescriptor = NodeDescriptor<4>;
@@ -660,15 +662,20 @@ namespace VLR {
         struct RegularSampledSpectrumShaderNode {
             float minLambda;
             float maxLambda;
-            float values[sizeof(LargeNodeDescriptor) - 3];
+            float values[LargeNodeDescriptor::NumDWSlots() - 3];
             uint32_t numSamples;
         };
+        static_assert(sizeof(RegularSampledSpectrumShaderNode) == LargeNodeDescriptor::NumDWSlots() * 4,
+                      "sizeof(RegularSampledSpectrumShaderNode) must match the size of LargeNodeDescriptor.");
 
         struct IrregularSampledSpectrumShaderNode {
-            float lambdas[(sizeof(LargeNodeDescriptor) - 1) / 2];
-            float values[(sizeof(LargeNodeDescriptor) - 1) / 2];
+            float lambdas[(LargeNodeDescriptor::NumDWSlots() - 1) / 2];
+            float values[(LargeNodeDescriptor::NumDWSlots() - 1) / 2];
             uint32_t numSamples;
+            uint32_t dummy;
         };
+        static_assert(sizeof(IrregularSampledSpectrumShaderNode) == LargeNodeDescriptor::NumDWSlots() * 4,
+                      "sizeof(IrregularSampledSpectrumShaderNode) must match the size of LargeNodeDescriptor.");
 #else
         struct TripletSpectrumShaderNode {
             RGBSpectrum value;

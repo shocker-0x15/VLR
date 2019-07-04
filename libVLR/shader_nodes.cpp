@@ -93,15 +93,15 @@ namespace VLR {
 
     ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {
         size_t sizeOfNodeInDW = sizeOfNode / 4;
-        if (sizeOfNodeInDW <= sizeof(Shared::SmallNodeDescriptor)) {
+        if (sizeOfNodeInDW <= Shared::SmallNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 0;
             m_nodeIndex = m_context.allocateSmallNodeDescriptor();
         }
-        else if (sizeOfNodeInDW <= sizeof(Shared::MediumNodeDescriptor)) {
+        else if (sizeOfNodeInDW <= Shared::MediumNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 1;
             m_nodeIndex = m_context.allocateMediumNodeDescriptor();
         }
-        else if (sizeOfNodeInDW <= sizeof(Shared::LargeNodeDescriptor)) {
+        else if (sizeOfNodeInDW <= Shared::LargeNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 2;
             m_nodeIndex = m_context.allocateLargeNodeDescriptor();
         }
