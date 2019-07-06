@@ -703,12 +703,15 @@ namespace VLR {
         };
 
         struct Image2DTextureShaderNode {
+#define VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH (5)
+
             int32_t textureID;
             struct {
                 unsigned int dataFormat : 5;
                 unsigned int spectrumType : 3;
                 unsigned int colorSpace : 3;
                 unsigned int bumpType : 2;
+                unsigned int bumpCoeff : VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH;
             };
             ShaderNodePlug nodeTexCoord;
 
@@ -716,6 +719,10 @@ namespace VLR {
             RT_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
             RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
             RT_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
+            RT_FUNCTION float getBumpCoeff() const {
+                // map to (0, 2]
+                return (float)(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
+            }
         };
         static_assert(sizeof(Image2DTextureShaderNode) == 12, "Unexpected sizeof(Image2DTextureShaderNode).");
 

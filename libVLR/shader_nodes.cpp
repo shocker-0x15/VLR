@@ -1538,6 +1538,7 @@ namespace VLR {
         const ParameterInfo paramInfos[] = {
             ParameterInfo("image", VLRParameterFormFlag_Node, ParameterImage),
             ParameterInfo("bump type", VLRParameterFormFlag_ImmediateValue, EnumBumpType),
+            ParameterInfo("bump coeff", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
             ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
             ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
             ParameterInfo("wrap u", VLRParameterFormFlag_ImmediateValue, EnumTextureWrapMode),
@@ -1580,7 +1581,7 @@ namespace VLR {
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
-        m_bumpType(BumpType::NormalMap_DirectX),
+        m_bumpType(BumpType::NormalMap_DirectX), m_bumpCoeff(1.0f),
         m_minFilter(TextureFilter::Linear), m_magFilter(TextureFilter::Linear),
         m_wrapU(TextureWrapMode::Repeat), m_wrapV(TextureWrapMode::Repeat) {
         optix::Context optixContext = context.getOptiXContext();
@@ -1618,6 +1619,9 @@ namespace VLR {
             colorSpace = ColorSpace::Rec709_D65;
         nodeData.colorSpace = (unsigned int)colorSpace;
         nodeData.bumpType = (unsigned int)m_bumpType;
+        const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
+        float coeff = std::round(m_bumpCoeff * (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1))) - 1;
+        nodeData.bumpCoeff = VLR::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         updateNodeDescriptor();
@@ -1646,6 +1650,23 @@ namespace VLR {
         else if (testParamName(paramName, "wrap v")) {
             *enumValue = getEnumMemberFromValue(m_wrapV);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool Image2DTextureShaderNode::get(const char* paramName, float* values, uint32_t length) const {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "bump coeff")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_bumpCoeff;
         }
         else {
             return false;
@@ -1717,6 +1738,25 @@ namespace VLR {
                 return false;
 
             m_wrapV = v;
+        }
+        else {
+            return false;
+        }
+        setupNodeDescriptor();
+
+        return true;
+    }
+
+    bool Image2DTextureShaderNode::set(const char* paramName, const float* values, uint32_t length) {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "bump coeff")) {
+            if (length != 1)
+                return false;
+
+            const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
+            m_bumpCoeff = VLR::clamp(values[0], minCoeff, 2.0f);
         }
         else {
             return false;

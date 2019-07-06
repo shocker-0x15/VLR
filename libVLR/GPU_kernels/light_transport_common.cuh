@@ -331,7 +331,7 @@ namespace VLR {
         const ReferenceFrame &originalFrame = surfPt->shadingFrame;
 
         // JP: テクスチャーフレームもシェーディングフレームもこの時点ではz軸は共通。
-        //     後者に対する前者の角度を求める。
+        //     前者に対する後者の角度を求める。
         // EN: z axes of the texture frame and the shading frame are the same at this moment.
         //     calculate the angle of the latter to the former.
         Vector3D tc0Direction = surfPt->tc0Direction;

@@ -301,6 +301,8 @@ namespace VLR {
             texValue = optix::rtTex2DGather<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, plug.option);
         }
 
+        float bumpCoeff = nodeData.getBumpCoeff();
+
         Normal3D ret(0.0f, 0.0f, 1.0f);
         if (bumpType != BumpType::HeightMap && plug.option < 2) {
             if (plug.option == 0)
@@ -316,14 +318,16 @@ namespace VLR {
         else if (bumpType == BumpType::HeightMap) {
             optix::uint3 texSize = optix::rtTexSize(nodeData.textureID);
 
-            // TODO: provide a way to adjust the coefficient.
-            const float coeff = 10.0f / 1024;
+            const float coeff = (5.0f / 1024);
             float dhdu = (coeff * texSize.x) * (texValue.y - texValue.x);
             float dhdv = (coeff * texSize.y) * (texValue.x - texValue.w);
             // cross(Vector3D(0, -1, dhdv), 
             //       Vector3D(1,  0, dhdu))
             ret = Normal3D(-dhdu, dhdv, 1);
         }
+
+        ret.x *= bumpCoeff;
+        ret.y *= bumpCoeff;
 
         return normalize(ret);
     }

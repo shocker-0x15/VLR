@@ -80,28 +80,28 @@ namespace VLRCpp {
             const char* ret = nullptr;
             VLRResult err = errorCheck(vlrParameterInfoGetName(raw, &ret));
             if (error)
-              *error = err;
+                *error = err;
             return ret;
         }
         const char* getType(VLRResult* error = nullptr) const {
             const char* ret = nullptr;
             VLRResult err = errorCheck(vlrParameterInfoGetType(raw, &ret));
             if (error)
-              *error = err;
+                *error = err;
             return ret;
         }
         uint32_t getTupleSize(VLRResult* error = nullptr) const {
             uint32_t ret;
             VLRResult err = errorCheck(vlrParameterInfoGetTupleSize(raw, &ret));
             if (error)
-              *error = err;
+                *error = err;
             return ret;
         }
         VLRParameterFormFlag getFormFlags(VLRResult* error = nullptr) const {
             VLRParameterFormFlag ret;
             VLRResult err = errorCheck(vlrParameterInfoGetSocketForm(raw, &ret));
             if (error)
-              *error = err;
+                  *error = err;
             return ret;
         }
     };

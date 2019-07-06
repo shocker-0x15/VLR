@@ -62,6 +62,8 @@ extern "C" {
 
     VLR_API const char* vlrGetErrorMessage(VLRResult code);
 
+
+
     VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
 
@@ -90,6 +92,8 @@ extern "C" {
 
     VLR_API VLRResult vlrGetNumEnumMembers(const char* typeName, uint32_t* numMembers);
     VLR_API VLRResult vlrGetEnumMember(const char* typeName, uint32_t index, const char** value);
+
+
     
     // Queryable
     // Image2D, ShaderNode, SurfaceMaterial, Camera

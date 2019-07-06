@@ -512,6 +512,7 @@ namespace VLR {
         optix::TextureSampler m_optixTextureSampler;
         const Image2D* m_image;
         BumpType m_bumpType;
+        float m_bumpCoeff;
         TextureFilter m_minFilter;
         TextureFilter m_magFilter;
         TextureWrapMode m_wrapU;
@@ -530,10 +531,12 @@ namespace VLR {
         ~Image2DTextureShaderNode();
 
         bool get(const char* paramName, const char** enumValue) const override;
+        bool get(const char* paramName, float* values, uint32_t length) const override;
         bool get(const char* paramName, const Image2D** image) const override;
         bool get(const char* paramName, ShaderNodePlug* plug) const override;
 
         bool set(const char* paramName, const char* enumValue) override;
+        bool set(const char* paramName, const float* values, uint32_t length) override;
         bool set(const char* paramName, const Image2D* image) override;
         bool set(const char* paramName, const ShaderNodePlug &plug) override;
 
