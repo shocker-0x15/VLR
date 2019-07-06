@@ -415,7 +415,6 @@ namespace VLR {
         }
 
         programSet.callableProgramDecodeHitPointForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::decodeHitPointForTriangle");
-        programSet.callableProgramDecodeTexCoordForTriangle = optixContext->createProgramFromPTXString(ptx, "VLR::decodeTexCoordForTriangle");
 
         programSet.callableProgramSampleTriangleMesh = optixContext->createProgramFromPTXString(ptx, "VLR::sampleTriangleMesh");
 
@@ -428,7 +427,6 @@ namespace VLR {
 
         programSet.callableProgramSampleTriangleMesh->destroy();
 
-        programSet.callableProgramDecodeTexCoordForTriangle->destroy();
         programSet.callableProgramDecodeHitPointForTriangle->destroy();
 
         if (context.RTXEnabled()) {
@@ -502,7 +500,7 @@ namespace VLR {
     }
 
     void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                                                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha, TangentType tangentType) {
+                                                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha) {
         optix::Context optixContext = m_context.getOptiXContext();
         const OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
 
@@ -560,6 +558,7 @@ namespace VLR {
         m_optixGeometries.push_back(geom);
 
         bool nodeNormalIsValid;
+        bool nodeTangentIsValid;
         bool nodeAlphaIsValid;
 
         m_materials.push_back(material);
@@ -577,6 +576,21 @@ namespace VLR {
         else {
             m_nodeNormals.push_back(ShaderNodePlug());
             nodeNormalIsValid = false;
+        }
+        if (nodeTangent.node) {
+            if (Shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(nodeTangent.getType())) {
+                m_nodeTangents.push_back(nodeTangent);
+                nodeTangentIsValid = true;
+            }
+            else {
+                vlrprintf("%s: Invalid plug type for tangent is passed.\n", m_name.c_str());
+                m_nodeTangents.push_back(ShaderNodePlug());
+                nodeTangentIsValid = false;
+            }
+        }
+        else {
+            m_nodeTangents.push_back(ShaderNodePlug());
+            nodeTangentIsValid = false;
         }
         if (nodeAlpha.node) {
             if (Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(nodeAlpha.getType())) {
@@ -614,15 +628,17 @@ namespace VLR {
             optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
             optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
 
-            optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForTriangle);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
-
-            optixGeomInst["VLR::pv_tangentType"]->setUserData(sizeof(tangentType), &tangentType);
 
             Shared::ShaderNodePlug sNodeNormal = Shared::ShaderNodePlug::Invalid();
             if (nodeNormalIsValid)
                 sNodeNormal = nodeNormal.getSharedType();
             optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
+
+            Shared::ShaderNodePlug sNodeTangent = Shared::ShaderNodePlug::Invalid();
+            if (nodeTangentIsValid)
+                sNodeTangent = nodeTangent.getSharedType();
+            optixGeomInst["VLR::pv_nodeTangent"]->setUserData(sizeof(sNodeTangent), &sNodeTangent);
 
             optixGeomInst->setMaterialCount(1);
             Shared::ShaderNodePlug sNodeAlpha = Shared::ShaderNodePlug::Invalid();
@@ -666,7 +682,6 @@ namespace VLR {
         programSet.programCalcBBoxForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::calcBBoxForInfiniteSphere");
 
         programSet.callableProgramDecodeHitPointForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::decodeHitPointForInfiniteSphere");
-        programSet.callableProgramDecodeTexCoordForInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::decodeTexCoordForInfiniteSphere");
 
         programSet.callableProgramSampleInfiniteSphere = optixContext->createProgramFromPTXString(ptx, "VLR::sampleInfiniteSphere");
 
@@ -679,7 +694,6 @@ namespace VLR {
 
         programSet.callableProgramSampleInfiniteSphere->destroy();
 
-        programSet.callableProgramDecodeTexCoordForInfiniteSphere->destroy();
         programSet.callableProgramDecodeHitPointForInfiniteSphere->destroy();
 
         programSet.programCalcBBoxForInfiniteSphere->destroy();
@@ -710,7 +724,6 @@ namespace VLR {
             optixGeomInst->setGeometry(m_optixGeometry);
             optixGeomInst->setMaterialCount(1);
             optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
-            optixGeomInst["VLR::pv_progDecodeTexCoord"]->set(progSet.callableProgramDecodeTexCoordForInfiniteSphere);
             optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForInfiniteSphere);
             uint32_t matIndex = material->getMaterialIndex();
             optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
@@ -1187,7 +1200,7 @@ namespace VLR {
             importances.resize(m_surfaceLights.size());
 
             {
-                Shared::SurfaceLightDescriptor* descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+                auto descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
                 for (auto it = m_surfaceLights.cbegin(); it != m_surfaceLights.cend(); ++it) {
                     uint32_t index = std::distance(m_surfaceLights.cbegin(), it);
                     const Shared::SurfaceLightDescriptor &lightDesc = it->second;

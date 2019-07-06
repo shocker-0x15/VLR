@@ -40,6 +40,7 @@ namespace VLR {
 
     VLR_DEFINE_CLASS_ID(Queryable, ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, GeometryShaderNode);
+    VLR_DEFINE_CLASS_ID(ShaderNode, TangentShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float2ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float3ShaderNode);
     VLR_DEFINE_CLASS_ID(ShaderNode, Float4ShaderNode);

@@ -20,6 +20,13 @@ namespace VLR {
         return asNormal3D(rtTransformNormal(kind, asOptiXType(n)));
     }
 
+    struct ObjectInfo {
+        StaticTransform transform;
+
+        RT_FUNCTION ObjectInfo() {}
+        RT_FUNCTION ObjectInfo(const StaticTransform& tr) : transform(tr) {}
+    };
+
 
 
     struct HitPointParameter {
@@ -53,7 +60,6 @@ namespace VLR {
         ReferenceFrame shadingFrame;
         float u, v; // Parameters used to identify the point on a surface, not texture coordinates.
         TexCoord2D texCoord;
-        Vector3D tc0Direction;
         struct {
             bool isPoint : 1;
             bool atInfinity : 1;
@@ -221,6 +227,7 @@ namespace VLR {
     };
 
     struct SurfaceLightPosQueryResult {
+        ObjectInfo objInfo;
         SurfacePoint surfPt;
         float areaPDF;
         DirectionType posType;
@@ -262,8 +269,8 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
 
     typedef rtCallableProgramId<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
     typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
@@ -292,7 +299,8 @@ namespace VLR {
 
     
     template <typename T>
-    RT_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue,
+                           const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
@@ -301,10 +309,10 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
+        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, objInfo, surfPt, wls)); \
         break; \
     }
             switch ((ShaderNodePlugType)plug.plugType) {
@@ -330,7 +338,8 @@ namespace VLR {
         return defaultValue;
     }
 
-    RT_FUNCTION SampledSpectrum calcNode(ShaderNodePlug plug, const TripletSpectrum &defaultValue, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_FUNCTION SampledSpectrum calcNode(ShaderNodePlug plug, const TripletSpectrum &defaultValue,
+                                         const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
@@ -339,10 +348,10 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
+        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, objInfo, surfPt, wls)); \
         break; \
     }
             switch ((ShaderNodePlugType)plug.plugType) {

@@ -16,13 +16,18 @@ namespace VLR {
         KernelRNG &rng = sm_payload.rng;
         WavelengthSamples &wls = sm_payload.wls;
 
+        Matrix4x4 matM2W, matW2M;
+        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
+        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
+        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(&surfPt, &hypAreaPDF);
+        calcSurfacePoint(objInfo, &surfPt, &hypAreaPDF);
 
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
-        BSDF bsdf(matDesc, surfPt, wls);
-        EDF edf(matDesc, surfPt, wls);
+        BSDF bsdf(matDesc, objInfo, surfPt, wls);
+        EDF edf(matDesc, objInfo, surfPt, wls);
 
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
 
@@ -65,7 +70,7 @@ namespace VLR {
             light.sample(lpSample, &lpResult);
 
             const SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.materialIndex];
-            EDF ledf(lightMatDesc, lpResult.surfPt, wls);
+            EDF ledf(lightMatDesc, lpResult.objInfo, lpResult.surfPt, wls);
             SampledSpectrum M = ledf.evaluateEmittance();
 
             Vector3D shadowRayDir;
@@ -122,6 +127,9 @@ namespace VLR {
         if (pv_envLightDescriptor.importance == 0)
             return;
 
+        Matrix4x4 identityTF;
+        ObjectInfo objInfo(StaticTransform(identityTF, identityTF));
+
         Vector3D direction = asVector3D(sm_ray.direction);
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
@@ -150,7 +158,7 @@ namespace VLR {
         float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
 
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_envLightDescriptor.body.asEnvironmentLight.materialIndex];
-        EDF edf(matDesc, surfPt, sm_payload.wls);
+        EDF edf(matDesc, objInfo, surfPt, sm_payload.wls);
 
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
 

@@ -244,7 +244,6 @@ namespace VLR {
             optix::Program programIntersectTriangle; // Intersection Program
             optix::Program programCalcBBoxForTriangle; // Bounding Box Program
             optix::Program callableProgramDecodeHitPointForTriangle;
-            optix::Program callableProgramDecodeTexCoordForTriangle;
             optix::Program callableProgramSampleTriangleMesh;
         };
 
@@ -263,6 +262,7 @@ namespace VLR {
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<const SurfaceMaterial*> m_materials;
         std::vector<ShaderNodePlug> m_nodeNormals;
+        std::vector<ShaderNodePlug> m_nodeTangents;
         std::vector<ShaderNodePlug> m_nodeAlphas;
         std::vector<SHGeometryInstance*> m_shGeometryInstances;
 
@@ -280,7 +280,7 @@ namespace VLR {
 
         void setVertices(std::vector<Vertex> &&vertices);
         void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug &alpha, TangentType tangentType);
+                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha);
     };
 
 
@@ -290,7 +290,6 @@ namespace VLR {
             optix::Program programIntersectInfiniteSphere; // Intersection Program
             optix::Program programCalcBBoxForInfiniteSphere; // Bounding Box Program
             optix::Program callableProgramDecodeHitPointForInfiniteSphere;
-            optix::Program callableProgramDecodeTexCoordForInfiniteSphere;
             optix::Program callableProgramSampleInfiniteSphere;
         };
 

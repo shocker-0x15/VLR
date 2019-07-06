@@ -324,7 +324,9 @@ namespace VLR {
             Matrix4x4 m_invMatrix;
 
         public:
-            RT_FUNCTION StaticTransform(const Matrix4x4 &m = Matrix4x4::Identity()) : m_matrix(m), m_invMatrix(invert(m)) {}
+            RT_FUNCTION StaticTransform() {}
+            RT_FUNCTION StaticTransform(const Matrix4x4 &m) : m_matrix(m), m_invMatrix(invert(m)) {}
+            RT_FUNCTION StaticTransform(const Matrix4x4 &m, const Matrix4x4 &mInv) : m_matrix(m), m_invMatrix(mInv) {}
 
             RT_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
             RT_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
@@ -336,10 +338,15 @@ namespace VLR {
                                 m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
             }
 
-            RT_FUNCTION StaticTransform operator*(const Matrix4x4 &m) const { return StaticTransform(m_matrix * m); }
-            RT_FUNCTION StaticTransform operator*(const StaticTransform &t) const { return StaticTransform(m_matrix * t.m_matrix); }
-            RT_FUNCTION bool operator==(const StaticTransform &t) const { return m_matrix == t.m_matrix; }
-            RT_FUNCTION bool operator!=(const StaticTransform &t) const { return m_matrix != t.m_matrix; }
+            RT_FUNCTION Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
+            RT_FUNCTION Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
+            RT_FUNCTION Point3D mulInv(const Point3D& p) const { return m_invMatrix * p; }
+            RT_FUNCTION Normal3D mulInv(const Normal3D& n) const {
+                // The length of the normal is changed if the transform has scaling, so it requires normalization.
+                return Normal3D(m_matrix.m00 * n.x + m_matrix.m10 * n.y + m_matrix.m20 * n.z,
+                                m_matrix.m01 * n.x + m_matrix.m11 * n.y + m_matrix.m21 * n.z,
+                                m_matrix.m02 * n.x + m_matrix.m12 * n.y + m_matrix.m22 * n.z);
+            }
         };
 
 
@@ -597,7 +604,6 @@ namespace VLR {
             ShadingTangent,
             ShadingBitangent,
             ShadingNormal,
-            TC0Direction,
             TextureCoordinates,
             GeometricVsShadingNormal,
             ShadingFrameLengths,
@@ -611,7 +617,10 @@ namespace VLR {
         // Shader Nodes
 
         struct GeometryShaderNode {
+        };
 
+        struct TangentShaderNode {
+            TangentType tangentType;
         };
 
         struct FloatShaderNode {

@@ -445,6 +445,7 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
 
     SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
     ShaderNodePlug plugNormal;
+    ShaderNodePlug plugTangent;
     ShaderNodePlug plugAlpha;
 
     Image2DRef imgDiffuse;
@@ -495,11 +496,11 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
         plugAlpha = texDiffuse->getPlug(VLRShaderNodePlugType_Alpha, 0);
     }
 
-    return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+    return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
 }
 
 MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
-    return MeshAttributeTuple(true, "TC0 Direction");
+    return MeshAttributeTuple(true);
 }
 
 void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
@@ -540,6 +541,7 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
         const SurfaceMaterialAttributeTuple attrTuple = matAttrTuples[mesh->mMaterialIndex];
         const SurfaceMaterialRef &surfMat = attrTuple.material;
         const ShaderNodePlug &nodeNormal = attrTuple.nodeNormal;
+        const ShaderNodePlug &nodeTangent = attrTuple.nodeTangent;
         const ShaderNodePlug &nodeAlpha = attrTuple.nodeAlpha;
 
         std::vector<Vertex> vertices;
@@ -572,7 +574,7 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
             meshIndices.push_back(face.mIndices[1]);
             meshIndices.push_back(face.mIndices[2]);
         }
-        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeAlpha, meshAttr.tangentType);
+        surfMesh->addMaterialGroup(meshIndices.data(), meshIndices.size(), surfMat, nodeNormal, nodeTangent, nodeAlpha);
 
         (*nodeOut)->addChild(surfMesh);
     }
@@ -707,7 +709,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         //    std::vector<uint32_t> matGroup = {
         //        28, 29, 30, 28, 30, 31
         //    };
-        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0), ShaderNodePlug(), "TC0 Direction");
+        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0), ShaderNodePlug(), ShaderNodePlug());
         //}
 
         {
@@ -722,7 +724,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
 
         {
@@ -733,7 +735,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
 
         {
@@ -747,7 +749,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 12, 13, 14, 12, 14, 15,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
 
         {
@@ -757,7 +759,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 16, 17, 18, 16, 18, 19,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
 
         {
@@ -767,7 +769,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 20, 21, 22, 20, 22, 23,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
 
         {
@@ -777,7 +779,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 24, 25, 26, 24, 26, 27,
             };
-            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     shot->scene->addChild(cornellBox);
@@ -827,7 +829,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
         //mat->set("0", matA);
         //mat->set("1", matB);
 
-        return SurfaceMaterialAttributeTuple(matA, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(matA, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
     shot->scene->addChild(sphereNode);
     sphereNode->setTransform(context->createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
@@ -891,7 +893,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
     shot->scene->addChild(modelNode);
 
@@ -916,7 +918,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
@@ -939,6 +941,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         if (strcmp(strValue.C_Str(), "Base") == 0) {
             SurfaceMaterialRef matteMat = context->createSurfaceMaterial("Matte");
@@ -991,10 +994,14 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
             //mat = mtMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        auto nodeTangent = context->createShaderNode("Tangent");
+        nodeTangent->set("tangent type", "Radial Y");
+        plugTangent = nodeTangent->getPlug(VLRShaderNodePlugType_float1, 0);
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     },
               [](const aiMesh* mesh) {
-        return MeshAttributeTuple(true, "Radial Y");
+        return MeshAttributeTuple(true);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
@@ -1063,7 +1070,7 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
     shot->scene->addChild(modelNode);
 
@@ -1088,7 +1095,7 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 0.0f) * rotateX<float>(M_PI)));
@@ -1097,7 +1104,7 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, ASSETS_DIR"rounded_box.obj", false, false, &modelNode, 
+    construct(context, ASSETS_DIR"rounded_box/rounded_box_0.fbx", false, true, &modelNode, 
               [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
         using namespace VLR;
@@ -1111,8 +1118,9 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
-        if (strcmp(strValue.C_Str(), "Material.001") == 0) {
+        //if (strcmp(strValue.C_Str(), "Material.001") == 0) {
             auto mfMat = context->createSurfaceMaterial("MicrofacetReflection");
             // Aluminum
             mfMat->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.27579f, 0.940922f, 0.574879f });
@@ -1122,16 +1130,30 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
             mfMat->set("rotation", 0.25f);
 
             mat = mfMat;
-        }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+            auto image = loadImage2D(context, pathPrefix + "height_test/Height.png", "NA", "Rec709(D65)");
+            auto tex = context->createShaderNode("Image2DTexture");
+            tex->set("image", image);
+            tex->set("bump type", "Height Map");
+            tex->set("bump coeff", 1.0f);
+            plugNormal = tex->getPlug(VLRShaderNodePlugType_Normal3D, 0);
+        //}
+        //else {
+        //    mat = context->createSurfaceMaterial("Matte");
+        //}
+
+        auto nodeTangent = context->createShaderNode("Tangent");
+        nodeTangent->set("tangent type", "Radial Z");
+        plugTangent = nodeTangent->getPlug(VLRShaderNodePlugType_Vector3D, 0);
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     },
               [](const aiMesh* mesh) {
-        return MeshAttributeTuple(true, "Radial Y");
+        return MeshAttributeTuple(true);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(
-        translate<float>(0, 1.0f, 0) * scale(0.75f) * 
+        translate<float>(0, 1.0f, 0) * scale(0.01f * 0.75f) * 
         rotateX<float>(10 * M_PI / 180) * rotateY<float>(45 * M_PI / 180) * rotateX<float>(15 * M_PI / 180)
     ));
 
@@ -1192,6 +1214,7 @@ void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) 
 
                   SurfaceMaterialRef mat;
                   ShaderNodePlug plugNormal;
+                  ShaderNodePlug plugTangent;
                   ShaderNodePlug plugAlpha;
                   if (strcmp(strValue.C_Str(), "Base") == 0) {
                       SurfaceMaterialRef matteMat = context->createSurfaceMaterial("Matte");
@@ -1213,10 +1236,14 @@ void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) 
                       //mat = ue4Mat;
                   }
 
-                  return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+                  auto nodeTangent = context->createShaderNode("Tangent");
+                  nodeTangent->set("tangent type", "Radial Y");
+                  plugTangent = nodeTangent->getPlug(VLRShaderNodePlugType_float1, 0);
+
+                  return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
               },
               [](const aiMesh* mesh) {
-                  return MeshAttributeTuple(true, "Radial Y");
+                  return MeshAttributeTuple(true);
               });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.04089, 0)));
@@ -1320,7 +1347,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
                 indexOffset + 0, indexOffset + 1, indexOffset + 2,
                 indexOffset + 0, indexOffset + 2, indexOffset + 3
             };
-            colorChecker->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            colorChecker->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto colorCheckerNode = context->createInternalNode("ColorChecker", context->createStaticTransform(translate<float>(-3.0f, 2.0f, 0.0f) * rotateX<float>(M_PI / 2)));
@@ -1346,7 +1373,7 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //        std::vector<uint32_t> matGroup = {
     //            0, 1, 2, 0, 2, 3
     //        };
-    //        light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+    //        light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     //    }
     //}
     //InternalNodeRef lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 1.5f) * rotateX<float>(M_PI)));
@@ -1445,7 +1472,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         });
     shot->scene->addChild(modelNode);
 
@@ -1483,7 +1510,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            colorTestPlate->addMaterialGroup(matGroup.data(), matGroup.size(), mat, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            colorTestPlate->addMaterialGroup(matGroup.data(), matGroup.size(), mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto colorTestPlateNode = context->createInternalNode("colorTestPlateNode", context->createStaticTransform(translate<float>(0.0f, 1.5f, 0.0f) * scale(3.0f) * rotateX<float>(M_PI / 4)));
@@ -1584,7 +1611,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
     shot->scene->addChild(modelNode);
 
@@ -1609,7 +1636,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, -3.0f) * rotateX<float>(M_PI / 2)));
@@ -1631,6 +1658,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         if (strcmp(strValue.C_Str(), "_Head1") == 0) {
             auto nodeBaseColor = context->createShaderNode("Image2DTexture");
@@ -1676,13 +1704,15 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
             mat = ue4Mat;
             plugNormal = nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0);
+
+            auto nodeTangent = context->createShaderNode("Tangent");
+            nodeTangent->set("tangent type", "Radial Y");
+            plugTangent = nodeTangent->getPlug(VLRShaderNodePlugType_Vector3D, 0);
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     }, [](const aiMesh* mesh) {
-        if (std::strcmp(mesh->mName.C_Str(), "base_base") == 0)
-            return MeshAttributeTuple(true, "Radial Y");
-        return MeshAttributeTuple(true, "TC0 Direction");
+        return MeshAttributeTuple(true);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0.01, 0) * scale<float>(0.25f)));
@@ -1724,7 +1754,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
         //SurfaceMaterialRef mats[] = { matA, matB };
         //SurfaceMaterialRef mat = context->createSurfaceMaterial("Multi");
 
-        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug());
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(-2.0f, 0.0f, 2.0f) * scale(1.0f) * translate<float>(0.0f, 1.0f, 0.0f)));
@@ -1791,7 +1821,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 2.0f, 0.0f) * rotateX<float>(M_PI)));
@@ -1813,6 +1843,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             auto matteMat = context->createSurfaceMaterial("Matte");
@@ -1821,7 +1852,7 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
             mat = matteMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     construct(context, ASSETS_DIR"gallery/gallery.obj", false, true, &modelNode, createMaterialDefaultFunction);
     shot->scene->addChild(modelNode);
@@ -1879,7 +1910,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            light->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     auto lightNode = context->createInternalNode("light", context->createStaticTransform(translate<float>(0.0f, 5.0f, 0.0f) * rotateX<float>(M_PI)));
@@ -1902,6 +1933,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             auto matteMat = context->createSurfaceMaterial("Matte");
@@ -1910,10 +1942,7 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
             mat = matteMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
-    },
-              [](const aiMesh* mesh) {
-        return MeshAttributeTuple(true, "Radial Y");
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     });
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.1f)));
@@ -1965,6 +1994,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
 
         Image2DRef imgDiffuse;
@@ -2000,7 +2030,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             plugAlpha = texDiffuse->getPlug(VLRShaderNodePlugType_Alpha, 0);
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     construct(context, ASSETS_DIR"rungholt/rungholt.obj", false, true, &modelNode, rungholtMaterialFunc);
     shot->scene->addChild(modelNode);
@@ -2029,7 +2059,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             std::vector<uint32_t> matGroup = {
                 0, 1, 2, 0, 2, 3
             };
-            ground->addMaterialGroup(matGroup.data(), matGroup.size(), mat, ShaderNodePlug(), ShaderNodePlug(), "TC0 Direction");
+            ground->addMaterialGroup(matGroup.data(), matGroup.size(), mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
         }
     }
     modelNode->addChild(ground);
@@ -2092,6 +2122,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             auto matteMat = context->createSurfaceMaterial("Matte");
@@ -2100,7 +2131,7 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
             mat = matteMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     construct(context, ASSETS_DIR"powerplant/powerplant.obj", false, true, &modelNode, createMaterialDefaultFunction);
     shot->scene->addChild(modelNode);
@@ -2166,6 +2197,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             if (aiMat->Get(AI_MATKEY_COLOR_TRANSPARENT, color, nullptr) != aiReturn_SUCCESS) {
@@ -2250,7 +2282,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
             }
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     const auto grayMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
@@ -2265,6 +2297,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             auto matteMat = context->createSurfaceMaterial("Matte");
@@ -2273,7 +2306,7 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
             mat = matteMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
@@ -2372,6 +2405,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             if (aiMat->Get(AI_MATKEY_COLOR_TRANSPARENT, color, nullptr) != aiReturn_SUCCESS) {
@@ -2456,7 +2490,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
             }
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     const auto grayMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace VLRCpp;
@@ -2471,6 +2505,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         SurfaceMaterialRef mat;
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
         {
             auto matteMat = context->createSurfaceMaterial("Matte");
@@ -2479,7 +2514,7 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
             mat = matteMat;
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
     construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior_corrected.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
@@ -2563,6 +2598,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
         ShaderNodePlug plugAlpha;
 
         Image2DRef imgDiffuse;
@@ -2621,7 +2657,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
             plugAlpha = texDiffuse->getPlug(VLRShaderNodePlugType_Alpha, 0);
         }
 
-        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugAlpha);
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
 
     construct(context, ASSETS_DIR"San_Miguel/san-miguel.obj", false, true, &modelNode, sanMiguelMaterialFunc);
@@ -2668,7 +2704,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    createMaterialTestScene(context, shot);
+    //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
@@ -2680,5 +2716,5 @@ void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createPowerplantScene(context, shot);
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);
-    //createSanMiguelScene(context, shot);
+    createSanMiguelScene(context, shot);
 }

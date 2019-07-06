@@ -143,6 +143,39 @@ namespace VLR {
 
 
 
+    class TangentShaderNode : public ShaderNode {
+        VLR_DECLARE_QUERYABLE_INTERFACE();
+
+        VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
+
+        TangentType m_immTangentType;
+
+        void setupNodeDescriptor() const;
+
+    public:
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context& context);
+        static void finalize(Context& context);
+
+        TangentShaderNode(Context& context);
+        ~TangentShaderNode();
+
+        bool get(const char* paramName, const char** enumValue) const override;
+
+        bool set(const char* paramName, const char* enumValue) override;
+
+        // Out Plug | option |
+        // Vector3D |      0 | tangent
+        ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const override {
+            if (ptype == ShaderNodePlugType::Vector3D && option < 1)
+                return ShaderNodePlug(this, ptype, option);
+            return ShaderNodePlug();
+        }
+    };
+
+
+
     class Float2ShaderNode : public ShaderNode {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 

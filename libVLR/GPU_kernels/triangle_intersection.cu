@@ -62,16 +62,16 @@ namespace VLR {
 
 
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const ObjectInfo &objInfo, const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
         const Vertex &v2 = pv_vertexBuffer[triangle.index2];
 
-        Vector3D e1 = transform(RT_OBJECT_TO_WORLD, v1.position - v0.position);
-        Vector3D e2 = transform(RT_OBJECT_TO_WORLD, v2.position - v0.position);
+        Vector3D e1 = objInfo.transform * (v1.position - v0.position);
+        Vector3D e2 = objInfo.transform * (v2.position - v0.position);
         Normal3D geometricNormal = cross(e1, e2);
-        float area = geometricNormal.length() / 2;
+        float area = geometricNormal.length() / 2; // TODO: スケーリングの考慮。
         geometricNormal /= 2 * area;
 
         // JP: プログラムがこの点を光源としてサンプルする場合の面積に関する(仮想的な)PDFを求める。
@@ -85,9 +85,9 @@ namespace VLR {
         Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
-        position = transform(RT_OBJECT_TO_WORLD, position);
-        shadingNormal = normalize(transform(RT_OBJECT_TO_WORLD, shadingNormal));
-        tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, tc0Direction));
+        position = objInfo.transform * position;
+        shadingNormal = normalize(objInfo.transform * shadingNormal);
+        tc0Direction = objInfo.transform * tc0Direction;
 
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
@@ -104,20 +104,6 @@ namespace VLR {
         surfPt->u = b0;
         surfPt->v = b1;
         surfPt->texCoord = texCoord;
-        surfPt->tc0Direction = tc0Direction;
-    }
-
-    // bound
-    RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoordForTriangle(const HitPointParameter &param) {
-        const Triangle &triangle = pv_triangleBuffer[param.primIndex];
-        const Vertex &v0 = pv_vertexBuffer[triangle.index0];
-        const Vertex &v1 = pv_vertexBuffer[triangle.index1];
-        const Vertex &v2 = pv_vertexBuffer[triangle.index2];
-
-        float b0 = param.b0, b1 = param.b1, b2 = 1.0f - param.b0 - param.b1;
-        TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
-
-        return texCoord;
     }
 
 
@@ -133,8 +119,11 @@ namespace VLR {
         const Vertex &v1 = desc.asMeshLight.vertexBuffer[triangle.index1];
         const Vertex &v2 = desc.asMeshLight.vertexBuffer[triangle.index2];
 
-        Vector3D e1 = desc.asMeshLight.transform * (v1.position - v0.position);
-        Vector3D e2 = desc.asMeshLight.transform * (v2.position - v0.position);
+        StaticTransform transform = desc.asMeshLight.transform;
+        result->objInfo = ObjectInfo(transform);
+
+        Vector3D e1 = transform * (v1.position - v0.position);
+        Vector3D e2 = transform * (v2.position - v0.position);
         Normal3D geometricNormal = cross(e1, e2);
         float area = geometricNormal.length() / 2;
         geometricNormal /= 2 * area;
@@ -151,9 +140,9 @@ namespace VLR {
         Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
-        position = desc.asMeshLight.transform * position;
-        shadingNormal = normalize(desc.asMeshLight.transform * shadingNormal);
-        tc0Direction = desc.asMeshLight.transform * tc0Direction;
+        position = transform * position;
+        shadingNormal = normalize(transform * shadingNormal);
+        tc0Direction = transform * tc0Direction;
 
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
@@ -172,6 +161,5 @@ namespace VLR {
         surfPt.u = b0;
         surfPt.v = b1;
         surfPt.texCoord = texCoord;
-        surfPt.tc0Direction = tc0Direction;
     }
 }

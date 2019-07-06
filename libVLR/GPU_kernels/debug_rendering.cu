@@ -49,12 +49,6 @@ namespace VLR {
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.z.y),
                                           std::fmax(0.0f, 0.5f + 0.5f * surfPt.shadingFrame.z.z));
             break;
-        case DebugRenderingAttribute::TC0Direction:
-            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                          std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.x),
-                                          std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.y),
-                                          std::fmax(0.0f, 0.5f + 0.5f * surfPt.tc0Direction.z));
-            break;
         case DebugRenderingAttribute::TextureCoordinates:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
                                           surfPt.texCoord.u - std::floor(surfPt.texCoord.u),
@@ -95,12 +89,17 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingAnyHitWithAlpha() {
+        Matrix4x4 matM2W, matW2M;
+        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
+        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
+        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_debugPayload.wls);
+        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_debugPayload.wls);
 
         // Stochastic Alpha Test
         if (sm_debugPayload.rng.getFloat0cTo1o() >= alpha)
@@ -113,9 +112,14 @@ namespace VLR {
     RT_PROGRAM void debugRenderingClosestHit() {
         WavelengthSamples &wls = sm_payload.wls;
 
+        Matrix4x4 matM2W, matW2M;
+        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
+        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
+        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(&surfPt, &hypAreaPDF);
+        calcSurfacePoint(objInfo, &surfPt, &hypAreaPDF);
 
         //if (!surfPt.shadingFrame.x.allFinite() || !surfPt.shadingFrame.y.allFinite() || !surfPt.shadingFrame.z.allFinite())
         //    vlrprintf("(%g, %g, %g), (%g, %g, %g), (%g, %g, %g)\n",
@@ -125,7 +129,7 @@ namespace VLR {
 
         if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
-            BSDF bsdf(matDesc, surfPt, wls);
+            BSDF bsdf(matDesc, objInfo, surfPt, wls);
 
             const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
             auto progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;

@@ -36,9 +36,9 @@ namespace VLR {
         }
 
     public:
-        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matDesc.progSetupBSDF;
-            setupBSDF(matDesc.data, surfPt, wls, (uint32_t*)this);
+            setupBSDF(matDesc.data, objInfo, surfPt, wls, (uint32_t*)this);
 
             const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
@@ -104,9 +104,9 @@ namespace VLR {
         }
 
     public:
-        RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matDesc.progSetupEDF;
-            setupEDF(matDesc.data, surfPt, wls, (uint32_t*)this);
+            setupEDF(matDesc.data, objInfo, surfPt, wls, (uint32_t*)this);
 
             const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
@@ -157,16 +157,14 @@ namespace VLR {
     typedef rtCallableProgramX<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
     typedef rtCallableProgramX<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
 
-    typedef rtCallableProgramX<TexCoord2D(const HitPointParameter &)> ProgSigDecodeTexCoord;
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
+    typedef rtCallableProgramX<void(const ObjectInfo &, const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
     typedef rtCallableProgramX<float(const TexCoord2D &)> ProgSigFetchAlpha;
     typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
 
     // per GeometryInstance
-    rtDeclareVariable(ProgSigDecodeTexCoord, pv_progDecodeTexCoord, , );
     rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(TangentType, pv_tangentType, , ) = TangentType::TC0Direction;
     rtDeclareVariable(ShaderNodePlug, pv_nodeNormal, , );
+    rtDeclareVariable(ShaderNodePlug, pv_nodeTangent, , );
     rtDeclareVariable(ShaderNodePlug, pv_nodeAlpha, , );
     rtDeclareVariable(uint32_t, pv_materialIndex, , );
     rtDeclareVariable(float, pv_importance, , );
@@ -269,12 +267,17 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     RT_PROGRAM void anyHitWithAlpha() {
+        Matrix4x4 matM2W, matW2M;
+        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
+        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
+        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_payload.wls);
+        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_payload.wls);
 
         // Stochastic Alpha Test
         if (sm_payload.rng.getFloat0cTo1o() >= alpha)
@@ -283,12 +286,17 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     RT_PROGRAM void shadowAnyHitWithAlpha() {
+        Matrix4x4 matM2W, matW2M;
+        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
+        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
+        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_shadowPayload.wls);
+        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_shadowPayload.wls);
 
         sm_shadowPayload.fractionalVisibility *= (1 - alpha);
         if (sm_shadowPayload.fractionalVisibility == 0.0f)
@@ -298,82 +306,60 @@ namespace VLR {
 
 
 
-    RT_FUNCTION void modifyTangent(SurfacePoint* surfPt) {
-        if (pv_tangentType == TangentType::TC0Direction)
-            return;
-
-        Point3D localPosition = transform(RT_WORLD_TO_OBJECT, surfPt->position);
-
-        Vector3D localTangent;
-        if (pv_tangentType == TangentType::RadialX) {
-            localTangent = Vector3D(0, -localPosition.z, localPosition.y);
-        }
-        else if (pv_tangentType == TangentType::RadialY) {
-            localTangent = Vector3D(localPosition.z, 0, -localPosition.x);
-        }
-        else {
-            localTangent = Vector3D(-localPosition.y, localPosition.x, 0);
-        }
-
-        Vector3D newTangent = normalize(transform(RT_OBJECT_TO_WORLD, localTangent));
-
-        float dotNT = dot(surfPt->shadingFrame.z, newTangent);
-        surfPt->shadingFrame.x = normalize(newTangent - dotNT * surfPt->shadingFrame.z);
-        surfPt->shadingFrame.y = cross(surfPt->shadingFrame.z, surfPt->shadingFrame.x);
-    }
-
     // JP: 法線マップに従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the normal map.
     RT_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
         if (modNormalInTF.x == 0.0f && modNormalInTF.y == 0.0f)
             return;
 
-        const ReferenceFrame &originalFrame = surfPt->shadingFrame;
-
-        // JP: テクスチャーフレームもシェーディングフレームもこの時点ではz軸は共通。
-        //     前者に対する後者の角度を求める。
-        // EN: z axes of the texture frame and the shading frame are the same at this moment.
-        //     calculate the angle of the latter to the former.
-        Vector3D tc0Direction = surfPt->tc0Direction;
-        Vector3D tc1Direction = cross(originalFrame.z, tc0Direction);
-        float tlx = dot(originalFrame.x, tc0Direction);
-        float tly = dot(originalFrame.x, tc1Direction);
-        float angleFromTexFrame = std::atan2(tly, tlx);
-
-        // JP: 法線マップの値はテクスチャーフレーム内で定義されているためシェーディングフレーム内に変換。
-        // EN: convert a normal map value to that in the shading frame because the value is defined in the texture frame.
-        float cosTFtoSF, sinTFtoSF;
-        VLR::sincos(angleFromTexFrame, &sinTFtoSF, &cosTFtoSF);
-        Normal3D modNormalInSF = Normal3D(cosTFtoSF * modNormalInTF.x + sinTFtoSF * modNormalInTF.y,
-                                          -sinTFtoSF * modNormalInTF.x + cosTFtoSF * modNormalInTF.y,
-                                          modNormalInTF.z);
-
         // JP: 法線から回転軸と回転角(、Quaternion)を求めて対応する接平面ベクトルを求める。
         // EN: calculate a rotating axis and an angle (and quaternion) from the normal then calculate corresponding tangential vectors.
-        float projLength = std::sqrt(modNormalInSF.x * modNormalInSF.x + modNormalInSF.y * modNormalInSF.y);
-        float tiltAngle = std::atan(projLength / modNormalInSF.z);
+        float projLength = std::sqrt(modNormalInTF.x * modNormalInTF.x + modNormalInTF.y * modNormalInTF.y);
+        float tiltAngle = std::atan(projLength / modNormalInTF.z);
         float qSin, qCos;
         VLR::sincos(tiltAngle / 2, &qSin, &qCos);
-        float qX = (-modNormalInSF.y / projLength) * qSin;
-        float qY = (modNormalInSF.x / projLength) * qSin;
+        float qX = (-modNormalInTF.y / projLength) * qSin;
+        float qY = (modNormalInTF.x / projLength) * qSin;
         float qW = qCos;
-        Vector3D modTangentInSF = Vector3D(1 - 2 * qY * qY, 2 * qX * qY, -2 * qY * qW);
-        Vector3D modBitangentInSF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
+        Vector3D modTangentInTF = Vector3D(1 - 2 * qY * qY, 2 * qX * qY, -2 * qY * qW);
+        Vector3D modBitangentInTF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
 
-        Matrix3x3 matSFtoW = Matrix3x3(originalFrame.x, originalFrame.y, originalFrame.z);
-        ReferenceFrame bumpShadingFrame(matSFtoW * modTangentInSF, matSFtoW * modBitangentInSF, matSFtoW * modNormalInSF);
+        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
+        ReferenceFrame bumpShadingFrame(matTFtoW * modTangentInTF, matTFtoW * modBitangentInTF, matTFtoW * modNormalInTF);
 
         surfPt->shadingFrame = bumpShadingFrame;
     }
 
 
 
-    RT_FUNCTION void calcSurfacePoint(SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_FUNCTION void calcSurfacePoint(const ObjectInfo &objInfo, SurfacePoint* surfPt, float* hypAreaPDF) {
         HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+        pv_progDecodeHitPoint(objInfo, hitPointParam, surfPt, hypAreaPDF);
 
-        modifyTangent(surfPt);
-        Normal3D localNormal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, sm_payload.wls);
+        Normal3D localNormal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), objInfo, *surfPt, sm_payload.wls);
         applyBumpMapping(localNormal, surfPt);
+
+        Vector3D newTangent = calcNode(pv_nodeTangent, surfPt->shadingFrame.x, objInfo, *surfPt, sm_payload.wls);
+        if (newTangent != surfPt->shadingFrame.x) {
+            float dotNT = dot(surfPt->shadingFrame.z, newTangent);
+            newTangent = newTangent - dotNT * surfPt->shadingFrame.z;
+
+            float lx = dot(surfPt->shadingFrame.x, newTangent);
+            float ly = dot(surfPt->shadingFrame.y, newTangent);
+
+            float tangentAngle = std::atan2(ly, lx);
+
+            float s, c;
+            VLR::sincos(tangentAngle, &s, &c);
+            Vector3D newTangentInTF = Vector3D(c, s, 0);
+            Vector3D newBitangentInTF = Vector3D(-s, c, 0);
+
+            Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
+            ReferenceFrame newShadingFrame(normalize(matTFtoW * newTangentInTF),
+                                           normalize(matTFtoW * newBitangentInTF),
+                                           surfPt->shadingFrame.z);
+
+            surfPt->shadingFrame = newShadingFrame;
+        }
     }
 }

@@ -197,8 +197,8 @@ extern "C" {
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeDestroy(VLRContext context, VLRTriangleMeshSurfaceNode surfaceNode);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNode surfaceNode, const VLRVertex* vertices, uint32_t numVertices);
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
-                                                                 VLRSurfaceMaterialConst material, VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeAlpha,
-                                                                 const char* tangentType);
+                                                                 VLRSurfaceMaterialConst material,
+                                                                 VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeTangent, VLRShaderNodePlug nodeAlpha);
 
     VLR_API VLRResult vlrInternalNodeCreate(VLRContext context, VLRInternalNode* node,
                                             const char* name, VLRTransformConst transform);

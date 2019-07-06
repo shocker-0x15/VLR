@@ -438,6 +438,7 @@ namespace VLRCpp {
     class TriangleMeshSurfaceNodeHolder : public SurfaceNodeHolder {
         std::vector<SurfaceMaterialRef> m_materials;
         std::vector<ShaderNodePlug> m_nodeNormals;
+        std::vector<ShaderNodePlug> m_nodeTangents;
         std::vector<ShaderNodePlug> m_nodeAlphas;
 
     public:
@@ -454,14 +455,14 @@ namespace VLRCpp {
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
-                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeAlpha,
-                              const char* tangentType) {
+                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha) {
             m_materials.push_back(material);
             m_nodeNormals.push_back(nodeNormal);
+            m_nodeTangents.push_back(nodeTangent);
             m_nodeAlphas.push_back(nodeAlpha);
             errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup(getRaw<VLRTriangleMeshSurfaceNode>(), indices, numIndices,
-                                                                  material->getRaw<VLRSurfaceMaterial>(), nodeNormal.plug, nodeAlpha.plug,
-                                                                  tangentType));
+                                                                  material->getRaw<VLRSurfaceMaterial>(),
+                                                                  nodeNormal.plug, nodeTangent.plug, nodeAlpha.plug));
         }
     };
 

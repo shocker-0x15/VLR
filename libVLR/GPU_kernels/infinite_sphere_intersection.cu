@@ -28,13 +28,13 @@ namespace VLR {
 
 
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForInfiniteSphere(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForInfiniteSphere(const ObjectInfo &objInfo, const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         float phi = param.b0;
         float theta = param.b1;
-        Vector3D direction = transform(RT_OBJECT_TO_WORLD, Vector3D::fromPolarYUp(phi, theta));
+        Vector3D direction = objInfo.transform * Vector3D::fromPolarYUp(phi, theta);
         float sinPhi, cosPhi;
         VLR::sincos(phi, &sinPhi, &cosPhi);
-        Vector3D texCoord0Dir = transform(RT_OBJECT_TO_WORLD, Vector3D(-cosPhi, 0.0f, -sinPhi));
+        Vector3D texCoord0Dir = objInfo.transform * Vector3D(-cosPhi, 0.0f, -sinPhi);
 
         surfPt->position = Point3D(direction.x, direction.y, direction.z);
         surfPt->shadingFrame = ReferenceFrame(texCoord0Dir, -direction);
@@ -45,17 +45,9 @@ namespace VLR {
         surfPt->u = param.b0;
         surfPt->v = param.b1;
         surfPt->texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
-        //surfPt->tc0Direction = normalize(transform(RT_OBJECT_TO_WORLD, uDirection));
 
         // calculate a hypothetical area PDF value in the case where the program sample this point as light.
         *hypAreaPDF = 0;
-    }
-
-    // bound
-    RT_CALLABLE_PROGRAM TexCoord2D decodeTexCoordForInfiniteSphere(const HitPointParameter &param) {
-        float phi = param.b0;
-        float theta = param.b1;
-        return TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
     }
 
 
@@ -74,6 +66,9 @@ namespace VLR {
 
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
+
+        Matrix4x4 identity;
+        result->objInfo.transform = StaticTransform(identity, identity);
 
         float sinPhi, cosPhi;
         VLR::sincos(posPhi, &sinPhi, &cosPhi);

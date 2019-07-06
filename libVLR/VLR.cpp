@@ -824,6 +824,9 @@ VLR_API VLRResult vlrShaderNodeCreate(VLRContext context, const char* typeName, 
         if (VLR::testParamName(sTypeName, "Geometry")) {
             *node = new VLR::GeometryShaderNode(*context);
         }
+        if (VLR::testParamName(sTypeName, "Tangent")) {
+            *node = new VLR::TangentShaderNode(*context);
+        }
         else if (VLR::testParamName(sTypeName, "Float2")) {
             *node = new VLR::Float2ShaderNode(*context);
         }
@@ -1061,8 +1064,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
 }
 
 VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurfaceNode surfaceNode, const uint32_t* indices, uint32_t numIndices, 
-                                                             VLRSurfaceMaterialConst material, VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeAlpha,
-                                                             const char* tangentType) {
+                                                             VLRSurfaceMaterialConst material,
+                                                             VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeTangent, VLRShaderNodePlug nodeAlpha) {
     try {
         VLR_RETURN_INVALID_INSTANCE(surfaceNode, VLR::TriangleMeshSurfaceNode);
         if (indices == nullptr || !nonNullAndCheckType<VLR::SurfaceMaterial>(material))
@@ -1074,8 +1077,8 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
 
         surfaceNode->addMaterialGroup(std::move(vecIndices), material,
             VLR::ShaderNodePlug(nodeNormal),
-            VLR::ShaderNodePlug(nodeAlpha),
-            VLR::getEnumValueFromMember<VLR::TangentType>(tangentType));
+            VLR::ShaderNodePlug(nodeTangent),
+            VLR::ShaderNodePlug(nodeAlpha));
 
         return VLRResult_NoError;
     }

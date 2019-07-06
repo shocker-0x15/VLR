@@ -62,6 +62,7 @@ namespace VLR {
         s_shader_nodes_ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
 
         GeometryShaderNode::initialize(context);
+        TangentShaderNode::initialize(context);
         Float2ShaderNode::initialize(context);
         Float3ShaderNode::initialize(context);
         Float4ShaderNode::initialize(context);
@@ -88,6 +89,7 @@ namespace VLR {
         Float4ShaderNode::finalize(context);
         Float3ShaderNode::finalize(context);
         Float2ShaderNode::finalize(context);
+        TangentShaderNode::finalize(context);
         GeometryShaderNode::finalize(context);
     }
 
@@ -167,6 +169,85 @@ namespace VLR {
 
     GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
         return Instances.at(context.getID());
+    }
+
+
+
+    std::vector<ParameterInfo> TangentShaderNode::ParameterInfos;
+
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> TangentShaderNode::OptiXProgramSets;
+
+    // static
+    void TangentShaderNode::initialize(Context& context) {
+        const ParameterInfo paramInfos[] = {
+            ParameterInfo("tangent type", VLRParameterFormFlag_ImmediateValue, EnumTangentType),
+        };
+
+        if (ParameterInfos.size() == 0) {
+            ParameterInfos.resize(lengthof(paramInfos));
+            std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
+        }
+
+        const PlugTypeToProgramPair pairs[] = {
+            ShaderNodePlugType::Vector3D, "VLR::TangentShaderNode_Vector3D",
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+
+        OptiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void TangentShaderNode::finalize(Context& context) {
+        OptiXProgramSet& programSet = OptiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+        OptiXProgramSets.erase(context.getID());
+    }
+
+    TangentShaderNode::TangentShaderNode(Context& context) :
+        ShaderNode(context, sizeof(Shared::TangentShaderNode)), m_immTangentType(TangentType::TC0Direction) {
+        setupNodeDescriptor();
+    }
+
+    TangentShaderNode::~TangentShaderNode() {
+    }
+
+    void TangentShaderNode::setupNodeDescriptor() const {
+        auto& nodeData = *getData<Shared::TangentShaderNode>();
+        nodeData.tangentType = m_immTangentType;
+
+        updateNodeDescriptor();
+    }
+
+    bool TangentShaderNode::get(const char* paramName, const char** enumValue) const {
+        if (enumValue == nullptr)
+            return false;
+
+        if (testParamName(paramName, "tangent type")) {
+            *enumValue = getEnumMemberFromValue(m_immTangentType);
+            VLRAssert(*enumValue != nullptr, "Invalid enum value");
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool TangentShaderNode::set(const char* paramName, const char* enumValue) {
+        if (testParamName(paramName, "tangent type")) {
+            auto v = getEnumValueFromMember<TangentType>(enumValue);
+            if (v == (TangentType)0xFFFFFFFF)
+                return false;
+
+            m_immTangentType = v;
+        }
+        else {
+            return false;
+        }
+        setupNodeDescriptor();
+
+        return true;
     }
 
 
