@@ -90,9 +90,9 @@ namespace VLR {
     // Common Any Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingAnyHitWithAlpha() {
         Matrix4x4 matM2W, matW2M;
-        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
-        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
-        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
+        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
+        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
 
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
@@ -113,9 +113,9 @@ namespace VLR {
         WavelengthSamples &wls = sm_payload.wls;
 
         Matrix4x4 matM2W, matW2M;
-        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
-        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
-        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
+        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
+        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
 
         SurfacePoint surfPt;
         float hypAreaPDF;

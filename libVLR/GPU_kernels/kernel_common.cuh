@@ -20,6 +20,11 @@ namespace VLR {
         return asNormal3D(rtTransformNormal(kind, asOptiXType(n)));
     }
 
+    RT_FUNCTION void getTransform(RTtransformkind kind, Matrix4x4* m) {
+        rtGetTransform(kind, (float*)m);
+        m->transpose();
+    }
+
     struct ObjectInfo {
         StaticTransform transform;
 

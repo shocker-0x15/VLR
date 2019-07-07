@@ -268,9 +268,9 @@ namespace VLR {
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     RT_PROGRAM void anyHitWithAlpha() {
         Matrix4x4 matM2W, matW2M;
-        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
-        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
-        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
+        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
+        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
 
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
@@ -287,9 +287,9 @@ namespace VLR {
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     RT_PROGRAM void shadowAnyHitWithAlpha() {
         Matrix4x4 matM2W, matW2M;
-        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&matM2W);
-        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&matW2M);
-        ObjectInfo objInfo(StaticTransform(transpose(matM2W), transpose(matW2M)));
+        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
+        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
+        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
 
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
@@ -306,8 +306,8 @@ namespace VLR {
 
 
 
-    // JP: 法線マップに従ってシェーディングフレームを変更する。
-    // EN: perturb the shading frame according to the normal map.
+    // JP: 変異された法線に従ってシェーディングフレームを変更する。
+    // EN: perturb the shading frame according to the modified normal.
     RT_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
         if (modNormalInTF.x == 0.0f && modNormalInTF.y == 0.0f)
             return;
@@ -325,9 +325,40 @@ namespace VLR {
         Vector3D modBitangentInTF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
 
         Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
-        ReferenceFrame bumpShadingFrame(matTFtoW * modTangentInTF, matTFtoW * modBitangentInTF, matTFtoW * modNormalInTF);
+        ReferenceFrame bumpShadingFrame(matTFtoW * modTangentInTF,
+                                        matTFtoW * modBitangentInTF,
+                                        matTFtoW * modNormalInTF);
 
         surfPt->shadingFrame = bumpShadingFrame;
+    }
+
+
+
+    // JP: 変異された接線に従ってシェーディングフレームを変更する。
+    // EN: perturb the shading frame according to the modified tangent.
+    RT_FUNCTION void modifyTangent(const Vector3D& modTangent, SurfacePoint* surfPt) {
+        if (modTangent == surfPt->shadingFrame.x)
+            return;
+
+        float dotNT = dot(surfPt->shadingFrame.z, modTangent);
+        Vector3D projModTangent = modTangent - dotNT * surfPt->shadingFrame.z;
+
+        float lx = dot(surfPt->shadingFrame.x, projModTangent);
+        float ly = dot(surfPt->shadingFrame.y, projModTangent);
+
+        float tangentAngle = std::atan2(ly, lx);
+
+        float s, c;
+        VLR::sincos(tangentAngle, &s, &c);
+        Vector3D modTangentInTF = Vector3D(c, s, 0);
+        Vector3D modBitangentInTF = Vector3D(-s, c, 0);
+
+        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
+        ReferenceFrame newShadingFrame(normalize(matTFtoW * modTangentInTF),
+                                       normalize(matTFtoW * modBitangentInTF),
+                                       surfPt->shadingFrame.z);
+
+        surfPt->shadingFrame = newShadingFrame;
     }
 
 
@@ -340,26 +371,6 @@ namespace VLR {
         applyBumpMapping(localNormal, surfPt);
 
         Vector3D newTangent = calcNode(pv_nodeTangent, surfPt->shadingFrame.x, objInfo, *surfPt, sm_payload.wls);
-        if (newTangent != surfPt->shadingFrame.x) {
-            float dotNT = dot(surfPt->shadingFrame.z, newTangent);
-            newTangent = newTangent - dotNT * surfPt->shadingFrame.z;
-
-            float lx = dot(surfPt->shadingFrame.x, newTangent);
-            float ly = dot(surfPt->shadingFrame.y, newTangent);
-
-            float tangentAngle = std::atan2(ly, lx);
-
-            float s, c;
-            VLR::sincos(tangentAngle, &s, &c);
-            Vector3D newTangentInTF = Vector3D(c, s, 0);
-            Vector3D newBitangentInTF = Vector3D(-s, c, 0);
-
-            Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
-            ReferenceFrame newShadingFrame(normalize(matTFtoW * newTangentInTF),
-                                           normalize(matTFtoW * newBitangentInTF),
-                                           surfPt->shadingFrame.z);
-
-            surfPt->shadingFrame = newShadingFrame;
-        }
+        modifyTangent(newTangent, surfPt);
     }
 }
