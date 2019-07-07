@@ -1,17 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <cstdlib>
-#include <cstdarg>
-#include <cctype>
-#include <iostream>
-#include <string>
-#include <set>
-#include <functional>
-#include <sstream>
-#include <fstream>
-#include <filesystem>
-
 // Platform defines
 #if defined(_WIN32) || defined(_WIN64)
 #    define HP_Platform_Windows
@@ -37,6 +25,19 @@
 #else
 #   define VLR_API
 #endif
+
+#include <cstdint>
+#include <cstdlib>
+#include <cstdarg>
+#include <cmath>
+#include <cctype>
+#include <iostream>
+#include <string>
+#include <set>
+#include <functional>
+#include <sstream>
+#include <fstream>
+#include <filesystem>
 
 
 

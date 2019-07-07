@@ -65,10 +65,8 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
     mesh->setVertices(vertices, lengthof(vertices));
 
     {
-        Image2DRef imgAlbedo = loadImage2D(context, "checkerboard.png", 
-                                           "Reflectance", "Rec709(D65) sRGB Gamma");
-        Image2DRef imgNormalAlpha = loadImage2D(context, "normal_alpha.png", 
-                                                "NA", "Rec709(D65)");
+        Image2DRef imgAlbedo = loadImage2D(context, "checkerboard.png", "Reflectance", "Rec709(D65) sRGB Gamma");
+        Image2DRef imgNormalAlpha = loadImage2D(context, "normal_alpha.png", "NA", "Rec709(D65)");
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", imgAlbedo);
@@ -82,13 +80,14 @@ TriangleMeshSurfaceNodeRef mesh = context->createTriangleMeshSurfaceNode("My Mes
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
         mat->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
-        uint32_t matGroup[] = {
-            0, 1, 2, 0, 2, 3
-        };
+        ShaderNodeRef nodeTangent = context->createShaderNode("Tangent");
+        nodeTangent->set("tangent type", "Radial Y");
+
+        uint32_t matGroup[] = { 0, 1, 2, 0, 2, 3 };
         mesh->addMaterialGroup(matGroup, lengthof(matGroup), mat, 
                                nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Normal3D, 0), // normal map
-                               nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0), // alpha map
-                               "TC0 Direction"); // tangent direction
+                               nodeTangent->getPlug(VLRShaderNodePlugType_Vector3D, 0), // tangent
+                               nodeNormalAlpha->getPlug(VLRShaderNodePlugType_Alpha, 0)); // alpha map
     }
 
     // ...
@@ -124,7 +123,7 @@ context->render(scene, camera, 1, firstFrame, &numAccumFrames);
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1903) & Visual Studio 2019 (16.1.4)
+* Windows 10 (1903) & Visual Studio 2019 (16.1.5)
 * Core i9-9900K, 32GB, RTX 2070 8GB
 * NVIDIA Driver 430.64\
   430.86 has a bug where the program fails to bind an OpenGL buffer object to the output buffer.
