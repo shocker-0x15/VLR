@@ -16,10 +16,9 @@ namespace VLR {
         KernelRNG &rng = sm_payload.rng;
         WavelengthSamples &wls = sm_payload.wls;
 
-        Matrix4x4 matM2W, matW2M;
-        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
-        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
-        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
+        StaticTransform transform;
+        getTransform(&transform);
+        ObjectInfo objInfo(transform);
 
         SurfacePoint surfPt;
         float hypAreaPDF;

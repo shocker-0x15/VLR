@@ -267,10 +267,9 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     RT_PROGRAM void anyHitWithAlpha() {
-        Matrix4x4 matM2W, matW2M;
-        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
-        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
-        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
+        StaticTransform transform;
+        getTransform(&transform);
+        ObjectInfo objInfo(transform);
 
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
@@ -286,10 +285,9 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     RT_PROGRAM void shadowAnyHitWithAlpha() {
-        Matrix4x4 matM2W, matW2M;
-        getTransform(RT_OBJECT_TO_WORLD, &matM2W);
-        getTransform(RT_WORLD_TO_OBJECT, &matW2M);
-        ObjectInfo objInfo(StaticTransform(matM2W, matW2M));
+        StaticTransform transform;
+        getTransform(&transform);
+        ObjectInfo objInfo(transform);
 
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;

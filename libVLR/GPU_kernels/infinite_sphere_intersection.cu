@@ -67,7 +67,7 @@ namespace VLR {
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
 
-        Matrix4x4 identity;
+        Matrix4x4 identity = Matrix4x4::Identity();
         result->objInfo.transform = StaticTransform(identity, identity);
 
         float sinPhi, cosPhi;
