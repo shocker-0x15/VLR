@@ -26,6 +26,7 @@
       <Filter>imGui</Filter>
     </ClCompile>
     <ClCompile Include="cpp_compile_test.cpp" />
+    <ClCompile Include="image_loader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">
@@ -83,6 +84,7 @@
       <Filter>GLFW</Filter>
     </ClInclude>
     <ClInclude Include="parameter.h" />
+    <ClInclude Include="image_loader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\scale.frag">
