@@ -265,8 +265,7 @@ namespace VLR {
         rtTerminateRay();
     }
 
-    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void anyHitWithAlpha() {
+    RT_FUNCTION float getAlpha() {
         StaticTransform transform;
         getTransform(&transform);
         ObjectInfo objInfo(transform);
@@ -276,7 +275,12 @@ namespace VLR {
         float hypAreaPDF;
         pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_payload.wls);
+        return calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_payload.wls);
+    }
+
+    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
+    RT_PROGRAM void anyHitWithAlpha() {
+        float alpha = getAlpha();
 
         // Stochastic Alpha Test
         if (sm_payload.rng.getFloat0cTo1o() >= alpha)
@@ -285,21 +289,13 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     RT_PROGRAM void shadowAnyHitWithAlpha() {
-        StaticTransform transform;
-        getTransform(&transform);
-        ObjectInfo objInfo(transform);
-
-        HitPointParameter hitPointParam = a_hitPointParam;
-        SurfacePoint surfPt;
-        float hypAreaPDF;
-        pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
-
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_shadowPayload.wls);
+        float alpha = getAlpha();
 
         sm_shadowPayload.fractionalVisibility *= (1 - alpha);
         if (sm_shadowPayload.fractionalVisibility == 0.0f)
             rtTerminateRay();
-        rtIgnoreIntersection();
+        else
+            rtIgnoreIntersection();
     }
 
 
