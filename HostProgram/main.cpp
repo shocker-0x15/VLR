@@ -63,6 +63,13 @@ float sRGB_gamma_s(float value) {
     return 1.055f * std::pow(value, 1.0f / 2.4f) - 0.055f;
 };
 
+float sRGB_degamma_s(float value) {
+    Assert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
+    if (value <= 0.04045f)
+        return value / 12.92f;
+    return std::pow((value + 0.055f) / 1.055f, 2.4f);
+};
+
 struct RGB {
     float r, g, b;
 
@@ -164,6 +171,8 @@ class HostProgram {
 
     GLFWwindow* m_window;
     float m_UIScaling;
+    ImGuiStyle m_guiStyleWithGamma;
+    ImGuiStyle m_guiStyle;
     
     uint64_t m_frameIndex;
     int32_t m_curFBWidth;
@@ -314,13 +323,15 @@ class HostProgram {
             "ShadingTangent",
             "ShadingBitangent",
             "ShadingNormal",
-            "TC0Direction",
             "TextureCoordinates",
             "GeometricVsShadingNormal",
             "ShadingFrameLengths",
             "ShadingFrameOrthogonality",
         };
-        m_cameraSettingsChanged |= ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
+        bool rendererChanged = ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
+        if (rendererChanged)
+            ImGui::GetStyle() = m_enableDebugRendering ? m_guiStyle : m_guiStyleWithGamma;
+        m_cameraSettingsChanged |= rendererChanged;
         m_cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)& m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
         ImGui::SliderFloat("Brightness", &m_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
 
@@ -788,7 +799,18 @@ public:
         ImGui_ImplOpenGL3_Init(glsl_version);
 
         // Setup style
-        ImGui::StyleColorsDark();
+        ImGui::StyleColorsDark(&m_guiStyle);
+        m_guiStyleWithGamma = m_guiStyle;
+        const auto degamma = [](const ImVec4 &color) {
+            return ImVec4(sRGB_degamma_s(color.x),
+                          sRGB_degamma_s(color.y),
+                          sRGB_degamma_s(color.z),
+                          color.w);
+        };
+        for (int i = 0; i < ImGuiCol_COUNT; ++i) {
+            m_guiStyleWithGamma.Colors[i] = degamma(m_guiStyleWithGamma.Colors[i]);
+        }
+        ImGui::GetStyle() = m_guiStyleWithGamma;
 
 
 
@@ -1090,7 +1112,6 @@ public:
                     m_outputTexture.unbind();
                 }
 
-                // TODO: need to rendering ImGui contents with degamma when sRGB is enabled.
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

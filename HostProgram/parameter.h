@@ -1,100 +1,55 @@
 #pragma once
 
 #include "common.h"
+
+#define NOMINMAX
+#include "imgui.h"
+
 #include <VLR/VLRCpp.h>
 
-
-
-struct EnumTableEntry {
-    std::string name;
-};
-
-
-
 class Parameter {
-    VLRCpp::ShaderNodeRef m_shaderNode;
-    Parameter* m_parentParameter;
-    std::string m_name;
-
-    virtual void drawInternal() const = 0;
+protected:
+    VLRCpp::QueryableRef m_parent;
+    VLRCpp::ParameterInfo m_info;
 
 public:
-    Parameter(const VLRCpp::ShaderNodeRef &shaderNode, Parameter* parentParameter, const std::string& name) : 
-        m_shaderNode(shaderNode),
-        m_parentParameter(parentParameter),
-        m_name(name) {}
+    Parameter(const VLRCpp::QueryableRef parent, const VLRCpp::ParameterInfo &info) :
+        m_parent(parent), m_info(info) {}
     virtual ~Parameter() {}
 
-    virtual void update() const = 0;
-
-    void draw() const {
-        drawInternal();
-        if (m_parentParameter)
-            m_parentParameter->update();
-        else
-            update();
-    }
+    virtual void draw() const = 0;
 };
-
-
 
 class FloatTupleParameter : public Parameter {
     float* m_values;
-    uint32_t m_numValues;
+    uint32_t m_tupleSize;
 
 public:
-    FloatTupleParameter(const std::string& name, const float* values, uint32_t numValues) :
-        Parameter(name),
-        m_numValues(numValues) {
-        m_values = new float[m_numValues];
-        std::copy_n(values, m_numValues, m_values);
+    FloatTupleParameter(const VLRCpp::QueryableRef parent, const VLRCpp::ParameterInfo& info) :
+        Parameter(parent, info) {
+        m_tupleSize = m_info.getTupleSize();
+        Assert(m_tupleSize > 0, "Tuple size must be greater than 0.");
+        m_values = new float[m_tupleSize];
+
+        parent->get(m_info.getName(), m_values, m_tupleSize);
     }
     ~FloatTupleParameter() {
-        delete[] m_values;
+        delete m_values;
     }
 
     void draw() const override {
-        Assert_NotImplemented();
-    }
-};
-
-
-
-class EnumParameter : public Parameter {
-    
-    uint32_t m_value;
-
-public:
-    EnumParameter(const std::string& name, uint32_t value) :
-        Parameter(name),
-        m_value(value) {}
-
-    void draw() const override {
-        Assert_NotImplemented();
-    }
-};
-
-
-
-class TripletSpectrumParameter : public Parameter {
-    EnumParameter m_spectrumType;
-    EnumParameter m_colorSpace;
-    FloatTupleParameter m_triplet;
-
-public:
-    TripletSpectrumParameter(const std::string& name, VLRSpectrumType spectrumType, VLRColorSpace colorSpace, const float triplet[3]) :
-        Parameter(name),
-        m_spectrumType("spectrum type", spectrumType),
-        m_colorSpace("color space", colorSpace),
-        m_triplet("triplet", triplet, 3) {
-    }
-    ~TripletSpectrumParameter() {
-    }
-
-    void draw() const override {
-        m_spectrumType.draw();
-        m_colorSpace.draw();
-        m_triplet.draw();
+        if (m_tupleSize == 1) {
+            ImGui::InputFloat(m_info.getName(), &m_values[0]);
+        }
+        else {
+            const char* param = m_info.getName();
+            ImGui::LabelText("%s", param);
+            ImGui::PushID(param);
+            for (int i = 0; i < m_info.getTupleSize(); ++i) {
+                ImGui::InputFloat("", &m_values[i]);
+            }
+            ImGui::PopID();
+        }
     }
 };
 
@@ -102,7 +57,6 @@ public:
 
 class ShaderNode {
     VLRCpp::ShaderNodeRef m_shaderNode;
-    Parameter* m_parameters;
     uint32_t m_numParams;
 
 public:
@@ -114,72 +68,6 @@ public:
     }
     ~ShaderNode() {
 
-    }
-
-    void draw() const {
-
-    }
-};
-
-
-
-class SurfaceMaterial {
-    VLRCpp::SurfaceMaterialRef m_surfaceMaterial;
-    Parameter** m_immParams;
-    VLRCpp::ShaderNodeSocket* m_nodeParams;
-    uint32_t m_numParams;
-
-public:
-    SurfaceMaterial(const VLRCpp::SurfaceMaterialRef& surfaceMaterial) : m_surfaceMaterial(surfaceMaterial) {
-        m_numParams = m_surfaceMaterial->getNumParameters();
-
-        m_immParams = new Parameter*[m_numParams];
-        m_nodeParams = new VLRCpp::ShaderNodeSocket[m_numParams];
-
-        for (int i = 0; i < m_numParams; ++i) {
-            Parameter* &immParam = m_immParams[i];
-            VLRCpp::ShaderNodeSocket &nodeParam = m_nodeParams[i];
-
-            VLRCpp::ParameterInfo paramInfo = m_surfaceMaterial->getParameterInfo(i);
-
-            const std::string paramName = paramInfo->getName();
-
-            // Node
-            // Imm
-            // Node | Imm
-            VLRSocketForm socketForm = paramInfo->getSocketForm();
-
-            nodeParam = m_surfaceMaterial->getParameterNode(paramName);
-            if ((socketForm & VLRSocketForm_ImmediateValue) != 0) {
-                // float
-                // Spectrum
-                VLRParameterType paramType = paramInfo->getType();
-
-                switch (paramType) {
-                case VLRParameterType_float: {
-                    float value;
-                    m_surfaceMaterial->getParameterImmediateValue(paramName, &value);
-                    immParam = new FloatTupleParameter();
-                    break;
-                }
-                case VLRParameterType_Spectrum: {
-                    VLRTripletSpectrum value;
-                    m_surfaceMaterial->getParameterImmediateValue(paramName, &value);
-                    immParam = new TripletSpectrumParameter();
-                    break;
-                }
-                default:
-                    break;
-                }
-            }
-            else {
-                immParam = nullptr;
-            }
-        }
-    }
-    ~SurfaceMaterial() {
-        delete[] m_nodeParams;
-        delete[] m_immParams;
     }
 
     void draw() const {
