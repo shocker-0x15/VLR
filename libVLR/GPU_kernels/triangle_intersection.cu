@@ -62,14 +62,14 @@ namespace VLR {
 
 
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const ObjectInfo &objInfo, const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const Triangle &triangle = pv_triangleBuffer[param.primIndex];
         const Vertex &v0 = pv_vertexBuffer[triangle.index0];
         const Vertex &v1 = pv_vertexBuffer[triangle.index1];
         const Vertex &v2 = pv_vertexBuffer[triangle.index2];
 
-        Vector3D e1 = objInfo.transform * (v1.position - v0.position);
-        Vector3D e2 = objInfo.transform * (v2.position - v0.position);
+        Vector3D e1 = transform(RT_OBJECT_TO_WORLD, v1.position - v0.position);
+        Vector3D e2 = transform(RT_OBJECT_TO_WORLD, v2.position - v0.position);
         Normal3D geometricNormal = cross(e1, e2);
         float area = geometricNormal.length() / 2; // TODO: スケーリングの考慮。
         geometricNormal /= 2 * area;
@@ -85,9 +85,9 @@ namespace VLR {
         Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
-        position = objInfo.transform * position;
-        shadingNormal = normalize(objInfo.transform * shadingNormal);
-        tc0Direction = objInfo.transform * tc0Direction;
+        position = transform(RT_OBJECT_TO_WORLD, position);
+        shadingNormal = normalize(transform(RT_OBJECT_TO_WORLD, shadingNormal));
+        tc0Direction = transform(RT_OBJECT_TO_WORLD, tc0Direction);
 
         // JP: 法線と接線が直交することを保証する。
         //     直交性の消失は重心座標補間によっておこる？
@@ -108,19 +108,16 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const SurfaceLightDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
-        uint32_t primIdx = desc.asMeshLight.primDistribution.sample(sample.uElem, &primProb);
+        uint32_t primIdx = desc.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
 
-        result->materialIndex = desc.asMeshLight.materialIndex;
+        const Triangle &triangle = desc.asTriMesh.triangleBuffer[primIdx];
+        const Vertex &v0 = desc.asTriMesh.vertexBuffer[triangle.index0];
+        const Vertex &v1 = desc.asTriMesh.vertexBuffer[triangle.index1];
+        const Vertex &v2 = desc.asTriMesh.vertexBuffer[triangle.index2];
 
-        const Triangle &triangle = desc.asMeshLight.triangleBuffer[primIdx];
-        const Vertex &v0 = desc.asMeshLight.vertexBuffer[triangle.index0];
-        const Vertex &v1 = desc.asMeshLight.vertexBuffer[triangle.index1];
-        const Vertex &v2 = desc.asMeshLight.vertexBuffer[triangle.index2];
-
-        StaticTransform transform = desc.asMeshLight.transform;
-        result->objInfo = ObjectInfo(transform);
+        StaticTransform transform = desc.asTriMesh.transform;
 
         Vector3D e1 = transform * (v1.position - v0.position);
         Vector3D e2 = transform * (v2.position - v0.position);

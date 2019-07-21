@@ -4,12 +4,25 @@
 VLR_CPP_API void vlrDevPrintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    char str[1024];
+    char str[4096];
     vsprintf_s(str, fmt, args);
     va_end(args);
     OutputDebugString(str);
 }
 #endif
+
+VLR_CPP_API void vlrprintf(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char str[4096];
+    vsprintf_s(str, fmt, args);
+    va_end(args);
+
+#   if defined(VLR_USE_DEVPRINTF) && defined(VLR_Platform_Windows_MSVC)
+    vlrDevPrintf("%s", str);
+#   endif
+    printf("%s", str);
+}
 
 namespace VLR {
     // TODO: Make this function thread-safe.

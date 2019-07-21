@@ -28,13 +28,13 @@ namespace VLR {
 
 
     // bound
-    RT_CALLABLE_PROGRAM void decodeHitPointForInfiniteSphere(const ObjectInfo &objInfo, const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void decodeHitPointForInfiniteSphere(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         float phi = param.b0;
         float theta = param.b1;
-        Vector3D direction = objInfo.transform * Vector3D::fromPolarYUp(phi, theta);
+        Vector3D direction = transform(RT_OBJECT_TO_WORLD, Vector3D::fromPolarYUp(phi, theta));
         float sinPhi, cosPhi;
         VLR::sincos(phi, &sinPhi, &cosPhi);
-        Vector3D texCoord0Dir = objInfo.transform * Vector3D(-cosPhi, 0.0f, -sinPhi);
+        Vector3D texCoord0Dir = transform(RT_OBJECT_TO_WORLD, Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         surfPt->position = Point3D(direction.x, direction.y, direction.z);
         surfPt->shadingFrame = ReferenceFrame(texCoord0Dir, -direction);
@@ -52,23 +52,18 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleInfiniteSphere(const SurfaceLightDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void sampleInfiniteSphere(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float u, v;
         float uvPDF;
-        desc.asEnvironmentLight.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);
+        desc.asInfSphere.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);
         float phi = 2 * M_PIf * u;
         float theta = M_PIf * v;
 
-        float posPhi = phi - desc.asEnvironmentLight.rotationPhi;
+        float posPhi = phi - desc.asInfSphere.rotationPhi;
         posPhi = posPhi - std::floor(posPhi / (2 * M_PIf)) * 2 * M_PIf;
-
-        result->materialIndex = desc.asEnvironmentLight.materialIndex;
 
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
-
-        Matrix4x4 identity = Matrix4x4::Identity();
-        result->objInfo.transform = StaticTransform(identity, identity);
 
         float sinPhi, cosPhi;
         VLR::sincos(posPhi, &sinPhi, &cosPhi);

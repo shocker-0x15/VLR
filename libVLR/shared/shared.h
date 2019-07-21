@@ -50,6 +50,8 @@ namespace VLR {
     using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
 
 #if defined(VLR_Device)
+    // Context-scope Variables
+
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_grid, , );
     rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_data_points, , );
@@ -519,24 +521,23 @@ namespace VLR {
             uint32_t index0, index1, index2;
         };
 
-        struct SurfaceLightDescriptor {
+        struct GeometryInstanceDescriptor {
             union Body {
                 struct {
                     rtBufferId<Vertex> vertexBuffer;
                     rtBufferId<Triangle> triangleBuffer;
-                    uint32_t materialIndex;
                     DiscreteDistribution1D primDistribution;
                     StaticTransform transform;
-                } asMeshLight;
+                } asTriMesh;
                 struct {
-                    uint32_t materialIndex;
                     float rotationPhi;
                     RegularConstantContinuousDistribution2D importanceMap;
-                } asEnvironmentLight;
+                } asInfSphere;
 
                 RT_FUNCTION Body() {}
                 RT_FUNCTION ~Body() {}
             } body;
+            uint32_t materialIndex;
             float importance;
             int32_t sampleFunc;
         };

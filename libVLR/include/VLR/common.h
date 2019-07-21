@@ -70,11 +70,7 @@ VLR_CPP_API void vlrDevPrintf(const char* fmt, ...);
 #       define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #   endif
 
-#   if defined(VLR_USE_DEVPRINTF) && defined(VLR_Platform_Windows_MSVC)
-#       define vlrprintf(fmt, ...) do { vlrDevPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
-#   else
-#       define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#   endif
+VLR_CPP_API void vlrprintf(const char* fmt, ...);
 #endif
 
 #if defined(ENABLE_ASSERT)

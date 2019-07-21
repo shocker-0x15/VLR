@@ -89,16 +89,12 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingAnyHitWithAlpha() {
-        StaticTransform transform;
-        getTransform(&transform);
-        ObjectInfo objInfo(transform);
-
         HitPointParameter hitPointParam = a_hitPointParam;
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(objInfo, hitPointParam, &surfPt, &hypAreaPDF);
+        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, objInfo, surfPt, sm_debugPayload.wls);
+        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_debugPayload.wls);
 
         // Stochastic Alpha Test
         if (sm_debugPayload.rng.getFloat0cTo1o() >= alpha)
@@ -111,13 +107,9 @@ namespace VLR {
     RT_PROGRAM void debugRenderingClosestHit() {
         WavelengthSamples &wls = sm_payload.wls;
 
-        StaticTransform transform;
-        getTransform(&transform);
-        ObjectInfo objInfo(transform);
-
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(objInfo, &surfPt, &hypAreaPDF);
+        calcSurfacePoint(&surfPt, &hypAreaPDF);
 
         //if (!surfPt.shadingFrame.x.allFinite() || !surfPt.shadingFrame.y.allFinite() || !surfPt.shadingFrame.z.allFinite())
         //    vlrprintf("(%g, %g, %g), (%g, %g, %g), (%g, %g, %g)\n",
@@ -127,7 +119,7 @@ namespace VLR {
 
         if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
-            BSDF bsdf(matDesc, objInfo, surfPt, wls);
+            BSDF bsdf(matDesc, surfPt, wls);
 
             const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
             auto progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
@@ -168,7 +160,7 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
-        phi += pv_envLightDescriptor.body.asEnvironmentLight.rotationPhi;
+        phi += pv_envLightDescriptor.body.asInfSphere.rotationPhi;
         phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
 

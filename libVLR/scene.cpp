@@ -4,80 +4,220 @@ namespace VLR {
     // ----------------------------------------------------------------
     // Shallow Hierarchy
 
-    void SHGroup::addChild(SHTransform* transform) {
-        TransformStatus status;
+    void SHGroup::destroyOptiXDescendants(SHTransform* transform) {
+        VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
+        TransformStatus &status = m_transforms.at(transform);
         SHGeometryGroup* descendant;
-        status.hasGeometryDescendant = transform->hasGeometryDescendant(&descendant);
-        m_transforms[transform] = status;
-        if (status.hasGeometryDescendant) {
-            optix::Transform optixTransform = transform->getOptiXObject();
-            optixTransform->setChild(descendant->getOptiXObject());
+        transform->hasGeometryDescendant(&descendant);
 
-            RTobject trChild;
-            rtTransformGetChild(optixTransform->get(), &trChild);
-            VLRAssert(trChild, "Transform must have a child.");
+        for (int i = descendant->getNumInstances() - 1; i >= 0; --i) {
+            const SHGeometryInstance* inst = descendant->getGeometryInstanceAt(i);
+            VLRAssert(status.geomInstances.count(inst), "SHGeometryInstance doesn't exist.");
+            optix::GeometryInstance optixInst = status.geomInstances.at(inst);
 
-            m_optixGroup->addChild(optixTransform);
-            m_optixAcceleration->markDirty();
-            ++m_numValidTransforms;
+            status.geomGroup->removeChild(optixInst);
+            status.geomInstances.erase(inst);
+
+            uint32_t geomInstIndex;
+            optixInst["VLR::pv_geomInstIndex"]->getUserData(sizeof(geomInstIndex), &geomInstIndex);
+            m_geometryInstanceDescriptorBuffer.release(geomInstIndex);
+
+            optixInst->destroy();
         }
+        status.geomGroup->destroy();
+        status.geomGroup = nullptr;
+
+        m_optixGroup->removeChild(status.transform);
+        status.transform->destroy();
+        status.transform = nullptr;
+
+        m_surfaceLightsAreSetup = false;
+
+        m_optixAcceleration->markDirty();
+    }
+
+    void SHGroup::addChild(SHTransform* transform) {
+        m_transforms[transform] = std::move(TransformStatus());
     }
 
     void SHGroup::removeChild(SHTransform* transform) {
         VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
-        const TransformStatus status = m_transforms.at(transform);
-        m_transforms.erase(transform);
+        const TransformStatus &status = m_transforms.at(transform);
         if (status.hasGeometryDescendant) {
-            m_optixGroup->removeChild(transform->getOptiXObject());
-            m_optixAcceleration->markDirty();
+            destroyOptiXDescendants(transform);
+
             --m_numValidTransforms;
         }
+        m_transforms.erase(transform);
     }
 
     void SHGroup::updateChild(SHTransform* transform) {
         VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
         TransformStatus &status = m_transforms.at(transform);
+
+        if (status.transform) {
+            StaticTransform tr = transform->getStaticTransform();
+            float mat[16], invMat[16];
+            tr.getArrays(mat, invMat);
+            status.transform->setMatrix(true, mat, invMat);
+        }
+
+        for (auto it = status.geomInstances.cbegin(); it != status.geomInstances.cend(); ++it) {
+            optix::GeometryInstance optixInst = it->second;
+
+            uint32_t geomInstIndex;
+            optixInst["VLR::pv_geomInstIndex"]->getUserData(sizeof(geomInstIndex), &geomInstIndex);
+
+            Shared::GeometryInstanceDescriptor geomInstDesc;
+            m_geometryInstanceDescriptorBuffer.get(geomInstIndex, &geomInstDesc);
+            if (transform->isStatic()) {
+                StaticTransform tr = transform->getStaticTransform();
+                float mat[16], invMat[16];
+                tr.getArrays(mat, invMat);
+                geomInstDesc.body.asTriMesh.transform = Shared::StaticTransform(Matrix4x4(mat));
+            }
+            else {
+                VLRAssert_NotImplemented();
+            }
+            m_geometryInstanceDescriptorBuffer.update(geomInstIndex, geomInstDesc);
+        }
+
+        m_surfaceLightsAreSetup = false;
+
+        m_optixAcceleration->markDirty();
+    }
+
+    void SHGroup::addGeometryInstances(SHTransform* transform, std::set<const SHGeometryInstance*> geomInsts) {
+        VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
+        TransformStatus &status = m_transforms.at(transform);
+
+        status.hasGeometryDescendant = true;
+        ++m_numValidTransforms;
+
         SHGeometryGroup* descendant;
-        optix::Transform optixTransform = transform->getOptiXObject();
-        if (status.hasGeometryDescendant) {
-            if (!transform->hasGeometryDescendant()) {
-                m_optixGroup->removeChild(optixTransform);
-                status.hasGeometryDescendant = false;
-                --m_numValidTransforms;
-            }
-        }
-        else {
-            if (transform->hasGeometryDescendant(&descendant)) {
-                optixTransform->setChild(descendant->getOptiXObject());
+        transform->hasGeometryDescendant(&descendant);
 
-                RTobject trChild;
-                rtTransformGetChild(optixTransform->get(), &trChild);
-                VLRAssert(trChild, "Transform must have a child.");
+        optix::Context optixContext = m_context.getOptiXContext();
 
-                m_optixGroup->addChild(optixTransform);
-                status.hasGeometryDescendant = true;
-                ++m_numValidTransforms;
-            }
+        if (!status.transform) {
+            status.transform = optixContext->createTransform();
+            StaticTransform tr = transform->getStaticTransform();
+            float mat[16], invMat[16];
+            tr.getArrays(mat, invMat);
+            status.transform->setMatrix(true, mat, invMat);
+
+            m_optixGroup->addChild(status.transform);
         }
+
+        if (!status.geomGroup) {
+            status.geomGroup = optixContext->createGeometryGroup();
+            status.geomGroup->setAcceleration(descendant->getAcceleration());
+
+            status.transform->setChild(status.geomGroup);
+        }
+
+        for (auto it = geomInsts.cbegin(); it != geomInsts.cend(); ++it) {
+            const SHGeometryInstance* inst = *it;
+            VLRAssert(descendant->has(inst), "Invalid child.");
+            optix::GeometryInstance optixInst = inst->createGeometryInstance(m_context);
+
+            uint32_t geomInstIndex = m_geometryInstanceDescriptorBuffer.allocate();
+            optixInst["VLR::pv_geomInstIndex"]->setUserData(sizeof(geomInstIndex), &geomInstIndex);
+
+            Shared::GeometryInstanceDescriptor geomInstDesc;
+            inst->createGeometryInstanceDescriptor(&geomInstDesc);
+            if (transform->isStatic()) {
+                StaticTransform tr = transform->getStaticTransform();
+                float mat[16], invMat[16];
+                tr.getArrays(mat, invMat);
+                geomInstDesc.body.asTriMesh.transform = Shared::StaticTransform(Matrix4x4(mat));
+            }
+            else {
+                VLRAssert_NotImplemented();
+            }
+            m_geometryInstanceDescriptorBuffer.update(geomInstIndex, geomInstDesc);
+
+            status.geomInstances[inst] = optixInst;
+            status.geomGroup->addChild(optixInst);
+        }
+
+        m_surfaceLightsAreSetup = false;
+
         m_optixAcceleration->markDirty();
     }
 
-    void SHGroup::addChild(SHGeometryGroup* geomGroup) {
-        m_geomGroups.insert(geomGroup);
+    void SHGroup::removeGeometryInstances(SHTransform* transform, std::set<const SHGeometryInstance*> geomInsts) {
+        VLRAssert(m_transforms.count(transform), "transform 0x%p is not a child.", transform);
+        TransformStatus &status = m_transforms.at(transform);
 
-        optix::GeometryGroup optixGeomGroup = geomGroup->getOptiXObject();
+        SHGeometryGroup* descendant;
+        transform->hasGeometryDescendant(&descendant);
 
-        m_optixGroup->addChild(optixGeomGroup);
+        for (auto it = geomInsts.cbegin(); it != geomInsts.cend(); ++it) {
+            const SHGeometryInstance* inst = *it;
+            VLRAssert(descendant->has(inst), "Invalid child.");
+            optix::GeometryInstance optixInst = status.geomInstances.at(inst);
+
+            status.geomGroup->removeChild(optixInst);
+            status.geomInstances.erase(inst);
+
+            uint32_t geomInstIndex;
+            optixInst["VLR::pv_geomInstIndex"]->getUserData(sizeof(geomInstIndex), &geomInstIndex);
+            m_geometryInstanceDescriptorBuffer.release(geomInstIndex);
+
+            optixInst->destroy();
+        }
+
+        if (status.geomInstances.size() == 0) {
+            status.geomGroup->destroy();
+            status.geomGroup = nullptr;
+
+            m_optixGroup->removeChild(status.transform);
+            status.transform->destroy();
+            status.transform = nullptr;
+
+            status.hasGeometryDescendant = false;
+            --m_numValidTransforms;
+        }
+
+        m_surfaceLightsAreSetup = false;
+
         m_optixAcceleration->markDirty();
     }
 
-    void SHGroup::removeChild(SHGeometryGroup* geomGroup) {
-        m_geomGroups.erase(geomGroup);
+    void SHGroup::setup() {
+        optix::Context optixContext = m_context.getOptiXContext();
 
-        optix::GeometryGroup optixGeomGroup = geomGroup->getOptiXObject();
+        optixContext["VLR::pv_topGroup"]->set(m_optixGroup);
+        optixContext["VLR::pv_geometryInstanceDescriptorBuffer"]->set(m_geometryInstanceDescriptorBuffer.optixBuffer);
 
-        m_optixGroup->removeChild(optixGeomGroup);
-        m_optixAcceleration->markDirty();
+        if (!m_surfaceLightsAreSetup) {
+            std::vector<float> importances;
+            importances.resize(m_geometryInstanceDescriptorBuffer.maxNumElements, 0.0f);
+
+            {
+                auto descs = (Shared::GeometryInstanceDescriptor*)m_geometryInstanceDescriptorBuffer.optixBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+                for (int i = 0; i < m_geometryInstanceDescriptorBuffer.maxNumElements; ++i) {
+                    if (!m_geometryInstanceDescriptorBuffer.slotFinder.getUsage(i))
+                        continue;
+
+                    const Shared::GeometryInstanceDescriptor &desc = descs[i];
+                    if (desc.importance > 0)
+                        vlrDevPrintf("Light %u: %g\n", i, desc.importance);
+                    importances[i] = desc.importance;
+                }
+                m_geometryInstanceDescriptorBuffer.optixBuffer->unmap();
+            }
+
+            m_surfaceLightImpDist.finalize(m_context);
+            m_surfaceLightImpDist.initialize(m_context, importances.data(), importances.size());
+
+            m_surfaceLightsAreSetup = true;
+        }
+
+        Shared::DiscreteDistribution1D lightImpDist;
+        m_surfaceLightImpDist.getInternalType(&lightImpDist);
+        optixContext["VLR::pv_lightImpDist"]->setUserData(sizeof(lightImpDist), &lightImpDist);
     }
 
     void SHGroup::printOptiXHierarchy() {
@@ -264,9 +404,9 @@ namespace VLR {
 
 
 
-    void SHTransform::resolveTransform() {
+    StaticTransform SHTransform::resolveTransform() const {
         int32_t stackIdx = 0;
-        const SHTransform* stack[5];
+        const SHTransform* stack[10];
         std::fill_n(stack, lengthof(stack), nullptr);
         const SHTransform* nextSHTr = m_childIsTransform ? m_childTransform : nullptr;
         while (nextSHTr) {
@@ -285,9 +425,7 @@ namespace VLR {
         res = m_transform * res;
         concatenatedName = m_name + concatenatedName;
 
-        float mat[16], invMat[16];
-        res.getArrays(mat, invMat);
-        m_optixTransform->setMatrix(true, mat, invMat);
+        return res;
 
         //if (true/*m_parent*/) {
         //    vlrDevPrintf("%s:\n", concatenatedName.c_str());
@@ -301,11 +439,9 @@ namespace VLR {
 
     void SHTransform::setTransform(const StaticTransform &transform) {
         m_transform = transform;
-        resolveTransform();
     }
 
     void SHTransform::update() {
-        resolveTransform();
     }
 
     bool SHTransform::isStatic() const {
@@ -315,11 +451,10 @@ namespace VLR {
 
     StaticTransform SHTransform::getStaticTransform() const {
         if (isStatic()) {
-            float mat[16], invMat[16];
-            m_optixTransform->getMatrix(true, mat, invMat);
-            return StaticTransform(Matrix4x4(mat));
+            return resolveTransform();
         }
         else {
+            VLRAssert_ShouldNotBeCalled();
             return StaticTransform();
         }
     }
@@ -352,19 +487,74 @@ namespace VLR {
 
     void SHGeometryGroup::addGeometryInstance(const SHGeometryInstance* instance) {
         m_instances.insert(instance);
-        m_optixGeometryGroup->addChild(instance->getOptiXObject());
         m_optixAcceleration->markDirty();
     }
 
     void SHGeometryGroup::removeGeometryInstance(const SHGeometryInstance* instance) {
         m_instances.erase(instance);
-        m_optixGeometryGroup->removeChild(instance->getOptiXObject());
         m_optixAcceleration->markDirty();
     }
 
     void SHGeometryGroup::updateGeometryInstance(const SHGeometryInstance* instance) {
         VLRAssert(m_instances.count(instance), "There is no instance which matches the given instance.");
         m_optixAcceleration->markDirty();
+    }
+
+
+
+    optix::GeometryInstance SHGeometryInstance::createGeometryInstance(Context &context) const {
+        optix::Context optixContext = context.getOptiXContext();
+
+        optix::GeometryInstance geomInst = optixContext->createGeometryInstance();
+
+        geomInst["VLR::pv_progDecodeHitPoint"]->set(m_progDecodeHitPoint);
+
+        geomInst->setMaterialCount(1);
+        geomInst->setMaterial(0, m_material);
+        geomInst["VLR::pv_materialIndex"]->setUserData(sizeof(m_materialIndex), &m_materialIndex);
+        geomInst["VLR::pv_importance"]->setFloat(m_importance);
+
+        Shared::ShaderNodePlug sNodeNormal = m_nodeNormal.getSharedType();
+        geomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
+
+        Shared::ShaderNodePlug sNodeTangent = m_nodeTangent.getSharedType();
+        geomInst["VLR::pv_nodeTangent"]->setUserData(sizeof(sNodeTangent), &sNodeTangent);
+
+        Shared::ShaderNodePlug sNodeAlpha = m_nodeAlpha.getSharedType();
+        geomInst["VLR::pv_nodeAlpha"]->setUserData(sizeof(sNodeAlpha), &sNodeAlpha);
+
+        if (m_isTriMesh) {
+            if (context.RTXEnabled())
+                geomInst->setGeometryTriangles(m_geometryTriangles);
+            else
+                geomInst->setGeometry(m_geometry);
+
+            geomInst["VLR::pv_vertexBuffer"]->set(m_triMeshProp.vertexBuffer);
+            geomInst["VLR::pv_triangleBuffer"]->set(m_triMeshProp.triangleBuffer);
+            geomInst["VLR::pv_sumImportances"]->setFloat(m_triMeshProp.sumImportances);
+        }
+        else {
+            geomInst->setGeometry(m_geometry);
+            VLRAssert_NotImplemented();
+        }
+
+        return geomInst;
+    }
+
+    void SHGeometryInstance::createGeometryInstanceDescriptor(Shared::GeometryInstanceDescriptor* desc) const {
+        desc->materialIndex = m_materialIndex;
+        desc->importance = m_importance;
+        desc->sampleFunc = m_progSample;
+
+        if (m_isTriMesh) {
+            desc->body.asTriMesh.vertexBuffer = m_triMeshProp.vertexBuffer->getId();
+            desc->body.asTriMesh.triangleBuffer = m_triMeshProp.triangleBuffer->getId();
+            m_triMeshProp.primDist.getInternalType(&desc->body.asTriMesh.primDistribution);
+            desc->body.asTriMesh.transform = Shared::StaticTransform(Matrix4x4::Identity());
+        }
+        else {
+            VLRAssert_NotImplemented();
+        }
     }
 
     // END: Shallow Hierarchy
@@ -557,103 +747,56 @@ namespace VLR {
         }
         m_optixGeometries.push_back(geom);
 
-        bool nodeNormalIsValid;
-        bool nodeTangentIsValid;
-        bool nodeAlphaIsValid;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
 
         m_materials.push_back(material);
         if (nodeNormal.node) {
-            if (Shared::NodeTypeInfo<Normal3D>::ConversionIsDefinedFrom(nodeNormal.getType())) {
-                m_nodeNormals.push_back(nodeNormal);
-                nodeNormalIsValid = true;
-            }
-            else {
-                vlrprintf("%s: Invalid plug type for normal is passed.\n", m_name.c_str());
-                m_nodeNormals.push_back(ShaderNodePlug());
-                nodeNormalIsValid = false;
-            }
-        }
-        else {
-            m_nodeNormals.push_back(ShaderNodePlug());
-            nodeNormalIsValid = false;
-        }
-        if (nodeTangent.node) {
-            if (Shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(nodeTangent.getType())) {
-                m_nodeTangents.push_back(nodeTangent);
-                nodeTangentIsValid = true;
-            }
-            else {
-                vlrprintf("%s: Invalid plug type for tangent is passed.\n", m_name.c_str());
-                m_nodeTangents.push_back(ShaderNodePlug());
-                nodeTangentIsValid = false;
-            }
-        }
-        else {
-            m_nodeTangents.push_back(ShaderNodePlug());
-            nodeTangentIsValid = false;
-        }
-        if (nodeAlpha.node) {
-            if (Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(nodeAlpha.getType())) {
-                m_nodeAlphas.push_back(nodeAlpha);
-                nodeAlphaIsValid = true;
-            }
-            else {
-                vlrprintf("%s: Invalid plug type for alpha is passed.\n", m_name.c_str());
-                m_nodeAlphas.push_back(ShaderNodePlug());
-                nodeAlphaIsValid = false;
-            }
-        }
-        else {
-            m_nodeAlphas.push_back(ShaderNodePlug());
-            nodeAlphaIsValid = false;
-        }
-
-        Shared::SurfaceLightDescriptor lightDesc;
-        lightDesc.body.asMeshLight.vertexBuffer = m_optixVertexBuffer->getId();
-        lightDesc.body.asMeshLight.triangleBuffer = geom.optixIndexBuffer->getId();
-        geom.primDist.getInternalType(&lightDesc.body.asMeshLight.primDistribution);
-        lightDesc.body.asMeshLight.materialIndex = material->getMaterialIndex();
-        lightDesc.sampleFunc = progSet.callableProgramSampleTriangleMesh->getId();
-        lightDesc.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO:
-
-        SHGeometryInstance* geomInst = new SHGeometryInstance(m_context, lightDesc);
-        {
-            optix::GeometryInstance optixGeomInst = geomInst->getOptiXObject();
-            if (m_context.RTXEnabled())
-                optixGeomInst->setGeometryTriangles(geom.optixGeometryTriangles);
+            if (Shared::NodeTypeInfo<Normal3D>::ConversionIsDefinedFrom(nodeNormal.getType()))
+                plugNormal = nodeNormal;
             else
-                optixGeomInst->setGeometry(geom.optixGeometry);
+                vlrprintf("%s: Invalid plug type for normal is passed.\n", m_name.c_str());
+        }
+        m_nodeNormals.push_back(plugNormal);
+        if (nodeTangent.node) {
+            if (Shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(nodeTangent.getType()))
+                plugTangent = nodeTangent;
+            else
+                vlrprintf("%s: Invalid plug type for tangent is passed.\n", m_name.c_str());
+        }
+        m_nodeTangents.push_back(plugTangent);
+        if (nodeAlpha.node) {
+            if (Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(nodeAlpha.getType()))
+                plugAlpha = nodeAlpha;
+            else
+                vlrprintf("%s: Invalid plug type for alpha is passed.\n", m_name.c_str());
+        }
+        m_nodeAlphas.push_back(plugAlpha);
 
-            optixGeomInst["VLR::pv_vertexBuffer"]->set(m_optixVertexBuffer);
-            optixGeomInst["VLR::pv_triangleBuffer"]->set(geom.optixIndexBuffer);
-            optixGeomInst["VLR::pv_sumImportances"]->setFloat(sumImportances.result);
+        optix::Program progDecodeHitPoint = progSet.callableProgramDecodeHitPointForTriangle;
+        int32_t progSample = progSet.callableProgramSampleTriangleMesh->getId();
 
-            optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForTriangle);
+        optix::Material optixMaterial = plugAlpha.isValid() ? m_context.getOptiXMaterialWithAlpha() : m_context.getOptiXMaterialDefault();
+        uint32_t materialIndex = material->getMaterialIndex();
+        float importance = material->isEmitting() ? 1.0f : 0.0f; // TODO
 
-            Shared::ShaderNodePlug sNodeNormal = Shared::ShaderNodePlug::Invalid();
-            if (nodeNormalIsValid)
-                sNodeNormal = nodeNormal.getSharedType();
-            optixGeomInst["VLR::pv_nodeNormal"]->setUserData(sizeof(sNodeNormal), &sNodeNormal);
-
-            Shared::ShaderNodePlug sNodeTangent = Shared::ShaderNodePlug::Invalid();
-            if (nodeTangentIsValid)
-                sNodeTangent = nodeTangent.getSharedType();
-            optixGeomInst["VLR::pv_nodeTangent"]->setUserData(sizeof(sNodeTangent), &sNodeTangent);
-
-            optixGeomInst->setMaterialCount(1);
-            Shared::ShaderNodePlug sNodeAlpha = Shared::ShaderNodePlug::Invalid();
-            if (nodeAlphaIsValid) {
-                optixGeomInst->setMaterial(0, m_context.getOptiXMaterialWithAlpha());
-                sNodeAlpha = nodeAlpha.getSharedType();
-            }
-            else {
-                optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
-            }
-            optixGeomInst["VLR::pv_nodeAlpha"]->setUserData(sizeof(sNodeAlpha), &sNodeAlpha);
-
-            uint32_t matIndex = material->getMaterialIndex();
-            optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
-            optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
+        SHGeometryInstance* geomInst;
+        if (m_context.RTXEnabled()) {
+            geomInst = new SHGeometryInstance(geom.optixGeometryTriangles,
+                                              progDecodeHitPoint, progSample,
+                                              optixMaterial, materialIndex, importance,
+                                              plugNormal, plugTangent, plugAlpha,
+                                              m_optixVertexBuffer, geom.optixIndexBuffer,
+                                              geom.primDist, sumImportances.result);
+        }
+        else {
+            geomInst = new SHGeometryInstance(geom.optixGeometry,
+                                              progDecodeHitPoint, progSample,
+                                              optixMaterial, materialIndex, importance,
+                                              plugNormal, plugTangent, plugAlpha,
+                                              m_optixVertexBuffer, geom.optixIndexBuffer,
+                                              geom.primDist, sumImportances.result);
         }
         m_shGeometryInstances.push_back(geomInst);
 
@@ -712,23 +855,11 @@ namespace VLR {
         m_optixGeometry->setIntersectionProgram(progSet.programIntersectInfiniteSphere);
         m_optixGeometry->setBoundingBoxProgram(progSet.programCalcBBoxForInfiniteSphere);
 
-        Shared::SurfaceLightDescriptor lightDesc;
-        lightDesc.body.asEnvironmentLight.materialIndex = m_material->getMaterialIndex();
-        //geom.primDist.getInternalType(&lightDesc.body.asEnvironmentLight.importanceMap);
-        lightDesc.sampleFunc = progSet.callableProgramSampleInfiniteSphere->getId();
-        lightDesc.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO:
-
-        m_shGeometryInstance = new SHGeometryInstance(m_context, lightDesc);
-        {
-            optix::GeometryInstance optixGeomInst = m_shGeometryInstance->getOptiXObject();
-            optixGeomInst->setGeometry(m_optixGeometry);
-            optixGeomInst->setMaterialCount(1);
-            optixGeomInst->setMaterial(0, m_context.getOptiXMaterialDefault());
-            optixGeomInst["VLR::pv_progDecodeHitPoint"]->set(progSet.callableProgramDecodeHitPointForInfiniteSphere);
-            uint32_t matIndex = material->getMaterialIndex();
-            optixGeomInst["VLR::pv_materialIndex"]->setUserData(sizeof(matIndex), &matIndex);
-            optixGeomInst["VLR::pv_importance"]->setFloat(lightDesc.importance);
-        }
+        m_shGeometryInstance = new SHGeometryInstance(m_optixGeometry,
+                                                      progSet.callableProgramDecodeHitPointForInfiniteSphere,
+                                                      progSet.callableProgramSampleInfiniteSphere,
+                                                      m_context.getOptiXMaterialDefault(), material->getMaterialIndex(),
+                                                      material->isEmitting() ? 1.0f : 0.0f);
     }
 
     InfiniteSphereSurfaceNode::~InfiniteSphereSurfaceNode() {
@@ -823,6 +954,7 @@ namespace VLR {
         }
     }
 
+    // TODO: 関数に分ける必要性が感じられない？
     void ParentNode::addToGeometryGroup(const std::set<const SHGeometryInstance*>& childDelta) {
         for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it)
             m_shGeomGroup.addGeometryInstance(*it);
@@ -845,6 +977,18 @@ namespace VLR {
 
         SHTransform* selfTransform = m_shTransforms.at(nullptr);
         selfTransform->setChild(m_shGeomGroup.getNumInstances() > 0 ? &m_shGeomGroup : nullptr);
+    }
+
+    void ParentNode::geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        addToGeometryGroup(childDelta);
+
+        geometryAddEvent(nullptr, childDelta);
+    }
+
+    void ParentNode::geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) {
+        geometryRemoveEvent(nullptr, childDelta);
+
+        removeFromGeometryGroup(childDelta);
     }
 
     void ParentNode::setTransform(const Transform* localToWorld) {
@@ -968,12 +1112,6 @@ namespace VLR {
         }
     }
 
-    void InternalNode::geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) {
-        addToGeometryGroup(childDelta);
-
-        geometryAddEvent(nullptr, childDelta);
-    }
-
     void InternalNode::geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
         SHTransform* transform = m_shTransforms.at(childTransform);
 
@@ -981,12 +1119,6 @@ namespace VLR {
             ParentNode* parent = *it;
             parent->geometryAddEvent(transform, geomInstDelta);
         }
-    }
-
-    void InternalNode::geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) {
-        removeFromGeometryGroup(childDelta);
-
-        geometryRemoveEvent(nullptr, childDelta);
     }
 
     void InternalNode::geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
@@ -1072,19 +1204,12 @@ namespace VLR {
 
 
     RootNode::RootNode(Context &context, const Transform* localToWorld) :
-        ParentNode(context, "Root", localToWorld), m_shGroup(context), m_surfaceLightsAreSetup(false) {
+        ParentNode(context, "Root", localToWorld), m_shGroup(context) {
         SHTransform* shtr = m_shTransforms[0];
         m_shGroup.addChild(shtr);
     }
 
     RootNode::~RootNode() {
-        if (m_surfaceLightsAreSetup) {
-            m_surfaceLightImpDist.finalize(m_context);
-
-            m_optixSurfaceLightDescriptorBuffer->destroy();
-
-            m_surfaceLightsAreSetup = false;
-        }
     }
 
     void RootNode::transformAddEvent(const std::set<SHTransform*>& childDelta) {
@@ -1129,100 +1254,20 @@ namespace VLR {
         }
     }
 
-    void RootNode::geometryAddEvent(const std::set<const SHGeometryInstance*>& childDelta) {
-        addToGeometryGroup(childDelta);
-
-        geometryAddEvent(nullptr, childDelta);
-    }
-
     void RootNode::geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
         SHTransform* transform = m_shTransforms.at(childTransform);
 
-        m_shGroup.updateChild(transform);
-
-        for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
-            auto key = TransformAndGeometryInstance{ transform, *it };
-            if (m_surfaceLights.count(key)) {
-                VLRAssert_ShouldNotBeCalled();
-            }
-            else {
-                Shared::SurfaceLightDescriptor &lightDesc = m_surfaceLights[key]; // new entry
-                (*it)->getSurfaceLightDescriptor(&lightDesc);
-                if (transform->isStatic()) {
-                    StaticTransform tr = transform->getStaticTransform();
-                    float mat[16], invMat[16];
-                    tr.getArrays(mat, invMat);
-                    lightDesc.body.asMeshLight.transform = Shared::StaticTransform(Matrix4x4(mat));
-                }
-                else {
-                    VLRAssert_NotImplemented();
-                }
-            }
-        }
-        m_surfaceLightsAreSetup = false;
-    }
-
-    void RootNode::geometryRemoveEvent(const std::set<const SHGeometryInstance*>& childDelta) {
-        removeFromGeometryGroup(childDelta);
-
-        geometryRemoveEvent(nullptr, childDelta);
+        m_shGroup.addGeometryInstances(transform, geomInstDelta);
     }
 
     void RootNode::geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) {
         SHTransform* transform = m_shTransforms.at(childTransform);
 
-        m_shGroup.updateChild(transform);
-
-        for (auto it = geomInstDelta.cbegin(); it != geomInstDelta.cend(); ++it) {
-            auto key = TransformAndGeometryInstance{ transform, *it };
-            if (m_surfaceLights.count(key)) {
-                m_surfaceLights.erase(key);
-            }
-            else {
-                VLRAssert_ShouldNotBeCalled();
-            }
-        }
-        m_surfaceLightsAreSetup = false;
+        m_shGroup.removeGeometryInstances(transform, geomInstDelta);
     }
 
-    void RootNode::set() {
-        optix::Context optixContext = m_context.getOptiXContext();
-
-        optixContext["VLR::pv_topGroup"]->set(m_shGroup.getOptiXObject());
-
-        if (!m_surfaceLightsAreSetup) {
-            if (m_optixSurfaceLightDescriptorBuffer)
-                m_optixSurfaceLightDescriptorBuffer->destroy();
-            m_optixSurfaceLightDescriptorBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, m_surfaceLights.size());
-            m_optixSurfaceLightDescriptorBuffer->setElementSize(sizeof(Shared::SurfaceLightDescriptor));
-
-            std::vector<float> importances;
-            importances.resize(m_surfaceLights.size());
-
-            {
-                auto descs = (Shared::SurfaceLightDescriptor*)m_optixSurfaceLightDescriptorBuffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
-                for (auto it = m_surfaceLights.cbegin(); it != m_surfaceLights.cend(); ++it) {
-                    uint32_t index = std::distance(m_surfaceLights.cbegin(), it);
-                    const Shared::SurfaceLightDescriptor &lightDesc = it->second;
-                    if (lightDesc.importance > 0)
-                        vlrDevPrintf("Light %u: %g\n", index, lightDesc.importance);
-                    descs[index] = lightDesc;
-                    importances[index] = lightDesc.importance;
-                }
-                m_optixSurfaceLightDescriptorBuffer->unmap();
-            }
-
-            m_surfaceLightImpDist.finalize(m_context);
-            m_surfaceLightImpDist.initialize(m_context, importances.data(), importances.size());
-
-            m_surfaceLightsAreSetup = true;
-        }
-
-        Shared::DiscreteDistribution1D lightImpDist;
-        m_surfaceLightImpDist.getInternalType(&lightImpDist);
-        optixContext["VLR::pv_lightImpDist"]->setUserData(sizeof(lightImpDist), &lightImpDist);
-
-        optixContext["VLR::pv_surfaceLightDescriptorBuffer"]->set(m_optixSurfaceLightDescriptorBuffer);
+    void RootNode::setup() {
+        m_shGroup.setup();
     }
 
 
@@ -1249,16 +1294,16 @@ namespace VLR {
     }
 
     void Scene::setup() {
-        m_rootNode.set();
+        m_rootNode.setup();
 
         optix::Context optixContext = m_context.getOptiXContext();
 
-        Shared::SurfaceLightDescriptor envLight;
+        Shared::GeometryInstanceDescriptor envLight;
         envLight.importance = 0.0f;
         if (m_matEnv) {
-            m_matEnv->getImportanceMap().getInternalType(&envLight.body.asEnvironmentLight.importanceMap);
-            envLight.body.asEnvironmentLight.materialIndex = m_matEnv->getMaterialIndex();
-            envLight.body.asEnvironmentLight.rotationPhi = m_envRotationPhi;
+            m_matEnv->getImportanceMap().getInternalType(&envLight.body.asInfSphere.importanceMap);
+            envLight.body.asInfSphere.rotationPhi = m_envRotationPhi;
+            envLight.materialIndex = m_matEnv->getMaterialIndex();
             envLight.importance = 1.0f;
             envLight.sampleFunc = m_callableProgramSampleInfiniteSphere->getId();
         }
@@ -1372,6 +1417,8 @@ namespace VLR {
         else {
             return false;
         }
+
+        return true;
     }
 
     bool PerspectiveCamera::get(const char* paramName, float* values, uint32_t length) const {
@@ -1553,6 +1600,8 @@ namespace VLR {
         else {
             return false;
         }
+
+        return true;
     }
 
     bool EquirectangularCamera::get(const char* paramName, float* values, uint32_t length) const {

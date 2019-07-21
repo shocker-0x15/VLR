@@ -28,6 +28,53 @@ namespace VLR {
     class Scene;
     class Camera;
 
+    template <typename InternalType>
+    struct SlotBuffer {
+        uint32_t maxNumElements;
+        optix::Buffer optixBuffer;
+        SlotFinder slotFinder;
+
+        void initialize(optix::Context &context, uint32_t _maxNumElements, const char* varName) {
+            maxNumElements = _maxNumElements;
+            optixBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, maxNumElements);
+            optixBuffer->setElementSize(sizeof(InternalType));
+            slotFinder.initialize(maxNumElements);
+            if (varName)
+                context[varName]->set(optixBuffer);
+        }
+        void finalize() {
+            slotFinder.finalize();
+            optixBuffer->destroy();
+        }
+
+        uint32_t allocate() {
+            uint32_t index = slotFinder.getFirstAvailableSlot();
+            slotFinder.setInUse(index);
+            return index;
+        }
+
+        void release(uint32_t index) {
+            VLRAssert(slotFinder.getUsage(index), "Invalid index.");
+            slotFinder.setNotInUse(index);
+        }
+
+        void get(uint32_t index, InternalType* value) {
+            VLRAssert(slotFinder.getUsage(index), "Invalid index.");
+            auto values = (InternalType*)optixBuffer->map(0, RT_BUFFER_MAP_READ);
+            *value = values[index];
+            optixBuffer->unmap();
+        }
+
+        void update(uint32_t index, const InternalType &value) {
+            VLRAssert(slotFinder.getUsage(index), "Invalid index.");
+            auto values = (InternalType*)optixBuffer->map(0, RT_BUFFER_MAP_WRITE);
+            values[index] = value;
+            optixBuffer->unmap();
+        }
+    };
+
+
+
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
@@ -69,29 +116,14 @@ namespace VLR {
         optix::Material m_optixMaterialDefault;
         optix::Material m_optixMaterialWithAlpha;
 
-        optix::Buffer m_optixNodeProcedureSetBuffer;
-        uint32_t m_maxNumNodeProcSet;
-        SlotFinder m_nodeProcSetSlotFinder;
+        SlotBuffer<Shared::NodeProcedureSet> m_nodeProcedureBuffer;
 
-        optix::Buffer m_optixSmallNodeDescriptorBuffer;
-        uint32_t m_maxNumSmallNodeDescriptors;
-        SlotFinder m_smallNodeDescSlotFinder;
+        SlotBuffer<Shared::SmallNodeDescriptor> m_smallNodeDescriptorBuffer;
+        SlotBuffer<Shared::MediumNodeDescriptor> m_mediumNodeDescriptorBuffer;
+        SlotBuffer<Shared::LargeNodeDescriptor> m_largeNodeDescriptorBuffer;
 
-        optix::Buffer m_optixMediumNodeDescriptorBuffer;
-        uint32_t m_maxNumMediumNodeDescriptors;
-        SlotFinder m_mediumNodeDescSlotFinder;
-
-        optix::Buffer m_optixLargeNodeDescriptorBuffer;
-        uint32_t m_maxNumLargeNodeDescriptors;
-        SlotFinder m_largeNodeDescSlotFinder;
-
-        optix::Buffer m_optixBSDFProcedureSetBuffer;
-        uint32_t m_maxNumBSDFProcSet;
-        SlotFinder m_bsdfProcSetSlotFinder;
-
-        optix::Buffer m_optixEDFProcedureSetBuffer;
-        uint32_t m_maxNumEDFProcSet;
-        SlotFinder m_edfProcSetSlotFinder;
+        SlotBuffer<Shared::BSDFProcedureSet> m_BSDFProcedureBuffer;
+        SlotBuffer<Shared::EDFProcedureSet> m_EDFProcedureBuffer;
 
         optix::Program m_optixCallableProgramNullBSDF_setupBSDF;
         optix::Program m_optixCallableProgramNullBSDF_getBaseColor;
@@ -107,9 +139,7 @@ namespace VLR {
         optix::Program m_optixCallableProgramNullEDF_evaluateInternal;
         uint32_t m_nullEDFProcedureSetIndex;
 
-        optix::Buffer m_optixSurfaceMaterialDescriptorBuffer;
-        uint32_t m_maxNumSurfaceMaterialDescriptors;
-        SlotFinder m_surfMatDescSlotFinder;
+        SlotBuffer<Shared::SurfaceMaterialDescriptor> m_surfaceMaterialDescriptorBuffer;
 
         optix::Buffer m_rawOutputBuffer;
         optix::Buffer m_outputBuffer;

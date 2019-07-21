@@ -830,8 +830,8 @@ void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) 
 
 
 
-    shot->renderTargetSizeX = 640;
-    shot->renderTargetSizeY = 640;
+    shot->renderTargetSizeX = 1024;
+    shot->renderTargetSizeY = 1024;
 
     shot->brightnessCoeff = 1.0f;
 

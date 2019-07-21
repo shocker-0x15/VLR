@@ -16,17 +16,13 @@ namespace VLR {
         KernelRNG &rng = sm_payload.rng;
         WavelengthSamples &wls = sm_payload.wls;
 
-        StaticTransform transform;
-        getTransform(&transform);
-        ObjectInfo objInfo(transform);
-
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(objInfo, &surfPt, &hypAreaPDF);
+        calcSurfacePoint(&surfPt, &hypAreaPDF);
 
         const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
-        BSDF bsdf(matDesc, objInfo, surfPt, wls);
-        EDF edf(matDesc, objInfo, surfPt, wls);
+        BSDF bsdf(matDesc, surfPt, wls);
+        EDF edf(matDesc, surfPt, wls);
 
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
 
@@ -69,7 +65,7 @@ namespace VLR {
             light.sample(lpSample, &lpResult);
 
             const SurfaceMaterialDescriptor lightMatDesc = pv_materialDescriptorBuffer[lpResult.materialIndex];
-            EDF ledf(lightMatDesc, lpResult.objInfo, lpResult.surfPt, wls);
+            EDF ledf(lightMatDesc, lpResult.surfPt, wls);
             SampledSpectrum M = ledf.evaluateEmittance();
 
             Vector3D shadowRayDir;
@@ -126,9 +122,6 @@ namespace VLR {
         if (pv_envLightDescriptor.importance == 0)
             return;
 
-        Matrix4x4 identityTF;
-        ObjectInfo objInfo(StaticTransform(identityTF, identityTF));
-
         Vector3D direction = asVector3D(sm_ray.direction);
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
@@ -150,14 +143,14 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
-        phi += pv_envLightDescriptor.body.asEnvironmentLight.rotationPhi;
+        phi += pv_envLightDescriptor.body.asInfSphere.rotationPhi;
         phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
         surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
 
         float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
 
-        const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_envLightDescriptor.body.asEnvironmentLight.materialIndex];
-        EDF edf(matDesc, objInfo, surfPt, sm_payload.wls);
+        const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_envLightDescriptor.materialIndex];
+        EDF edf(matDesc, surfPt, sm_payload.wls);
 
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-asVector3D(sm_ray.direction));
 

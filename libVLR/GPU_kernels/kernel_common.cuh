@@ -20,22 +20,6 @@ namespace VLR {
         return asNormal3D(rtTransformNormal(kind, asOptiXType(n)));
     }
 
-    RT_FUNCTION void getTransform(StaticTransform* st) {
-        Matrix4x4 mat, invMat;
-        rtGetTransform(RT_OBJECT_TO_WORLD, (float*)&mat);
-        rtGetTransform(RT_WORLD_TO_OBJECT, (float*)&invMat);
-        mat.transpose();
-        invMat.transpose();
-        *st = StaticTransform(mat, invMat);
-    }
-
-    struct ObjectInfo {
-        StaticTransform transform;
-
-        RT_FUNCTION ObjectInfo() {}
-        RT_FUNCTION ObjectInfo(const StaticTransform &tr) : transform(tr) {}
-    };
-
 
 
     struct HitPointParameter {
@@ -64,6 +48,7 @@ namespace VLR {
     };
 
     struct SurfacePoint {
+        uint32_t geometryInstanceIndex;
         Point3D position;
         Normal3D geometricNormal;
         ReferenceFrame shadingFrame;
@@ -236,27 +221,29 @@ namespace VLR {
     };
 
     struct SurfaceLightPosQueryResult {
-        ObjectInfo objInfo;
         SurfacePoint surfPt;
         float areaPDF;
         DirectionType posType;
         uint32_t materialIndex;
     };
 
-    typedef rtCallableProgramId<void(const SurfaceLightDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
+    typedef rtCallableProgramId<void(const GeometryInstanceDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
 
     class SurfaceLight {
-        SurfaceLightDescriptor::Body m_desc;
+        GeometryInstanceDescriptor::Body m_desc;
+        uint32_t m_materialIndex;
         ProgSigSurfaceLight_sample m_progSurfaceLight_sample;
 
     public:
         RT_FUNCTION SurfaceLight() {}
-        RT_FUNCTION SurfaceLight(const SurfaceLightDescriptor &desc) :
+        RT_FUNCTION SurfaceLight(const GeometryInstanceDescriptor &desc) :
             m_desc(desc.body), 
+            m_materialIndex(desc.materialIndex),
             m_progSurfaceLight_sample((ProgSigSurfaceLight_sample)desc.sampleFunc) {
         }
 
         RT_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) /*const*/ {
+            lpResult->materialIndex = m_materialIndex;
             m_progSurfaceLight_sample(m_desc, posSample, lpResult);
         }
     };
@@ -278,8 +265,8 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
+    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
 
     typedef rtCallableProgramId<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
     typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
@@ -304,12 +291,13 @@ namespace VLR {
     rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
     rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
     rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
+    rtBuffer<GeometryInstanceDescriptor, 1> pv_geometryInstanceDescriptorBuffer;
 
 
     
     template <typename T>
     RT_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue,
-                           const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+                           const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
@@ -318,10 +306,10 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, objInfo, surfPt, wls)); \
+        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
             switch ((ShaderNodePlugType)plug.plugType) {
@@ -348,7 +336,7 @@ namespace VLR {
     }
 
     RT_FUNCTION SampledSpectrum calcNode(ShaderNodePlug plug, const TripletSpectrum &defaultValue,
-                                         const ObjectInfo &objInfo, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+                                         const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
             int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
@@ -357,10 +345,10 @@ namespace VLR {
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const ObjectInfo &, const SurfacePoint &, const WavelengthSamples &)>; \
+        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
         ProgSigT program = (ProgSigT)programID; \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, objInfo, surfPt, wls)); \
+        ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
             switch ((ShaderNodePlugType)plug.plugType) {

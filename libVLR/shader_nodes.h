@@ -29,6 +29,10 @@ namespace VLR {
         ShaderNodePlug(const VLRShaderNodePlug &_plug) :
             node((const ShaderNode*)_plug.nodeRef), plugInfoAsUInt(_plug.info) {}
 
+        bool isValid() const {
+            return node != nullptr;
+        }
+
         ShaderNodePlugType getType() const {
             return (ShaderNodePlugType)info.outputType;
         }
