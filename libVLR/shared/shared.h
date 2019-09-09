@@ -591,6 +591,7 @@ namespace VLR {
                 Scattered,
                 Shadow,
                 DebugPrimary,
+                RayCast,
                 NumTypes
             } value;
 
@@ -610,6 +611,18 @@ namespace VLR {
             ShadingFrameLengths,
             ShadingFrameOrthogonality,
             NumAttributes
+        };
+
+
+
+        struct RayQuery {
+            Point3D origin;
+            Vector3D direction;
+        };
+        
+        struct RayQueryResult {
+            Point3D position;
+            Normal3D geometricNormal;
         };
 
 

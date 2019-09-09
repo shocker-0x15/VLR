@@ -76,6 +76,9 @@ extern "C" {
     VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height);
     VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
     VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+    VLR_API VLRResult vlrContextCastRays(VLRContext context, VLRScene scene,
+                                         const VLRPoint3D* origins, const VLRVector3D* directions, uint32_t numRays,
+                                         VLRPoint3D* hitPoints, VLRNormal3D* geometricNormals);
 
 
 

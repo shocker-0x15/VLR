@@ -2,6 +2,8 @@
 
 #include "image_loader.h"
 
+#include <random>
+
 SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     using namespace VLRCpp;
     using namespace VLR;
@@ -12,7 +14,7 @@ SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::Contex
     float color[3];
 
     aiMat->Get(AI_MATKEY_NAME, strValue);
-    hpprintf("Material: %s\n", strValue.C_Str());
+    hpprintf("Material: %s uses the default function.\n", strValue.C_Str());
 
     SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
     ShaderNodePlug plugNormal;
@@ -184,7 +186,10 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
     std::vector<SurfaceMaterialAttributeTuple> attrTuples;
     for (int m = 0; m < scene->mNumMaterials; ++m) {
         const aiMaterial* aiMat = scene->mMaterials[m];
-        attrTuples.push_back(matFunc(context, aiMat, pathPrefix));
+        SurfaceMaterialAttributeTuple matTuple = matFunc(context, aiMat, pathPrefix);
+        if (!matTuple.material)
+            matTuple = createMaterialDefaultFunction(context, aiMat, pathPrefix);
+        attrTuples.push_back(matTuple);
     }
 
     recursiveConstruct(context, scene, scene->mRootNode, attrTuples, meshFunc, nodeOut);
@@ -2273,9 +2278,449 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
     }
 }
 
+void createRTCamp7Scene(const VLRCpp::ContextRef& context, Shot* shot) {
+    using namespace VLRCpp;
+    using namespace VLR;
+
+    shot->scene = context->createScene();
+
+    InternalNodeRef modelNode;
+
+
+
+    InternalNodeRef furniture;
+    const auto furnitureMatFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::set<std::string> matNames = {
+            "wood_table_top1", "wood_table_top2", "wood_table_top3", "wood_table_legs1",
+            "wood_chairs_top1", "wood_chairs_top2", "wood_chairs_top3", "wood_chairs_legs1",
+            "pin_table", "pin_chairs" };
+
+        if (matNames.count(std::string(strValue.C_Str())) > 0) {
+            std::string modelName = "furniture";
+            //std::string matName = ;
+            std::string matName = strValue.C_Str();
+
+            auto nodeBaseColor = context->createShaderNode("Image2DTexture");
+            nodeBaseColor->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_BaseColor.png", "Reflectance", "Rec709(D65) sRGB Gamma"));
+            auto nodeORM = context->createShaderNode("Image2DTexture");
+            nodeORM->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_OcclusionRoughnessMetallic.png", "NA", "Rec709(D65)"));
+            auto nodeNormal = context->createShaderNode("Image2DTexture");
+            nodeNormal->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_Normal.png", "NA", "Rec709(D65)"));
+
+            auto ue4Mat = context->createSurfaceMaterial("UE4");
+            ue4Mat->set("base color", nodeBaseColor->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+            ue4Mat->set("occlusion/roughness/metallic", nodeORM->getPlug(VLRShaderNodePlugType_float3, 0));
+
+            mat = ue4Mat;
+            plugNormal = nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0);
+        }
+        else {
+            mat = context->createSurfaceMaterial("matte");
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+    construct(context, ASSETS_DIR"RT7/furniture/furniture.obj", false, true, &furniture, furnitureMatFunc,
+              [](const aiMesh* mesh) {
+                  return MeshAttributeTuple(true);
+              });
+    furniture->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(1.0f)));
+
+    InternalNodeRef parasol;
+    construct(context, ASSETS_DIR"RT7/parasol/parasol.obj", false, true, &parasol);
+    parasol->setTransform(context->createStaticTransform(translate<float>(0.014145f, 0, 0) * scale<float>(1.0f)));
+
+    auto box1 = context->createInternalNode("box1");
+    {
+        box1->addChild(furniture);
+        box1->addChild(parasol);
+    }
+    shot->scene->addChild(box1);
+
+    auto box2 = context->createInternalNode("box2", context->createStaticTransform(translate<float>(0, -0.025f, -1.5f)));
+    {
+        box2->addChild(furniture);
+        box2->addChild(parasol);
+    }
+    shot->scene->addChild(box2);
+
+
+
+    const auto glassWaterMatFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::string matName = strValue.C_Str();
+
+        if (matName == "Glass") {
+            mat = context->createSurfaceMaterial("SpecularScattering");
+            mat->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 0.999f, 0.999f, 0.999f });
+            mat->set("eta ext", VLRImmediateSpectrum{ "Rec709(D65)", 1.00036f, 1.00021f, 1.00071f }); // Air
+            mat->set("eta int", VLRImmediateSpectrum{ "Rec709(D65)", 1.51455f, 1.51816f, 1.52642f }); // Glass BK7
+        }
+        else if (matName == "Water") {
+            mat = context->createSurfaceMaterial("SpecularScattering");
+            mat->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 0.999f, 0.999f, 0.999f });
+            mat->set("eta ext", VLRImmediateSpectrum{ "Rec709(D65)", 1.00036f, 1.00021f, 1.00071f }); // Air
+            mat->set("eta int", VLRImmediateSpectrum{ "Rec709(D65)", 1.33161f, 1.33331f, 1.33799f }); // Water
+        }
+        else {
+            mat = context->createSurfaceMaterial("matte");
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+    InternalNodeRef glass;
+    construct(context, ASSETS_DIR"RT7/glass/glass_water.obj", false, true, &glass, glassWaterMatFunc,
+              [](const aiMesh* mesh) {
+                  return MeshAttributeTuple(true);
+              });
+    glass->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(1.0f)));
+    box1->addChild(glass);
+
+
+
+    InternalNodeRef base;
+    construct(context, ASSETS_DIR"RT7/ground/base.obj", false, true, &base);
+    shot->scene->addChild(base);
+    base->setTransform(context->createStaticTransform(scale<float>(1.0f)));
+
+
+
+    InternalNodeRef ground;
+    const auto groundMatFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::string matName = strValue.C_Str();
+
+        std::set<std::string> matNames = {
+            "ground", "ground_near",
+            "road", "road_near"
+        };
+
+        if (matNames.count(matName) > 0) {
+            std::string modelName = "ground";
+
+            auto nodeBaseColor = context->createShaderNode("Image2DTexture");
+            nodeBaseColor->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_BaseColor.png", "Reflectance", "Rec709(D65) sRGB Gamma"));
+            auto nodeORM = context->createShaderNode("Image2DTexture");
+            nodeORM->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_OcclusionRoughnessMetallic.png", "NA", "Rec709(D65)"));
+            auto nodeNormal = context->createShaderNode("Image2DTexture");
+            nodeNormal->set("image", loadImage2D(context, pathPrefix + modelName + "_" + matName + "_Normal.png", "NA", "Rec709(D65)"));
+
+            auto ue4Mat = context->createSurfaceMaterial("UE4");
+            ue4Mat->set("base color", nodeBaseColor->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+            ue4Mat->set("occlusion/roughness/metallic", nodeORM->getPlug(VLRShaderNodePlugType_float3, 0));
+
+            mat = ue4Mat;
+            plugNormal = nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0);
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+    construct(context, ASSETS_DIR"RT7/ground/ground.obj", false, true, &ground, groundMatFunc,
+              [](const aiMesh* mesh) {
+                  return MeshAttributeTuple(true);
+              });
+    shot->scene->addChild(ground);
+    ground->setTransform(context->createStaticTransform(scale<float>(1.0f)));
+
+
+
+    construct(context, ASSETS_DIR"RT7/maple/maple.obj", false, true, &modelNode);
+    shot->scene->addChild(modelNode);
+    modelNode->setTransform(context->createStaticTransform(scale<float>(1.0f)));
+
+
+
+    auto tempScene = context->createScene();
+    tempScene->addChild(ground);
+
+    std::mt19937_64 rng(491842031321323413);
+    std::uniform_real_distribution<> u01(0.0, 1.0);
+
+    const auto sunflower_a_matFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::string matName = strValue.C_Str();
+
+        if (matName == "sunflower_a_thin") {
+            mat = context->createSurfaceMaterial("LambertianScattering");
+
+            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                auto texDiffuse = context->createShaderNode("Image2DTexture");
+                auto imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), "Reflectance", "Rec709(D65) sRGB Gamma");
+                texDiffuse->set("image", imgDiffuse);
+                mat->set("coeff", texDiffuse->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+            }
+            else {
+                mat->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 1.0f, 0.0f, 1.0f });
+            }
+
+            mat->set("f0", 0.8f);
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+
+    const auto sunflower_b_matFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::string matName = strValue.C_Str();
+
+        if (matName == "sunflower_b_thin") {
+            mat = context->createSurfaceMaterial("LambertianScattering");
+
+            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                auto texDiffuse = context->createShaderNode("Image2DTexture");
+                auto imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), "Reflectance", "Rec709(D65) sRGB Gamma");
+                texDiffuse->set("image", imgDiffuse);
+                mat->set("coeff", texDiffuse->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+            }
+            else {
+                mat->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 1.0f, 0.0f, 1.0f });
+            }
+
+            mat->set("f0", 0.8f);
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+
+    InternalNodeRef sunflower_a1;
+    construct(context, ASSETS_DIR"RT7/sunflower_a/sunflower.obj", false, true, &sunflower_a1, sunflower_a_matFunc);
+
+    InternalNodeRef sunflower_b1;
+    construct(context, ASSETS_DIR"RT7/sunflower_b/sunflower1.obj", false, true, &sunflower_b1, sunflower_b_matFunc);
+
+    InternalNodeRef sunflower_b2;
+    construct(context, ASSETS_DIR"RT7/sunflower_b/sunflower2.obj", false, true, &sunflower_b2, sunflower_b_matFunc);
+
+    InternalNodeRef sunflowers[] = {
+        sunflower_a1, sunflower_b1, sunflower_b2
+    };
+
+    {
+        const Point3D distOrigin(-2.5f, 0, 0.6f);
+        const Vector3D distWidth(-16.0f, 0, -20.0f);
+
+        const uint32_t NumProbeRaysX = 100;
+        const uint32_t NumProbeRaysY = 70;
+        const uint32_t NumTotalProbeRays = NumProbeRaysX * NumProbeRaysY;
+        Point3D probeOrigins[NumTotalProbeRays];
+        Vector3D probeDirections[NumTotalProbeRays];
+        Point3D probeResultPositions[NumTotalProbeRays];
+        Normal3D probeResultGeometricNormals[NumTotalProbeRays];
+        for (int i = 0; i < NumProbeRaysY; ++i) {
+            for (int j = 0; j < NumProbeRaysX; ++j) {
+                probeOrigins[i * NumProbeRaysX + j] = distOrigin + Vector3D(distWidth.x * (i + 0.5f * u01(rng)) / NumProbeRaysY,
+                                                                            20,
+                                                                            distWidth.z * (j + 0.5f * u01(rng)) / NumProbeRaysX);
+                probeDirections[i * NumProbeRaysX + j] = Vector3D(0, -1, 0);
+            }
+        }
+        context->castRays(tempScene, probeOrigins, probeDirections, NumTotalProbeRays,
+                          probeResultPositions, probeResultGeometricNormals);
+
+        for (int i = 0; i < NumTotalProbeRays; ++i) {
+            Vector3D tr = probeResultPositions[i];
+            tr.y -= 0.05f * u01(rng);
+            Matrix4x4 mat =
+                translate<float>(tr) *
+                rotateZ<float>(0.1f * M_PI * (u01(rng) - 0.5f)) *
+                rotateY<float>(0.3f * M_PI + 0.1f * M_PI * (u01(rng) - 0.5f)) *
+                rotateX<float>(0.1f * M_PI * (u01(rng) - 0.5f)) *
+                scale<float>(0.8f + 0.4f * u01(rng));
+            auto transformNode = context->createInternalNode("", context->createStaticTransform(mat));
+            transformNode->addChild(sunflowers[std::min<uint32_t>(2, 3 * u01(rng))]);
+            shot->scene->addChild(transformNode);
+        }
+    }
+
+    InternalNodeRef grass;
+    const auto grassMatFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace VLRCpp;
+        using namespace VLR;
+
+        aiReturn ret;
+        (void)ret;
+        aiString strValue;
+        float color[3];
+
+        aiMat->Get(AI_MATKEY_NAME, strValue);
+
+        SurfaceMaterialRef mat;
+        ShaderNodePlug plugNormal;
+        ShaderNodePlug plugTangent;
+        ShaderNodePlug plugAlpha;
+
+        std::string matName = strValue.C_Str();
+
+        if (matName == "grass") {
+            mat = context->createSurfaceMaterial("LambertianScattering");
+
+            if (aiMat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), strValue) == aiReturn_SUCCESS) {
+                auto texDiffuse = context->createShaderNode("Image2DTexture");
+                auto imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), "Reflectance", "Rec709(D65) sRGB Gamma");
+                texDiffuse->set("image", imgDiffuse);
+                mat->set("coeff", texDiffuse->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+            }
+            else {
+                mat->set("albedo", VLRImmediateSpectrum{ "Rec709(D65)", 1.0f, 0.0f, 1.0f });
+            }
+
+            mat->set("f0", 0.8f);
+        }
+        else {
+            mat = context->createSurfaceMaterial("matte");
+        }
+
+        return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
+    };
+    construct(context, ASSETS_DIR"RT7/grass/grass.obj", false, true, &grass, grassMatFunc);
+
+    {
+        const Point3D distOrigin(-2.0f, 0, 0.6f);
+        const Vector3D distWidth(-2.0f, 0, -20.0f);
+
+        const uint32_t NumProbeRaysX = 300;
+        const uint32_t NumProbeRaysY = 3;
+        const uint32_t NumTotalProbeRays = NumProbeRaysX * NumProbeRaysY;
+        Point3D probeOrigins[NumTotalProbeRays];
+        Vector3D probeDirections[NumTotalProbeRays];
+        Point3D probeResultPositions[NumTotalProbeRays];
+        Normal3D probeResultGeometricNormals[NumTotalProbeRays];
+        for (int i = 0; i < NumProbeRaysY; ++i) {
+            for (int j = 0; j < NumProbeRaysX; ++j) {
+                probeOrigins[i * NumProbeRaysX + j] = distOrigin + Vector3D(distWidth.x * (i + 0.5f * u01(rng)) / NumProbeRaysY,
+                                                                            20,
+                                                                            distWidth.z * (j + 0.5f * u01(rng)) / NumProbeRaysX);
+                probeDirections[i * NumProbeRaysX + j] = Vector3D(0, -1, 0);
+            }
+        }
+        context->castRays(tempScene, probeOrigins, probeDirections, NumTotalProbeRays,
+                          probeResultPositions, probeResultGeometricNormals);
+
+        for (int i = 0; i < NumTotalProbeRays; ++i) {
+            Vector3D tr = probeResultPositions[i];
+            tr.y -= 0.025f * u01(rng);
+            Matrix4x4 mat =
+                translate<float>(tr) *
+                rotateZ<float>(0.1f * M_PI * (u01(rng) - 0.5f)) *
+                rotateY<float>(0.0f * M_PI + 0.1f * M_PI * (u01(rng) - 0.5f)) *
+                rotateX<float>(0.1f * M_PI * (u01(rng) - 0.5f)) *
+                scale<float>(0.8f + 0.4f * u01(rng));
+            auto transformNode = context->createInternalNode("", context->createStaticTransform(mat));
+            transformNode->addChild(grass);
+            shot->scene->addChild(transformNode);
+        }
+    }
+
+
+
+    auto imgEnv = loadImage2D(context, ASSETS_DIR"IBLs/sIBL_archive/Malibu_Overlook_3k_corrected.exr", "Light Source", "Rec709(D65)");
+    auto nodeEnvTex = context->createShaderNode("EnvironmentTexture");
+    nodeEnvTex->set("image", imgEnv);
+    auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
+    matEnv->set("emittance", nodeEnvTex->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+    //matEnv->set("emittance", RGBSpectrum(0.1f, 0.1f, 0.1f));
+    shot->environmentRotation = 105 * M_PI / 180;
+    shot->scene->setEnvironment(matEnv, shot->environmentRotation);
+
+
+
+    shot->renderTargetSizeX = 1024;
+    shot->renderTargetSizeY = 1024;
+
+    shot->brightnessCoeff = 1.0f;
+
+    {
+        auto camera = context->createCamera("Perspective");
+
+        camera->set("position", Point3D(0.439f, 0.353, -0.069f));
+        camera->set("orientation", Quaternion(0.001f, 0.915f, -0.005f, -0.405f));
+
+        camera->set("aspect", (float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        float lensRadius = 0.001f;
+        camera->set("sensitivity", lensRadius > 0 ? 1.0f / (M_PI * lensRadius * lensRadius) : 1.0f);
+        camera->set("fovy", 60 * M_PI / 180);
+        camera->set("lens radius", lensRadius);
+        camera->set("op distance", 20.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    createMaterialTestScene(context, shot);
+    //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
@@ -2288,4 +2733,5 @@ void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);
     //createSanMiguelScene(context, shot);
+    createRTCamp7Scene(context, shot);
 }

@@ -151,7 +151,7 @@ static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const
         }
     }
 
-    stbi_write_bmp(filename.c_str(), width, height, 4, data);
+    stbi_write_png(filename.c_str(), width, height, 4, data, width * 4);
     delete[] data;
 
     context->unmapOutputBuffer();
@@ -1173,8 +1173,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     bool enableLogging = false;
     bool enableRTX = true;
     bool enableGUI = true;
-    uint32_t renderImageSizeX = 1920;
-    uint32_t renderImageSizeY = 1080;
+    int32_t renderImageSizeX = -1;
+    int32_t renderImageSizeY = -1;
     uint32_t maxCallableDepth = 8;
     uint32_t stackSize = 0;
 
@@ -1255,6 +1255,10 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     else {
         uint32_t renderTargetSizeX = shot.renderTargetSizeX;
         uint32_t renderTargetSizeY = shot.renderTargetSizeY;
+        if (renderImageSizeX != -1 && renderImageSizeY != -1) {
+            renderTargetSizeX = renderImageSizeX;
+            renderTargetSizeY = renderImageSizeY;
+        }
 
         context->bindOutputBuffer(renderTargetSizeX, renderTargetSizeY, 0);
 
@@ -1263,9 +1267,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
         uint32_t numAccumFrames = 0;
         uint32_t imgIndex = 0;
-        uint32_t deltaTime = 15 * 1000;
+        uint32_t deltaTime = 60 * 1000;
         uint32_t nextTimeToOutput = deltaTime;
-        uint32_t finishTime = 123 * 1000 - 3000;
+        uint32_t finishTime = 60 * 1000 - 4000;
         auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
             context->render(shot.scene, shot.viewpoints[0], 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
@@ -1274,7 +1278,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;
             if (elapsed > nextTimeToOutput || finish) {
                 char filename[256];
-                sprintf(filename, "%03u.bmp", imgIndex++);
+                sprintf(filename, "%03u.png", imgIndex++);
                 saveOutputBufferAsImageFile(context, filename, shot.brightnessCoeff, false);
                 hpprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 

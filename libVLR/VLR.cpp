@@ -261,6 +261,21 @@ VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRC
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrContextCastRays(VLRContext context, VLRScene scene,
+                                     const VLRPoint3D* origins, const VLRVector3D* directions, uint32_t numRays,
+                                     VLRPoint3D* hitPoints, VLRNormal3D* geometricNormals) {
+    try {
+        if (!scene->is<VLR::Scene>())
+            return VLRResult_InvalidArgument;
+
+        context->castRays(*scene, (const VLR::Point3D*)origins, (const VLR::Vector3D*)directions, numRays,
+                          (VLR::Point3D*)hitPoints, (VLR::Normal3D*)geometricNormals);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 
 
 VLR_API VLRResult vlrObjectGetType(VLRObjectConst object, const char** typeName) {

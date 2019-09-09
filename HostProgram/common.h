@@ -59,7 +59,12 @@ static void devPrintf(const char* fmt, ...) {
 #endif
 
 #if 1
-#   define hpprintf(fmt, ...) do { devPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
+#   define hpprintf(fmt, ...) do { \
+        char str[4096]; \
+        sprintf_s(str, fmt, ##__VA_ARGS__); \
+        devPrintf("%s", str); \
+        printf("%s", str); \
+    } while (0)
 #else
 #   define hpprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif

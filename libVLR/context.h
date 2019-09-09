@@ -102,6 +102,11 @@ namespace VLR {
         optix::Program m_optixProgramDebugRenderingRayGeneration;
         optix::Program m_optixProgramDebugRenderingException;
 
+        optix::Program m_optixProgramCastRaysClosestHit;
+        optix::Program m_optixProgramCastRaysMiss;
+        optix::Program m_optixProgramCastRaysRayGeneration;
+        optix::Program m_optixProgramCastRaysException;
+
         optix::Program m_optixProgramConvertToRGB; // ----------- Ray Generation Program (TODO: port to pure CUDA code)
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
@@ -144,6 +149,8 @@ namespace VLR {
         optix::Buffer m_rawOutputBuffer;
         optix::Buffer m_outputBuffer;
         optix::Buffer m_rngBuffer;
+        optix::Buffer m_dummyQueryRayBuffer;
+        optix::Buffer m_dummyQueryRayResultBuffer;
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
@@ -175,6 +182,8 @@ namespace VLR {
 
         void render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
         void debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void castRays(Scene &scene, const Point3D* origins, const Vector3D* directions, uint32_t numRays,
+                      Point3D* hitPoints, Normal3D* geometricNormals);
 
         const optix::Context &getOptiXContext() const {
             return m_optixContext;

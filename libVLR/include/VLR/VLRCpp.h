@@ -723,6 +723,11 @@ namespace VLRCpp {
             errorCheck(vlrContextDebugRender(m_rawContext, scene->getRaw<VLRScene>(), camera->getRaw<VLRCamera>(), renderMode, shrinkCoeff, firstFrame, numAccumFrames));
         }
 
+        void castRays(const SceneRef &scene, const VLR::Point3D* origins, const VLR::Vector3D* directions, uint32_t numRays, VLR::Point3D* hitPoints, VLR::Normal3D* geometricNormals) const {
+            errorCheck(vlrContextCastRays(m_rawContext, scene->getRaw<VLRScene>(), (const VLRPoint3D*)origins, (const VLRVector3D*)directions, numRays,
+                                          (VLRPoint3D*)hitPoints, (VLRNormal3D*)geometricNormals));
+        }
+
 
 
         LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height,

@@ -90,6 +90,7 @@ namespace VLR {
         enum Value {
             PathTracing = 0,
             DebugRendering,
+            CastRays,
             ConvertToRGB,
             NumEntryPoints
         } value;
@@ -184,6 +185,17 @@ namespace VLR {
         m_optixContext->setExceptionProgram(EntryPoint::DebugRendering, m_optixProgramDebugRenderingException);
 
         {
+            std::string ptx = readTxtFile(exeDir / "ptxes/cast_rays.ptx");
+
+            m_optixProgramCastRaysClosestHit = m_optixContext->createProgramFromPTXString(ptx, "VLR::castRaysClosestHit");
+            m_optixProgramCastRaysMiss = m_optixContext->createProgramFromPTXString(ptx, "VLR::castRaysMiss");
+            m_optixProgramCastRaysRayGeneration = m_optixContext->createProgramFromPTXString(ptx, "VLR::castRaysRayGeneration");
+            m_optixProgramCastRaysException = m_optixContext->createProgramFromPTXString(ptx, "VLR::castRaysException");
+        }
+        m_optixContext->setRayGenerationProgram(EntryPoint::CastRays, m_optixProgramCastRaysRayGeneration);
+        m_optixContext->setExceptionProgram(EntryPoint::CastRays, m_optixProgramCastRaysException);
+
+        {
             std::string ptx = readTxtFile(exeDir / "ptxes/convert_to_rgb.ptx");
             m_optixProgramConvertToRGB = m_optixContext->createProgramFromPTXString(ptx, "VLR::convertToRGB");
         }
@@ -192,6 +204,7 @@ namespace VLR {
         m_optixContext->setMissProgram(Shared::RayType::Primary, m_optixProgramPathTracingMiss);
         m_optixContext->setMissProgram(Shared::RayType::Scattered, m_optixProgramPathTracingMiss);
         m_optixContext->setMissProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingMiss);
+        m_optixContext->setMissProgram(Shared::RayType::RayCast, m_optixProgramCastRaysMiss);
 
 
 
@@ -255,6 +268,7 @@ namespace VLR {
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
         m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingClosestHit);
+        m_optixMaterialDefault->setClosestHitProgram(Shared::RayType::RayCast, m_optixProgramCastRaysClosestHit);
         //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Primary, );
         //m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Scattered, );
         m_optixMaterialDefault->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitDefault);
@@ -263,6 +277,7 @@ namespace VLR {
         m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Primary, m_optixProgramPathTracingIteration);
         m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::Scattered, m_optixProgramPathTracingIteration);
         m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::DebugPrimary, m_optixProgramDebugRenderingClosestHit);
+        m_optixMaterialWithAlpha->setClosestHitProgram(Shared::RayType::RayCast, m_optixProgramCastRaysClosestHit);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Primary, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Scattered, m_optixProgramAnyHitWithAlpha);
         m_optixMaterialWithAlpha->setAnyHitProgram(Shared::RayType::Shadow, m_optixProgramShadowAnyHitWithAlpha);
@@ -329,6 +344,11 @@ namespace VLR {
         SurfaceNode::initialize(*this);
         Camera::initialize(*this);
 
+        m_dummyQueryRayBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, 16);
+        m_dummyQueryRayBuffer->setElementSize(sizeof(Shared::RayQuery));
+        m_dummyQueryRayResultBuffer = m_optixContext->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_USER, 16);
+        m_dummyQueryRayResultBuffer->setElementSize(sizeof(Shared::RayQueryResult));
+
         vlrprintf(" done.\n");
 
 
@@ -387,6 +407,9 @@ namespace VLR {
         if (m_outputBuffer)
             m_outputBuffer->destroy();
 
+        m_dummyQueryRayResultBuffer->destroy();
+        m_dummyQueryRayBuffer->destroy();
+
         Camera::finalize(*this);
         SurfaceNode::finalize(*this);
         SurfaceMaterial::finalize(*this);
@@ -431,6 +454,11 @@ namespace VLR {
 #endif
 
         m_optixProgramConvertToRGB->destroy();
+
+        m_optixProgramCastRaysException->destroy();
+        m_optixProgramCastRaysRayGeneration->destroy();
+        m_optixProgramCastRaysMiss->destroy();
+        m_optixProgramCastRaysClosestHit->destroy();
 
         m_optixProgramDebugRenderingException->destroy();
         m_optixProgramDebugRenderingRayGeneration->destroy();
@@ -541,6 +569,10 @@ namespace VLR {
             optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 
             m_numAccumFrames = 0;
+
+            // dummy
+            optixContext["VLR::pv_rayBuffer"]->set(m_dummyQueryRayBuffer);
+            optixContext["VLR::pv_resultBuffer"]->set(m_dummyQueryRayResultBuffer);
         }
 
         ++m_numAccumFrames;
@@ -572,6 +604,10 @@ namespace VLR {
             optixContext["VLR::pv_imageSize"]->setUint(imageSize);
 
             m_numAccumFrames = 0;
+
+            // dummy
+            optixContext["VLR::pv_rayBuffer"]->set(m_dummyQueryRayBuffer);
+            optixContext["VLR::pv_resultBuffer"]->set(m_dummyQueryRayResultBuffer);
         }
 
         ++m_numAccumFrames;
@@ -592,6 +628,59 @@ namespace VLR {
         optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
 
         optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
+    }
+
+    void Context::castRays(Scene &scene, const Point3D* origins, const Vector3D* directions, uint32_t numRays,
+                           Point3D* hitPoints, Normal3D* geometricNormals) {
+        optix::Context optixContext = getOptiXContext();
+
+        scene.setup();
+
+        optixContext["VLR::pv_numCastRays"]->setUint(numRays);
+
+        // dummy
+        bindOutputBuffer(32, 32, 0);
+        auto camera = new VLR::PerspectiveCamera(*this);
+        camera->setup();
+
+        optix::Buffer rayBuffer = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, numRays);
+        rayBuffer->setElementSize(sizeof(Shared::RayQuery));
+        {
+            auto rays = (Shared::RayQuery*)rayBuffer->map();
+            for (int i = 0; i < numRays; ++i)
+                rays[i] = Shared::RayQuery{ origins[i], directions[i] };
+            rayBuffer->unmap();
+        }
+        optixContext["VLR::pv_rayBuffer"]->set(rayBuffer);
+
+        optix::Buffer resultBuffer = m_optixContext->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_USER, numRays);
+        resultBuffer->setElementSize(sizeof(Shared::RayQueryResult));
+        optixContext["VLR::pv_resultBuffer"]->set(resultBuffer);
+
+#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
+        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+#endif
+
+#if defined(VLR_ENABLE_VALIDATION)
+        optixContext->validate();
+#endif
+
+        optixContext->launch(EntryPoint::CastRays, numRays);
+
+        {
+            auto results = (Shared::RayQueryResult*)resultBuffer->map();
+            for (int i = 0; i < numRays; ++i) {
+                const Shared::RayQueryResult &result = results[i];
+                hitPoints[i] = result.position;
+                geometricNormals[i] = result.geometricNormal;
+            }
+            resultBuffer->unmap();
+        }
+
+        resultBuffer->destroy();
+        rayBuffer->destroy();
+
+        delete camera;
     }
 
 
