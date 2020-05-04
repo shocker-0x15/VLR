@@ -1,16 +1,15 @@
 ﻿#pragma once
 
-#if defined(__CUDACC__)
+#if defined(__CUDA_ARCH__)
 #   define VLR_Device
-#   define RT_FUNCTION __forceinline__ __device__
-#   define RT_FUNCTION_NOINLINE __noinline__ __device__
-#   define RT_VARIABLE __constant__
 #   define HOST_INLINE
 #   define HOST_STATIC_CONSTEXPR
 
-#   define vlrDevPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
-#   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#   define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#   define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
+
+#include "../optix_util.h"
 
 #include "common.h"
 
@@ -74,8 +73,6 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <immintrin.h>
 
 #endif
-
-#include <optix_world.h>
 
 
 

@@ -3,8 +3,6 @@
 #if defined(__cplusplus) && !defined(VLR_Device)
 #   define VLR_Host
 #   define RT_FUNCTION
-#   define RT_FUNCTION_NOINLINE
-#   define RT_VARIABLE
 #   define HOST_INLINE inline
 #   define HOST_STATIC_CONSTEXPR static constexpr
 #endif
@@ -22,9 +20,10 @@
 #endif
 
 #if defined(VLR_Platform_Windows_MSVC)
-#   define NOMINMAX
 #   define _USE_MATH_DEFINES
 #   include <Windows.h>
+#   undef min
+#   undef max
 #   undef near
 #   undef far
 #   undef RGB
@@ -38,6 +37,7 @@
 #endif
 
 #define VLR_M_PI 3.14159265358979323846f
+#define VLR_M_PI_4 0.785398163397448309616f
 #ifndef VLR_HUGE_ENUF
 #   define VLR_HUGE_ENUF  1e+300  // VLR_HUGE_ENUF*VLR_HUGE_ENUF must overflow
 #endif

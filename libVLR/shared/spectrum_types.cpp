@@ -5,8 +5,8 @@ namespace VLR {
     template <typename RealType, uint32_t NumSpectralSamples>
     RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
 #   if defined(VLR_Device)
-        const auto spectrum_grid = rtBufferId<spectrum_grid_cell_t, 1>(UpsampledSpectrum_spectrum_grid);
-        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+        const auto spectrum_grid = plp.UpsampledSpectrum_spectrum_grid;
+        const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
         u = clamp<RealType>(u, 0.0f, GridWidth());
@@ -274,7 +274,7 @@ namespace VLR {
     RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
 #   if defined(VLR_Device)
-        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+        const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
         uint8_t adjIndices[4];
@@ -586,10 +586,10 @@ namespace VLR {
 
 
 #if defined(VLR_Device)
-#   define xbar DiscretizedSpectrum_xbar
-#   define ybar DiscretizedSpectrum_ybar
-#   define zbar DiscretizedSpectrum_zbar
-#   define integralCMF DiscretizedSpectrum_integralCMF
+#   define xbar (*plp.DiscretizedSpectrum_xbar)
+#   define ybar (*plp.DiscretizedSpectrum_ybar)
+#   define zbar (*plp.DiscretizedSpectrum_zbar)
+#   define integralCMF (plp.DiscretizedSpectrum_integralCMF)
 #endif
 
     template <typename RealType, uint32_t NumStrataForStorage>

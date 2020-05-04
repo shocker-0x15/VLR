@@ -4,7 +4,7 @@
 #include "rgb_spectrum_types.h"
 #include "spectrum_types.h"
 #if defined(VLR_Host)
-#include "../ext/include/half.hpp"
+#include <half.hpp>
 #endif
 
 namespace VLR {
@@ -48,24 +48,6 @@ namespace VLR {
 #endif
 
     using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
-
-#if defined(VLR_Device)
-    // Context-scope Variables
-
-#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_grid, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_data_points, , );
-#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-    rtDeclareVariable(int32_t, UpsampledSpectrum_maxBrightnesses, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_D65, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_E, , );
-#   endif
-
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_xbar, , );
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_ybar, , );
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_zbar, , );
-    rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
-#endif
 
     RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(SpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
@@ -194,13 +176,13 @@ namespace VLR {
     namespace Shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
-            rtBufferId<RealType, 1> m_PMF;
-            rtBufferId<RealType, 1> m_CDF;
+            const RealType* m_PMF;
+            const RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
         public:
-            DiscreteDistribution1DTemplate(const rtBufferId<RealType, 1> &PMF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) : 
+            DiscreteDistribution1DTemplate(const RealType* PMF, const RealType* CDF, RealType integral, uint32_t numValues) : 
             m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
             }
 
@@ -249,13 +231,13 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution1DTemplate {
-            rtBufferId<RealType, 1> m_PDF;
-            rtBufferId<RealType, 1> m_CDF;
+            RealType* m_PDF;
+            RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
         public:
-            RegularConstantContinuousDistribution1DTemplate(const rtBufferId<RealType, 1> &PDF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) :
+            RegularConstantContinuousDistribution1DTemplate(const RealType* PDF, const RealType* CDF, RealType integral, uint32_t numValues) :
                 m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
             }
 
@@ -292,11 +274,11 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution2DTemplate {
-            rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> m_1DDists;
+            RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
-            RegularConstantContinuousDistribution2DTemplate(const rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> &_1DDists, 
+            RegularConstantContinuousDistribution2DTemplate(const RegularConstantContinuousDistribution1DTemplate<RealType>* _1DDists, 
                                                             const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
                 m_1DDists(_1DDists), m_top1DDist(top1DDist) {
             }
@@ -418,30 +400,30 @@ namespace VLR {
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, optix::float2) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, float) { return optix::make_float2(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float2, float2) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float2, float) { return make_float2(srcValue); }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, optix::float3) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, float) { return optix::make_float3(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Point3D) { return asOptiXType(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Vector3D) { return asOptiXType(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Normal3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, float3) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, float) { return make_float3(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Point3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Vector3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Normal3D) { return asOptiXType(srcValue); }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, optix::float4) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, float) { return optix::make_float4(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float4, float4) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float4, float) { return make_float4(srcValue); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Point3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, optix::float3) { return asPoint3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, float3) { return asPoint3D(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Vector3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Normal3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Vector3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, optix::float3) { return asVector3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, float3) { return asVector3D(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Point3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Normal3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Normal3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, optix::float3) { return asNormal3D(srcValue).normalize(); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, float3) { return asNormal3D(srcValue).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Point3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Vector3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
 
@@ -455,11 +437,11 @@ namespace VLR {
             case ShaderNodePlugType::float1:
                 return ConversionIsDefinedFrom<float>();
             case ShaderNodePlugType::float2:
-                return ConversionIsDefinedFrom<optix::float2>();
+                return ConversionIsDefinedFrom<float2>();
             case ShaderNodePlugType::float3:
-                return ConversionIsDefinedFrom<optix::float3>();
+                return ConversionIsDefinedFrom<float3>();
             case ShaderNodePlugType::float4:
-                return ConversionIsDefinedFrom<optix::float4>();
+                return ConversionIsDefinedFrom<float4>();
             case ShaderNodePlugType::Point3D:
                 return ConversionIsDefinedFrom<Point3D>();
             case ShaderNodePlugType::Vector3D:
@@ -524,8 +506,8 @@ namespace VLR {
         struct GeometryInstanceDescriptor {
             union Body {
                 struct {
-                    rtBufferId<Vertex> vertexBuffer;
-                    rtBufferId<Triangle> triangleBuffer;
+                    Vertex* vertexBuffer;
+                    Triangle* triangleBuffer;
                     DiscreteDistribution1D primDistribution;
                     StaticTransform transform;
                 } asTriMesh;
@@ -715,7 +697,7 @@ namespace VLR {
         struct Image2DTextureShaderNode {
 #define VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH (5)
 
-            int32_t textureID;
+            CUtexObject texture;
             struct {
                 unsigned int dataFormat : 5;
                 unsigned int spectrumType : 3;
@@ -734,10 +716,10 @@ namespace VLR {
                 return (float)(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
             }
         };
-        static_assert(sizeof(Image2DTextureShaderNode) == 12, "Unexpected sizeof(Image2DTextureShaderNode).");
+        static_assert(sizeof(Image2DTextureShaderNode) == 16, "Unexpected sizeof(Image2DTextureShaderNode).");
 
         struct EnvironmentTextureShaderNode {
-            int32_t textureID;
+            CUtexObject texture;
             struct {
                 unsigned int dataFormat : 5;
                 unsigned int colorSpace : 3;
@@ -848,7 +830,3 @@ namespace VLR {
         // ----------------------------------------------------------------
     }
 }
-
-#if defined(VLR_Device)
-#include "spectrum_types.cpp"
-#endif

@@ -8,16 +8,33 @@ namespace VLR {
 
 
 
-    RT_FUNCTION Point3D transform(RTtransformkind kind, const Point3D &p) {
-        return asPoint3D(rtTransformPoint(kind, asOptiXType(p)));
+    enum class TransformKind {
+        WorldToObject = 0,
+        ObjectToWorld
+    };
+    
+    template <TransformKind kind>
+    RT_FUNCTION Point3D transform(const Point3D &p) {
+        if constexpr (kind == TransformKind::WorldToObject)
+            return asPoint3D(optixTransformPointFromWorldToObjectSpace(asOptixType(p)));
+        else
+            return asPoint3D(optixTransformPointFromObjectToWorldSpace(asOptixType(p)));
     }
 
-    RT_FUNCTION Vector3D transform(RTtransformkind kind, const Vector3D &v) {
-        return asVector3D(rtTransformVector(kind, asOptiXType(v)));
+    template <TransformKind kind>
+    RT_FUNCTION Vector3D transform(const Vector3D &v) {
+        if constexpr (kind == TransformKind::WorldToObject)
+            return asVector3D(optixTransformVectorFromWorldToObjectSpace(asOptixType(v)));
+        else
+            return asVector3D(optixTransformVectorFromObjectToWorldSpace(asOptixType(v)));
     }
 
-    RT_FUNCTION Normal3D transform(RTtransformkind kind, const Normal3D &n) {
-        return asNormal3D(rtTransformNormal(kind, asOptiXType(n)));
+    template <TransformKind kind>
+    RT_FUNCTION Normal3D transform(const Normal3D &n) {
+        if constexpr (kind == TransformKind::WorldToObject)
+            return asNormal3D(optixTransformVectorFromWorldToObjectSpace(asOptixType(n)));
+        else
+            return asNormal3D(optixTransformVectorFromObjectToWorldSpace(asOptixType(n)));
     }
 
 
@@ -227,7 +244,7 @@ namespace VLR {
         uint32_t materialIndex;
     };
 
-    typedef rtCallableProgramId<void(const GeometryInstanceDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
+    typedef optixu::DirectCallableProgramID<void(const GeometryInstanceDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
 
     class SurfaceLight {
         GeometryInstanceDescriptor::Body m_desc;
@@ -265,33 +282,59 @@ namespace VLR {
 
 
 
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
-    typedef rtCallableProgramId<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
+    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
+    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
 
-    typedef rtCallableProgramId<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
-    typedef rtCallableProgramId<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
-    typedef rtCallableProgramId<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> ProgSigBSDFSampleInternal;
-    typedef rtCallableProgramId<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluateInternal;
-    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluatePDFInternal;
-    typedef rtCallableProgramId<float(const uint32_t*, const BSDFQuery &)> ProgSigBSDFWeightInternal;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
+    typedef optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> ProgSigBSDFSampleInternal;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluateInternal;
+    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluatePDFInternal;
+    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)> ProgSigBSDFWeightInternal;
 
-    typedef rtCallableProgramId<SampledSpectrum(const uint32_t*)> ProgSigEDFEvaluateEmittanceInternal;
-    typedef rtCallableProgramId<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> ProgSigEDFEvaluateInternal;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigEDFEvaluateEmittanceInternal;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> ProgSigEDFEvaluateInternal;
 
 
 
-    rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );
-    rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
+    struct PipelineLaunchParameters {
+        // Context-scope Variables
 
-    // Context-scope Variables
-    rtBuffer<NodeProcedureSet, 1> pv_nodeProcedureSetBuffer;
-    rtBuffer<SmallNodeDescriptor, 1> pv_smallNodeDescriptorBuffer;
-    rtBuffer<MediumNodeDescriptor, 1> pv_mediumNodeDescriptorBuffer;
-    rtBuffer<LargeNodeDescriptor, 1> pv_largeNodeDescriptorBuffer;
-    rtBuffer<BSDFProcedureSet, 1> pv_bsdfProcedureSetBuffer;
-    rtBuffer<EDFProcedureSet, 1> pv_edfProcedureSetBuffer;
-    rtBuffer<SurfaceMaterialDescriptor, 1> pv_materialDescriptorBuffer;
-    rtBuffer<GeometryInstanceDescriptor, 1> pv_geometryInstanceDescriptorBuffer;
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+        UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
+        UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        float* UpsampledSpectrum_maxBrightnesses;
+        UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
+        UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
+#   endif
+        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_xbar;
+        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_ybar;
+        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_zbar;
+        float DiscretizedSpectrum_integralCMF;
+
+        NodeProcedureSet* nodeProcedureSetBuffer;
+        SmallNodeDescriptor* smallNodeDescriptorBuffer;
+        MediumNodeDescriptor* mediumNodeDescriptorBuffer;
+        LargeNodeDescriptor* largeNodeDescriptorBuffer;
+        BSDFProcedureSet* bsdfProcedureSetBuffer;
+        EDFProcedureSet* edfProcedureSetBuffer;
+        SurfaceMaterialDescriptor* materialDescriptorBuffer;
+        GeometryInstanceDescriptor* geometryInstanceDescriptorBuffer;
+
+        OptixTraversableHandle topGroup;
+
+        DiscreteDistribution1D lightImpDist;
+        GeometryInstanceDescriptor envLightDescriptor;
+
+        PerspectiveCamera perspectiveCamera;
+        EquirectangularCamera equirectangularCamera;
+    };
+
+    extern "C" __constant__ PipelineLaunchParameters plp;
+    
+    //rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );
+    //rtDeclareVariable(HitPointParameter, a_hitPointParam, attribute hitPointParam, );
 
 
     
@@ -299,24 +342,24 @@ namespace VLR {
     RT_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue,
                            const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
-            int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
+            int32_t programID = plp.nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
             bool conversionDefined = false;
             T ret = T();
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
-        ProgSigT program = (ProgSigT)programID; \
+        using ProgSigT = optixu::DirectCallableProgramID<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
+        ProgSigT program(programID); \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodePlugType)plug.plugType) {
+            switch (static_cast<ShaderNodePlugType>(plug.plugType)) {
                 VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
-                VLR_DEFINE_CASE(optix::float2, ShaderNodePlugType::float2);
-                VLR_DEFINE_CASE(optix::float3, ShaderNodePlugType::float3);
-                VLR_DEFINE_CASE(optix::float4, ShaderNodePlugType::float4);
+                VLR_DEFINE_CASE(float2, ShaderNodePlugType::float2);
+                VLR_DEFINE_CASE(float3, ShaderNodePlugType::float3);
+                VLR_DEFINE_CASE(float4, ShaderNodePlugType::float4);
                 VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::Point3D);
                 VLR_DEFINE_CASE(Vector3D, ShaderNodePlugType::Vector3D);
                 VLR_DEFINE_CASE(Normal3D, ShaderNodePlugType::Normal3D);
@@ -338,24 +381,24 @@ namespace VLR {
     RT_FUNCTION SampledSpectrum calcNode(ShaderNodePlug plug, const TripletSpectrum &defaultValue,
                                          const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         if (plug.isValid()) {
-            int32_t programID = pv_nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
+            int32_t programID = plp.nodeProcedureSetBuffer[plug.nodeType].progs[plug.plugType];
 
             bool conversionDefined = false;
             SampledSpectrum ret = SampledSpectrum::Zero();
 
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
-        using ProgSigT = rtCallableProgramId<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
-        ProgSigT program = (ProgSigT)programID; \
+        using ProgSigT = optixu::DirectCallableProgramID<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
+        ProgSigT program(programID); \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodePlugType)plug.plugType) {
+            switch (static_cast<ShaderNodePlugType>(plug.plugType)) {
                 VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
-                VLR_DEFINE_CASE(optix::float2, ShaderNodePlugType::float2);
-                VLR_DEFINE_CASE(optix::float3, ShaderNodePlugType::float3);
-                VLR_DEFINE_CASE(optix::float4, ShaderNodePlugType::float4);
+                VLR_DEFINE_CASE(float2, ShaderNodePlugType::float2);
+                VLR_DEFINE_CASE(float3, ShaderNodePlugType::float3);
+                VLR_DEFINE_CASE(float4, ShaderNodePlugType::float4);
                 VLR_DEFINE_CASE(Point3D, ShaderNodePlugType::Point3D);
                 VLR_DEFINE_CASE(Vector3D, ShaderNodePlugType::Vector3D);
                 VLR_DEFINE_CASE(Normal3D, ShaderNodePlugType::Normal3D);
@@ -375,3 +418,7 @@ namespace VLR {
         return defaultValue.evaluate(wls);
     }
 }
+
+#if defined(VLR_Device)
+#include "../shared/spectrum_types.cpp"
+#endif

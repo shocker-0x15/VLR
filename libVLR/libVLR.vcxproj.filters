@@ -18,6 +18,15 @@
     <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="common.cpp" />
     <ClCompile Include="queryable.cpp" />
+    <ClCompile Include="cuda_util.cpp">
+      <Filter>Base</Filter>
+    </ClCompile>
+    <ClCompile Include="optix_util.cpp">
+      <Filter>Base</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\src\gl3w\gl3w.c">
+      <Filter>ext\gl3w</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -72,6 +81,21 @@
     <ClInclude Include="image.h" />
     <ClInclude Include="slot_finder.h" />
     <ClInclude Include="queryable.h" />
+    <ClInclude Include="cuda_util.h">
+      <Filter>Base</Filter>
+    </ClInclude>
+    <ClInclude Include="optix_util.h">
+      <Filter>Base</Filter>
+    </ClInclude>
+    <ClInclude Include="optix_util_private.h">
+      <Filter>Base</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GL\gl3w.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GL\glcorearb.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
@@ -85,6 +109,12 @@
     </Filter>
     <Filter Include="Shared">
       <UniqueIdentifier>{626b6b12-ff56-4992-a1bc-68f887ae2bc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Base">
+      <UniqueIdentifier>{5b2dcc56-2f92-4025-99d4-8b69a574eb19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\gl3w">
+      <UniqueIdentifier>{dad7d9d3-8aeb-450f-956e-a3e089ae8ac1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

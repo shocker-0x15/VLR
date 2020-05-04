@@ -17,47 +17,68 @@ namespace VLR {
 
 
 
-    RT_FUNCTION constexpr Vector3D asVector3D(const optix::float3 &v) {
+    RT_FUNCTION constexpr float2 make_float2(float v) {
+        return float2{ v, v };
+    }
+    RT_FUNCTION constexpr float2 make_float2(float x, float y) {
+        return float2{ x, y };
+    }
+    RT_FUNCTION constexpr float3 make_float3(float v) {
+        return float3{ v, v, v };
+    }
+    RT_FUNCTION constexpr float3 make_float3(float x, float y, float z) {
+        return float3{ x, y, z };
+    }
+    RT_FUNCTION constexpr float4 make_float4(float v) {
+        return float4{ v, v, v, v };
+    }
+    RT_FUNCTION constexpr float4 make_float4(float x, float y, float z, float w) {
+        return float4{ x, y, z, w };
+    }
+
+
+
+    RT_FUNCTION constexpr Vector3D asVector3D(const float3 &v) {
         return Vector3D(v.x, v.y, v.z);
     }
-    RT_FUNCTION inline optix::float3 asOptiXType(const Vector3D &v) {
-        return optix::make_float3(v.x, v.y, v.z);
+    RT_FUNCTION inline float3 asOptiXType(const Vector3D &v) {
+        return make_float3(v.x, v.y, v.z);
     }
-    RT_FUNCTION constexpr Vector4D asVector4D(const optix::float4 &v) {
+    RT_FUNCTION constexpr Vector4D asVector4D(const float4 &v) {
         return Vector4D(v.x, v.y, v.z, v.w);
     }
-    RT_FUNCTION inline optix::float4 asOptiXType(const Vector4D &v) {
-        return optix::make_float4(v.x, v.y, v.z, v.w);
+    RT_FUNCTION inline float4 asOptiXType(const Vector4D &v) {
+        return make_float4(v.x, v.y, v.z, v.w);
     }
-    RT_FUNCTION constexpr Normal3D asNormal3D(const optix::float3 &v) {
+    RT_FUNCTION constexpr Normal3D asNormal3D(const float3 &v) {
         return Normal3D(v.x, v.y, v.z);
     }
-    RT_FUNCTION inline optix::float3 asOptiXType(const Normal3D &n) {
-        return optix::make_float3(n.x, n.y, n.z);
+    RT_FUNCTION inline float3 asOptiXType(const Normal3D &n) {
+        return make_float3(n.x, n.y, n.z);
     }
-    RT_FUNCTION constexpr Point3D asPoint3D(const optix::float3 &v) {
+    RT_FUNCTION constexpr Point3D asPoint3D(const float3 &v) {
         return Point3D(v.x, v.y, v.z);
     }
-    RT_FUNCTION inline optix::float3 asOptiXType(const Point3D &p) {
-        return optix::make_float3(p.x, p.y, p.z);
+    RT_FUNCTION inline float3 asOptiXType(const Point3D &p) {
+        return make_float3(p.x, p.y, p.z);
     }
-    RT_FUNCTION constexpr TexCoord2D asTexCoord2D(const optix::float2 &v) {
+    RT_FUNCTION constexpr TexCoord2D asTexCoord2D(const float2 &v) {
         return TexCoord2D(v.x, v.y);
     }
-    RT_FUNCTION inline optix::float2 asOptiXType(const TexCoord2D &p) {
-        return optix::make_float2(p.u, p.v);
+    RT_FUNCTION inline float2 asOptiXType(const TexCoord2D &p) {
+        return make_float2(p.u, p.v);
     }
-    RT_FUNCTION inline Matrix3x3 asMatrix3x3(const optix::Matrix3x3 &mat) {
-        optix::float3 col0 = mat.getCol(0);
-        optix::float3 col1 = mat.getCol(1);
-        optix::float3 col2 = mat.getCol(2);
-        return Matrix3x3(asVector3D(col0), asVector3D(col1), asVector3D(col2));
-    }
-    RT_FUNCTION inline optix::Matrix3x3 asOptiXType(const Matrix3x3 &mat) {
-        optix::Matrix3x3 ret;
-        ret.setCol(0, asOptiXType(mat.c0));
-        ret.setCol(1, asOptiXType(mat.c1));
-        ret.setCol(2, asOptiXType(mat.c2));
-        return ret;
-    }
+    //RT_FUNCTION inline Matrix3x3 asMatrix3x3(const optix::Matrix3x3 &mat) {
+    //    optix::float3 col0 = mat.getCol(0);
+    //    optix::float3 col1 = mat.getCol(1);
+    //    optix::float3 col2 = mat.getCol(2);
+    //    return Matrix3x3(asVector3D(col0), asVector3D(col1), asVector3D(col2));
+    //}
+    //RT_FUNCTION inline optix::Matrix3x3 asOptiXType(const Matrix3x3 &mat) {
+    //    optix::Matrix3x3 ret;
+    //    ret.setCol(0, asOptiXType(mat.c0));
+    //    ret.setCol(1, asOptiXType(mat.c1));
+    //    ret.setCol(2, asOptiXType(mat.c2));
+    //    return ret;
+    //}
 }
