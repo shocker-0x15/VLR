@@ -142,12 +142,12 @@ namespace optixu {
 
     public:
         RT_FUNCTION DirectCallableProgramID() {}
-        RT_FUNCTION DirectCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
+        RT_FUNCTION explicit DirectCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
         RT_FUNCTION operator uint32_t() const { return m_sbtIndex; }
 
 #if defined(__CUDA_ARCH__) || defined(__INTELLISENSE__)
         RT_FUNCTION ReturnType operator()(const ArgTypes &... args) const {
-            return optixDirectCall<ReturnType>(m_sbtIndex, args...);
+            return optixDirectCall<ReturnType, ArgTypes...>(m_sbtIndex, args...);
         }
 #endif
     };
@@ -161,12 +161,12 @@ namespace optixu {
 
     public:
         RT_FUNCTION ContinuationCallableProgramID() {}
-        RT_FUNCTION ContinuationCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
+        RT_FUNCTION explicit ContinuationCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
         RT_FUNCTION operator uint32_t() const { return m_sbtIndex; }
 
 #if defined(__CUDA_ARCH__) || defined(__INTELLISENSE__)
         RT_FUNCTION ReturnType operator()(const ArgTypes &... args) const {
-            return optixContinuationCall<ReturnType>(m_sbtIndex, args...);
+            return optixContinuationCall<ReturnType, ArgTypes...>(m_sbtIndex, args...);
         }
 #endif
     };
@@ -217,21 +217,14 @@ namespace optixu {
             return 0;
     }
 
-    template <uint32_t start, typename PayloadType>
-    RT_FUNCTION void _traceSetPayloads(uint32_t** p, PayloadType &payload) {
-        constexpr uint32_t numDwords = sizeof(PayloadType) / 4;
-#pragma unroll
-        for (int i = 0; i < numDwords; ++i)
-            p[start + i] = reinterpret_cast<uint32_t*>(&payload) + i;
-    }
-
     template <uint32_t start, typename HeadType, typename... TailTypes>
     RT_FUNCTION void _traceSetPayloads(uint32_t** p, HeadType &headPayload, TailTypes &... tailPayloads) {
         constexpr uint32_t numDwords = sizeof(HeadType) / 4;
 #pragma unroll
         for (int i = 0; i < numDwords; ++i)
             p[start + i] = reinterpret_cast<uint32_t*>(&headPayload) + i;
-        _traceSetPayloads<start + numDwords>(p, tailPayloads...);
+        if constexpr (sizeof...(tailPayloads) > 0)
+            _traceSetPayloads<start + numDwords>(p, tailPayloads...);
     }
 
 #define OPTIXU_TRACE_PARAMETERS \
@@ -277,12 +270,13 @@ namespace optixu {
     //     が、optixTraceに仕様をあわせることと、テンプレート引数の整合性チェックを簡単にするためただの参照で受け取る。
     // EN: 
     template <typename... PayloadTypes>
-    RT_FUNCTION void trace(OPTIXU_TRACE_PARAMETERS,
-                           PayloadTypes &... payloads) {
+    RT_FUNCTION void trace(OPTIXU_TRACE_PARAMETERS, PayloadTypes &... payloads) {
         constexpr size_t numDwords = _calcSumDwords<PayloadTypes...>();
         static_assert(numDwords <= 8, "Maximum number of payloads is 8 dwords.");
         _trace<numDwords>(OPTIXU_TRACE_ARGUMENTS, payloads...);
     }
+
+
 
     template <uint32_t index>
     RT_FUNCTION uint32_t _optixGetPayload() {
@@ -376,6 +370,101 @@ namespace optixu {
         if constexpr (numDwords > 0)
             _setPayloads<0>(payloads...);
     }
+
+
+
+    template <uint32_t start, typename HeadType, typename... TailTypes>
+    RT_FUNCTION void _setAttributes(uint32_t* a, const HeadType &headAttribute, const TailTypes &... tailAttributes) {
+        constexpr uint32_t numDwords = sizeof(HeadType) / 4;
+#pragma unroll
+        for (int i = 0; i < numDwords; ++i)
+            a[start + i] = *(reinterpret_cast<const uint32_t*>(&headAttribute) + i);
+        if constexpr (sizeof...(tailAttributes) > 0)
+            _setAttributes<start + numDwords>(a, tailAttributes...);
+    }
+    
+    template <uint32_t numDwords, typename... AttributeTypes>
+    RT_FUNCTION void _reportIntersection(float hitT, uint32_t hitKind, const AttributeTypes &... attributes) {
+        uint32_t a[numDwords];
+        if constexpr (numDwords > 0)
+            _setAttributes<0>(a, attributes...);
+
+        if constexpr (numDwords == 0)
+            optixReportIntersection(hitT, hitKind);
+        if constexpr (numDwords == 1)
+            optixReportIntersection(hitT, hitKind, a[0]);
+        if constexpr (numDwords == 2)
+            optixReportIntersection(hitT, hitKind, a[0], a[1]);
+        if constexpr (numDwords == 3)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2]);
+        if constexpr (numDwords == 4)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3]);
+        if constexpr (numDwords == 5)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4]);
+        if constexpr (numDwords == 6)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5]);
+        if constexpr (numDwords == 7)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+        if constexpr (numDwords == 8)
+            optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+    }
+    
+    template <typename... AttributeTypes>
+    RT_FUNCTION void reportIntersection(float hitT, uint32_t hitKind,
+                                        const AttributeTypes &... attributes) {
+        constexpr size_t numDwords = _calcSumDwords<AttributeTypes...>();
+        static_assert(numDwords <= 8, "Maximum number of attributes is 8 dwords.");
+        _reportIntersection<numDwords>(hitT, hitKind, attributes...);
+    }
+
+
+
+    template <uint32_t index>
+    RT_FUNCTION uint32_t _optixGetAttribute() {
+        if constexpr (index == 0)
+            return optixGetAttribute_0();
+        if constexpr (index == 1)
+            return optixGetAttribute_1();
+        if constexpr (index == 2)
+            return optixGetAttribute_2();
+        if constexpr (index == 3)
+            return optixGetAttribute_3();
+        if constexpr (index == 4)
+            return optixGetAttribute_4();
+        if constexpr (index == 5)
+            return optixGetAttribute_5();
+        if constexpr (index == 6)
+            return optixGetAttribute_6();
+        if constexpr (index == 7)
+            return optixGetAttribute_7();
+        return 0;
+    }
+
+    template <typename AttributeType, uint32_t offset, uint32_t start>
+    RT_FUNCTION void _getAttribute(AttributeType* attribute) {
+        if (!attribute)
+            return;
+        constexpr uint32_t numDwords = sizeof(AttributeType) / 4;
+        *(reinterpret_cast<uint32_t*>(attribute) + offset) = _optixGetAttribute<start>();
+        if constexpr (offset + 1 < numDwords)
+            _getAttribute<AttributeType, offset + 1, start + 1>(attribute);
+    }
+
+    template <uint32_t start, typename HeadType, typename... TailTypes>
+    RT_FUNCTION void _getAttributes(HeadType* headAttribute, TailTypes*... tailAttributes) {
+        _getAttribute<HeadType, 0, start>(headAttribute);
+        if constexpr (sizeof...(tailAttributes) > 0)
+            _getAttributes<start + sizeof(HeadType) / 4>(tailAttributes...);
+    }
+
+    template <typename... AttributeTypes>
+    RT_FUNCTION void getAttributes(AttributeTypes*... attributes) {
+        constexpr size_t numDwords = _calcSumDwords<AttributeTypes...>();
+        static_assert(numDwords <= 8, "Maximum number of attributes is 8 dwords.");
+        static_assert(numDwords > 0, "Calling this function without attributes has no effect.");
+        if constexpr (numDwords > 0)
+            _getAttributes<0>(attributes...);
+    }
 #endif
 
 
@@ -398,6 +487,8 @@ namespace optixu {
                              +-- Instance
                              |
                              +-- GAS
+                             |
+                             +-- CustomPrimitiveGAS
                              |
                              +-- GeomInst
 
@@ -458,8 +549,8 @@ private: \
     public:
         void destroy();
 
-        GeometryInstance createGeometryInstance() const;
-        GeometryAccelerationStructure createGeometryAccelerationStructure() const;
+        GeometryInstance createGeometryInstance(bool forCustomPrimitives = false) const;
+        GeometryAccelerationStructure createGeometryAccelerationStructure(bool forCustomPrimitives = false) const;
         Instance createInstance() const;
         InstanceAccelerationStructure createInstanceAccelerationStructure() const;
 
@@ -476,6 +567,7 @@ private: \
 
         void setVertexBuffer(Buffer* vertexBuffer) const;
         void setTriangleBuffer(Buffer* triangleBuffer) const;
+        void setCustomPrimitiveAABBBuffer(TypedBuffer<OptixAabb>* primitiveAABBBuffer) const;
         void setNumMaterials(uint32_t numMaterials, TypedBuffer<uint32_t>* matIdxOffsetBuffer) const;
 
         void setUserData(uint32_t data) const;

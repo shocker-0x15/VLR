@@ -141,10 +141,8 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="cuda_util.cpp" />
     <ClCompile Include="ext\src\gl3w\gl3w.c" />
     <ClCompile Include="image.cpp" />
-    <ClCompile Include="optix_util.cpp" />
     <ClCompile Include="queryable.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
     <ClCompile Include="shared\spectrum_types.cpp" />
@@ -153,11 +151,12 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="shader_nodes.cpp" />
+    <ClCompile Include="util\cuda_util.cpp" />
+    <ClCompile Include="util\optix_util.cpp" />
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="context.h" />
-    <ClInclude Include="cuda_util.h" />
     <ClInclude Include="ext\include\GL\gl3w.h" />
     <ClInclude Include="ext\include\GL\glcorearb.h" />
     <ClInclude Include="ext\include\half.hpp" />
@@ -171,8 +170,6 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="include\VLR\VLRCpp.h" />
     <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
-    <ClInclude Include="optix_util.h" />
-    <ClInclude Include="optix_util_private.h" />
     <ClInclude Include="queryable.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared\basic_types_internal.h" />
@@ -183,6 +180,9 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="shared\spectrum_types.h" />
     <ClInclude Include="slot_finder.h" />
     <ClInclude Include="shader_nodes.h" />
+    <ClInclude Include="util\cuda_util.h" />
+    <ClInclude Include="util\optix_util.h" />
+    <ClInclude Include="util\optix_util_private.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">

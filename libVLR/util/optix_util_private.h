@@ -317,21 +317,43 @@ namespace optixu {
         uint32_t userData;
 
         // TODO: support deformation blur (multiple vertex buffers)
-        CUdeviceptr vertexBufferArray[1];
-        Buffer* vertexBuffer;
-        Buffer* triangleBuffer;
+        union {
+            struct {
+                CUdeviceptr vertexBufferArray[1];
+                Buffer* vertexBuffer;
+                Buffer* triangleBuffer;
+            };
+            struct {
+                CUdeviceptr primitiveAabbBufferArray[1];
+                TypedBuffer<OptixAabb>* primitiveAABBBuffer;
+            };
+        };
         TypedBuffer<uint32_t>* materialIndexOffsetBuffer;
         std::vector<uint32_t> buildInputFlags; // per SBT record
 
         std::vector<std::vector<const _Material*>> materialSets;
 
+        struct {
+            const unsigned int forCustomPrimitives : 1;
+        };
+
     public:
         OPTIX_OPAQUE_BRIDGE(GeometryInstance);
 
-        Priv(_Scene* _scene) :
+        Priv(_Scene* _scene, bool _forCustomPrimitives) :
             scene(_scene),
             userData(0),
-            vertexBuffer(nullptr), triangleBuffer(nullptr), materialIndexOffsetBuffer(nullptr) {
+            materialIndexOffsetBuffer(nullptr),
+            forCustomPrimitives(_forCustomPrimitives) {
+            if (forCustomPrimitives) {
+                primitiveAabbBufferArray[0] = 0;
+                primitiveAABBBuffer = nullptr;
+            }
+            else {
+                vertexBufferArray[0] = 0;
+                vertexBuffer = nullptr;
+                triangleBuffer = nullptr;
+            }
         }
         ~Priv() {}
 
@@ -344,6 +366,9 @@ namespace optixu {
 
 
 
+        bool isCustomPrimitiveInstance() const {
+            return forCustomPrimitives;
+        }
         void fillBuildInput(OptixBuildInput* input) const;
         void updateBuildInput(OptixBuildInput* input) const;
 
@@ -374,6 +399,7 @@ namespace optixu {
         const Buffer* accelBuffer;
         const Buffer* compactedAccelBuffer;
         struct {
+            unsigned int forCustomPrimitives : 1;
             unsigned int preferFastTrace : 1;
             unsigned int allowUpdate : 1;
             unsigned int allowCompaction : 1;
@@ -386,7 +412,8 @@ namespace optixu {
     public:
         OPTIX_OPAQUE_BRIDGE(GeometryAccelerationStructure);
 
-        Priv(_Scene* _scene) : scene(_scene) {
+        Priv(_Scene* _scene, bool _forCustomPrimitives) :
+            scene(_scene), forCustomPrimitives(_forCustomPrimitives) {
             scene->addGAS(this);
 
             compactedSizeOnDevice.initialize(scene->getCUDAContext(), s_BufferType, 1);

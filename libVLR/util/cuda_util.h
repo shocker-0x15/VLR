@@ -30,6 +30,9 @@
 #include <cudaGL.h>
 #include <vector_types.h>
 
+#undef min
+#undef max
+
 #ifdef _DEBUG
 #   define CUDAU_ENABLE_ASSERT
 #endif

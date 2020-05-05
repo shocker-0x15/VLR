@@ -109,12 +109,12 @@ namespace optixu {
         m = nullptr;
     }
     
-    GeometryInstance Scene::createGeometryInstance() const {
-        return (new _GeometryInstance(m))->getPublicType();
+    GeometryInstance Scene::createGeometryInstance(bool forCustomPrimitives) const {
+        return (new _GeometryInstance(m, forCustomPrimitives))->getPublicType();
     }
 
-    GeometryAccelerationStructure Scene::createGeometryAccelerationStructure() const {
-        return (new _GeometryAccelerationStructure(m))->getPublicType();
+    GeometryAccelerationStructure Scene::createGeometryAccelerationStructure(bool forCustomPrimitives) const {
+        return (new _GeometryAccelerationStructure(m, forCustomPrimitives))->getPublicType();
     }
 
     Instance Scene::createInstance() const {
@@ -153,48 +153,85 @@ namespace optixu {
     void GeometryInstance::Priv::fillBuildInput(OptixBuildInput* input) const {
         *input = OptixBuildInput{};
 
-        input->type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-        OptixBuildInputTriangleArray &triArray = input->triangleArray;
+        if (forCustomPrimitives) {
+            input->type = OPTIX_BUILD_INPUT_TYPE_CUSTOM_PRIMITIVES;
+            OptixBuildInputCustomPrimitiveArray &aabbArray = input->aabbArray;
 
-        triArray.vertexBuffers = vertexBufferArray;
-        triArray.numVertices = vertexBuffer->numElements();
-        triArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-        triArray.vertexStrideInBytes = vertexBuffer->stride();
+            aabbArray.aabbBuffers = primitiveAabbBufferArray;
+            aabbArray.numPrimitives = primitiveAABBBuffer->numElements();
+            aabbArray.primitiveIndexOffset = 0;
 
-        triArray.indexBuffer = triangleBuffer->getCUdeviceptr();
-        triArray.numIndexTriplets = triangleBuffer->numElements();
-        triArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-        triArray.indexStrideInBytes = triangleBuffer->stride();
-        triArray.primitiveIndexOffset = 0;
+            aabbArray.numSbtRecords = buildInputFlags.size();
+            if (aabbArray.numSbtRecords > 1) {
+                optixAssert_NotImplemented();
+                aabbArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
+                aabbArray.sbtIndexOffsetSizeInBytes = 4;
+                aabbArray.sbtIndexOffsetStrideInBytes = materialIndexOffsetBuffer->stride();
+            }
+            else {
+                aabbArray.sbtIndexOffsetBuffer = 0; // No per-primitive record
+                aabbArray.sbtIndexOffsetSizeInBytes = 0; // No effect
+                aabbArray.sbtIndexOffsetStrideInBytes = 0; // No effect
+            }
 
-        triArray.numSbtRecords = buildInputFlags.size();
-        if (triArray.numSbtRecords > 1) {
-            optixAssert_NotImplemented();
-            triArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
-            triArray.sbtIndexOffsetSizeInBytes = 4;
-            triArray.sbtIndexOffsetStrideInBytes = materialIndexOffsetBuffer->stride();
+            aabbArray.flags = buildInputFlags.data();
         }
         else {
-            triArray.sbtIndexOffsetBuffer = 0; // No per-primitive record
-            triArray.sbtIndexOffsetSizeInBytes = 0; // No effect
-            triArray.sbtIndexOffsetStrideInBytes = 0; // No effect
+            input->type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+            OptixBuildInputTriangleArray &triArray = input->triangleArray;
+
+            triArray.vertexBuffers = vertexBufferArray;
+            triArray.numVertices = vertexBuffer->numElements();
+            triArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+            triArray.vertexStrideInBytes = vertexBuffer->stride();
+
+            triArray.indexBuffer = triangleBuffer->getCUdeviceptr();
+            triArray.numIndexTriplets = triangleBuffer->numElements();
+            triArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+            triArray.indexStrideInBytes = triangleBuffer->stride();
+            triArray.primitiveIndexOffset = 0;
+
+            triArray.numSbtRecords = buildInputFlags.size();
+            if (triArray.numSbtRecords > 1) {
+                optixAssert_NotImplemented();
+                triArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
+                triArray.sbtIndexOffsetSizeInBytes = 4;
+                triArray.sbtIndexOffsetStrideInBytes = materialIndexOffsetBuffer->stride();
+            }
+            else {
+                triArray.sbtIndexOffsetBuffer = 0; // No per-primitive record
+                triArray.sbtIndexOffsetSizeInBytes = 0; // No effect
+                triArray.sbtIndexOffsetStrideInBytes = 0; // No effect
+            }
+
+            triArray.preTransform = 0;
+
+            triArray.flags = buildInputFlags.data();
         }
-
-        triArray.preTransform = 0;
-
-        triArray.flags = buildInputFlags.data();
     }
 
     void GeometryInstance::Priv::updateBuildInput(OptixBuildInput* input) const {
-        OptixBuildInputTriangleArray &triArray = input->triangleArray;
+        if (forCustomPrimitives) {
+            OptixBuildInputCustomPrimitiveArray &aabbArray = input->aabbArray;
 
-        triArray.vertexBuffers = vertexBufferArray;
+            aabbArray.aabbBuffers = primitiveAabbBufferArray;
 
-        triArray.indexBuffer = triangleBuffer->getCUdeviceptr();
+            if (aabbArray.numSbtRecords > 1) {
+                optixAssert_NotImplemented();
+                aabbArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
+            }
+        }
+        else {
+            OptixBuildInputTriangleArray &triArray = input->triangleArray;
 
-        if (triArray.numSbtRecords > 1) {
-            optixAssert_NotImplemented();
-            triArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
+            triArray.vertexBuffers = vertexBufferArray;
+
+            triArray.indexBuffer = triangleBuffer->getCUdeviceptr();
+
+            if (triArray.numSbtRecords > 1) {
+                optixAssert_NotImplemented();
+                triArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer->getCUdeviceptr();
+            }
         }
     }
 
@@ -229,12 +266,20 @@ namespace optixu {
     }
 
     void GeometryInstance::setVertexBuffer(Buffer* vertexBuffer) const {
+        THROW_RUNTIME_ERROR(!m->forCustomPrimitives, "This geometry instance was created for custom primitives.");
         m->vertexBuffer = vertexBuffer;
         m->vertexBufferArray[0] = vertexBuffer->getCUdeviceptr();
     }
 
     void GeometryInstance::setTriangleBuffer(Buffer* triangleBuffer) const {
+        THROW_RUNTIME_ERROR(!m->forCustomPrimitives, "This geometry instance was created for custom primitives.");
         m->triangleBuffer = triangleBuffer;
+    }
+
+    void GeometryInstance::setCustomPrimitiveAABBBuffer(TypedBuffer<OptixAabb>* primitiveAABBBuffer) const {
+        THROW_RUNTIME_ERROR(m->forCustomPrimitives, "This geometry instance was created for triangles.");
+        m->primitiveAABBBuffer = primitiveAABBBuffer;
+        m->primitiveAabbBufferArray[0] = primitiveAABBBuffer->getCUdeviceptr();
     }
 
     void GeometryInstance::setNumMaterials(uint32_t numMaterials, TypedBuffer<uint32_t>* matIdxOffsetBuffer) const {
@@ -344,6 +389,8 @@ namespace optixu {
         auto _geomInst = extract(geomInst);
         THROW_RUNTIME_ERROR(_geomInst, "Invalid geometry instance %p.", _geomInst);
         THROW_RUNTIME_ERROR(_geomInst->getScene() == m->scene, "Scene mismatch for the given geometry instance.");
+        THROW_RUNTIME_ERROR(_geomInst->isCustomPrimitiveInstance() == m->forCustomPrimitives,
+                            "This GAS was created for %s.", m->forCustomPrimitives ? "custom primitives" : "triangles");
         THROW_RUNTIME_ERROR(m->children.count(_geomInst) == 0, "Geometry instance %p has been already added.", _geomInst);
 
         m->children.insert(_geomInst);
@@ -373,7 +420,7 @@ namespace optixu {
         m->buildOptions.buildFlags = ((m->preferFastTrace ? OPTIX_BUILD_FLAG_PREFER_FAST_TRACE : OPTIX_BUILD_FLAG_PREFER_FAST_BUILD) |
                                       (m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
                                       (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0));
-        //buildOptions.motionOptions
+        //m->buildOptions.motionOptions
 
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
                                                  m->buildInputs.data(), m->buildInputs.size(),
@@ -607,7 +654,7 @@ namespace optixu {
         m->buildOptions.buildFlags = ((m->preferFastTrace ? OPTIX_BUILD_FLAG_PREFER_FAST_TRACE : OPTIX_BUILD_FLAG_PREFER_FAST_BUILD) |
                                       (m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
                                       (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0));
-        //buildOptions.motionOptions
+        //m->buildOptions.motionOptions
 
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
                                                  &m->buildInput, 1,

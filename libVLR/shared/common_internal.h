@@ -9,7 +9,7 @@
 #   define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
 
-#include "../optix_util.h"
+#include "../util/optix_util.h"
 
 #include "common.h"
 
