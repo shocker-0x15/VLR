@@ -390,6 +390,7 @@ namespace optixu {
         OptixAccelBuildOptions buildOptions;
         OptixAccelBufferSizes memoryRequirement;
 
+        CUevent finishEvent;
         TypedBuffer<size_t> compactedSizeOnDevice;
         size_t compactedSize;
         OptixAccelEmitDesc propertyCompactedSize;
@@ -416,6 +417,8 @@ namespace optixu {
             scene(_scene), forCustomPrimitives(_forCustomPrimitives) {
             scene->addGAS(this);
 
+            CUDADRV_CHECK(cuEventCreate(&finishEvent,
+                                        CU_EVENT_BLOCKING_SYNC | CU_EVENT_DISABLE_TIMING));
             compactedSizeOnDevice.initialize(scene->getCUDAContext(), s_BufferType, 1);
 
             propertyCompactedSize = OptixAccelEmitDesc{};
@@ -433,6 +436,7 @@ namespace optixu {
         }
         ~Priv() {
             compactedSizeOnDevice.finalize();
+            cuEventDestroy(finishEvent);
 
             scene->removeGAS(this);
         }
@@ -532,6 +536,7 @@ namespace optixu {
         OptixAccelBuildOptions buildOptions;
         OptixAccelBufferSizes memoryRequirement;
 
+        CUevent finishEvent;
         TypedBuffer<size_t> compactedSizeOnDevice;
         size_t compactedSize;
         OptixAccelEmitDesc propertyCompactedSize;
@@ -557,6 +562,8 @@ namespace optixu {
         Priv(_Scene* _scene) : scene(_scene) {
             scene->addIAS(this);
 
+            CUDADRV_CHECK(cuEventCreate(&finishEvent,
+                                        CU_EVENT_BLOCKING_SYNC | CU_EVENT_DISABLE_TIMING));
             compactedSizeOnDevice.initialize(scene->getCUDAContext(), s_BufferType, 1);
 
             std::memset(&propertyCompactedSize, 0, sizeof(propertyCompactedSize));
@@ -574,6 +581,7 @@ namespace optixu {
         }
         ~Priv() {
             compactedSizeOnDevice.finalize();
+            cuEventDestroy(finishEvent);
 
             scene->removeIAS(this);
         }

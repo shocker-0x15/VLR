@@ -85,6 +85,9 @@ AS/SBT Layoutのdirty状態はUtil側で検知できるdirty状態をカーネ�
 
 
 namespace optixu {
+#if !defined(__CUDA_ARCH__)
+    using namespace cudau;
+#endif
 
 #ifdef _DEBUG
 #   define OPTIX_ENABLE_ASSERT
@@ -174,14 +177,14 @@ namespace optixu {
 
 
     template <typename T>
-    class WritableBuffer2D {
+    class NativeBlockBuffer2D {
         CUsurfObject m_surfObject;
 
     public:
-        WritableBuffer2D() : m_surfObject(0) {}
-        WritableBuffer2D(CUsurfObject surfObject) : m_surfObject(surfObject) {};
+        NativeBlockBuffer2D() : m_surfObject(0) {}
+        NativeBlockBuffer2D(CUsurfObject surfObject) : m_surfObject(surfObject) {};
 
-        WritableBuffer2D &operator=(CUsurfObject surfObject) {
+        NativeBlockBuffer2D &operator=(CUsurfObject surfObject) {
             m_surfObject = surfObject;
             return *this;
         }
@@ -197,7 +200,171 @@ namespace optixu {
     };
 
 
+    
+    template <typename T, uint32_t log2BlockWidth>
+    class BlockBuffer2D {
+        T* m_rawBuffer;
+        uint32_t m_width;
+        uint32_t m_height;
+        uint32_t m_numXBlocks;
 
+        RT_FUNCTION constexpr uint32_t calcLinearIndex(uint2 idx) {
+            constexpr uint32_t blockWidth = 1 << log2BlockWidth;
+            constexpr uint32_t mask = blockWidth - 1;
+            uint32_t blockIdxX = idx.x >> log2BlockWidth;
+            uint32_t blockIdxY = idx.y >> log2BlockWidth;
+            uint32_t blockOffset = (blockIdxY * m_numXBlocks + blockIdxX) * (blockWidth * blockWidth);
+            uint32_t idxXInBlock = idx.x & mask;
+            uint32_t idxYInBlock = idx.y & mask;
+            uint32_t linearIndexInBlock = idxYInBlock * blockWidth + idxXInBlock;
+            return blockOffset + linearIndexInBlock;
+        }
+
+    public:
+        RT_FUNCTION BlockBuffer2D() {}
+        RT_FUNCTION BlockBuffer2D(T* rawBuffer, uint32_t width, uint32_t height) :
+        m_rawBuffer(rawBuffer), m_width(width), m_height(height) {
+            constexpr uint32_t blockWidth = 1 << log2BlockWidth;
+            constexpr uint32_t mask = blockWidth - 1;
+            m_numXBlocks = ((width + mask) & ~mask) >> log2BlockWidth;
+        }
+
+        RT_FUNCTION const T &operator[](uint2 idx) const {
+            return m_rawBuffer[calcLinearIndex(idx)];
+        }
+        RT_FUNCTION T &operator[](uint2 idx) {
+            return m_rawBuffer[calcLinearIndex(idx)];
+        }
+    };
+    
+    
+    
+#if !defined(__CUDA_ARCH__)
+    template <typename T, uint32_t log2BlockWidth>
+    class HostBlockBuffer2D {
+        TypedBuffer<T> m_rawBuffer;
+        uint32_t m_width;
+        uint32_t m_height;
+        uint32_t m_numXBlocks;
+        T* m_mappedPointer;
+
+        constexpr uint32_t calcLinearIndex(uint2 idx) {
+            constexpr uint32_t blockWidth = 1 << log2BlockWidth;
+            constexpr uint32_t mask = blockWidth - 1;
+            uint32_t blockIdxX = idx.x >> log2BlockWidth;
+            uint32_t blockIdxY = idx.y >> log2BlockWidth;
+            uint32_t blockOffset = (blockIdxY * m_numXBlocks + blockIdxX) * (blockWidth * blockWidth);
+            uint32_t idxXInBlock = idx.x & mask;
+            uint32_t idxYInBlock = idx.y & mask;
+            uint32_t linearIndexInBlock = idxYInBlock * blockWidth + idxXInBlock;
+            return blockOffset + linearIndexInBlock;
+        }
+
+    public:
+        HostBlockBuffer2D() : m_mappedPointer(nullptr) {}
+        HostBlockBuffer2D(HostBlockBuffer2D &&b) {
+            m_width = b.m_width;
+            m_height = b.m_height;
+            m_numXBlocks = b.m_numXBlocks;
+            m_mappedPointer = b.m_mappedPointer;
+            m_rawBuffer = std::move(b);
+        }
+        HostBlockBuffer2D &operator=(HostBlockBuffer2D &&b) {
+            m_rawBuffer.finalize();
+
+            m_width = b.m_width;
+            m_height = b.m_height;
+            m_numXBlocks = b.m_numXBlocks;
+            m_mappedPointer = b.m_mappedPointer;
+            m_rawBuffer = std::move(b.m_rawBuffer);
+
+            return *this;
+        }
+
+        void initialize(CUcontext context, BufferType type, uint32_t width, uint32_t height) {
+            m_width = width;
+            m_height = height;
+            constexpr uint32_t blockWidth = 1 << log2BlockWidth;
+            constexpr uint32_t mask = blockWidth - 1;
+            m_numXBlocks = ((width + mask) & ~mask) >> log2BlockWidth;
+            uint32_t numYBlocks = ((height + mask) & ~mask) >> log2BlockWidth;
+            uint32_t numElements = numYBlocks * m_numXBlocks * blockWidth * blockWidth;
+            m_rawBuffer.initialize(context, type, numElements);
+        }
+        void finalize() {
+            m_rawBuffer.finalize();
+        }
+
+        void resize(uint32_t width, uint32_t height) {
+            if (!m_rawBuffer.isInitialized())
+                throw std::runtime_error("Buffer is not initialized.");
+
+            if (m_width == width && m_height == height)
+                return;
+
+            HostBlockBuffer2D newBuffer;
+            newBuffer.initialize(m_rawBuffer.getCUcontext(), m_rawBuffer.getBufferType(), width, height);
+
+            constexpr uint32_t blockWidth = 1 << log2BlockWidth;
+            constexpr uint32_t mask = blockWidth - 1;
+            uint32_t numSrcYBlocks = ((m_height + mask) & ~mask) >> log2BlockWidth;
+            uint32_t numDstYBlocks = ((height + mask) & ~mask) >> log2BlockWidth;
+            uint32_t numXBlocksToCopy = std::min(m_numXBlocks, newBuffer.m_numXBlocks);
+            uint32_t numYBlocksToCopy = std::min(numSrcYBlocks, numDstYBlocks);
+            if (numXBlocksToCopy == m_numXBlocks) {
+                size_t numBytesToCopy = (numXBlocksToCopy * numYBlocksToCopy * blockWidth * blockWidth) * sizeof(T);
+                CUDADRV_CHECK(cuMemcpyDtoD(newBuffer.m_rawBuffer.getCUdeviceptr(),
+                                           m_rawBuffer.getCUdeviceptr(),
+                                           numBytesToCopy));
+            }
+            else {
+                for (int yb = 0; yb < numYBlocksToCopy; ++yb) {
+                    size_t srcOffset = (m_numXBlocks * blockWidth * blockWidth * yb) * sizeof(T);
+                    size_t dstOffset = (newBuffer.m_numXBlocks * blockWidth * blockWidth * yb) * sizeof(T);
+                    size_t numBytesToCopy = (numXBlocksToCopy * blockWidth * blockWidth) * sizeof(T);
+                    CUDADRV_CHECK(cuMemcpyDtoD(newBuffer.m_rawBuffer.getCUdeviceptr() + dstOffset,
+                                               m_rawBuffer.getCUdeviceptr() + srcOffset,
+                                               numBytesToCopy));
+                }
+            }
+
+            *this = std::move(newBuffer);
+        }
+
+        CUcontext getCUcontext() const {
+            return m_rawBuffer.getCUcontext();
+        }
+        BufferType getBufferType() const {
+            return m_rawBuffer.getBufferType();
+        }
+
+        CUdeviceptr getCUdeviceptr() const {
+            return m_rawBuffer.getCUdeviceptr();
+        }
+
+        void map() {
+            m_mappedPointer = reinterpret_cast<T*>(m_rawBuffer.map());
+        }
+        void unmap() {
+            m_rawBuffer.unmap();
+            m_mappedPointer = nullptr;
+        }
+        const T &operator[](uint2 idx) const {
+            return m_mappedPointer[calcLinearIndex(idx)];
+        }
+        T &operator[](uint2 idx) {
+            return m_mappedPointer[calcLinearIndex(idx)];
+        }
+
+        BlockBuffer2D<T, log2BlockWidth> getBlockBuffer2D() const {
+            return BlockBuffer2D<T, log2BlockWidth>(m_rawBuffer.getDevicePointer(), m_width, m_height);
+        }
+    };
+#endif
+
+
+
+    // Device-side function wrappers
 #if defined(__CUDA_ARCH__) || defined(__INTELLISENSE__)
     template <typename T>
     RT_FUNCTION constexpr size_t __calcSumDwords() {
@@ -216,6 +383,8 @@ namespace optixu {
         else
             return 0;
     }
+
+
 
     template <uint32_t start, typename HeadType, typename... TailTypes>
     RT_FUNCTION void _traceSetPayloads(uint32_t** p, HeadType &headPayload, TailTypes &... tailPayloads) {
@@ -324,6 +493,8 @@ namespace optixu {
         if constexpr (numDwords > 0)
             _getPayloads<0>(payloads...);
     }
+
+
 
     template <uint32_t index>
     RT_FUNCTION void _optixSetPayload(uint32_t p) {
@@ -470,8 +641,6 @@ namespace optixu {
 
 
 #if !defined(__CUDA_ARCH__)
-    using namespace cudau;
-
     /*
 
     Context --+-- Pipeline --+-- Module
@@ -487,8 +656,6 @@ namespace optixu {
                              +-- Instance
                              |
                              +-- GAS
-                             |
-                             +-- CustomPrimitiveGAS
                              |
                              +-- GeomInst
 
@@ -593,9 +760,9 @@ private: \
 
         void prepareForBuild(OptixAccelBufferSizes* memoryRequirement) const;
         OptixTraversableHandle rebuild(CUstream stream, const Buffer &accelBuffer, const Buffer &scratchBuffer) const;
-        void prepareForCompact(CUstream rebuildOrUpdateStream, size_t* compactedAccelBufferSize) const;
+        void prepareForCompact(size_t* compactedAccelBufferSize) const;
         OptixTraversableHandle compact(CUstream stream, const Buffer &compactedAccelBuffer) const;
-        void removeUncompacted(CUstream compactionStream) const;
+        void removeUncompacted() const;
         OptixTraversableHandle update(CUstream stream, const Buffer &scratchBuffer) const;
 
         bool isReady() const;
@@ -637,9 +804,9 @@ private: \
         // EN: 
         OptixTraversableHandle rebuild(CUstream stream, const TypedBuffer<OptixInstance> &instanceBuffer,
                                        const Buffer &accelBuffer, const Buffer &scratchBuffer) const;
-        void prepareForCompact(CUstream rebuildOrUpdateStream, size_t* compactedAccelBufferSize) const;
+        void prepareForCompact(size_t* compactedAccelBufferSize) const;
         OptixTraversableHandle compact(CUstream stream, const Buffer &compactedAccelBuffer) const;
-        void removeUncompacted(CUstream compactionStream) const;
+        void removeUncompacted() const;
         OptixTraversableHandle update(CUstream stream, const Buffer &scratchBuffer) const;
 
         bool isReady() const;

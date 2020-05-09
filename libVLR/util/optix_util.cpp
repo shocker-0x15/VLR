@@ -456,6 +456,7 @@ namespace optixu {
                                     &m->handle,
                                     compactionEnabled ? &m->propertyCompactedSize : nullptr,
                                     compactionEnabled ? 1 : 0));
+        CUDADRV_CHECK(cuEventRecord(m->finishEvent, stream));
 
         m->accelBuffer = &accelBuffer;
         m->available = true;
@@ -466,7 +467,7 @@ namespace optixu {
         return m->handle;
     }
 
-    void GeometryAccelerationStructure::prepareForCompact(CUstream rebuildOrUpdateStream, size_t* compactedAccelBufferSize) const {
+    void GeometryAccelerationStructure::prepareForCompact(size_t* compactedAccelBufferSize) const {
         bool compactionEnabled = (m->buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
         THROW_RUNTIME_ERROR(compactionEnabled, "This AS does not allow compaction.");
         THROW_RUNTIME_ERROR(m->available, "Uncompacted AS has not been built yet.");
@@ -476,7 +477,7 @@ namespace optixu {
 
         // JP: リビルド・アップデートの完了を待ってコンパクション後のサイズ情報を取得。
         // EN: Wait the completion of rebuild/update then obtain the size after coompaction.
-        CUDADRV_CHECK(cuStreamSynchronize(rebuildOrUpdateStream));
+        CUDADRV_CHECK(cuEventSynchronize(m->finishEvent));
         CUDADRV_CHECK(cuMemcpyDtoH(&m->compactedSize, m->propertyCompactedSize.result, sizeof(m->compactedSize)));
 
         *compactedAccelBufferSize = m->compactedSize;
@@ -495,6 +496,7 @@ namespace optixu {
         OPTIX_CHECK(optixAccelCompact(m->getRawContext(), stream,
                                       m->handle, compactedAccelBuffer.getCUdeviceptr(), compactedAccelBuffer.sizeInBytes(),
                                       &m->compactedHandle));
+        CUDADRV_CHECK(cuEventRecord(m->finishEvent, stream));
 
         m->compactedAccelBuffer = &compactedAccelBuffer;
         m->compactedAvailable = true;
@@ -502,13 +504,13 @@ namespace optixu {
         return m->compactedHandle;
     }
 
-    void GeometryAccelerationStructure::removeUncompacted(CUstream compactionStream) const {
+    void GeometryAccelerationStructure::removeUncompacted() const {
         bool compactionEnabled = (m->buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
 
         if (!m->compactedAvailable || !compactionEnabled)
             return;
 
-        CUDADRV_CHECK(cuStreamSynchronize(compactionStream));
+        CUDADRV_CHECK(cuEventSynchronize(m->finishEvent));
 
         m->handle = 0;
         m->available = false;
@@ -699,6 +701,7 @@ namespace optixu {
                                     &m->handle,
                                     compactionEnabled ? &m->propertyCompactedSize : nullptr,
                                     compactionEnabled ? 1 : 0));
+        CUDADRV_CHECK(cuEventRecord(m->finishEvent, stream));
 
         m->instanceBuffer = &instanceBuffer;
         m->accelBuffer = &accelBuffer;
@@ -710,7 +713,7 @@ namespace optixu {
         return m->handle;
     }
 
-    void InstanceAccelerationStructure::prepareForCompact(CUstream rebuildOrUpdateStream, size_t* compactedAccelBufferSize) const {
+    void InstanceAccelerationStructure::prepareForCompact(size_t* compactedAccelBufferSize) const {
         bool compactionEnabled = (m->buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
         THROW_RUNTIME_ERROR(compactionEnabled, "This AS does not allow compaction.");
         THROW_RUNTIME_ERROR(m->available, "Uncompacted AS has not been built yet.");
@@ -720,7 +723,7 @@ namespace optixu {
 
         // JP: リビルド・アップデートの完了を待ってコンパクション後のサイズ情報を取得。
         // EN: Wait the completion of rebuild/update then obtain the size after coompaction.
-        CUDADRV_CHECK(cuStreamSynchronize(rebuildOrUpdateStream));
+        CUDADRV_CHECK(cuEventSynchronize(m->finishEvent));
         CUDADRV_CHECK(cuMemcpyDtoH(&m->compactedSize, m->propertyCompactedSize.result, sizeof(m->compactedSize)));
 
         *compactedAccelBufferSize = m->compactedSize;
@@ -739,6 +742,7 @@ namespace optixu {
         OPTIX_CHECK(optixAccelCompact(m->getRawContext(), stream,
                                       m->handle, compactedAccelBuffer.getCUdeviceptr(), compactedAccelBuffer.sizeInBytes(),
                                       &m->compactedHandle));
+        CUDADRV_CHECK(cuEventRecord(m->finishEvent, stream));
 
         m->compactedAccelBuffer = &compactedAccelBuffer;
         m->compactedAvailable = true;
@@ -746,13 +750,13 @@ namespace optixu {
         return m->compactedHandle;
     }
 
-    void InstanceAccelerationStructure::removeUncompacted(CUstream compactionStream) const {
+    void InstanceAccelerationStructure::removeUncompacted() const {
         bool compactionEnabled = (m->buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
 
         if (!m->compactedAvailable || !compactionEnabled)
             return;
 
-        CUDADRV_CHECK(cuStreamSynchronize(compactionStream));
+        CUDADRV_CHECK(cuEventSynchronize(m->finishEvent));
 
         m->handle = 0;
         m->available = false;

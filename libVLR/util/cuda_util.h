@@ -232,6 +232,13 @@ namespace cudau {
 
         void resize(uint32_t numElements, uint32_t stride);
 
+        CUcontext getCUcontext() const {
+            return m_cudaContext;
+        }
+        BufferType getBufferType() const {
+            return m_type;
+        }
+
         CUdeviceptr getCUdeviceptr() const {
             return m_devicePointer;
         }
