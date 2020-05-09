@@ -146,7 +146,7 @@ namespace optixu {
     public:
         RT_FUNCTION DirectCallableProgramID() {}
         RT_FUNCTION explicit DirectCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
-        RT_FUNCTION operator uint32_t() const { return m_sbtIndex; }
+        RT_FUNCTION explicit operator uint32_t() const { return m_sbtIndex; }
 
 #if defined(__CUDA_ARCH__) || defined(__INTELLISENSE__)
         RT_FUNCTION ReturnType operator()(const ArgTypes &... args) const {
@@ -165,7 +165,7 @@ namespace optixu {
     public:
         RT_FUNCTION ContinuationCallableProgramID() {}
         RT_FUNCTION explicit ContinuationCallableProgramID(uint32_t sbtIndex) : m_sbtIndex(sbtIndex) {}
-        RT_FUNCTION operator uint32_t() const { return m_sbtIndex; }
+        RT_FUNCTION explicit operator uint32_t() const { return m_sbtIndex; }
 
 #if defined(__CUDA_ARCH__) || defined(__INTELLISENSE__)
         RT_FUNCTION ReturnType operator()(const ArgTypes &... args) const {
@@ -248,7 +248,7 @@ namespace optixu {
         uint32_t m_numXBlocks;
         T* m_mappedPointer;
 
-        constexpr uint32_t calcLinearIndex(uint2 idx) {
+        constexpr uint32_t calcLinearIndex(uint2 idx) const {
             constexpr uint32_t blockWidth = 1 << log2BlockWidth;
             constexpr uint32_t mask = blockWidth - 1;
             uint32_t blockIdxX = idx.x >> log2BlockWidth;
