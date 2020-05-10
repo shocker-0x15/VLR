@@ -7,16 +7,9 @@ namespace VLR {
         SampledSpectrum value;
     };
 
-    rtDeclareVariable(DebugRenderingPayload, sm_debugPayload, rtPayload, );
-    rtDeclareVariable(DebugRenderingAttribute, pv_debugRenderingAttribute, , );
+#define DebugRenderingPayloadSignature DebugRenderingPayload*
 
-    // Context-scope Variables
-    rtDeclareVariable(optix::uint2, pv_imageSize, , );
-    rtDeclareVariable(uint32_t, pv_numAccumFrames, , );
-    rtDeclareVariable(ProgSigSampleLensPosition, pv_progSampleLensPosition, , );
-    rtDeclareVariable(ProgSigSampleIDF, pv_progSampleIDF, , );
-    rtBuffer<KernelRNG, 2> pv_rngBuffer;
-    rtBuffer<SpectrumStorage, 2> pv_outputBuffer;
+    //rtDeclareVariable(DebugRenderingPayload, sm_debugPayload, rtPayload, );
 
 
 
@@ -89,27 +82,39 @@ namespace VLR {
 
     // Common Any Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingAnyHitWithAlpha() {
-        HitPointParameter hitPointParam = a_hitPointParam;
+        HitPointParameter hitPointParam = HitPointParameter::get();
+        auto sbtr = optixu::getHitGroupSBTRecordData();
+        const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
+
+        DebugRenderingPayload* payload;
+        optixu::getPayloads<DebugRenderingPayloadSignature>(&payload);
+
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        geomInst.progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
-        float alpha = calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_debugPayload.wls);
+        float alpha = calcNode(geomInst.nodeAlpha, 1.0f, surfPt, payload->wls);
 
         // Stochastic Alpha Test
-        if (sm_debugPayload.rng.getFloat0cTo1o() >= alpha)
-            rtIgnoreIntersection();
+        if (payload->rng.getFloat0cTo1o() >= alpha)
+            optixIgnoreIntersection();
     }
 
 
 
     // Common Closest Hit Program for All Primitive Types and Materials
     RT_PROGRAM void debugRenderingClosestHit() {
-        WavelengthSamples &wls = sm_payload.wls;
+        auto sbtr = optixu::getHitGroupSBTRecordData();
+        const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
+
+        DebugRenderingPayload* payload;
+        optixu::getPayloads<DebugRenderingPayloadSignature>(&payload);
+
+        WavelengthSamples &wls = payload->wls;
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(&surfPt, &hypAreaPDF);
+        calcSurfacePoint(geomInst, wls, &surfPt, &hypAreaPDF);
 
         //if (!surfPt.shadingFrame.x.allFinite() || !surfPt.shadingFrame.y.allFinite() || !surfPt.shadingFrame.z.allFinite())
         //    vlrprintf("(%g, %g, %g), (%g, %g, %g), (%g, %g, %g)\n",
@@ -117,17 +122,17 @@ namespace VLR {
         //              surfPt.shadingFrame.y.x, surfPt.shadingFrame.y.y, surfPt.shadingFrame.y.z,
         //              surfPt.shadingFrame.z.x, surfPt.shadingFrame.z.y, surfPt.shadingFrame.z.z);
 
-        if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
-            const SurfaceMaterialDescriptor matDesc = pv_materialDescriptorBuffer[pv_materialIndex];
+        if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
+            const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[geomInst.materialIndex];
             BSDF bsdf(matDesc, surfPt, wls);
 
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
             auto progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
 
-            sm_debugPayload.value = progGetBaseColor((const uint32_t*)&bsdf);
+            payload->value = progGetBaseColor((const uint32_t*)&bsdf);
         }
         else {
-            sm_debugPayload.value = debugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+            payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
         }
     }
 
@@ -137,9 +142,12 @@ namespace VLR {
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
     RT_PROGRAM void debugRenderingMiss() {
-        WavelengthSamples &wls = sm_payload.wls;
+        DebugRenderingPayload* payload;
+        optixu::getPayloads<DebugRenderingPayloadSignature>(&payload);
 
-        Vector3D direction = asVector3D(sm_ray.direction);
+        WavelengthSamples &wls = payload->wls;
+
+        Vector3D direction = asVector3D(optixGetWorldRayDirection());
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
@@ -148,7 +156,7 @@ namespace VLR {
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
-        shadingFrame.z = -direction;
+        shadingFrame.z = -static_cast<Normal3D>(direction);
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 
         SurfacePoint surfPt;
@@ -157,18 +165,18 @@ namespace VLR {
         surfPt.isPoint = false;
         surfPt.atInfinity = true;
 
-        surfPt.geometricNormal = -direction;
+        surfPt.geometricNormal = shadingFrame.z;
         surfPt.u = phi;
         surfPt.v = theta;
-        phi += pv_envLightDescriptor.body.asInfSphere.rotationPhi;
-        phi = phi - std::floor(phi / (2 * M_PIf)) * 2 * M_PIf;
-        surfPt.texCoord = TexCoord2D(phi / (2 * M_PIf), theta / M_PIf);
+        phi += plp.envLightDescriptor.body.asInfSphere.rotationPhi;
+        phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
-        if (pv_debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
-            sm_debugPayload.value = SampledSpectrum::Zero();
+        if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
+            payload->value = SampledSpectrum::Zero();
         }
         else {
-            sm_debugPayload.value = debugRenderingAttributeToSpectrum(surfPt, pv_debugRenderingAttribute).evaluate(wls);
+            payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
         }
     }
 
@@ -176,48 +184,55 @@ namespace VLR {
 
     // Common Ray Generation Program for All Camera Types
     RT_PROGRAM void debugRenderingRayGeneration() {
-        KernelRNG rng = pv_rngBuffer[sm_launchIndex];
+        uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
 
-        optix::float2 p = make_float2(sm_launchIndex.x + rng.getFloat0cTo1o(), sm_launchIndex.y + rng.getFloat0cTo1o());
+        KernelRNG rng = plp.rngBuffer[launchIndex];
+
+        float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
+                               launchIndex.y + rng.getFloat0cTo1o());
 
         float selectWLPDF;
         WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
 
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;
-        SampledSpectrum We0 = pv_progSampleLensPosition(wls, We0Sample, &We0Result);
+        SampledSpectrum We0 = plp.progSampleLensPosition(wls, We0Sample, &We0Result);
 
-        IDFSample We1Sample(p.x / pv_imageSize.x, p.y / pv_imageSize.y);
+        IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
-        SampledSpectrum We1 = pv_progSampleIDF(We0Result.surfPt, wls, We1Sample, &We1Result);
+        SampledSpectrum We1 = plp.progSampleIDF(We0Result.surfPt, wls, We1Sample, &We1Result);
 
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
         SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
 
-        optix::Ray ray = optix::make_Ray(asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), RayType::DebugPrimary, 0.0f, FLT_MAX);
-
         DebugRenderingPayload payload;
         payload.rng = rng;
         payload.wls = wls;
-        rtTrace(pv_topGroup, ray, payload);
+        DebugRenderingPayload* payloadPtr = &payload;
+        optixu::trace<DebugRenderingPayloadSignature>(
+            plp.topGroup,
+            asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir),
+            0.0f, FLT_MAX, 0.0f, 0xFF, OPTIX_RAY_FLAG_NONE,
+            RayType::DebugPrimary, RayType::NumTypes, RayType::DebugPrimary,
+            payloadPtr);
 
-        pv_rngBuffer[sm_launchIndex] = payload.rng;
+        plp.rngBuffer[launchIndex] = payload.rng;
 
         if (!payload.value.allFinite()) {
-            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", pv_numAccumFrames, sm_launchIndex.x, sm_launchIndex.y);
+            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
             return;
         }
 
-        if (pv_numAccumFrames == 1)
-            pv_outputBuffer[sm_launchIndex].reset();
-        pv_outputBuffer[sm_launchIndex].add(wls, payload.value / selectWLPDF);
+        if (plp.numAccumFrames == 1)
+            plp.outputBuffer[launchIndex].reset();
+        plp.outputBuffer[launchIndex].add(wls, payload.value / selectWLPDF);
     }
 
 
 
-    // Exception Program
-    RT_PROGRAM void debugRenderingException() {
-        //uint32_t code = rtGetExceptionCode();
-        rtPrintExceptionDetails();
-    }
+    //// Exception Program
+    //RT_PROGRAM void debugRenderingException() {
+    //    //uint32_t code = rtGetExceptionCode();
+    //    rtPrintExceptionDetails();
+    //}
 }

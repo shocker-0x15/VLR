@@ -16,7 +16,7 @@ namespace VLR {
         Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
 
         ReferenceFrame shadingFrame;
-        shadingFrame.z = (Vector3D)geometricNormal;
+        shadingFrame.z = geometricNormal;
         shadingFrame.x = normalize(rotMat * Vector3D(1, 0, 0));
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 
@@ -70,7 +70,7 @@ namespace VLR {
         VLRAssert(geometricNormal.length() < 1.01f, "Transform applied to camera can not include scaling.");
 
         ReferenceFrame shadingFrame;
-        shadingFrame.z = (Vector3D)geometricNormal;
+        shadingFrame.z = geometricNormal;
         shadingFrame.x = normalize(rotMat * Vector3D(1, 0, 0));
         shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
 

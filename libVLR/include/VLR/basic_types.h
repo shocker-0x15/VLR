@@ -225,22 +225,20 @@ namespace VLR {
 #endif
         RT_FUNCTION constexpr Normal3DTemplate(RealType v) : x(v), y(v), z(v) { }
         RT_FUNCTION constexpr Normal3DTemplate(RealType xx, RealType yy, RealType zz) : x(xx), y(yy), z(zz) { }
-        RT_FUNCTION constexpr Normal3DTemplate(const Vector3DTemplate<RealType> &v) : x(v.x), y(v.y), z(v.z) { }
+        RT_FUNCTION constexpr explicit Normal3DTemplate(const Vector3DTemplate<RealType> &v) : x(v.x), y(v.y), z(v.z) { }
 
-        RT_FUNCTION operator Vector3DTemplate<RealType>() const {
+        RT_FUNCTION explicit operator Vector3DTemplate<RealType>() const {
             return Vector3DTemplate<RealType>(x, y, z);
         }
 
         RT_FUNCTION Normal3DTemplate operator+() const { return *this; }
         RT_FUNCTION Normal3DTemplate operator-() const { return Normal3DTemplate(-x, -y, -z); }
 
-        RT_FUNCTION Vector3DTemplate<RealType> operator+(const Vector3DTemplate<RealType> &v) const { return Vector3DTemplate<RealType>(x + v.x, y + v.y, z + v.z); }
-        RT_FUNCTION Vector3DTemplate<RealType> operator-(const Vector3DTemplate<RealType> &v) const { return Vector3DTemplate<RealType>(x - v.x, y - v.y, z - v.z); }
-        RT_FUNCTION Vector3DTemplate<RealType> operator+(const Normal3DTemplate &n) const { return Vector3DTemplate<RealType>(x + n.x, y + n.y, z + n.z); }
-        RT_FUNCTION Vector3DTemplate<RealType> operator-(const Normal3DTemplate &n) const { return Vector3DTemplate<RealType>(x - n.x, y - n.y, z - n.z); }
-        RT_FUNCTION Vector3DTemplate<RealType> operator*(RealType s) const { return Vector3DTemplate<RealType>(x * s, y * s, z * s); }
-        RT_FUNCTION Vector3DTemplate<RealType> operator/(RealType s) const { RealType r = 1 / s; return Vector3DTemplate<RealType>(x * r, y * r, z * r); }
-        RT_FUNCTION friend inline Vector3DTemplate<RealType> operator*(RealType s, const Normal3DTemplate &n) { return Vector3DTemplate<RealType>(s * n.x, s * n.y, s * n.z); }
+        RT_FUNCTION Normal3DTemplate operator+(const Normal3DTemplate &n) const { return Normal3DTemplate(x + n.x, y + n.y, z + n.z); }
+        RT_FUNCTION Normal3DTemplate operator-(const Normal3DTemplate &n) const { return Normal3DTemplate(x - n.x, y - n.y, z - n.z); }
+        RT_FUNCTION Normal3DTemplate operator*(RealType s) const { return Vector3DTemplateNormal3DTemplate(x * s, y * s, z * s); }
+        RT_FUNCTION Normal3DTemplate operator/(RealType s) const { RealType r = 1 / s; return Normal3DTemplate(x * r, y * r, z * r); }
+        RT_FUNCTION friend inline Normal3DTemplate operator*(RealType s, const Normal3DTemplate &n) { return Normal3DTemplate(s * n.x, s * n.y, s * n.z); }
 
         RT_FUNCTION Normal3DTemplate &operator/=(RealType s) { RealType r = 1 / s; x *= r; y *= r; z *= r; return *this; }
 
@@ -391,9 +389,9 @@ namespace VLR {
 #endif
         RT_FUNCTION constexpr Point3DTemplate(RealType v) : x(v), y(v), z(v) { }
         RT_FUNCTION constexpr Point3DTemplate(RealType xx, RealType yy, RealType zz) : x(xx), y(yy), z(zz) { }
-        RT_FUNCTION constexpr Point3DTemplate(const Vector3DTemplate<RealType> &v) : x(v.x), y(v.y), z(v.z) { }
+        RT_FUNCTION constexpr explicit Point3DTemplate(const Vector3DTemplate<RealType> &v) : x(v.x), y(v.y), z(v.z) { }
 
-        RT_FUNCTION operator Vector3DTemplate<RealType>() const {
+        RT_FUNCTION explicit operator Vector3DTemplate<RealType>() const {
             return Vector3DTemplate<RealType>(x, y, z);
         }
 
@@ -402,6 +400,8 @@ namespace VLR {
 
         RT_FUNCTION Point3DTemplate operator+(const Vector3DTemplate<RealType> &v) const { return Point3DTemplate(x + v.x, y + v.y, z + v.z); }
         RT_FUNCTION Point3DTemplate operator-(const Vector3DTemplate<RealType> &v) const { return Point3DTemplate(x - v.x, y - v.y, z - v.z); }
+        RT_FUNCTION Point3DTemplate operator+(const Normal3DTemplate<RealType> &n) const { return Point3DTemplate(x + n.x, y + n.y, z + n.z); }
+        RT_FUNCTION Point3DTemplate operator-(const Normal3DTemplate<RealType> &n) const { return Point3DTemplate(x - n.x, y - n.y, z - n.z); }
         RT_FUNCTION Point3DTemplate<RealType> operator+(const Point3DTemplate &p) const { return Point3DTemplate<RealType>(x + p.x, y + p.y, z + p.z); }
         RT_FUNCTION Vector3DTemplate<RealType> operator-(const Point3DTemplate &p) const { return Vector3DTemplate<RealType>(x - p.x, y - p.y, z - p.z); }
         RT_FUNCTION Point3DTemplate operator*(RealType s) const { return Point3DTemplate(x * s, y * s, z * s); }
@@ -675,6 +675,9 @@ namespace VLR {
         }
         RT_FUNCTION Vector3DTemplate<RealType> operator*(const Vector3DTemplate<RealType> &v) const {
             return Vector3DTemplate<RealType>(dot(row(0), v), dot(row(1), v), dot(row(2), v));
+        }
+        RT_FUNCTION Normal3DTemplate<RealType> operator*(const Normal3DTemplate<RealType> &n) const {
+            return Normal3DTemplate<RealType>(dot(row(0), n), dot(row(1), n), dot(row(2), n));
         }
         RT_FUNCTION Point3DTemplate<RealType> operator*(const Point3DTemplate<RealType> &p) const {
             Vector3DTemplate<RealType> ph{ p.x, p.y, p.z };

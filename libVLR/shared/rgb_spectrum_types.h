@@ -230,6 +230,9 @@ namespace VLR {
             return *this;
         }
 
+        RT_FUNCTION const CompensatedSum<ValueType> &getValue() const {
+            return value;
+        }
         RT_FUNCTION CompensatedSum<ValueType> &getValue() {
             return value;
         }

@@ -3,14 +3,6 @@
 #include "kernel_common.cuh"
 
 namespace VLR {
-    // Context-scope Variables
-    rtDeclareVariable(rtObject, pv_topGroup, , );
-
-    rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
-    rtDeclareVariable(GeometryInstanceDescriptor, pv_envLightDescriptor, , );
-
-
-
     class BSDF {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
@@ -39,7 +31,7 @@ namespace VLR {
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matDesc.progSetupBSDF;
             setupBSDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
             //progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
             progMatches = (ProgSigBSDFmatches)procSet.progMatches;
@@ -107,7 +99,7 @@ namespace VLR {
             ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matDesc.progSetupEDF;
             setupEDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
+            const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
             progEvaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
             progEvaluateInternal = (ProgSigEDFEvaluateInternal)procSet.progEvaluateInternal;
@@ -128,6 +120,7 @@ namespace VLR {
 
     struct Payload {
         struct {
+            unsigned int rayType : 3;
             bool terminate : 1;
             bool maxLengthTerminate : 1;
         };
@@ -142,32 +135,14 @@ namespace VLR {
         DirectionType prevSampledType;
     };
 
+#define PayloadSignature Payload*
+
     struct ShadowPayload {
         WavelengthSamples wls;
         float fractionalVisibility;
     };
 
-
-
-    rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
-    rtDeclareVariable(Payload, sm_payload, rtPayload, );
-    rtDeclareVariable(ShadowPayload, sm_shadowPayload, rtPayload, );
-
-    typedef rtCallableProgramX<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
-    typedef rtCallableProgramX<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
-
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
-    typedef rtCallableProgramX<float(const TexCoord2D &)> ProgSigFetchAlpha;
-    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
-
-    // per GeometryInstance
-    rtDeclareVariable(uint32_t, pv_geomInstIndex, , );
-    rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeNormal, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeTangent, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeAlpha, , );
-    rtDeclareVariable(uint32_t, pv_materialIndex, , );
-    rtDeclareVariable(float, pv_importance, , );
+#define ShadowRayPayloadSignature ShadowPayload
 
 
 
@@ -206,7 +181,7 @@ namespace VLR {
     // ----------------------------------------------------------------
     // Light
 
-    RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint,
+    RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, const WavelengthSamples &wls,
                                     Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
         VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
 
@@ -216,14 +191,19 @@ namespace VLR {
         bool isFrontSide = dot(geomNormal, *shadowRayDir) > 0;
         Point3D shadingPoint = offsetRayOrigin(shadingSurfacePoint.position, isFrontSide ? geomNormal : -geomNormal);
 
-        optix::Ray shadowRay = optix::make_Ray(asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), RayType::Shadow, 0.0f, FLT_MAX);
+        float tMax = FLT_MAX;
         if (!lightSurfacePoint.atInfinity)
-            shadowRay.tmax = std::sqrt(*squaredDistance) * 0.9999f;
+            tMax = std::sqrt(*squaredDistance) * 0.9999f;
 
         ShadowPayload shadowPayload;
-        shadowPayload.wls = sm_payload.wls;
+        shadowPayload.wls = wls;
         shadowPayload.fractionalVisibility = 1.0f;
-        rtTrace(pv_topGroup, shadowRay, shadowPayload);
+        optixu::trace<ShadowRayPayloadSignature>(
+            plp.topGroup,
+            asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), 0.0f, tMax, 0.0f,
+            0xFF, OPTIX_RAY_FLAG_NONE,
+            RayType::Shadow, RayType::NumTypes, RayType::Shadow,
+            shadowPayload);
 
         *fractionalVisibility = shadowPayload.fractionalVisibility;
 
@@ -231,28 +211,28 @@ namespace VLR {
     }
 
     RT_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        float sumImps = pv_envLightDescriptor.importance + pv_lightImpDist.integral();
+        float sumImps = plp.envLightDescriptor.importance + plp.lightImpDist.integral();
         float su = sumImps * lightSample;
-        if (su < pv_envLightDescriptor.importance) {
-            *light = SurfaceLight(pv_envLightDescriptor);
-            *lightProb = pv_envLightDescriptor.importance / sumImps;
+        if (su < plp.envLightDescriptor.importance) {
+            *light = SurfaceLight(plp.envLightDescriptor);
+            *lightProb = plp.envLightDescriptor.importance / sumImps;
         }
         else {
-            lightSample = (su - pv_envLightDescriptor.importance) / pv_lightImpDist.integral();
-            uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
-            *light = SurfaceLight(pv_geometryInstanceDescriptorBuffer[lightIdx]);
-            *lightProb *= pv_lightImpDist.integral() / sumImps;
+            lightSample = (su - plp.envLightDescriptor.importance) / plp.lightImpDist.integral();
+            uint32_t lightIdx = plp.lightImpDist.sample(lightSample, lightProb, remapped);
+            *light = SurfaceLight(plp.geometryInstanceDescriptorBuffer[lightIdx]);
+            *lightProb *= plp.lightImpDist.integral() / sumImps;
         }
     }
 
     RT_FUNCTION float getSumLightImportances() {
-        return pv_envLightDescriptor.importance + pv_lightImpDist.integral();
+        return plp.envLightDescriptor.importance + plp.lightImpDist.integral();
     }
 
     RT_FUNCTION float evaluateEnvironmentAreaPDF(float phi, float theta) {
         VLRAssert(std::isfinite(phi) && std::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
-        float uvPDF = pv_envLightDescriptor.body.asInfSphere.importanceMap.evaluatePDF(phi / (2 * M_PIf), theta / M_PIf);
-        return uvPDF / (2 * M_PIf * M_PIf * std::sin(theta));
+        float uvPDF = plp.envLightDescriptor.body.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
+        return uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
     }
 
     // END: Light
@@ -261,37 +241,54 @@ namespace VLR {
 
 
     RT_PROGRAM void shadowAnyHitDefault() {
-        sm_shadowPayload.fractionalVisibility = 0.0f;
-        rtTerminateRay();
-    }
-
-    RT_FUNCTION float getAlpha() {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        SurfacePoint surfPt;
-        float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
-
-        return calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_payload.wls);
+        // TODO: change shadow ray payload.
+        ShadowPayload shadowPayload;
+        optixu::getPayloads<ShadowRayPayloadSignature>(&shadowPayload);
+        shadowPayload.fractionalVisibility = 0.0f;
+        optixu::setPayloads<ShadowRayPayloadSignature>(&shadowPayload);
+        optixTerminateRay();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     RT_PROGRAM void anyHitWithAlpha() {
-        float alpha = getAlpha();
+        HitPointParameter hitPointParam = HitPointParameter::get();
+        auto sbtr = optixu::getHitGroupSBTRecordData();
+        const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
+
+        Payload* payload;
+        optixu::getPayloads<PayloadSignature>(&payload);
+
+        SurfacePoint surfPt;
+        float hypAreaPDF;
+        geomInst.progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+
+        float alpha = calcNode(geomInst.nodeAlpha, 1.0f, surfPt, payload->wls);
 
         // Stochastic Alpha Test
-        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
-            rtIgnoreIntersection();
+        if (payload->rng.getFloat0cTo1o() >= alpha)
+            optixIgnoreIntersection();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     RT_PROGRAM void shadowAnyHitWithAlpha() {
-        float alpha = getAlpha();
+        HitPointParameter hitPointParam = HitPointParameter::get();
+        auto sbtr = optixu::getHitGroupSBTRecordData();
+        const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
 
-        sm_shadowPayload.fractionalVisibility *= (1 - alpha);
-        if (sm_shadowPayload.fractionalVisibility == 0.0f)
-            rtTerminateRay();
+        ShadowPayload shadowPayload;
+        optixu::getPayloads<ShadowRayPayloadSignature>(&shadowPayload);
+
+        SurfacePoint surfPt;
+        float hypAreaPDF;
+        geomInst.progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+
+        float alpha = calcNode(geomInst.nodeAlpha, 1.0f, surfPt, shadowPayload.wls);
+
+        shadowPayload.fractionalVisibility *= (1 - alpha);
+        if (shadowPayload.fractionalVisibility == 0.0f)
+            optixTerminateRay();
         else
-            rtIgnoreIntersection();
+            optixIgnoreIntersection();
     }
 
 
@@ -314,7 +311,9 @@ namespace VLR {
         Vector3D modTangentInTF = Vector3D(1 - 2 * qY * qY, 2 * qX * qY, -2 * qY * qW);
         Vector3D modBitangentInTF = Vector3D(2 * qX * qY, 1 - 2 * qX * qX, 2 * qX * qW);
 
-        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
+        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x,
+                                       surfPt->shadingFrame.y,
+                                       static_cast<Vector3D>(surfPt->shadingFrame.z));
         ReferenceFrame bumpShadingFrame(matTFtoW * modTangentInTF,
                                         matTFtoW * modBitangentInTF,
                                         matTFtoW * modNormalInTF);
@@ -331,7 +330,7 @@ namespace VLR {
             return;
 
         float dotNT = dot(surfPt->shadingFrame.z, modTangent);
-        Vector3D projModTangent = modTangent - dotNT * surfPt->shadingFrame.z;
+        Vector3D projModTangent = modTangent - dotNT * static_cast<Vector3D>(surfPt->shadingFrame.z);
 
         float lx = dot(surfPt->shadingFrame.x, projModTangent);
         float ly = dot(surfPt->shadingFrame.y, projModTangent);
@@ -343,7 +342,9 @@ namespace VLR {
         Vector3D modTangentInTF = Vector3D(c, s, 0);
         Vector3D modBitangentInTF = Vector3D(-s, c, 0);
 
-        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x, surfPt->shadingFrame.y, surfPt->shadingFrame.z);
+        Matrix3x3 matTFtoW = Matrix3x3(surfPt->shadingFrame.x,
+                                       surfPt->shadingFrame.y,
+                                       static_cast<Vector3D>(surfPt->shadingFrame.z));
         ReferenceFrame newShadingFrame(normalize(matTFtoW * modTangentInTF),
                                        normalize(matTFtoW * modBitangentInTF),
                                        surfPt->shadingFrame.z);
@@ -353,15 +354,17 @@ namespace VLR {
 
 
 
-    RT_FUNCTION void calcSurfacePoint(SurfacePoint* surfPt, float* hypAreaPDF) {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
-        surfPt->geometryInstanceIndex = pv_geomInstIndex;
+    RT_FUNCTION void calcSurfacePoint(const GeometryInstanceData &geomInst, const WavelengthSamples &wls,
+                                      SurfacePoint* surfPt, float* hypAreaPDF) {
+        HitPointParameter hitPointParam = HitPointParameter::get();
 
-        Normal3D localNormal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, sm_payload.wls);
+        geomInst.progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+        surfPt->geometryInstanceIndex = geomInst.geomInstIndex;
+
+        Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
         applyBumpMapping(localNormal, surfPt);
 
-        Vector3D newTangent = calcNode(pv_nodeTangent, surfPt->shadingFrame.x, *surfPt, sm_payload.wls);
+        Vector3D newTangent = calcNode(geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
         modifyTangent(newTangent, surfPt);
     }
 }

@@ -15,20 +15,20 @@ namespace VLR {
         uint16_t raw;
 
         operator float() const {
-            uint32_t bits = (uint32_t)(raw & 0x8000) << 16;
+            uint32_t bits = static_cast<uint32_t>(raw & 0x8000) << 16;
             uint32_t abs = raw & 0x7FFF;
             if (abs) {
                 // JP: halfの指数部が   無限大 or NaN       を表す(11111)       場合: floatビット: (* 11100000 00000000000000000000000)
                 //                    正規化数 or 非正規化数を表す(00000-11110) 場合:              (* 01110000 00000000000000000000000)
-                bits |= 0x38000000 << (uint32_t)(abs >= 0x7C00);
+                bits |= 0x38000000 << static_cast<uint32_t>(abs >= 0x7C00);
                 // JP: halfの指数部が非正規化数を表す(00000) 場合: 0x0001-0x03FF (* 00000 **********)
                 //     正規化数になるまでhalfをビットシフト、floatの指数部を1ずつ減算。
                 for (; abs < 0x400; abs <<= 1, bits -= 0x800000);
                 // JP: halfの指数部が 無限大 or NaN を表す場合 0x7C00-0x7FFF (0       11111 **********): (0          00011111 **********0000000000000) を加算 => floatの指数ビットは0xFFになる。
                 //                    正規化数      を表す場合 0x0400-0x7BFF (0 00001-11110 **********): (0 00000001-00011110 **********0000000000000) を加算 => floatの指数ビットは0x71-0x8Eになる。
-                bits += (uint32_t)(abs) << 13;
+                bits += static_cast<uint32_t>(abs) << 13;
             }
-            return *(float*)&bits;
+            return *reinterpret_cast<float*>(&bits);
         }
     };
 #endif
@@ -363,9 +363,14 @@ namespace VLR {
             uint32_t data[Size];
 
             template <typename T>
-            RT_FUNCTION T* getData() const {
+            RT_FUNCTION const T* getData() const {
                 VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
-                return (T*)data;
+                return reinterpret_cast<const T*>(data);
+            }
+            template <typename T>
+            RT_FUNCTION T* getData() {
+                VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return reinterpret_cast<T*>(data);
             }
 
             RT_FUNCTION static constexpr uint32_t NumDWSlots() { return Size; }
@@ -493,7 +498,7 @@ namespace VLR {
             template <typename T>
             T* getData() const {
                 static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
-                return (T*)data;
+                return reinterpret_cast<T*>(data);
             }
         };
 
@@ -577,6 +582,9 @@ namespace VLR {
             } value;
 
             RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
+            RT_FUNCTION constexpr operator Value() const {
+                return value;
+            }
         };
 
 
@@ -706,6 +714,10 @@ namespace VLR {
                 unsigned int bumpCoeff : VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH;
             };
             ShaderNodePlug nodeTexCoord;
+            struct {
+                unsigned int width : 16;
+                unsigned int height : 16;
+            };
 
             RT_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
             RT_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
@@ -713,10 +725,10 @@ namespace VLR {
             RT_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
             RT_FUNCTION float getBumpCoeff() const {
                 // map to (0, 2]
-                return (float)(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
+                return static_cast<float>(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
             }
         };
-        static_assert(sizeof(Image2DTextureShaderNode) == 16, "Unexpected sizeof(Image2DTextureShaderNode).");
+        static_assert(sizeof(Image2DTextureShaderNode) == 24, "Unexpected sizeof(Image2DTextureShaderNode).");
 
         struct EnvironmentTextureShaderNode {
             CUtexObject texture;

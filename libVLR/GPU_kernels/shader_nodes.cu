@@ -4,12 +4,12 @@ namespace VLR {
     template <typename T>
     RT_FUNCTION T* getData(uint32_t nodeDescIndex) {
         constexpr uint32_t sizeOfNodeInDW = sizeof(T) / 4;
-        if /*constexpr*/ (sizeOfNodeInDW <= SmallNodeDescriptor::NumDWSlots())
-            return pv_smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();
-        else if /*constexpr*/ (sizeOfNodeInDW <= MediumNodeDescriptor::NumDWSlots())
-            return pv_mediumNodeDescriptorBuffer[nodeDescIndex].getData<T>();
-        else if /*constexpr*/ (sizeOfNodeInDW <= LargeNodeDescriptor::NumDWSlots())
-            return pv_largeNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        if constexpr (sizeOfNodeInDW <= SmallNodeDescriptor::NumDWSlots())
+            return plp.smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        else if constexpr (sizeOfNodeInDW <= MediumNodeDescriptor::NumDWSlots())
+            return plp.mediumNodeDescriptorBuffer[nodeDescIndex].getData<T>();
+        else if constexpr (sizeOfNodeInDW <= LargeNodeDescriptor::NumDWSlots())
+            return plp.largeNodeDescriptorBuffer[nodeDescIndex].getData<T>();
         return nullptr;
     }
 
@@ -49,7 +49,7 @@ namespace VLR {
                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<TangentShaderNode>(plug.nodeDescIndex);
 
-        StaticTransform transform = pv_geometryInstanceDescriptorBuffer[surfPt.geometryInstanceIndex].body.asTriMesh.transform;
+        StaticTransform transform = plp.geometryInstanceDescriptorBuffer[surfPt.geometryInstanceIndex].body.asTriMesh.transform;
         
         // TODO: 同じGeometryGroup内でのstaticなtransformに関しても考慮する。
         Point3D localPosition = transform.mulInv(surfPt.position);
@@ -90,11 +90,11 @@ namespace VLR {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM optix::float2 Float2ShaderNode_float2(const ShaderNodePlug &plug,
-                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float2 Float2ShaderNode_float2(const ShaderNodePlug &plug,
+                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float2ShaderNode>(plug.nodeDescIndex);
-        return optix::make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                  calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
+        return make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                           calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
     }
 
 
@@ -111,24 +111,24 @@ namespace VLR {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM optix::float2 Float3ShaderNode_float2(const ShaderNodePlug &plug,
+    RT_CALLABLE_PROGRAM float2 Float3ShaderNode_float2(const ShaderNodePlug &plug,
                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ShaderNode>(plug.nodeDescIndex);
         if (plug.option == 0)
-            return optix::make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                      calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
+            return make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                               calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
         else if (plug.option == 1)
-            return optix::make_float2(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                      calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
-        return optix::make_float2(0.0f, 0.0f);
+            return make_float2(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                               calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
+        return make_float2(0.0f, 0.0f);
     }
 
-    RT_CALLABLE_PROGRAM optix::float3 Float3ShaderNode_float3(const ShaderNodePlug &plug, 
+    RT_CALLABLE_PROGRAM float3 Float3ShaderNode_float3(const ShaderNodePlug &plug, 
                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ShaderNode>(plug.nodeDescIndex);
-        return optix::make_float3(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                  calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                  calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
+        return make_float3(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                           calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                           calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
     }
 
 
@@ -147,42 +147,42 @@ namespace VLR {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM optix::float2 Float4ShaderNode_float2(const ShaderNodePlug &plug,
-                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float2 Float4ShaderNode_float2(const ShaderNodePlug &plug,
+                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float4ShaderNode>(plug.nodeDescIndex);
         if (plug.option == 0)
-            return optix::make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                      calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
+            return make_float2(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                               calcNode(nodeData.node1, nodeData.imm1, surfPt, wls));
         else if (plug.option == 1)
-            return optix::make_float2(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                      calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
+            return make_float2(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                               calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
         else if (plug.option == 2)
-            return optix::make_float2(calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
-                                      calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
-        return optix::make_float2(0.0f, 0.0f);
+            return make_float2(calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
+                               calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
+        return make_float2(0.0f, 0.0f);
     }
 
-    RT_CALLABLE_PROGRAM optix::float3 Float4ShaderNode_float3(const ShaderNodePlug &plug,
-                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float3 Float4ShaderNode_float3(const ShaderNodePlug &plug,
+                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float4ShaderNode>(plug.nodeDescIndex);
         if (plug.option == 0)
-            return optix::make_float3(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                      calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                      calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
+            return make_float3(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                               calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                               calcNode(nodeData.node2, nodeData.imm2, surfPt, wls));
         else if (plug.option == 1)
-            return optix::make_float3(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                      calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
-                                      calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
-        return optix::make_float3(0.0f, 0.0f, 0.0f);
+            return make_float3(calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                               calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
+                               calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
+        return make_float3(0.0f, 0.0f, 0.0f);
     }
 
-    RT_CALLABLE_PROGRAM optix::float4 Float4ShaderNode_float4(const ShaderNodePlug &plug,
-                                                              const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float4 Float4ShaderNode_float4(const ShaderNodePlug &plug,
+                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float4ShaderNode>(plug.nodeDescIndex);
-        return optix::make_float4(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
-                                  calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
-                                  calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
-                                  calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
+        return make_float4(calcNode(nodeData.node0, nodeData.imm0, surfPt, wls),
+                           calcNode(nodeData.node1, nodeData.imm1, surfPt, wls),
+                           calcNode(nodeData.node2, nodeData.imm2, surfPt, wls),
+                           calcNode(nodeData.node3, nodeData.imm3, surfPt, wls));
     }
 
 
@@ -233,8 +233,8 @@ namespace VLR {
     RT_CALLABLE_PROGRAM SampledSpectrum Float3ToSpectrumShaderNode_Spectrum(const ShaderNodePlug &plug,
                                                                             const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Float3ToSpectrumShaderNode>(plug.nodeDescIndex);
-        auto defaultValue = optix::make_float3(nodeData.immFloat3[0], nodeData.immFloat3[1], nodeData.immFloat3[2]);
-        optix::float3 f3Value = calcNode(nodeData.nodeFloat3, defaultValue, surfPt, wls);
+        auto defaultValue = make_float3(nodeData.immFloat3[0], nodeData.immFloat3[1], nodeData.immFloat3[2]);
+        float3 f3Value = calcNode(nodeData.nodeFloat3, defaultValue, surfPt, wls);
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(nodeData.spectrumType, nodeData.colorSpace,
                                  clamp(0.5f * f3Value.x + 0.5f, 0.0f, 1.0f),
@@ -264,7 +264,7 @@ namespace VLR {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
         if (plug.option == 0)
             return texValue.x;
@@ -278,44 +278,44 @@ namespace VLR {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM optix::float2 Image2DTextureShaderNode_float2(const ShaderNodePlug &plug,
-                                                                      const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+    RT_CALLABLE_PROGRAM float2 Image2DTextureShaderNode_float2(const ShaderNodePlug &plug,
+                                                               const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
         if (plug.option == 0)
-            return optix::make_float2(texValue.x, texValue.y);
+            return make_float2(texValue.x, texValue.y);
         else if (plug.option == 1)
-            return optix::make_float2(texValue.y, texValue.z);
+            return make_float2(texValue.y, texValue.z);
         else if (plug.option == 2)
-            return optix::make_float2(texValue.z, texValue.w);
+            return make_float2(texValue.z, texValue.w);
 
-        return optix::make_float2(0.0f, 0.0f);
+        return make_float2(0.0f, 0.0f);
     }
 
-    RT_CALLABLE_PROGRAM optix::float3 Image2DTextureShaderNode_float3(const ShaderNodePlug &plug,
+    RT_CALLABLE_PROGRAM float3 Image2DTextureShaderNode_float3(const ShaderNodePlug &plug,
                                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
         if (plug.option == 0)
-            return optix::make_float3(texValue.x, texValue.y, texValue.z);
+            return make_float3(texValue.x, texValue.y, texValue.z);
         else if (plug.option == 1)
-            return optix::make_float3(texValue.y, texValue.z, texValue.w);
+            return make_float3(texValue.y, texValue.z, texValue.w);
 
-        return optix::make_float3(0.0f, 0.0f, 0.0f);
+        return make_float3(0.0f, 0.0f, 0.0f);
     }
 
-    RT_CALLABLE_PROGRAM optix::float4 Image2DTextureShaderNode_float4(const ShaderNodePlug &plug,
+    RT_CALLABLE_PROGRAM float4 Image2DTextureShaderNode_float4(const ShaderNodePlug &plug,
                                                                       const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
         return texValue;
     }
@@ -326,14 +326,14 @@ namespace VLR {
         BumpType bumpType = nodeData.getBumpType();
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue;
+        float4 texValue;
         if (bumpType != BumpType::HeightMap) {
-            texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+            texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
         }
         else {
             // w z
             // x y
-            texValue = optix::rtTex2DGather<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, plug.option);
+            texValue = tex2Dgather<float4>(nodeData.texture, texCoord.x, texCoord.y, plug.option);
         }
 
         float bumpCoeff = nodeData.getBumpCoeff();
@@ -351,11 +351,9 @@ namespace VLR {
                 ret.y *= -1;
         }
         else if (bumpType == BumpType::HeightMap) {
-            optix::uint3 texSize = optix::rtTexSize(nodeData.textureID);
-
             const float coeff = (5.0f / 1024);
-            float dhdu = (coeff * texSize.x) * (texValue.y - texValue.x);
-            float dhdv = (coeff * texSize.y) * (texValue.x - texValue.w);
+            float dhdu = (coeff * nodeData.width) * (texValue.y - texValue.x);
+            float dhdv = (coeff * nodeData.height) * (texValue.x - texValue.w);
             // cross(Vector3D(0, -1, dhdv), 
             //       Vector3D(1,  0, dhdu))
             ret = Normal3D(-dhdu, dhdv, 1);
@@ -372,7 +370,7 @@ namespace VLR {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
         DataFormat dataFormat = nodeData.getDataFormat();
         if (dataFormat == DataFormat::Gray32F ||
             dataFormat == DataFormat::Gray8 ||
@@ -411,7 +409,7 @@ namespace VLR {
         auto &nodeData = *getData<Image2DTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = calcNode(nodeData.nodeTexCoord, Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f), surfPt, wls);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
         if (plug.option == 0)
             return texValue.x;
@@ -432,7 +430,7 @@ namespace VLR {
         auto &nodeData = *getData<EnvironmentTextureShaderNode>(plug.nodeDescIndex);
 
         Point3D texCoord = Point3D(surfPt.texCoord.u, surfPt.texCoord.v, 0.0f);
-        optix::float4 texValue = optix::rtTex2DLod<optix::float4>(nodeData.textureID, texCoord.x, texCoord.y, 0.0f);
+        float4 texValue = tex2DLod<float4>(nodeData.texture, texCoord.x, texCoord.y, 0.0f);
 
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         DataFormat dataFormat = nodeData.getDataFormat();

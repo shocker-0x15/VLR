@@ -16,25 +16,28 @@ namespace VLR {
     template <TransformKind kind>
     RT_FUNCTION Point3D transform(const Point3D &p) {
         if constexpr (kind == TransformKind::WorldToObject)
-            return asPoint3D(optixTransformPointFromWorldToObjectSpace(asOptixType(p)));
+            return asPoint3D(optixTransformPointFromWorldToObjectSpace(asOptiXType(p)));
         else
-            return asPoint3D(optixTransformPointFromObjectToWorldSpace(asOptixType(p)));
+            return asPoint3D(optixTransformPointFromObjectToWorldSpace(asOptiXType(p)));
+        return Point3D(0, 0, 0); // JP: これが無いと何故か"missing return state..."警告が出る。
     }
 
     template <TransformKind kind>
     RT_FUNCTION Vector3D transform(const Vector3D &v) {
         if constexpr (kind == TransformKind::WorldToObject)
-            return asVector3D(optixTransformVectorFromWorldToObjectSpace(asOptixType(v)));
+            return asVector3D(optixTransformVectorFromWorldToObjectSpace(asOptiXType(v)));
         else
-            return asVector3D(optixTransformVectorFromObjectToWorldSpace(asOptixType(v)));
+            return asVector3D(optixTransformVectorFromObjectToWorldSpace(asOptiXType(v)));
+        return Vector3D(0, 0, 0); // JP: これが無いと何故か"missing return state..."警告が出る。
     }
 
     template <TransformKind kind>
     RT_FUNCTION Normal3D transform(const Normal3D &n) {
         if constexpr (kind == TransformKind::WorldToObject)
-            return asNormal3D(optixTransformVectorFromWorldToObjectSpace(asOptixType(n)));
+            return asNormal3D(optixTransformVectorFromWorldToObjectSpace(asOptiXType(n)));
         else
-            return asNormal3D(optixTransformVectorFromObjectToWorldSpace(asOptixType(n)));
+            return asNormal3D(optixTransformVectorFromObjectToWorldSpace(asOptiXType(n)));
+        return Normal3D(0, 0, 0); // JP: これが無いと何故か"missing return state..."警告が出る。
     }
 
 
@@ -42,6 +45,21 @@ namespace VLR {
     struct HitPointParameter {
         float b0, b1;
         int32_t primIndex;
+
+        RT_FUNCTION static HitPointParameter get() {
+            HitPointParameter ret;
+            if (optixIsTriangleHit()) {
+                float2 bc = optixGetTriangleBarycentrics();
+                ret.b0 = 1 - bc.x - bc.y;
+                ret.b1 = bc.x;
+            }
+            else {
+                optixu::getAttributes(&ret.b0, &ret.b1);
+            }
+            ret.primIndex = optixGetPrimitiveIndex();
+
+            return ret;
+        }
     };
 
     struct ReferenceFrame {
@@ -56,11 +74,18 @@ namespace VLR {
         }
 
         RT_FUNCTION Vector3D toLocal(const Vector3D &v) const { return Vector3D(dot(x, v), dot(y, v), dot(z, v)); }
+        RT_FUNCTION Normal3D toLocal(const Normal3D &n) const { return Normal3D(dot(x, n), dot(y, n), dot(z, n)); }
         RT_FUNCTION Vector3D fromLocal(const Vector3D &v) const {
             // assume orthonormal basis
             return Vector3D(dot(Vector3D(x.x, y.x, z.x), v),
                             dot(Vector3D(x.y, y.y, z.y), v),
                             dot(Vector3D(x.z, y.z, z.z), v));
+        }
+        RT_FUNCTION Normal3D fromLocal(const Normal3D &n) const {
+            // assume orthonormal basis
+            return Normal3D(dot(Normal3D(x.x, y.x, z.x), n),
+                            dot(Normal3D(x.y, y.y, z.y), n),
+                            dot(Normal3D(x.z, y.z, z.z), n));
         }
     };
 
@@ -244,7 +269,7 @@ namespace VLR {
         uint32_t materialIndex;
     };
 
-    typedef optixu::DirectCallableProgramID<void(const GeometryInstanceDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
+    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<void(const GeometryInstanceDescriptor::Body &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)>;
 
     class SurfaceLight {
         GeometryInstanceDescriptor::Body m_desc;
@@ -282,24 +307,44 @@ namespace VLR {
 
 
 
-    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
-    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
+    using ProgSigSetupBSDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
+    using ProgSigSetupEDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
 
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
-    typedef optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> ProgSigBSDFSampleInternal;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluateInternal;
-    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluatePDFInternal;
-    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)> ProgSigBSDFWeightInternal;
+    using ProgSigBSDFGetBaseColor = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
+    using ProgSigBSDFmatches = optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)>;
+    using ProgSigBSDFSampleInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)>;
+    using ProgSigBSDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFEvaluatePDFInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFWeightInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)>;
 
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigEDFEvaluateEmittanceInternal;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> ProgSigEDFEvaluateInternal;
+    using ProgSigEDFEvaluateEmittanceInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
+    using ProgSigEDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)>;
+
+    using ProgSigSampleLensPosition = optixu::DirectCallableProgramID<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)>;
+    using ProgSigSampleIDF = optixu::DirectCallableProgramID<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)>;
+
+    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<void(const HitPointParameter &, SurfacePoint*, float*)>;
+    using ProgSigFetchAlpha = optixu::DirectCallableProgramID<float(const TexCoord2D &)>;
+    using ProgSigFetchNormal = optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)>;
 
 
 
+    struct GeometryInstanceData {
+        uint32_t geomInstIndex;
+        ProgSigDecodeHitPoint progDecodeHitPoint;
+        ShaderNodePlug nodeNormal;
+        ShaderNodePlug nodeTangent;
+        ShaderNodePlug nodeAlpha;
+        uint32_t materialIndex;
+        float importance;
+
+        // for Triangle Mesh
+        const Vertex* vertexBuffer;
+        const Triangle* triangleBuffer;
+        float sumImportances;
+    };
+    
     struct PipelineLaunchParameters {
-        // Context-scope Variables
-
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
         UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
@@ -329,6 +374,17 @@ namespace VLR {
 
         PerspectiveCamera perspectiveCamera;
         EquirectangularCamera equirectangularCamera;
+
+        const GeometryInstanceData* geomInstData;
+
+        uint2 imageSize;
+        uint32_t numAccumFrames;
+        ProgSigSampleLensPosition progSampleLensPosition;
+        ProgSigSampleIDF progSampleIDF;
+        optixu::BlockBuffer2D<KernelRNG, 1> rngBuffer;
+        optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
+
+        DebugRenderingAttribute debugRenderingAttribute;
     };
 
     extern "C" __constant__ PipelineLaunchParameters plp;
