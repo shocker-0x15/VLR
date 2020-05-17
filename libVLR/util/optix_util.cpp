@@ -35,6 +35,10 @@ namespace optixu {
         return (new _Pipeline(m))->getPublicType();
     }
 
+    CUcontext Context::getCUcontext() const {
+        return m->cudaContext;
+    }
+
 
 
     void Material::Priv::setRecordData(const _Pipeline* pipeline, uint32_t rayType, HitGroupSBTRecord* record) const {

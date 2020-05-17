@@ -694,6 +694,8 @@ private: \
         Scene createScene() const;
 
         Pipeline createPipeline() const;
+
+        CUcontext getCUcontext() const;
     };
 
 

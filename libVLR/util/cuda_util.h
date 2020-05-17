@@ -24,10 +24,16 @@
 #include <vector>
 #include <sstream>
 
+// Enable this macro if CUDA/OpenGL interoperability is required.
+#define CUDA_UTIL_USE_GL_INTEROP
+#if defined(CUDA_UTIL_USE_GL_INTEROP)
 #include <GL/gl3w.h>
+#endif
 
 #include <cuda.h>
+#if defined(CUDA_UTIL_USE_GL_INTEROP)
 #include <cudaGL.h>
+#endif
 #include <vector_types.h>
 
 #undef min
@@ -215,19 +221,33 @@ namespace cudau {
         Buffer(const Buffer &) = delete;
         Buffer &operator=(const Buffer &) = delete;
 
+        void initialize(CUcontext context, BufferType type,
+                        uint32_t numElements, uint32_t stride, uint32_t glBufferID);
+
     public:
         Buffer();
-        Buffer(CUcontext context, BufferType type,
-               uint32_t numElements, uint32_t stride, uint32_t glBufferID = 0) : Buffer() {
-            initialize(context, type, numElements, stride, glBufferID);
-        }
         ~Buffer();
 
         Buffer(Buffer &&b);
         Buffer &operator=(Buffer &&b);
 
         void initialize(CUcontext context, BufferType type,
-                        uint32_t numElements, uint32_t stride, uint32_t glBufferID);
+                        uint32_t numElements, uint32_t stride) {
+            initialize(context, type, numElements, stride, 0);
+        }
+        void initializeFromGLBuffer(CUcontext context, uint32_t glBufferID) {
+#if defined(CUDA_UTIL_USE_GL_INTEROP)
+            GLint currentBuffer;
+            glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &currentBuffer);
+            glBindBuffer(GL_ARRAY_BUFFER, glBufferID);
+            GLint size;
+            glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+            glBindBuffer(GL_ARRAY_BUFFER, currentBuffer);
+            initialize(context, BufferType::GL_Interop, size, 1, glBufferID);
+#else
+            CUDAUAssert(false, "Enable \"CUDA_UTIL_USE_GL_INTEROP\" at the top of this file if you use CUDA/OpenGL interoperability.");
+#endif
+        }
         void finalize();
 
         void resize(uint32_t numElements, uint32_t stride);
@@ -258,7 +278,7 @@ namespace cudau {
             return m_initialized;
         }
 
-        CUdeviceptr beginCUDAAccess(CUstream stream);
+        void beginCUDAAccess(CUstream stream);
         void endCUDAAccess(CUstream stream);
 
         void* map();
@@ -278,10 +298,10 @@ namespace cudau {
     public:
         TypedBuffer() {}
         TypedBuffer(CUcontext context, BufferType type, int32_t numElements) {
-            Buffer::initialize(context, type, numElements, sizeof(T), 0);
+            Buffer::initialize(context, type, numElements, sizeof(T));
         }
         TypedBuffer(CUcontext context, BufferType type, int32_t numElements, const T &value) {
-            Buffer::initialize(context, type, numElements, sizeof(T), 0);
+            Buffer::initialize(context, type, numElements, sizeof(T));
             T* values = (T*)map();
             for (int i = 0; i < numElements; ++i)
                 values[i] = value;
@@ -289,10 +309,10 @@ namespace cudau {
         }
 
         void initialize(CUcontext context, BufferType type, int32_t numElements) {
-            Buffer::initialize(context, type, numElements, sizeof(T), 0);
+            Buffer::initialize(context, type, numElements, sizeof(T));
         }
         void initialize(CUcontext context, BufferType type, int32_t numElements, const T &value) {
-            Buffer::initialize(context, type, numElements, sizeof(T), 0);
+            Buffer::initialize(context, type, numElements, sizeof(T));
             T* values = (T*)Buffer::map();
             for (int i = 0; i < numElements; ++i)
                 values[i] = value;
@@ -371,58 +391,67 @@ namespace cudau {
 
 
     enum class ArrayElementType {
-        UInt8x4,
-        UInt16x4,
-        UInt32x4,
-        Int8x4,
-        Int16x4,
-        Int32x4,
-        Halfx4,
-        Floatx4,
+        UInt8,
+        Int8,
+        UInt16,
+        Int16,
+        UInt32,
+        Int32,
+        Float16,
+        Float32,
+        BC1_UNorm,
+        BC2_UNorm,
+        BC3_UNorm,
+        BC4_UNorm,
+        BC4_SNorm,
+        BC5_UNorm,
+        BC5_SNorm,
+        BC6H_UF16,
+        BC6H_SF16,
+        BC7_UNorm
     };
 
-    //enum class ArrayType {
-    //    E_1D = 0,
-    //    E_2D,
-    //    E_3D,
-    //    E_1DLayered,
-    //    E_2DLayered,
-    //    Cubemap,
-    //    CubemapLayered,
-    //};
-
-    enum class ArrayWritable {
+    enum class ArraySurface {
         Enable = 0,
         Disable,
     };
+
+    void getArrayElementFormat(GLenum internalFormat, ArrayElementType* elemType, uint32_t* numChannels);
     
     class Array {
         CUcontext m_cudaContext;
 
-        //ArrayType m_arrayType;
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_depth;
+        uint32_t m_numMipmapLevels;
         uint32_t m_stride;
         ArrayElementType m_elemType;
+        uint32_t m_numChannels;
 
-        CUarray m_array;
-        void* m_mappedPointer;
+        union {
+            CUarray m_array;
+            CUmipmappedArray m_mipmappedArray;
+        };
+        void** m_mappedPointers;
+        CUarray* m_mappedArrays;
+
+        uint32_t m_GLTexID;
+        CUgraphicsResource m_cudaGfxResource;
 
         struct {
-            unsigned int m_writable : 1;
+            unsigned int m_surfaceLoadStore : 1;
             unsigned int m_cubemap : 1;
             unsigned int m_layered : 1;
             unsigned int m_initialized : 1;
-            unsigned int m_mapped : 1;
         };
 
         Array(const Array &) = delete;
         Array &operator=(const Array &) = delete;
 
-        void initialize(CUcontext context, ArrayElementType elemType,
-                        uint32_t width, uint32_t height, uint32_t depth,
-                        bool writable, bool cubemap, bool layered);
+        void initialize(CUcontext context, ArrayElementType elemType, uint32_t numChannels,
+                        uint32_t width, uint32_t height, uint32_t depth, uint32_t numMipmapLevels,
+                        bool writable, bool cubemap, bool layered, uint32_t glTexID);
 
     public:
         Array();
@@ -431,17 +460,43 @@ namespace cudau {
         Array(Array &&b);
         Array &operator=(Array &&b);
 
-        void initialize(CUcontext context, ArrayElementType elemType, uint32_t length, ArrayWritable writable) {
-            initialize(context, elemType, length, 0, 0,
-                       writable == ArrayWritable::Enable, false, false);
+        void initialize1D(CUcontext context, ArrayElementType elemType, uint32_t numChannels, ArraySurface surfaceLoadStore,
+                          uint32_t length, uint32_t numMipmapLevels) {
+            initialize(context, elemType, numChannels, length, 0, 0, numMipmapLevels,
+                       surfaceLoadStore == ArraySurface::Enable, false, false, 0);
         }
-        void initialize(CUcontext context, ArrayElementType elemType, uint32_t width, uint32_t height, ArrayWritable writable) {
-            initialize(context, elemType, width, height, 0,
-                       writable == ArrayWritable::Enable, false, false);
+        void initialize2D(CUcontext context, ArrayElementType elemType, uint32_t numChannels, ArraySurface surfaceLoadStore,
+                          uint32_t width, uint32_t height, uint32_t numMipmapLevels) {
+            initialize(context, elemType, numChannels, width, height, 0, numMipmapLevels,
+                       surfaceLoadStore == ArraySurface::Enable, false, false, 0);
         }
-        void initialize(CUcontext context, ArrayElementType elemType, uint32_t width, uint32_t height, uint32_t depth, ArrayWritable writable) {
-            initialize(context, elemType, width, height, 0,
-                       writable == ArrayWritable::Enable, false, false);
+        void initialize3D(CUcontext context, ArrayElementType elemType, uint32_t numChannels, ArraySurface surfaceLoadStore,
+                          uint32_t width, uint32_t height, uint32_t depth, uint32_t numMipmapLevels) {
+            initialize(context, elemType, numChannels, width, height, 0, numMipmapLevels,
+                       surfaceLoadStore == ArraySurface::Enable, false, false, 0);
+        }
+        void initializeFromGLTexture2D(CUcontext context, uint32_t glTexID, ArraySurface surfaceLoadStore) {
+#if defined(CUDA_UTIL_USE_GL_INTEROP)
+            GLint currentTexture;
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
+            glBindTexture(GL_TEXTURE_2D, glTexID);
+            GLint width, height;
+            GLint numMipmapLevels;
+            GLint format;
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &format);
+            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_VIEW_NUM_LEVELS, &numMipmapLevels);
+            numMipmapLevels = std::max(numMipmapLevels, 1);
+            glBindTexture(GL_TEXTURE_2D, currentTexture);
+            ArrayElementType elemType;
+            uint32_t numChannels;
+            getArrayElementFormat((GLenum)format, &elemType, &numChannels);
+            initialize(context, elemType, numChannels, width, height, 0, numMipmapLevels,
+                       surfaceLoadStore == ArraySurface::Enable, false, false, glTexID);
+#else
+            CUDAUAssert(false, "Enable \"CUDA_UTIL_USE_GL_INTEROP\" at the top of this file if you use CUDA/OpenGL interoperability.");
+#endif
         }
         void finalize();
 
@@ -449,8 +504,18 @@ namespace cudau {
         void resize(uint32_t width, uint32_t height);
         void resize(uint32_t width, uint32_t height, uint32_t depth);
 
-        CUarray getCUarray() const {
-            return m_array;
+        CUarray getCUarray(uint32_t mipmapLevel) const {
+            if (m_numMipmapLevels > 1) {
+                CUarray ret;
+                CUDADRV_CHECK(cuMipmappedArrayGetLevel(&ret, m_mipmappedArray, mipmapLevel));
+                return ret;
+            }
+            else {
+                return m_array;
+            }
+        }
+        CUmipmappedArray getCUmipmappedArray() const {
+            return m_mipmappedArray;
         }
 
         uint32_t getWidth() const {
@@ -462,22 +527,34 @@ namespace cudau {
         uint32_t getDepth() const {
             return m_depth;
         }
-
-        void* map();
-        template <typename T>
-        T* map() {
-            return reinterpret_cast<T*>(map());
+        uint32_t getNumMipmapLevels() const {
+            return m_numMipmapLevels;
         }
-        void unmap();
+
+        void beginCUDAAccess(CUstream stream, uint32_t mipmapLevel);
+        void endCUDAAccess(CUstream stream, uint32_t mipmapLevel);
+
+        void* map(uint32_t mipmapLevel = 0);
+        template <typename T>
+        T* map(uint32_t mipmapLevel = 0) {
+            return reinterpret_cast<T*>(map(mipmapLevel));
+        }
+        void unmap(uint32_t mipmapLevel = 0);
+
+        CUDA_RESOURCE_VIEW_DESC getResourceViewDesc() const;
+
+        CUsurfObject getSurfaceObject(uint32_t mipmapLevel) const {
+            CUsurfObject ret;
+            CUDA_RESOURCE_DESC resDesc = {};
+            resDesc.resType = CU_RESOURCE_TYPE_ARRAY;
+            if (m_GLTexID == 0)
+                resDesc.res.array.hArray = getCUarray(mipmapLevel);
+            else
+                resDesc.res.array.hArray = m_mappedArrays[mipmapLevel];
+            CUDADRV_CHECK(cuSurfObjectCreate(&ret, &resDesc));
+            return ret;
+        }
     };
-
-
-
-    //enum class MipmappedArrayType {
-    //    E_1DMipmapped = 0,
-    //    E_2DMipmapped,
-    //    E_3DMipmapped,
-    //};
 
 
 
@@ -524,7 +601,6 @@ namespace cudau {
             m_texDesc = {};
             m_texDesc.flags |= CU_TRSF_NORMALIZED_COORDINATES;
             m_resViewDesc = {};
-            // TODO: support block compression formats.
         }
         ~TextureSampler() {
             if (m_texObjectCreated)
@@ -561,8 +637,16 @@ namespace cudau {
         }
 
         void setArray(const Array &array) {
-            m_resDesc.resType = CU_RESOURCE_TYPE_ARRAY;
-            m_resDesc.res.array.hArray = array.getCUarray();
+            if (array.getNumMipmapLevels() > 1) {
+                m_resDesc.resType = CU_RESOURCE_TYPE_MIPMAPPED_ARRAY;
+                m_resDesc.res.mipmap.hMipmappedArray = array.getCUmipmappedArray();
+                m_texDesc.maxMipmapLevelClamp = array.getNumMipmapLevels() - 1;
+            }
+            else {
+                m_resDesc.resType = CU_RESOURCE_TYPE_ARRAY;
+                m_resDesc.res.array.hArray = array.getCUarray(0);
+            }
+            m_resViewDesc = array.getResourceViewDesc();
             m_texObjectIsUpToDate = false;
         }
 
@@ -608,75 +692,11 @@ namespace cudau {
             if (m_texObjectCreated && !m_texObjectIsUpToDate)
                 CUDADRV_CHECK(cuTexObjectDestroy(m_texObject));
             if (!m_texObjectIsUpToDate) {
-                CUDADRV_CHECK(cuTexObjectCreate(&m_texObject, &m_resDesc, &m_texDesc, nullptr));
+                CUDADRV_CHECK(cuTexObjectCreate(&m_texObject, &m_resDesc, &m_texDesc, &m_resViewDesc));
                 m_texObjectCreated = true;
                 m_texObjectIsUpToDate = true;
             }
             return m_texObject;
-        }
-    };
-
-
-
-    class SurfaceView {
-        CUDA_RESOURCE_DESC m_resDesc;
-        CUsurfObject m_surfObject;
-        struct {
-            unsigned int m_surfObjectCreated : 1;
-            unsigned int m_surfObjectIsUpToDate : 1;
-        };
-
-        SurfaceView(const SurfaceView &) = delete;
-        SurfaceView &operator=(const SurfaceView &) = delete;
-
-    public:
-        SurfaceView() :
-            m_surfObjectCreated(false), m_surfObjectIsUpToDate(false) {
-            m_resDesc = {};
-        }
-        ~SurfaceView() {
-            if (m_surfObjectCreated)
-                cuSurfObjectDestroy(m_surfObject);
-        }
-
-        void destroySurfaceObject() {
-            if (m_surfObjectCreated) {
-                CUDADRV_CHECK(cuSurfObjectDestroy(m_surfObject));
-                m_surfObjectIsUpToDate = false;
-                m_surfObjectCreated = false;
-            }
-        }
-
-        SurfaceView(SurfaceView &&s) {
-            m_resDesc = s.m_resDesc;
-            m_surfObjectCreated = s.m_surfObjectCreated;
-            m_surfObjectIsUpToDate = s.m_surfObjectIsUpToDate;
-
-            s.m_surfObjectCreated = false;
-        }
-        SurfaceView &operator=(SurfaceView &&s) {
-            m_resDesc = s.m_resDesc;
-            m_surfObjectCreated = s.m_surfObjectCreated;
-            m_surfObjectIsUpToDate = s.m_surfObjectIsUpToDate;
-
-            s.m_surfObjectCreated = false;
-        }
-
-        void setArray(const Array &array) {
-            m_resDesc.resType = CU_RESOURCE_TYPE_ARRAY;
-            m_resDesc.res.array.hArray = array.getCUarray();
-            m_surfObjectIsUpToDate = false;
-        }
-
-        CUsurfObject getSurfaceObject() {
-            if (m_surfObjectCreated && !m_surfObjectIsUpToDate)
-                CUDADRV_CHECK(cuSurfObjectDestroy(m_surfObject));
-            if (!m_surfObjectIsUpToDate) {
-                CUDADRV_CHECK(cuSurfObjectCreate(&m_surfObject, &m_resDesc));
-                m_surfObjectCreated = true;
-                m_surfObjectIsUpToDate = true;
-            }
-            return m_surfObject;
         }
     };
 }

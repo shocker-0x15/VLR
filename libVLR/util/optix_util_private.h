@@ -656,10 +656,10 @@ namespace optixu {
             scene(nullptr), numMissRayTypes(0),
             rayGenProgram(nullptr), exceptionProgram(nullptr), hitGroupSbt(nullptr),
             pipelineLinked(false), sbtAllocDone(false), sbtIsUpToDate(false) {
-            rayGenRecord.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE, 0);
-            exceptionRecord.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE, 0);
-            missRecords.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE, 0);
-            callableRecords.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE, 0);
+            rayGenRecord.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE);
+            exceptionRecord.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE);
+            missRecords.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE);
+            callableRecords.initialize(context->getCUDAContext(), s_BufferType, 1, OPTIX_SBT_RECORD_HEADER_SIZE);
         }
         ~Priv() {
             if (pipelineLinked)
