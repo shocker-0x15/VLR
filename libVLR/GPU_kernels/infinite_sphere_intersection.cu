@@ -2,7 +2,7 @@
 
 namespace VLR {
     // Intersection Program for Infinite Sphere
-    RT_PROGRAM void intersectInfiniteSphere() {
+    RT_PROGRAM void RT_IS_NAME(intersectInfiniteSphere)() {
         Vector3D direction = asVector3D(optixGetObjectRayDirection());
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
@@ -18,7 +18,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void decodeHitPointForInfiniteSphere(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForInfiniteSphere)(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         float phi = param.b0;
         float theta = param.b1;
         Vector3D direction = transform<TransformKind::ObjectToWorld>(Vector3D::fromPolarYUp(phi, theta));
@@ -44,7 +44,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleInfiniteSphere(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float u, v;
         float uvPDF;
         desc.asInfSphere.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);

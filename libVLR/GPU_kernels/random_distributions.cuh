@@ -3,56 +3,6 @@
 #include "../shared/basic_types_internal.h"
 
 namespace VLR {
-    class PCG32RNG {
-        uint64_t state;
-
-    public:
-        RT_FUNCTION PCG32RNG() {}
-
-        RT_FUNCTION uint32_t operator()() {
-            uint64_t oldstate = state;
-            // Advance internal state
-            state = oldstate * 6364136223846793005ULL + 1;
-            // Calculate output function (XSH RR), uses old state for max ILP
-            uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
-            uint32_t rot = oldstate >> 59u;
-            return (xorshifted >> rot) | (xorshifted << ((-(int32_t)rot) & 31));
-        }
-
-        RT_FUNCTION float getFloat0cTo1o() {
-            uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
-            return *(float*)&fractionBits - 1.0f;
-        }
-    };
-
-
-
-    class XORShiftRNG {
-        uint32_t m_state[4];
-
-    public:
-        RT_FUNCTION XORShiftRNG() {}
-        RT_FUNCTION uint32_t operator()() {
-            uint32_t* a = m_state;
-            uint32_t t(a[0] ^ (a[0] << 11));
-            a[0] = a[1];
-            a[1] = a[2];
-            a[2] = a[3];
-            return a[3] = (a[3] ^ (a[3] >> 19)) ^ (t ^ (t >> 8));
-        }
-
-        RT_FUNCTION float getFloat0cTo1o() {
-            uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
-            return *(float*)&fractionBits - 1.0f;
-        }
-    };
-
-
-
-    using KernelRNG = PCG32RNG;
-
-
-
     template <typename RealType>
     RT_FUNCTION uint32_t sampleDiscrete(const RealType* importances, uint32_t numImportances, RealType u,
                                         RealType* prob, RealType* sumImportances, RealType* remapped) {

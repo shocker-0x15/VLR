@@ -120,7 +120,7 @@ namespace VLR {
 
     struct Payload {
         struct {
-            unsigned int rayType : 3;
+            unsigned int pathLength : 16;
             bool terminate : 1;
             bool maxLengthTerminate : 1;
         };
@@ -240,17 +240,9 @@ namespace VLR {
 
 
 
-    RT_PROGRAM void shadowAnyHitDefault() {
-        // TODO: change shadow ray payload.
-        ShadowPayload shadowPayload;
-        optixu::getPayloads<ShadowRayPayloadSignature>(&shadowPayload);
-        shadowPayload.fractionalVisibility = 0.0f;
-        optixu::setPayloads<ShadowRayPayloadSignature>(&shadowPayload);
-        optixTerminateRay();
-    }
-
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void anyHitWithAlpha() {
+    // with alpha texture
+    RT_PROGRAM void RT_AH_NAME(withAlpha)() {
         HitPointParameter hitPointParam = HitPointParameter::get();
         auto sbtr = optixu::getHitGroupSBTRecordData();
         const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
@@ -260,7 +252,8 @@ namespace VLR {
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        geomInst.progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
+        decodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
         float alpha = calcNode(geomInst.nodeAlpha, 1.0f, surfPt, payload->wls);
 
@@ -268,9 +261,18 @@ namespace VLR {
         if (payload->rng.getFloat0cTo1o() >= alpha)
             optixIgnoreIntersection();
     }
+    
+    RT_PROGRAM void RT_AH_NAME(shadowDefault)() {
+        // TODO: change shadow ray payload.
+        ShadowPayload shadowPayload;
+        optixu::getPayloads<ShadowRayPayloadSignature>(&shadowPayload);
+        shadowPayload.fractionalVisibility = 0.0f;
+        optixu::setPayloads<ShadowRayPayloadSignature>(&shadowPayload);
+        optixTerminateRay();
+    }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
-    RT_PROGRAM void shadowAnyHitWithAlpha() {
+    RT_PROGRAM void RT_AH_NAME(shadowWithAlpha)() {
         HitPointParameter hitPointParam = HitPointParameter::get();
         auto sbtr = optixu::getHitGroupSBTRecordData();
         const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
@@ -280,7 +282,8 @@ namespace VLR {
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        geomInst.progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
+        decodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
 
         float alpha = calcNode(geomInst.nodeAlpha, 1.0f, surfPt, shadowPayload.wls);
 
@@ -358,7 +361,8 @@ namespace VLR {
                                       SurfacePoint* surfPt, float* hypAreaPDF) {
         HitPointParameter hitPointParam = HitPointParameter::get();
 
-        geomInst.progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+        ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
+        decodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
         surfPt->geometryInstanceIndex = geomInst.geomInstIndex;
 
         Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);

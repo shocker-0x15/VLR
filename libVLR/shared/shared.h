@@ -174,6 +174,57 @@ namespace VLR {
 
 
     namespace Shared {
+        class PCG32RNG {
+            uint64_t state;
+
+        public:
+            RT_FUNCTION PCG32RNG() {}
+            explicit PCG32RNG(uint64_t _state) : state(_state) {}
+
+            RT_FUNCTION uint32_t operator()() {
+                uint64_t oldstate = state;
+                // Advance internal state
+                state = oldstate * 6364136223846793005ULL + 1;
+                // Calculate output function (XSH RR), uses old state for max ILP
+                uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+                uint32_t rot = oldstate >> 59u;
+                return (xorshifted >> rot) | (xorshifted << ((-(int32_t)rot) & 31));
+            }
+
+            RT_FUNCTION float getFloat0cTo1o() {
+                uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
+                return *(float*)&fractionBits - 1.0f;
+            }
+        };
+
+
+
+        class XORShiftRNG {
+            uint32_t m_state[4];
+
+        public:
+            RT_FUNCTION XORShiftRNG() {}
+            RT_FUNCTION uint32_t operator()() {
+                uint32_t* a = m_state;
+                uint32_t t(a[0] ^ (a[0] << 11));
+                a[0] = a[1];
+                a[1] = a[2];
+                a[2] = a[3];
+                return a[3] = (a[3] ^ (a[3] >> 19)) ^ (t ^ (t >> 8));
+            }
+
+            RT_FUNCTION float getFloat0cTo1o() {
+                uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
+                return *(float*)&fractionBits - 1.0f;
+            }
+        };
+
+
+
+        using KernelRNG = PCG32RNG;
+
+
+
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
             const RealType* m_PMF;
@@ -336,7 +387,7 @@ namespace VLR {
 
 
         struct NodeProcedureSet {
-            int32_t progs[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
+            int32_t progs[nextPowerOf2Const(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
         };
 
 
@@ -574,14 +625,24 @@ namespace VLR {
 
         struct RayType {
             enum Value {
-                Primary = 0,
-                Scattered,
+                ClosestSearch = 0,
                 Shadow,
-                DebugPrimary,
                 NumTypes
             } value;
 
-            RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
+            RT_FUNCTION constexpr RayType(Value v = ClosestSearch) : value(v) {}
+            RT_FUNCTION constexpr operator Value() const {
+                return value;
+            }
+        };
+
+        struct DebugRayType {
+            enum Value {
+                Primary,
+                NumTypes
+            } value;
+
+            RT_FUNCTION constexpr DebugRayType(Value v = Primary) : value(v) {}
             RT_FUNCTION constexpr operator Value() const {
                 return value;
             }
@@ -840,5 +901,67 @@ namespace VLR {
 
         // END: Surface Materials
         // ----------------------------------------------------------------
+
+
+
+        struct GeometryInstanceData {
+            uint32_t geomInstIndex;
+            uint32_t progDecodeHitPoint;
+            ShaderNodePlug nodeNormal;
+            ShaderNodePlug nodeTangent;
+            ShaderNodePlug nodeAlpha;
+            uint32_t materialIndex;
+            float importance;
+
+            // for Triangle Mesh
+            const Vertex* vertexBuffer;
+            const Triangle* triangleBuffer;
+            float sumImportances;
+        };
+
+        struct PipelineLaunchParameters {
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+            UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
+            UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            float* UpsampledSpectrum_maxBrightnesses;
+            UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
+            UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
+#   endif
+            DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_xbar;
+            DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_ybar;
+            DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_zbar;
+            float DiscretizedSpectrum_integralCMF;
+
+            NodeProcedureSet* nodeProcedureSetBuffer;
+            SmallNodeDescriptor* smallNodeDescriptorBuffer;
+            MediumNodeDescriptor* mediumNodeDescriptorBuffer;
+            LargeNodeDescriptor* largeNodeDescriptorBuffer;
+            BSDFProcedureSet* bsdfProcedureSetBuffer;
+            EDFProcedureSet* edfProcedureSetBuffer;
+            SurfaceMaterialDescriptor* materialDescriptorBuffer;
+            GeometryInstanceDescriptor* geometryInstanceDescriptorBuffer;
+
+            OptixTraversableHandle topGroup;
+
+            DiscreteDistribution1D lightImpDist;
+            GeometryInstanceDescriptor envLightDescriptor;
+
+            union {
+                PerspectiveCamera perspectiveCamera;
+                EquirectangularCamera equirectangularCamera;
+            };
+
+            const GeometryInstanceData* geomInstData;
+
+            uint2 imageSize;
+            uint32_t numAccumFrames;
+            uint32_t progSampleLensPosition;
+            uint32_t progSampleIDF;
+            optixu::BlockBuffer2D<KernelRNG, 1> rngBuffer;
+            optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
+
+            DebugRenderingAttribute debugRenderingAttribute;
+        };
     }
 }

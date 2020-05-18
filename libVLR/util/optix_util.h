@@ -82,11 +82,30 @@ AS/SBT Layoutのdirty状態はUtil側で検知できるdirty状態をカーネ�
 #   define RT_CALLABLE_PROGRAM
 #endif
 
+#define RT_RG_NAME(name) __raygen__ ## name
+#define RT_MS_NAME(name) __miss__ ## name
+#define RT_EX_NAME(name) __exception__ ## name
+#define RT_CH_NAME(name) __closesthit__ ## name
+#define RT_AH_NAME(name) __anyhit__ ## name
+#define RT_IS_NAME(name) __intersection__ ## name
+#define RT_DC_NAME(name) __direct_callable__ ## name
+#define RT_CC_NAME(name) __continuation_callable__ ## name
+#define RT_RG_NAME_STR(name) "__raygen__" name
+#define RT_MS_NAME_STR(name) "__miss__" name
+#define RT_EX_NAME_STR(name) "__exception__" name
+#define RT_CH_NAME_STR(name) "__closesthit__" name
+#define RT_AH_NAME_STR(name) "__anyhit__" name
+#define RT_IS_NAME_STR(name) "__intersection__" name
+#define RT_DC_NAME_STR(name) "__direct_callable__" name
+#define RT_CC_NAME_STR(name) "__continuation_callable__" name
+
 
 
 namespace optixu {
 #if !defined(__CUDA_ARCH__)
-    using namespace cudau;
+    using cudau::BufferType;
+    using cudau::Buffer;
+    using cudau::TypedBuffer;
 #endif
 
 #ifdef _DEBUG
@@ -340,6 +359,9 @@ namespace optixu {
 
         CUdeviceptr getCUdeviceptr() const {
             return m_rawBuffer.getCUdeviceptr();
+        }
+        bool isInitialized() const {
+            return m_rawBuffer.isInitialized();
         }
 
         void map() {

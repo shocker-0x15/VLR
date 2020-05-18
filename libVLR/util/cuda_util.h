@@ -120,8 +120,15 @@ namespace cudau {
         uint32_t m_sharedMemSize;
 
     public:
+        Kernel() {}
         Kernel(CUmodule module, const char* name, const dim3 blockDim, uint32_t sharedMemSize) :
             m_blockDim(blockDim), m_sharedMemSize(sharedMemSize) {
+            CUDADRV_CHECK(cuModuleGetFunction(&m_kernel, module, name));
+        }
+
+        void set(CUmodule module, const char* name, const dim3 blockDim, uint32_t sharedMemSize) {
+            m_blockDim = blockDim;
+            m_sharedMemSize = sharedMemSize;
             CUDADRV_CHECK(cuModuleGetFunction(&m_kernel, module, name));
         }
 
@@ -529,6 +536,9 @@ namespace cudau {
         }
         uint32_t getNumMipmapLevels() const {
             return m_numMipmapLevels;
+        }
+        bool isInitialized() const {
+            return m_initialized;
         }
 
         void beginCUDAAccess(CUstream stream, uint32_t mipmapLevel);

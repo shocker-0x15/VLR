@@ -13,7 +13,14 @@ namespace VLR {
         uint32_t* m_offsetsToNumUsedFlags;
         uint32_t* m_numFlagsInLayerList;
 
+        SlotFinder(const SlotFinder &) = delete;
+        SlotFinder &operator=(const SlotFinder &) = delete;
+
+        void aggregate();
+
     public:
+        static constexpr uint32_t InvalidSlotIndex = 0xFFFFFFFF;
+
         SlotFinder() :
             m_numLayers(0), m_numLowestFlagBins(0), m_numTotalCompiledFlagBins(0),
             m_flagBins(nullptr), m_offsetsToOR_AND(nullptr),
@@ -26,6 +33,31 @@ namespace VLR {
         void initialize(uint32_t numSlots);
 
         void finalize();
+
+        SlotFinder &operator=(SlotFinder &&inst) {
+            finalize();
+
+            m_numLayers = inst.m_numLayers;
+            m_numLowestFlagBins = inst.m_numLowestFlagBins;
+            m_numTotalCompiledFlagBins = inst.m_numTotalCompiledFlagBins;
+            m_flagBins = inst.m_flagBins;
+            m_offsetsToOR_AND = inst.m_offsetsToOR_AND;
+            m_numUsedFlagsUnderBinList = inst.m_numUsedFlagsUnderBinList;
+            m_offsetsToNumUsedFlags = inst.m_offsetsToNumUsedFlags;
+            m_numFlagsInLayerList = inst.m_numFlagsInLayerList;
+            inst.m_flagBins = nullptr;
+            inst.m_offsetsToOR_AND = nullptr;
+            inst.m_numUsedFlagsUnderBinList = nullptr;
+            inst.m_offsetsToNumUsedFlags = nullptr;
+            inst.m_numFlagsInLayerList = nullptr;
+
+            return *this;
+        }
+        SlotFinder(SlotFinder &&inst) {
+            *this = std::move(inst);
+        }
+
+        void resize(uint32_t numSlots);
 
         void reset() {
             std::fill_n(m_flagBins, m_numLowestFlagBins + m_numTotalCompiledFlagBins, 0);
@@ -68,8 +100,12 @@ namespace VLR {
 
         uint32_t find_nthUsedSlot(uint32_t n) const;
 
+        uint32_t getNumSlots() const {
+            return m_numFlagsInLayerList[0];
+        }
+
         uint32_t getNumUsed() const {
-            return m_numUsedFlagsUnderBinList[m_offsetsToNumUsedFlags[m_numLayers - 2]];
+            return m_numUsedFlagsUnderBinList[m_offsetsToNumUsedFlags[m_numLayers - 1]];
         }
 
         void debugPrint() const;

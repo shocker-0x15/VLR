@@ -19,7 +19,7 @@ namespace VLR {
     }
 
     // Intersection Program
-    RT_PROGRAM void intersectTriangle() {
+    RT_PROGRAM void RT_IS_NAME(intersectTriangle)() {
         auto sbtr = optixu::getHitGroupSBTRecordData();
         const GeometryInstanceData &geomInstData = plp.geomInstData[sbtr.geomInstData];
         uint32_t primIndex = optixGetPrimitiveIndex();
@@ -75,7 +75,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         auto sbtr = optixu::getHitGroupSBTRecordData();
         const GeometryInstanceData &geomInstData = plp.geomInstData[sbtr.geomInstData];
 
@@ -124,7 +124,7 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleTriangleMesh)(const GeometryInstanceDescriptor::Body &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
         uint32_t primIdx = desc.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
 

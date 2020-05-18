@@ -329,64 +329,6 @@ namespace VLR {
 
 
 
-    struct GeometryInstanceData {
-        uint32_t geomInstIndex;
-        ProgSigDecodeHitPoint progDecodeHitPoint;
-        ShaderNodePlug nodeNormal;
-        ShaderNodePlug nodeTangent;
-        ShaderNodePlug nodeAlpha;
-        uint32_t materialIndex;
-        float importance;
-
-        // for Triangle Mesh
-        const Vertex* vertexBuffer;
-        const Triangle* triangleBuffer;
-        float sumImportances;
-    };
-    
-    struct PipelineLaunchParameters {
-#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-        UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
-        UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
-#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        float* UpsampledSpectrum_maxBrightnesses;
-        UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
-        UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
-#   endif
-        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_xbar;
-        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_ybar;
-        DiscretizedSpectrumAlwaysSpectral::CMF* DiscretizedSpectrum_zbar;
-        float DiscretizedSpectrum_integralCMF;
-
-        NodeProcedureSet* nodeProcedureSetBuffer;
-        SmallNodeDescriptor* smallNodeDescriptorBuffer;
-        MediumNodeDescriptor* mediumNodeDescriptorBuffer;
-        LargeNodeDescriptor* largeNodeDescriptorBuffer;
-        BSDFProcedureSet* bsdfProcedureSetBuffer;
-        EDFProcedureSet* edfProcedureSetBuffer;
-        SurfaceMaterialDescriptor* materialDescriptorBuffer;
-        GeometryInstanceDescriptor* geometryInstanceDescriptorBuffer;
-
-        OptixTraversableHandle topGroup;
-
-        DiscreteDistribution1D lightImpDist;
-        GeometryInstanceDescriptor envLightDescriptor;
-
-        PerspectiveCamera perspectiveCamera;
-        EquirectangularCamera equirectangularCamera;
-
-        const GeometryInstanceData* geomInstData;
-
-        uint2 imageSize;
-        uint32_t numAccumFrames;
-        ProgSigSampleLensPosition progSampleLensPosition;
-        ProgSigSampleIDF progSampleIDF;
-        optixu::BlockBuffer2D<KernelRNG, 1> rngBuffer;
-        optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
-
-        DebugRenderingAttribute debugRenderingAttribute;
-    };
-
     extern "C" __constant__ PipelineLaunchParameters plp;
     
     //rtDeclareVariable(optix::Ray, sm_ray, rtCurrentRay, );

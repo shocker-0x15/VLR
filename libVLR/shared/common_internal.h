@@ -76,6 +76,14 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 
 
+#if defined(DEBUG)
+#   define VLR_DEBUG_SELECT(A, B) A
+#else
+#   define VLR_DEBUG_SELECT(A, B) B
+#endif
+
+
+
 #define VLR_Minimum_Machine_Alignment 16
 #define VLR_L1_Cacheline_Size 64
 
@@ -127,7 +135,67 @@ namespace VLR {
         return newMin + percentage * (newMax - newMin);
     }
 
-    RT_FUNCTION HOST_INLINE constexpr uint32_t prevPowerOf2(uint32_t x) {
+    RT_FUNCTION HOST_INLINE uint32_t tzcnt(uint32_t x) {
+#if defined(VLR_Host)
+        return _tzcnt_u32(x);
+#else
+        return __clz(__brev(x));
+#endif
+    }
+
+    RT_FUNCTION HOST_INLINE uint32_t lzcnt(uint32_t x) {
+#if defined(VLR_Host)
+        return _lzcnt_u32(x);
+#else
+        return __clz(x);
+#endif
+    }
+
+    RT_FUNCTION HOST_INLINE int32_t popcnt(uint32_t x) {
+#if defined(VLR_Host)
+        return _mm_popcnt_u32(x);
+#else
+        return __popc(x);
+#endif
+    }
+
+    //     0: 0
+    //     1: 0
+    //  2- 3: 1
+    //  4- 7: 2
+    //  8-15: 3
+    // 16-31: 4
+    RT_FUNCTION HOST_INLINE uint32_t prevPowOf2Exponent(uint32_t x) {
+        if (x == 0)
+            return 0;
+        return 31 - lzcnt(x);
+    }
+
+    //    0: 0
+    //    1: 0
+    //    2: 1
+    // 3- 4: 2
+    // 5- 8: 3
+    // 9-16: 4
+    RT_FUNCTION HOST_INLINE uint32_t nextPowOf2Exponent(uint32_t x) {
+        if (x == 0)
+            return 0;
+        return 32 - lzcnt(x - 1);
+    }
+
+    //     0: 0
+    //     1: 1
+    //  2- 3: 2
+    //  4- 7: 4
+    //  8-15: 8
+    // 16-31: 16
+    // ...
+    RT_FUNCTION HOST_INLINE uint32_t prevPowerOf2(uint32_t x) {
+        if (x == 0)
+            return 0;
+        return 1 << prevPowOf2Exponent(x);
+    }
+    constexpr uint32_t prevPowOf2Const(uint32_t x) {
         x |= (x >> 1);
         x |= (x >> 2);
         x |= (x >> 4);
@@ -136,7 +204,19 @@ namespace VLR {
         return x - (x >> 1);
     }
 
+    //    0: 0
+    //    1: 1
+    //    2: 2
+    // 3- 4: 4
+    // 5- 8: 8
+    // 9-16: 16
+    // ...
     RT_FUNCTION HOST_INLINE constexpr uint32_t nextPowerOf2(uint32_t x) {
+        if (x == 0)
+            return 0;
+        return 1 << nextPowOf2Exponent(x);
+    }
+    constexpr uint32_t nextPowerOf2Const(uint32_t x) {
         x--;
         x |= x >> 1;
         x |= x >> 2;
@@ -147,36 +227,15 @@ namespace VLR {
         return x;
     }
 
-    RT_FUNCTION HOST_INLINE uint32_t nextExpOf2(uint32_t n) {
-        if (n == 0)
-            return 0;
-        uint32_t np = nextPowerOf2(n);
-        //return _tzcnt_u64(np);
-        uint32_t exp = 0;
-        while ((np & (1 << exp)) == 0 && exp < 32)
-            ++exp;
-        return exp;
+    template <typename IntType>
+    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplesForPowOf2(IntType x, uint32_t exponent) {
+        IntType mask = (1 << exponent) - 1;
+        return (x + mask) & ~mask;
     }
 
     template <typename IntType>
-    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplierForPowOf2(IntType value, uint32_t powOf2) {
-        return (value + powOf2 - 1) / powOf2;
-    }
-
-    template <typename IntType>
-    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplesOfPowOf2(IntType value, uint32_t powOf2) {
-        return nextMultiplierForPowOf2(value, powOf2) * powOf2;
-    }
-
-    RT_FUNCTION HOST_INLINE uint32_t countTrailingZeroes(uint32_t value) {
-        uint32_t count = 0;
-        for (int i = 0; i < 32; ++i) {
-            if ((value & 0x1) == 1)
-                break;
-            ++count;
-            value >>= 1;
-        }
-        return count;
+    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplierForPowOf2(IntType x, uint32_t exponent) {
+        return nextMultiplesForPowOf2(x, exponent) >> exponent;
     }
 
     template <typename RealType>
@@ -203,7 +262,7 @@ namespace VLR {
     inline uint32_t nthSetBit(uint32_t value, int32_t n) {
         uint32_t idx = 0;
         int32_t count;
-        if (n >= _mm_popcnt_u32(value))
+        if (n >= popcnt(value))
             return 0xFFFFFFFF;
 
         for (uint32_t width = 16; width >= 1; width >>= 1) {
@@ -211,7 +270,7 @@ namespace VLR {
                 return 0xFFFFFFFF;
 
             uint32_t mask = (1 << width) - 1;
-            count = _mm_popcnt_u32(value & mask);
+            count = popcnt(value & mask);
             if (n >= count) {
                 value >>= width;
                 n -= count;
@@ -257,11 +316,12 @@ namespace VLR {
 // filesystem
 #if defined(VLR_Host)
 namespace VLR {
-#   if defined(VLR_Platform_Windows_MSVC)
-    namespace filesystem = std::experimental::filesystem;
-#   else
+//#   if defined(VLR_Platform_Windows_MSVC)
+//    namespace filesystem = std::experimental::filesystem;
+//#   else
+//    namespace filesystem = std::filesystem;
+//#   endif
     namespace filesystem = std::filesystem;
-#   endif
 
     filesystem::path getExecutableDirectory();
 }

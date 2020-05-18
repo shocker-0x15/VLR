@@ -2,7 +2,7 @@
 
 namespace VLR {
     // Common Closest Hit Program for All Primitive Types and Materials
-    RT_PROGRAM void pathTracingIteration() {
+    RT_PROGRAM void RT_CH_NAME(pathTracingIteration)() {
         auto sbtr = optixu::getHitGroupSBTRecordData();
         const GeometryInstanceData &geomInst = plp.geomInstData[sbtr.geomInstData];
 
@@ -28,7 +28,7 @@ namespace VLR {
             SampledSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
 
             float MISWeight = 1.0f;
-            if (!payload->prevSampledType.isDelta() && payload->rayType != RayType::Primary) {
+            if (!payload->prevSampledType.isDelta() && payload->pathLength > 1) {
                 float bsdfPDF = payload->prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(optixGetWorldRayOrigin()));
                 float lightPDF = geomInst.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
@@ -114,7 +114,7 @@ namespace VLR {
     // JP: 本当は無限大の球のIntersection/Bounding Box Programを使用して環境光に関する処理もClosest Hit Programで統一的に行いたい。
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
-    RT_PROGRAM void pathTracingMiss() {
+    RT_PROGRAM void RT_MS_NAME(pathTracing)() {
         Payload* payload;
         optixu::getPayloads<PayloadSignature>(&payload);
 
@@ -159,7 +159,7 @@ namespace VLR {
             SampledSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
 
             float MISWeight = 1.0f;
-            if (!payload->prevSampledType.isDelta() && payload->rayType != RayType::Primary) {
+            if (!payload->prevSampledType.isDelta() && payload->pathLength > 1) {
                 float bsdfPDF = payload->prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(optixGetWorldRayOrigin()));
                 float lightPDF = plp.envLightDescriptor.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
@@ -173,7 +173,7 @@ namespace VLR {
 
 
     // Common Ray Generation Program for All Camera Types
-    RT_PROGRAM void pathTracing() {
+    RT_PROGRAM void RT_RG_NAME(pathTracing)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
 
         KernelRNG rng = plp.rngBuffer[launchIndex];
@@ -184,20 +184,23 @@ namespace VLR {
         float selectWLPDF;
         WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
 
+        ProgSigSampleLensPosition sampleLensPosition(plp.progSampleLensPosition);
+        ProgSigSampleIDF sampleIDF(plp.progSampleIDF);
+
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;
-        SampledSpectrum We0 = plp.progSampleLensPosition(wls, We0Sample, &We0Result);
+        SampledSpectrum We0 = sampleLensPosition(wls, We0Sample, &We0Result);
 
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
-        SampledSpectrum We1 = plp.progSampleIDF(We0Result.surfPt, wls, We1Sample, &We1Result);
+        SampledSpectrum We1 = sampleIDF(We0Result.surfPt, wls, We1Sample, &We1Result);
 
         Point3D rayOrg = We0Result.surfPt.position;
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
-        RayType rayType = RayType::Primary;
         SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
 
         Payload payload;
+        payload.pathLength = 0;
         payload.maxLengthTerminate = false;
         payload.rng = rng;
         payload.initImportance = alpha.importance(wls.selectedLambdaIndex());
@@ -207,27 +210,24 @@ namespace VLR {
         Payload* payloadPtr = &payload;
 
         const uint32_t MaxPathLength = 25;
-        uint32_t pathLength = 0;
         while (true) {
-            payload.rayType = rayType;
+            ++payload.pathLength;
             payload.terminate = true;
-            ++pathLength;
-            if (pathLength >= MaxPathLength)
+            if (payload.pathLength >= MaxPathLength)
                 payload.maxLengthTerminate = true;
             optixu::trace<PayloadSignature>(
                 plp.topGroup,
                 asOptiXType(rayOrg), asOptiXType(rayDir),
                 0.0f, FLT_MAX, 0.0f, 0xFF, OPTIX_RAY_FLAG_NONE,
-                rayType, RayType::NumTypes, rayType,
+                RayType::ClosestSearch, RayType::NumTypes, RayType::ClosestSearch,
                 payloadPtr);
 
             if (payload.terminate)
                 break;
-            VLRAssert(pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
+            VLRAssert(payload.pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
 
             rayOrg = payload.origin;
             rayDir = payload.direction;
-            rayType = RayType::Scattered;
         }
         plp.rngBuffer[launchIndex] = payload.rng;
         if (!payload.contribution.allFinite()) {
