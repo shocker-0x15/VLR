@@ -80,6 +80,21 @@ namespace VLR {
             return NextID++;
         }
 
+        struct CallableProgram {
+            static uint32_t NextID;
+            optixu::ProgramGroup programGroup;
+            uint32_t ID;
+            void create(optixu::Pipeline pipeline,
+                        optixu::Module moduleDC, const char* baseNameDC,
+                        optixu::Module moduleCC, const char* baseNameCC) {
+                ID = NextID++;
+                programGroup = pipeline.createCallableGroup(moduleDC, baseNameDC, moduleCC, baseNameCC);
+            }
+            void destroy() {
+                programGroup.destroy();
+            }
+        };
+
         uint32_t m_ID;
         CUcontext m_cuContext;
         optixu::Context m_optixContext;
@@ -87,10 +102,10 @@ namespace VLR {
         Shared::PipelineLaunchParameters m_launchParams;
         cudau::TypedBuffer<DiscretizedSpectrumAlwaysSpectral::CMF> m_discretizedSpectrumCMFs;
 
-        optixu::Pipeline m_optixPathTracingPipeline;
-        optixu::Module m_optixPathTracingMainModule;
-        optixu::Module m_optixPathTracingMaterialModule;
-        optixu::Module m_optixPathTracingEmptyModule;
+        optixu::Pipeline m_optixPipeline;
+        optixu::Module m_optixPathTracingModule;
+        optixu::Module m_optixMaterialModule;
+        optixu::Module m_optixEmptyModule;
         optixu::ProgramGroup m_optixPathTracingRayGeneration;
         optixu::ProgramGroup m_optixPathTracingMiss;
         optixu::ProgramGroup m_optixPathTracingShadowMiss;
@@ -99,10 +114,7 @@ namespace VLR {
         optixu::ProgramGroup m_optixPathTracingHitGroupShadowDefault;
         optixu::ProgramGroup m_optixPathTracingHitGroupShadowWithAlpha;
 
-        optixu::Pipeline m_optixDebugRenderingPipeline;
-        optixu::Module m_optixDebugRenderingMainModule;
-        optixu::Module m_optixDebugRenderingMaterialModule;
-        optixu::Module m_optixDebugRenderingEmptyModule;
+        optixu::Module m_optixDebugRenderingModule;
         optixu::ProgramGroup m_optixDebugRenderingRayGeneration;
         optixu::ProgramGroup m_optixDebugRenderingMiss;
         optixu::ProgramGroup m_optixDebugRenderingHitGroupDefault;
@@ -115,9 +127,9 @@ namespace VLR {
         cudau::TypedBuffer<UpsampledSpectrum::spectrum_grid_cell_t> m_optixBufferUpsampledSpectrum_spectrum_grid;
         cudau::TypedBuffer<UpsampledSpectrum::spectrum_data_point_t> m_optixBufferUpsampledSpectrum_spectrum_data_points;
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        cudau::Buffer m_optixBufferUpsampledSpectrum_maxBrightnesses;
-        cudau::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65;
-        cudau::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_E;
+        cudau::TypedBuffer<float> m_optixBufferUpsampledSpectrum_maxBrightnesses;
+        cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65;
+        cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> m_optixBufferUpsampledSpectrum_coefficients_sRGB_E;
 #endif
 
         optixu::Material m_optixMaterialDefault;
@@ -132,18 +144,18 @@ namespace VLR {
         SlotBuffer<Shared::BSDFProcedureSet> m_BSDFProcedureBuffer;
         SlotBuffer<Shared::EDFProcedureSet> m_EDFProcedureBuffer;
 
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_setupBSDF;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_getBaseColor;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_matches;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_sampleInternal;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_evaluateInternal;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_evaluatePDFInternal;
-        optixu::ProgramGroup m_optixCallableProgramNullBSDF_weightInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_setupBSDF;
+        CallableProgram m_optixCallableProgramNullBSDF_getBaseColor;
+        CallableProgram m_optixCallableProgramNullBSDF_matches;
+        CallableProgram m_optixCallableProgramNullBSDF_sampleInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_evaluateInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_evaluatePDFInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_weightInternal;
         uint32_t m_nullBSDFProcedureSetIndex;
 
-        optixu::ProgramGroup m_optixCallableProgramNullEDF_setupEDF;
-        optixu::ProgramGroup m_optixCallableProgramNullEDF_evaluateEmittanceInternal;
-        optixu::ProgramGroup m_optixCallableProgramNullEDF_evaluateInternal;
+        CallableProgram m_optixCallableProgramNullEDF_setupEDF;
+        CallableProgram m_optixCallableProgramNullEDF_evaluateEmittanceInternal;
+        CallableProgram m_optixCallableProgramNullEDF_evaluateInternal;
         uint32_t m_nullEDFProcedureSetIndex;
 
         SlotBuffer<Shared::SurfaceMaterialDescriptor> m_surfaceMaterialDescriptorBuffer;
@@ -163,13 +175,16 @@ namespace VLR {
             return m_ID;
         }
 
-        void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID);
+        void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID);
         const cudau::Array &getOutputBuffer();
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
         void render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
         void debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
+        CUcontext getCuContext() const {
+            return m_cuContext;
+        }
         optixu::Context getOptiXContext() const {
             return m_optixContext;
         }
@@ -205,11 +220,11 @@ namespace VLR {
         void releaseEDFProcedureSet(uint32_t index);
         void updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet);
 
-        optixu::ProgramGroup getOptixCallableProgramNullBSDF_setupBSDF() const {
+        CallableProgram getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optixCallableProgramNullBSDF_setupBSDF;
         }
         uint32_t getNullBSDFProcedureSetIndex() const { return m_nullBSDFProcedureSetIndex; }
-        optixu::ProgramGroup getOptixCallableProgramNullEDF_setupEDF() const {
+        CallableProgram getOptixCallableProgramNullEDF_setupEDF() const {
             return m_optixCallableProgramNullEDF_setupEDF;
         }
         uint32_t getNullEDFProcedureSetIndex() const { return m_nullEDFProcedureSetIndex; }
@@ -289,8 +304,8 @@ namespace VLR {
 
     template <typename RealType>
     class DiscreteDistribution1DTemplate {
-        optixu::TypedBuffer<float> m_PMF;
-        optixu::TypedBuffer<float> m_CDF;
+        optixu::TypedBuffer<RealType> m_PMF;
+        optixu::TypedBuffer<RealType> m_CDF;
         RealType m_integral;
         uint32_t m_numValues;
 
@@ -307,8 +322,8 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution1DTemplate {
-        optixu::TypedBuffer<float> m_PDF;
-        optixu::TypedBuffer<float> m_CDF;
+        optixu::TypedBuffer<RealType> m_PDF;
+        optixu::TypedBuffer<RealType> m_CDF;
         RealType m_integral;
         uint32_t m_numValues;
 
@@ -328,7 +343,7 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution2DTemplate {
-        optixu::TypedBuffer<float> m_raw1DDists;
+        optixu::TypedBuffer<Shared::RegularConstantContinuousDistribution1DTemplate<RealType>> m_raw1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 

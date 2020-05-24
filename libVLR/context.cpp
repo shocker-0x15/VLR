@@ -100,9 +100,9 @@ namespace VLR {
 
 
 
-    const cudau::BufferType g_bufferType = cudau::BufferType::Device;
-
     uint32_t Context::NextID = 0;
+
+    uint32_t Context::CallableProgram::NextID = 0;
 
     Context::Context(bool logging, uint32_t maxCallableDepth, CUcontext cuContext) {
         vlrprintf("Start initializing VLR ...");
@@ -120,101 +120,82 @@ namespace VLR {
         // JP: パイプラインの作成。
         // EN: Create pipelines.
 
-        // Path Tracing
-        {
-            m_optixPathTracingPipeline = m_optixContext.createPipeline();
-            m_optixPathTracingPipeline.setPipelineOptions(
-                2, 2, "plp", sizeof(Shared::PipelineLaunchParameters),
-                false, OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_DEBUG, OPTIX_EXCEPTION_FLAG_NONE));
-            m_optixPathTracingPipeline.setMaxTraceDepth(2);
-            m_optixPathTracingPipeline.setNumMissRayTypes(Shared::RayType::NumTypes);
+        m_optixPipeline = m_optixContext.createPipeline();
+        m_optixPipeline.setPipelineOptions(
+            2, 2, "plp", sizeof(Shared::PipelineLaunchParameters),
+            false, OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
+            VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_DEBUG, OPTIX_EXCEPTION_FLAG_NONE));
+        m_optixPipeline.setMaxTraceDepth(2);
+        m_optixPipeline.setNumMissRayTypes(Shared::RayType::NumTypes);
 
 
 
-            m_optixPathTracingMainModule = m_optixPathTracingPipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/path_tracing.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+        m_optixPathTracingModule = m_optixPipeline.createModuleFromPTXString(
+            readTxtFile(exeDir / "ptxes/path_tracing.ptx"),
+            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
-            m_optixPathTracingRayGeneration = m_optixPathTracingPipeline.createRayGenProgram(
-                m_optixPathTracingMainModule, RT_RG_NAME_STR("pathTracing"));
+        m_optixPathTracingRayGeneration = m_optixPipeline.createRayGenProgram(
+            m_optixPathTracingModule, RT_RG_NAME_STR("pathTracing"));
 
-            m_optixPathTracingMiss = m_optixPathTracingPipeline.createRayGenProgram(
-                m_optixPathTracingMainModule, RT_MS_NAME_STR("pathTracing"));
+        m_optixPathTracingMiss = m_optixPipeline.createMissProgram(
+            m_optixPathTracingModule, RT_MS_NAME_STR("pathTracing"));
 
-            m_optixPathTracingShadowMiss = m_optixPathTracingPipeline.createRayGenProgram(
-                m_optixPathTracingEmptyModule, nullptr);
+        m_optixPathTracingShadowMiss = m_optixPipeline.createMissProgram(
+            m_optixEmptyModule, nullptr);
 
-            m_optixPathTracingHitGroupDefault = m_optixPathTracingPipeline.createHitProgramGroup(
-                m_optixPathTracingMainModule, RT_CH_NAME_STR("pathTracingIteration"),
-                m_optixPathTracingEmptyModule, nullptr,
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixPathTracingHitGroupWithAlpha = m_optixPathTracingPipeline.createHitProgramGroup(
-                m_optixPathTracingMainModule, RT_CH_NAME_STR("pathTracingIteration"),
-                m_optixPathTracingMainModule, RT_AH_NAME_STR("withAlpha"),
-                m_optixPathTracingEmptyModule, nullptr);
+        m_optixPathTracingHitGroupDefault = m_optixPipeline.createHitProgramGroup(
+            m_optixPathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
+            m_optixEmptyModule, nullptr,
+            m_optixEmptyModule, nullptr);
+        m_optixPathTracingHitGroupWithAlpha = m_optixPipeline.createHitProgramGroup(
+            m_optixPathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
+            m_optixPathTracingModule, RT_AH_NAME_STR("withAlpha"),
+            m_optixEmptyModule, nullptr);
 
-            m_optixPathTracingHitGroupShadowDefault = m_optixPathTracingPipeline.createHitProgramGroup(
-                m_optixPathTracingEmptyModule, nullptr,
-                m_optixPathTracingMainModule, RT_AH_NAME_STR("shadowDefault"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixPathTracingHitGroupShadowWithAlpha = m_optixPathTracingPipeline.createHitProgramGroup(
-                m_optixPathTracingEmptyModule, nullptr,
-                m_optixPathTracingMainModule, RT_AH_NAME_STR("shadowWithAlpha"),
-                m_optixPathTracingEmptyModule, nullptr);
-
-
-
-            m_optixPathTracingPipeline.setRayGenerationProgram(m_optixPathTracingRayGeneration);
-            m_optixPathTracingPipeline.setMissProgram(Shared::RayType::ClosestSearch, m_optixPathTracingMiss);
-            m_optixPathTracingPipeline.setMissProgram(Shared::RayType::Shadow, m_optixPathTracingShadowMiss);
-        }
-
-        // Debug Rendering
-        {
-            m_optixDebugRenderingPipeline = m_optixContext.createPipeline();
-            m_optixDebugRenderingPipeline.setPipelineOptions(
-                2, 2, "plp", sizeof(Shared::PipelineLaunchParameters),
-                false, OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_DEBUG, OPTIX_EXCEPTION_FLAG_NONE));
-            m_optixDebugRenderingPipeline.setMaxTraceDepth(1);
-            m_optixDebugRenderingPipeline.setNumMissRayTypes(Shared::DebugRayType::NumTypes);
+        m_optixPathTracingHitGroupShadowDefault = m_optixPipeline.createHitProgramGroup(
+            m_optixEmptyModule, nullptr,
+            m_optixPathTracingModule, RT_AH_NAME_STR("shadowDefault"),
+            m_optixEmptyModule, nullptr);
+        m_optixPathTracingHitGroupShadowWithAlpha = m_optixPipeline.createHitProgramGroup(
+            m_optixEmptyModule, nullptr,
+            m_optixPathTracingModule, RT_AH_NAME_STR("shadowWithAlpha"),
+            m_optixEmptyModule, nullptr);
 
 
 
-            m_optixDebugRenderingMainModule = m_optixDebugRenderingPipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/debug_rendering.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+        m_optixDebugRenderingModule = m_optixPipeline.createModuleFromPTXString(
+            readTxtFile(exeDir / "ptxes/debug_rendering.ptx"),
+            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
-            m_optixDebugRenderingRayGeneration = m_optixDebugRenderingPipeline.createRayGenProgram(
-                m_optixDebugRenderingMainModule, RT_RG_NAME_STR("debugRendering"));
+        m_optixDebugRenderingRayGeneration = m_optixPipeline.createRayGenProgram(
+            m_optixDebugRenderingModule, RT_RG_NAME_STR("debugRendering"));
 
-            m_optixDebugRenderingMiss = m_optixDebugRenderingPipeline.createRayGenProgram(
-                m_optixDebugRenderingMainModule, RT_MS_NAME_STR("debugRendering"));
+        m_optixDebugRenderingMiss = m_optixPipeline.createMissProgram(
+            m_optixDebugRenderingModule, RT_MS_NAME_STR("debugRendering"));
 
-            m_optixDebugRenderingHitGroupDefault = m_optixDebugRenderingPipeline.createHitProgramGroup(
-                m_optixDebugRenderingMainModule, RT_CH_NAME_STR("debugRendering"),
-                m_optixDebugRenderingEmptyModule, nullptr,
-                m_optixDebugRenderingEmptyModule, nullptr);
-            m_optixDebugRenderingHitGroupWithAlpha = m_optixDebugRenderingPipeline.createHitProgramGroup(
-                m_optixDebugRenderingMainModule, RT_CH_NAME_STR("debugRendering"),
-                m_optixDebugRenderingMainModule, RT_AH_NAME_STR("debugRenderingWithAlpha"),
-                m_optixDebugRenderingEmptyModule, nullptr);
+        m_optixDebugRenderingHitGroupDefault = m_optixPipeline.createHitProgramGroup(
+            m_optixDebugRenderingModule, RT_CH_NAME_STR("debugRendering"),
+            m_optixEmptyModule, nullptr,
+            m_optixEmptyModule, nullptr);
+        m_optixDebugRenderingHitGroupWithAlpha = m_optixPipeline.createHitProgramGroup(
+            m_optixDebugRenderingModule, RT_CH_NAME_STR("debugRendering"),
+            m_optixDebugRenderingModule, RT_AH_NAME_STR("debugRenderingWithAlpha"),
+            m_optixEmptyModule, nullptr);
 
 
 
-            m_optixDebugRenderingPipeline.setRayGenerationProgram(m_optixDebugRenderingRayGeneration);
-            m_optixDebugRenderingPipeline.setMissProgram(Shared::DebugRayType::Primary, m_optixDebugRenderingMiss);
-        }
+        m_optixPipeline.setMissProgram(Shared::RayType::ClosestSearch, m_optixPathTracingMiss);
+        m_optixPipeline.setMissProgram(Shared::RayType::Shadow, m_optixPathTracingShadowMiss);
+        m_optixPipeline.setMissProgram(Shared::RayType::DebugPrimary, m_optixDebugRenderingMiss);
 
         // END: Create pipelines.
         // ----------------------------------------------------------------
 
-        CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/path_tracing.ptx").string().c_str()));
+        CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/convert_to_rgb.ptx").string().c_str()));
         m_cudaPostProcessConvertToRGB.set(m_cudaPostProcessModule, "convertToRGB", dim3(8, 8), 0);
 
 
@@ -223,41 +204,16 @@ namespace VLR {
         const uint32_t NumSpectrumGridCells = 168;
         const uint32_t NumSpectrumDataPoints = 186;
         m_optixBufferUpsampledSpectrum_spectrum_grid.initialize(m_cuContext, g_bufferType, NumSpectrumGridCells);
-        {
-            auto values = m_optixBufferUpsampledSpectrum_spectrum_grid.map();
-            std::copy_n(UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells, values);
-            m_optixBufferUpsampledSpectrum_spectrum_grid.unmap();
-        }
+        m_optixBufferUpsampledSpectrum_spectrum_grid.transfer(UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells);
         m_optixBufferUpsampledSpectrum_spectrum_data_points.initialize(m_cuContext, g_bufferType, NumSpectrumDataPoints);
-        {
-            auto values = m_optixBufferUpsampledSpectrum_spectrum_data_points.map();
-            std::copy_n(UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints, values);
-            m_optixBufferUpsampledSpectrum_spectrum_data_points.unmap();
-        }
+        m_optixBufferUpsampledSpectrum_spectrum_data_points.transfer(UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        m_optixBufferUpsampledSpectrum_maxBrightnesses = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, UpsampledSpectrum::kTableResolution);
-        {
-            auto values = (float*)m_optixBufferUpsampledSpectrum_maxBrightnesses->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
-            std::copy_n(UpsampledSpectrum::maxBrightnesses, UpsampledSpectrum::kTableResolution, values);
-            m_optixBufferUpsampledSpectrum_maxBrightnesses->unmap();
-        }
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65 = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, 3 * pow3(UpsampledSpectrum::kTableResolution));
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->setElementSize(sizeof(UpsampledSpectrum::PolynomialCoefficients));
-        {
-            auto values = (UpsampledSpectrum::PolynomialCoefficients*)m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
-            std::copy_n(UpsampledSpectrum::coefficients_sRGB_D65, 3 * pow3(UpsampledSpectrum::kTableResolution), values);
-            m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->unmap();
-        }
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E = m_optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, 3 * pow3(UpsampledSpectrum::kTableResolution));
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->setElementSize(sizeof(UpsampledSpectrum::PolynomialCoefficients));
-        {
-            auto values = (UpsampledSpectrum::PolynomialCoefficients*)m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
-            std::copy_n(UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution), values);
-            m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->unmap();
-        }
-        setInt32(m_optixContext, "VLR::UpsampledSpectrum_maxBrightnesses", m_optixBufferUpsampledSpectrum_maxBrightnesses->getId());
-        setInt32(m_optixContext, "VLR::UpsampledSpectrum_coefficients_sRGB_D65", m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->getId());
-        setInt32(m_optixContext, "VLR::UpsampledSpectrum_coefficients_sRGB_E", m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->getId());
+        m_optixBufferUpsampledSpectrum_maxBrightnesses.initialize(m_cuContext, g_bufferType, UpsampledSpectrum::kTableResolution);
+        m_optixBufferUpsampledSpectrum_maxBrightnesses.transfer(UpsampledSpectrum::maxBrightnesses, UpsampledSpectrum::kTableResolution);
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65.initialize(m_cuContext, g_bufferType, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65.transfer(UpsampledSpectrum::coefficients_sRGB_D65, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E.initialize(m_cuContext, g_bufferType, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E.transfer(UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution));
 #endif
         
         m_discretizedSpectrumCMFs.initialize(m_cuContext, g_bufferType, 3);
@@ -274,12 +230,12 @@ namespace VLR {
         m_optixMaterialDefault = m_optixContext.createMaterial();
         m_optixMaterialDefault.setHitGroup(Shared::RayType::ClosestSearch, m_optixPathTracingHitGroupDefault);
         m_optixMaterialDefault.setHitGroup(Shared::RayType::Shadow, m_optixPathTracingHitGroupShadowDefault);
-        m_optixMaterialDefault.setHitGroup(Shared::DebugRayType::Primary, m_optixDebugRenderingHitGroupDefault);
+        m_optixMaterialDefault.setHitGroup(Shared::RayType::DebugPrimary, m_optixDebugRenderingHitGroupDefault);
 
         m_optixMaterialWithAlpha = m_optixContext.createMaterial();
         m_optixMaterialWithAlpha.setHitGroup(Shared::RayType::ClosestSearch, m_optixPathTracingHitGroupWithAlpha);
         m_optixMaterialWithAlpha.setHitGroup(Shared::RayType::Shadow, m_optixPathTracingHitGroupShadowWithAlpha);
-        m_optixMaterialWithAlpha.setHitGroup(Shared::DebugRayType::Primary, m_optixDebugRenderingHitGroupWithAlpha);
+        m_optixMaterialWithAlpha.setHitGroup(Shared::RayType::DebugPrimary, m_optixDebugRenderingHitGroupWithAlpha);
 
 
 
@@ -295,42 +251,49 @@ namespace VLR {
         m_EDFProcedureBuffer.initialize(m_optixContext, 64);
 
         {
-            m_optixPathTracingMaterialModule = m_optixPathTracingPipeline.createModuleFromPTXString(
+            m_optixMaterialModule = m_optixPipeline.createModuleFromPTXString(
                 readTxtFile(exeDir / "ptxes/materials.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
-            m_optixCallableProgramNullBSDF_setupBSDF = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_setupBSDF"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_getBaseColor = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_getBaseColor"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_matches = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_matches"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_sampleInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_sampleInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_evaluateInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_evaluateInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_evaluatePDFInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullBSDF_weightInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullBSDF_weightInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_setupBSDF.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_setupBSDF"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_getBaseColor.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_getBaseColor"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_matches.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_matches"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_sampleInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_sampleInternal"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_evaluateInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_evaluateInternal"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_evaluatePDFInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullBSDF_weightInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullBSDF_weightInternal"),
+                m_optixEmptyModule, nullptr);
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
-                bsdfProcSet.progGetBaseColor = m_optixCallableProgramNullBSDF_getBaseColor->getId();
-                bsdfProcSet.progMatches = m_optixCallableProgramNullBSDF_matches->getId();
-                bsdfProcSet.progSampleInternal = m_optixCallableProgramNullBSDF_sampleInternal->getId();
-                bsdfProcSet.progEvaluateInternal = m_optixCallableProgramNullBSDF_evaluateInternal->getId();
-                bsdfProcSet.progEvaluatePDFInternal = m_optixCallableProgramNullBSDF_evaluatePDFInternal->getId();
-                bsdfProcSet.progWeightInternal = m_optixCallableProgramNullBSDF_weightInternal->getId();
+                bsdfProcSet.progGetBaseColor = m_optixCallableProgramNullBSDF_getBaseColor.ID;
+                bsdfProcSet.progMatches = m_optixCallableProgramNullBSDF_matches.ID;
+                bsdfProcSet.progSampleInternal = m_optixCallableProgramNullBSDF_sampleInternal.ID;
+                bsdfProcSet.progEvaluateInternal = m_optixCallableProgramNullBSDF_evaluateInternal.ID;
+                bsdfProcSet.progEvaluatePDFInternal = m_optixCallableProgramNullBSDF_evaluatePDFInternal.ID;
+                bsdfProcSet.progWeightInternal = m_optixCallableProgramNullBSDF_weightInternal.ID;
             }
             m_nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
             updateBSDFProcedureSet(m_nullBSDFProcedureSetIndex, bsdfProcSet);
@@ -338,27 +301,30 @@ namespace VLR {
 
 
 
-            m_optixCallableProgramNullEDF_setupEDF = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullEDF_setupEDF"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullEDF_evaluateEmittanceInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
-            m_optixCallableProgramNullEDF_evaluateInternal = m_optixPathTracingPipeline.createCallableGroup(
-                m_optixPathTracingMaterialModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"),
-                m_optixPathTracingEmptyModule, nullptr);
+            m_optixCallableProgramNullEDF_setupEDF.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullEDF_setupEDF"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullEDF_evaluateEmittanceInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"),
+                m_optixEmptyModule, nullptr);
+            m_optixCallableProgramNullEDF_evaluateInternal.create(
+                m_optixPipeline,
+                m_optixMaterialModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"),
+                m_optixEmptyModule, nullptr);
 
             Shared::EDFProcedureSet edfProcSet;
             {
-                edfProcSet.progEvaluateEmittanceInternal = m_optixCallableProgramNullEDF_evaluateEmittanceInternal->getId();
-                edfProcSet.progEvaluateInternal = m_optixCallableProgramNullEDF_evaluateInternal->getId();
+                edfProcSet.progEvaluateEmittanceInternal = m_optixCallableProgramNullEDF_evaluateEmittanceInternal.ID;
+                edfProcSet.progEvaluateInternal = m_optixCallableProgramNullEDF_evaluateInternal.ID;
             }
             m_nullEDFProcedureSetIndex = allocateEDFProcedureSet();
             updateEDFProcedureSet(m_nullEDFProcedureSetIndex, edfProcSet);
             VLRAssert(m_nullEDFProcedureSetIndex == 0, "Index of the null EDF procedure set is expected to be 0.");
         }
 
-        m_surfaceMaterialDescriptorBuffer.initialize(m_optixContext, 8192, "VLR::pv_materialDescriptorBuffer");
+        m_surfaceMaterialDescriptorBuffer.initialize(m_optixContext, 8192);
 
         Image2D::initialize(*this);
         ShaderNode::initialize(*this);
@@ -370,59 +336,106 @@ namespace VLR {
 
 
 
-        RTsize defaultStackSize = 0;
-        if (m_RTXEnabled) {
-            if (stackSize > 0)
-                vlrprintf("Specified stack size is ignored in RTX mode.\n");
-        }
-        else {
-            defaultStackSize = m_optixContext->getStackSize();
+        uint32_t maxDssDC = 0;
+        VLRAssert(maxDssDC > 0, "Error.");
+        OptixStackSizes stackSizes;
+        uint32_t dcStackSizeDuringTrav = 0;
+        uint32_t dcStackSizeFromState = 0;
+        uint32_t ccStackSize = 0;
 
-            vlrprintf("Default Stack Size: %llu\n", defaultStackSize);
-            vlrprintf("Requested Stack Size: %u\n", stackSize);
-        }
+        // Stack size required for Path Tracing
+        {
+            m_optixPathTracingRayGeneration.getStackSize(&stackSizes);
+            uint32_t cssRG = stackSizes.cssRG;
+            m_optixPathTracingMiss.getStackSize(&stackSizes);
+            uint32_t cssMS = stackSizes.cssMS;
 
-        if (logging) {
-            m_optixContext->setPrintEnabled(true);
-            m_optixContext->setPrintBufferSize(4096);
-            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_ID_INVALID, true);
-            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_BUFFER_INDEX_OUT_OF_BOUNDS, true);
-            //m_optixContext->setExceptionEnabled(RT_EXCEPTION_INTERNAL_ERROR, true);
-            //m_optixContext->setPrintLaunchIndex(0, 0, 0);
-            if (stackSize == 0)
-                stackSize = 3072;
-        }
-        else {
-            m_optixContext->setExceptionEnabled(RT_EXCEPTION_STACK_OVERFLOW, false);
-            if (stackSize == 0)
-                stackSize = 2560;
-        }
+            uint32_t cssCH = 0;
+            uint32_t cssAH = 0;
+            uint32_t cssIS = 0;
+            m_optixPathTracingHitGroupDefault.getStackSize(&stackSizes);
+            cssCH = std::max(cssCH, stackSizes.cssCH);
+            cssAH = std::max(cssAH, stackSizes.cssAH);
+            cssIS = std::max(cssIS, stackSizes.cssIS);
+            m_optixPathTracingHitGroupWithAlpha.getStackSize(&stackSizes);
+            cssCH = std::max(cssCH, stackSizes.cssCH);
+            cssAH = std::max(cssAH, stackSizes.cssAH);
+            cssIS = std::max(cssIS, stackSizes.cssIS);
 
-        if (m_RTXEnabled) {
-            m_optixContext->setMaxTraceDepth(2); // Iterative path tracing needs only depth 2 (shadow ray in closest hit program).
-            m_optixContext->setMaxCallableProgramDepth(std::max<uint32_t>(3, maxCallableDepth));
-        }
-        else {
-            // Dirty hack for OptiX stack size management where the relation between set/getStackSize() is inconsistent
-            // depending on a device or a version of OptiX.
-            m_optixContext->setStackSize(defaultStackSize);
-            stackSize = stackSize * defaultStackSize / m_optixContext->getStackSize();
+            m_optixPathTracingShadowMiss.getStackSize(&stackSizes);
+            uint32_t cssMS_NEE = stackSizes.cssMS;
 
-            m_optixContext->setStackSize(stackSize);
-            RTsize actuallyUsedStackSize = m_optixContext->getStackSize();
-            vlrprintf("Stack Size: %llu\n", actuallyUsedStackSize);
+            uint32_t cssCH_NEE = 0;
+            uint32_t cssAH_NEE = 0;
+            uint32_t cssIS_NEE = 0;
+            m_optixPathTracingHitGroupShadowDefault.getStackSize(&stackSizes);
+            cssCH_NEE = std::max(cssCH_NEE, stackSizes.cssCH);
+            cssAH_NEE = std::max(cssAH_NEE, stackSizes.cssAH);
+            cssIS_NEE = std::max(cssIS_NEE, stackSizes.cssIS);
+            m_optixPathTracingHitGroupShadowWithAlpha.getStackSize(&stackSizes);
+            cssCH_NEE = std::max(cssCH_NEE, stackSizes.cssCH);
+            cssAH_NEE = std::max(cssAH_NEE, stackSizes.cssAH);
+            cssIS_NEE = std::max(cssIS_NEE, stackSizes.cssIS);
+
+            uint32_t ccStackSize_NEE = std::max(std::max(cssCH_NEE, cssMS_NEE),
+                                                cssAH_NEE + cssIS_NEE);
+
+            dcStackSizeDuringTrav = std::max(dcStackSizeDuringTrav, maxDssDC * maxCallableDepth);
+            dcStackSizeFromState = std::max(dcStackSizeFromState, maxDssDC * maxCallableDepth);
+            ccStackSize = std::max(ccStackSize,
+                                   cssRG +
+                                   std::max(std::max(cssCH + ccStackSize_NEE, cssMS),
+                                            cssAH + cssIS));
         }
+        // Stack size for required for Debug Rendering
+        {
+            m_optixDebugRenderingRayGeneration.getStackSize(&stackSizes);
+            uint32_t cssRG = stackSizes.cssRG;
+            m_optixDebugRenderingMiss.getStackSize(&stackSizes);
+            uint32_t cssMS = stackSizes.cssMS;
+
+            uint32_t cssCH = 0;
+            uint32_t cssAH = 0;
+            uint32_t cssIS = 0;
+            m_optixDebugRenderingHitGroupDefault.getStackSize(&stackSizes);
+            cssCH = std::max(cssCH, stackSizes.cssCH);
+            cssAH = std::max(cssAH, stackSizes.cssAH);
+            cssIS = std::max(cssIS, stackSizes.cssIS);
+            m_optixDebugRenderingHitGroupWithAlpha.getStackSize(&stackSizes);
+            cssCH = std::max(cssCH, stackSizes.cssCH);
+            cssAH = std::max(cssAH, stackSizes.cssAH);
+            cssIS = std::max(cssIS, stackSizes.cssIS);
+
+            dcStackSizeDuringTrav = std::max(dcStackSizeDuringTrav, maxDssDC * maxCallableDepth);
+            dcStackSizeFromState = std::max(dcStackSizeFromState, maxDssDC * maxCallableDepth);
+            ccStackSize = std::max(ccStackSize,
+                                   cssRG +
+                                   std::max(std::max(cssCH, cssMS),
+                                            cssAH + cssIS));
+        }
+        m_optixPipeline.setStackSize(dcStackSizeDuringTrav,
+                                     dcStackSizeFromState,
+                                     ccStackSize);
+        vlrprintf("Direct Callable Stack Size:\n");
+        vlrprintf("  during Traversal: %u [bytes]\n", dcStackSizeDuringTrav);
+        vlrprintf("        from State: %u [bytes]\n", dcStackSizeFromState);
+        vlrprintf("Continuation Callable Stack Size: %u [bytes]\n", ccStackSize);
+
+        if (logging)
+            cuCtxSetLimit(CU_LIMIT_PRINTF_FIFO_SIZE, 4096);
+        else
+            cuCtxSetLimit(CU_LIMIT_PRINTF_FIFO_SIZE, 256);
     }
 
     Context::~Context() {
-        if (m_rngBuffer)
-            m_rngBuffer->destroy();
+        if (m_rngBuffer.isInitialized())
+            m_rngBuffer.finalize();
 
-        if (m_rawOutputBuffer)
-            m_rawOutputBuffer->destroy();
+        if (m_rawOutputBuffer.isInitialized())
+            m_rawOutputBuffer.finalize();
 
-        if (m_outputBuffer)
-            m_outputBuffer->destroy();
+        if (m_outputBuffer.isInitialized())
+            m_outputBuffer.finalize();
 
         Camera::finalize(*this);
         SurfaceNode::finalize(*this);
@@ -433,18 +446,19 @@ namespace VLR {
         m_surfaceMaterialDescriptorBuffer.finalize();
 
         releaseEDFProcedureSet(m_nullEDFProcedureSetIndex);
-        m_optixCallableProgramNullEDF_evaluateInternal->destroy();
-        m_optixCallableProgramNullEDF_evaluateEmittanceInternal->destroy();
-        m_optixCallableProgramNullEDF_setupEDF->destroy();
+        m_optixCallableProgramNullEDF_evaluateInternal.destroy();
+        m_optixCallableProgramNullEDF_evaluateEmittanceInternal.destroy();
+        m_optixCallableProgramNullEDF_setupEDF.destroy();
 
         releaseBSDFProcedureSet(m_nullBSDFProcedureSetIndex);
-        m_optixCallableProgramNullBSDF_weightInternal->destroy();
-        m_optixCallableProgramNullBSDF_evaluatePDFInternal->destroy();
-        m_optixCallableProgramNullBSDF_evaluateInternal->destroy();
-        m_optixCallableProgramNullBSDF_sampleInternal->destroy();
-        m_optixCallableProgramNullBSDF_matches->destroy();
-        m_optixCallableProgramNullBSDF_getBaseColor->destroy();
-        m_optixCallableProgramNullBSDF_setupBSDF->destroy();
+        m_optixCallableProgramNullBSDF_weightInternal.destroy();
+        m_optixCallableProgramNullBSDF_evaluatePDFInternal.destroy();
+        m_optixCallableProgramNullBSDF_evaluateInternal.destroy();
+        m_optixCallableProgramNullBSDF_sampleInternal.destroy();
+        m_optixCallableProgramNullBSDF_matches.destroy();
+        m_optixCallableProgramNullBSDF_getBaseColor.destroy();
+        m_optixCallableProgramNullBSDF_setupBSDF.destroy();
+        m_optixMaterialModule.destroy();
 
         m_EDFProcedureBuffer.finalize();
         m_BSDFProcedureBuffer.finalize();
@@ -455,41 +469,43 @@ namespace VLR {
 
         m_nodeProcedureBuffer.finalize();
 
-        m_optixMaterialWithAlpha->destroy();
-        m_optixMaterialDefault->destroy();
+        m_optixMaterialWithAlpha.destroy();
+        m_optixMaterialDefault.destroy();
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-        m_optixBufferUpsampledSpectrum_spectrum_data_points->destroy();
-        m_optixBufferUpsampledSpectrum_spectrum_grid->destroy();
+        m_optixBufferUpsampledSpectrum_spectrum_data_points.finalize();
+        m_optixBufferUpsampledSpectrum_spectrum_grid.finalize();
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E->destroy();
-        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65->destroy();
-        m_optixBufferUpsampledSpectrum_maxBrightnesses->destroy();
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_E.finalize();
+        m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65.finalize();
+        m_optixBufferUpsampledSpectrum_maxBrightnesses.finalize();
 #endif
 
-        m_optixProgramConvertToRGB->destroy();
+        CUDADRV_CHECK(cuModuleUnload(m_cudaPostProcessModule));
 
-        m_optixProgramDebugRenderingException->destroy();
-        m_optixProgramDebugRenderingRayGeneration->destroy();
-        m_optixProgramDebugRenderingMiss->destroy();
-        m_optixProgramDebugRenderingAnyHitWithAlpha->destroy();
-        m_optixProgramDebugRenderingClosestHit->destroy();
+        m_optixDebugRenderingHitGroupWithAlpha.destroy();
+        m_optixDebugRenderingHitGroupDefault.destroy();
+        m_optixDebugRenderingMiss.destroy();
+        m_optixDebugRenderingRayGeneration.destroy();
+        m_optixDebugRenderingModule.destroy();
 
-        m_optixProgramException->destroy();
-        m_optixProgramPathTracingMiss->destroy();
-        m_optixProgramPathTracing->destroy();
+        m_optixPathTracingHitGroupShadowWithAlpha.destroy();
+        m_optixPathTracingHitGroupShadowDefault.destroy();
+        m_optixPathTracingHitGroupWithAlpha.destroy();
+        m_optixPathTracingHitGroupDefault.destroy();
+        m_optixPathTracingShadowMiss.destroy();
+        m_optixPathTracingMiss.destroy();
+        m_optixPathTracingRayGeneration.destroy();
+        m_optixPathTracingModule.destroy();
 
-        m_optixProgramPathTracingIteration->destroy();
-        m_optixProgramShadowAnyHitWithAlpha->destroy();
-        m_optixProgramAnyHitWithAlpha->destroy();
-        m_optixProgramShadowAnyHitDefault->destroy();
+        m_optixPipeline.destroy();
 
         m_optixContext.destroy();
 
         finalizeColorSystem();
     }
 
-    void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) {
+    void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID) {
         if (m_outputBuffer.isInitialized())
             m_outputBuffer.finalize();
         if (m_rawOutputBuffer.isInitialized())
@@ -500,18 +516,15 @@ namespace VLR {
         m_width = width;
         m_height = height;
 
-        if (glBufferID > 0) {
-            m_outputBuffer.initializeFromGLTexture2D(m_cuContext, glBufferID, cudau::ArraySurface::Enable);
+        if (glTexID > 0) {
+            m_outputBuffer.initializeFromGLTexture2D(m_cuContext, glTexID, cudau::ArraySurface::Enable);
         }
         else {
             m_outputBuffer.initialize2D(m_cuContext, cudau::ArrayElementType::Float32, 4, cudau::ArraySurface::Enable,
                                         m_width, m_height, 1);
         }
-        m_optixContext["VLR::pv_RGBBuffer"]->set(m_outputBuffer);
 
         m_rawOutputBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
-        m_optixContext["VLR::pv_spectrumBuffer"]->set(m_rawOutputBuffer);
-        m_optixContext["VLR::pv_outputBuffer"]->set(m_rawOutputBuffer);
 
         m_rngBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
         {
@@ -520,7 +533,7 @@ namespace VLR {
             m_rngBuffer.map();
             for (int y = 0; y < m_height; ++y) {
                 for (int x = 0; x < m_width; ++x) {
-                    m_rngBuffer[uint2{ x, y }] = Shared::KernelRNG(rng());
+                    m_rngBuffer[make_uint2(x, y)] = Shared::KernelRNG(rng());
                 }
             }
             m_rngBuffer.unmap();
@@ -542,7 +555,6 @@ namespace VLR {
         //    }
         //    m_rngBuffer->unmap();
         //}
-        m_optixContext["VLR::pv_rngBuffer"]->set(m_rngBuffer);
     }
 
     const cudau::Array &Context::getOutputBuffer() {
@@ -555,67 +567,67 @@ namespace VLR {
     }
 
     void Context::render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        optix::Context optixContext = getOptiXContext();
-
-        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
-        if (firstFrame) {
-            scene.setup();
-            camera->setup();
-
-            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
-
-            m_numAccumFrames = 0;
-        }
-
-        ++m_numAccumFrames;
-        *numAccumFrames = m_numAccumFrames;
-        //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
-        optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
-
-#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
-        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
-#endif
-
-#if defined(VLR_ENABLE_VALIDATION)
-        optixContext->validate();
-#endif
-
-        optixContext->launch(EntryPoint::PathTracing, imageSize.x, imageSize.y);
-
-        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
+//        optix::Context optixContext = getOptiXContext();
+//
+//        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
+//        if (firstFrame) {
+//            scene.setup();
+//            camera->setup();
+//
+//            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+//
+//            m_numAccumFrames = 0;
+//        }
+//
+//        ++m_numAccumFrames;
+//        *numAccumFrames = m_numAccumFrames;
+//        //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
+//        optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
+//
+//#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
+//        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+//#endif
+//
+//#if defined(VLR_ENABLE_VALIDATION)
+//        optixContext->validate();
+//#endif
+//
+//        optixContext->launch(EntryPoint::PathTracing, imageSize.x, imageSize.y);
+//
+//        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 
     void Context::debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        optix::Context optixContext = getOptiXContext();
-
-        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
-        if (firstFrame) {
-            scene.setup();
-            camera->setup();
-
-            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
-
-            m_numAccumFrames = 0;
-        }
-
-        ++m_numAccumFrames;
-        *numAccumFrames = m_numAccumFrames;
-        //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
-        optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
-
-#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
-        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
-#endif
-
-#if defined(VLR_ENABLE_VALIDATION)
-        optixContext->validate();
-#endif
-
-        auto attr = Shared::DebugRenderingAttribute((Shared::DebugRenderingAttribute)renderMode);
-        optixContext["VLR::pv_debugRenderingAttribute"]->setUserData(sizeof(attr), &attr);
-        optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
-
-        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
+//        optix::Context optixContext = getOptiXContext();
+//
+//        optix::uint2 imageSize = optix::make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
+//        if (firstFrame) {
+//            scene.setup();
+//            camera->setup();
+//
+//            optixContext["VLR::pv_imageSize"]->setUint(imageSize);
+//
+//            m_numAccumFrames = 0;
+//        }
+//
+//        ++m_numAccumFrames;
+//        *numAccumFrames = m_numAccumFrames;
+//        //optixContext["VLR::pv_numAccumFrames"]->setUint(m_numAccumFrames);
+//        optixContext["VLR::pv_numAccumFrames"]->setUserData(sizeof(m_numAccumFrames), &m_numAccumFrames);
+//
+//#if defined(VLR_ENABLE_TIMEOUT_CALLBACK)
+//        optixContext->setTimeoutCallback([]() { return 1; }, 0.1);
+//#endif
+//
+//#if defined(VLR_ENABLE_VALIDATION)
+//        optixContext->validate();
+//#endif
+//
+//        auto attr = Shared::DebugRenderingAttribute((Shared::DebugRenderingAttribute)renderMode);
+//        optixContext["VLR::pv_debugRenderingAttribute"]->setUserData(sizeof(attr), &attr);
+//        optixContext->launch(EntryPoint::DebugRendering, imageSize.x, imageSize.y);
+//
+//        optixContext->launch(EntryPoint::ConvertToRGB, imageSize.x, imageSize.y);
     }
 
 
@@ -707,13 +719,13 @@ namespace VLR {
     // ----------------------------------------------------------------
     // Miscellaneous
 
-    template <typename RealType>
-    static optix::Buffer createBuffer(optix::Context &context, RTbuffertype type, RTsize width);
+    //template <typename RealType>
+    //static optix::Buffer createBuffer(optix::Context &context, RTbuffertype type, RTsize width);
 
-    template <>
-    static optix::Buffer createBuffer<float>(optix::Context &context, RTbuffertype type, RTsize width) {
-        return context->createBuffer(type, RT_FORMAT_FLOAT, width);
-    }
+    //template <>
+    //static optix::Buffer createBuffer<float>(optix::Context &context, RTbuffertype type, RTsize width) {
+    //    return context->createBuffer(type, RT_FORMAT_FLOAT, width);
+    //}
 
 
 
@@ -721,13 +733,13 @@ namespace VLR {
     void DiscreteDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
         optixu::Context optixContext = context.getOptiXContext();
 
-        m_numValues = (uint32_t)numValues;
-        m_PMF.initialize(optixContext.getCUcontext(), s_bufferType, m_numValues);
-        m_CDF.initialize(optixContext.getCUcontext(), s_bufferType, m_numValues + 1);
+        m_numValues = static_cast<uint32_t>(numValues);
+        m_PMF.initialize(optixContext.getCUcontext(), g_bufferType, m_numValues);
+        m_CDF.initialize(optixContext.getCUcontext(), g_bufferType, m_numValues + 1);
 
         RealType* PMF = m_PMF.map();
         RealType* CDF = m_CDF.map();
-        std::memcpy(PMF, values, sizeof(RealType) * m_numValues);
+        std::copy_n(values, m_numValues, PMF);
 
         CompensatedSum<RealType> sum(0);
         CDF[0] = 0;
@@ -747,7 +759,7 @@ namespace VLR {
 
     template <typename RealType>
     void DiscreteDistribution1DTemplate<RealType>::finalize(Context &context) {
-        if (m_CDF.isInitialize() && m_PMF.isInitialize()) {
+        if (m_CDF.isInitialized() && m_PMF.isInitialized()) {
             m_CDF.finalize();
             m_PMF.finalize();
         }
@@ -755,8 +767,8 @@ namespace VLR {
 
     template <typename RealType>
     void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
-        if (m_PMF && m_CDF)
-            new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(m_PMF->getId(), m_CDF->getId(), m_integral, m_numValues);
+        if (m_PMF.isInitialized() && m_CDF.isInitialized())
+            new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(m_PMF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
 
     template class DiscreteDistribution1DTemplate<float>;
@@ -765,15 +777,15 @@ namespace VLR {
 
     template <typename RealType>
     void RegularConstantContinuousDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
-        optix::Context optixContext = context.getOptiXContext();
+        CUcontext cuContext = context.getCuContext();
 
-        m_numValues = (uint32_t)numValues;
-        m_PDF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues);
-        m_CDF = createBuffer<RealType>(optixContext, RT_BUFFER_INPUT, m_numValues + 1);
+        m_numValues = static_cast<uint32_t>(numValues);
+        m_PDF.initialize(cuContext, g_bufferType, m_numValues);
+        m_CDF.initialize(cuContext, g_bufferType, m_numValues + 1);
 
-        RealType* PDF = (RealType*)m_PDF->map();
-        RealType* CDF = (RealType*)m_CDF->map();
-        std::memcpy(PDF, values, sizeof(RealType) * m_numValues);
+        RealType* PDF = m_PDF.map();
+        RealType* CDF = m_CDF.map();
+        std::copy_n(values, m_numValues, PDF);
 
         CompensatedSum<RealType> sum{ 0 };
         CDF[0] = 0;
@@ -787,21 +799,21 @@ namespace VLR {
             CDF[i + 1] /= sum;
         }
 
-        m_CDF->unmap();
-        m_PDF->unmap();
+        m_CDF.unmap();
+        m_PDF.unmap();
     }
 
     template <typename RealType>
     void RegularConstantContinuousDistribution1DTemplate<RealType>::finalize(Context &context) {
-        if (m_CDF && m_PDF) {
-            m_CDF->destroy();
-            m_PDF->destroy();
+        if (m_CDF.isInitialized() && m_PDF.isInitialized()) {
+            m_CDF.finalize();
+            m_PDF.finalize();
         }
     }
 
     template <typename RealType>
     void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
-        new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(m_PDF->getId(), m_CDF->getId(), m_integral, m_numValues);
+        new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(m_PDF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
 
     template class RegularConstantContinuousDistribution1DTemplate<float>;
@@ -810,20 +822,19 @@ namespace VLR {
 
     template <typename RealType>
     void RegularConstantContinuousDistribution2DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numD1, size_t numD2) {
-        optix::Context optixContext = context.getOptiXContext();
+        CUcontext cuContext = context.getCuContext();
 
         m_1DDists = new RegularConstantContinuousDistribution1DTemplate<RealType>[numD2];
-        m_raw1DDists = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, numD2);
-        m_raw1DDists->setElementSize(sizeof(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>));
+        m_raw1DDists.initialize(cuContext, g_bufferType, numD2);
 
-        auto rawDists = (Shared::RegularConstantContinuousDistribution1DTemplate<RealType>*)m_raw1DDists->map();
+        Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* rawDists = m_raw1DDists.map();
 
         // JP: まず各行に関するDistribution1Dを作成する。
         // EN: First, create Distribution1D's for every rows.
         CompensatedSum<RealType> sum(0);
         RealType* integrals = new RealType[numD2];
         for (int i = 0; i < numD2; ++i) {
-            RegularConstantContinuousDistribution1D &dist = m_1DDists[i];
+            RegularConstantContinuousDistribution1DTemplate<RealType> &dist = m_1DDists[i];
             dist.initialize(context, values + i * numD1, numD1);
             dist.getInternalType(&rawDists[i]);
             integrals[i] = dist.getIntegral();
@@ -837,18 +848,17 @@ namespace VLR {
 
         VLRAssert(std::isfinite(m_top1DDist.getIntegral()), "invalid integral value.");
 
-        m_raw1DDists->unmap();
+        m_raw1DDists.unmap();
     }
 
     template <typename RealType>
     void RegularConstantContinuousDistribution2DTemplate<RealType>::finalize(Context &context) {
         m_top1DDist.finalize(context);
 
-        for (int i = m_top1DDist.getNumValues() - 1; i >= 0; --i) {
+        for (int i = m_top1DDist.getNumValues() - 1; i >= 0; --i)
             m_1DDists[i].finalize(context);
-        }
 
-        m_raw1DDists->destroy();
+        m_raw1DDists.finalize();
         delete[] m_1DDists;
         m_1DDists = nullptr;
     }
@@ -857,7 +867,7 @@ namespace VLR {
     void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
         Shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
         m_top1DDist.getInternalType(&top1DDist);
-        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_raw1DDists->getId(), top1DDist);
+        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_raw1DDists.getDevicePointer(), top1DDist);
     }
 
     template class RegularConstantContinuousDistribution2DTemplate<float>;

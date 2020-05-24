@@ -15,13 +15,13 @@ namespace VLR {
 
 
 
-    std::string ShaderNode::s_shader_nodes_ptx;
+    optixu::Module s_shaderNodeModule;
     
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
         const std::string &ptx = s_shader_nodes_ptx;
 
-        optix::Context optixContext = context.getOptiXContext();
+        optixu::Context optixContext = context.getOptiXContext();
 
         Shared::NodeProcedureSet nodeProcSet;
         for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
@@ -59,7 +59,7 @@ namespace VLR {
 
     // static
     void ShaderNode::initialize(Context &context) {
-        s_shader_nodes_ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
 
         GeometryShaderNode::initialize(context);
         TangentShaderNode::initialize(context);

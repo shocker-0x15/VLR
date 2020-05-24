@@ -294,6 +294,14 @@ namespace cudau {
             return reinterpret_cast<T*>(map());
         }
         void unmap();
+        template <typename T>
+        void transfer(const T* srcValues, uint32_t numValues) {
+            CUDAUAssert(sizeof(T) * numValues <= static_cast<size_t>(m_stride) * m_numElements,
+                        "Too large transfer.");
+            auto values = map<T>();
+            std::copy_n(srcValues, numValues, values);
+            unmap();
+        }
 
         Buffer copy() const;
     };
@@ -349,7 +357,10 @@ namespace cudau {
         }
 
         T* map() {
-            return reinterpret_cast<T*>(Buffer::map());
+            return Buffer::map<T>();
+        }
+        void transfer(const T* srcValues, uint32_t numValues) {
+            Buffer::transfer<T>(srcValues, numValues);
         }
 
         T operator[](uint32_t idx) {

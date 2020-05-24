@@ -282,8 +282,8 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution1DTemplate {
-            RealType* m_PDF;
-            RealType* m_CDF;
+            const RealType* m_PDF;
+            const RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
@@ -325,7 +325,7 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution2DTemplate {
-            RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
+            const RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
@@ -597,7 +597,15 @@ namespace VLR {
             float opHeight;
             float imgPlaneArea;
 
+#if defined(VLR_Host)
+            constexpr PerspectiveCamera() : 
+                sensitivity(0), aspect(0), fovY(0), lensRadius(0),
+                imgPlaneDistance(0), objPlaneDistance(0),
+                opWidth(0), opHeight(0), imgPlaneArea(0)
+            {}
+#else
             RT_FUNCTION PerspectiveCamera() {}
+#endif
 
             void setImagePlaneArea() {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
@@ -605,6 +613,12 @@ namespace VLR {
                 imgPlaneDistance = 1.0f;
                 imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
             }
+
+#if defined(VLR_Host)
+            static constexpr PerspectiveCamera Null() {
+                return PerspectiveCamera();
+            }
+#endif
         };
 
 
@@ -627,22 +641,11 @@ namespace VLR {
             enum Value {
                 ClosestSearch = 0,
                 Shadow,
+                DebugPrimary,
                 NumTypes
             } value;
 
             RT_FUNCTION constexpr RayType(Value v = ClosestSearch) : value(v) {}
-            RT_FUNCTION constexpr operator Value() const {
-                return value;
-            }
-        };
-
-        struct DebugRayType {
-            enum Value {
-                Primary,
-                NumTypes
-            } value;
-
-            RT_FUNCTION constexpr DebugRayType(Value v = Primary) : value(v) {}
             RT_FUNCTION constexpr operator Value() const {
                 return value;
             }
@@ -962,6 +965,10 @@ namespace VLR {
             optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
 
             DebugRenderingAttribute debugRenderingAttribute;
+
+#if defined(VLR_Host)
+            PipelineLaunchParameters() : perspectiveCamera() {}
+#endif
         };
     }
 }

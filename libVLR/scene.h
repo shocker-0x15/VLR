@@ -52,26 +52,26 @@ namespace VLR {
 
     class SHGroup {
         Context &m_context;
-        optix::Group m_optixGroup;
-        optix::Acceleration m_optixAcceleration;
+        //optix::Group m_optixGroup;
+        //optix::Acceleration m_optixAcceleration;
         struct TransformStatus {
             bool hasGeometryDescendant;
-            optix::Transform transform;
-            optix::GeometryGroup geomGroup;
-            std::map<const SHGeometryInstance*, optix::GeometryInstance> geomInstances;
+            //optix::Transform transform;
+            //optix::GeometryGroup geomGroup;
+            //std::map<const SHGeometryInstance*, optix::GeometryInstance> geomInstances;
 
             TransformStatus() : hasGeometryDescendant(false) {}
             TransformStatus(TransformStatus &&v) {
                 hasGeometryDescendant = v.hasGeometryDescendant;
-                transform = v.transform;
-                geomGroup = v.geomGroup;
-                geomInstances = std::move(v.geomInstances);
+                //transform = v.transform;
+                //geomGroup = v.geomGroup;
+                //geomInstances = std::move(v.geomInstances);
             }
             TransformStatus &operator=(TransformStatus &&v) {
                 hasGeometryDescendant = v.hasGeometryDescendant;
-                transform = v.transform;
-                geomGroup = v.geomGroup;
-                geomInstances = std::move(v.geomInstances);
+                //transform = v.transform;
+                //geomGroup = v.geomGroup;
+                //geomInstances = std::move(v.geomInstances);
                 return *this;
             }
         };
@@ -87,21 +87,21 @@ namespace VLR {
 
     public:
         SHGroup(Context &context) : m_context(context), m_numValidTransforms(0), m_surfaceLightsAreSetup(false) {
-            optix::Context optixContext = m_context.getOptiXContext();
-            m_optixGroup = optixContext->createGroup();
-            m_optixAcceleration = optixContext->createAcceleration("Trbvh");
-            m_optixGroup->setAcceleration(m_optixAcceleration);
+            //optix::Context optixContext = m_context.getOptiXContext();
+            //m_optixGroup = optixContext->createGroup();
+            //m_optixAcceleration = optixContext->createAcceleration("Trbvh");
+            //m_optixGroup->setAcceleration(m_optixAcceleration);
 
-            m_geometryInstanceDescriptorBuffer.initialize(optixContext, 65536, nullptr);
+            //m_geometryInstanceDescriptorBuffer.initialize(optixContext, 65536, nullptr);
         }
         ~SHGroup() {
-            if (m_surfaceLightsAreSetup)
-                m_surfaceLightImpDist.finalize(m_context);
+            //if (m_surfaceLightsAreSetup)
+            //    m_surfaceLightImpDist.finalize(m_context);
 
-            m_geometryInstanceDescriptorBuffer.finalize();
+            //m_geometryInstanceDescriptorBuffer.finalize();
 
-            m_optixAcceleration->destroy();
-            m_optixGroup->destroy();
+            //m_optixAcceleration->destroy();
+            //m_optixGroup->destroy();
         }
 
         void addChild(SHTransform* transform);
@@ -148,16 +148,16 @@ namespace VLR {
     };
 
     class SHGeometryGroup {
-        optix::Acceleration m_optixAcceleration;
+        //optix::Acceleration m_optixAcceleration;
         std::set<const SHGeometryInstance*> m_instances;
 
     public:
         SHGeometryGroup(Context &context) {
-            optix::Context optixContext = context.getOptiXContext();
-            m_optixAcceleration = optixContext->createAcceleration("Trbvh");
+            //optix::Context optixContext = context.getOptiXContext();
+            //m_optixAcceleration = optixContext->createAcceleration("Trbvh");
         }
         ~SHGeometryGroup() {
-            m_optixAcceleration->destroy();
+            //m_optixAcceleration->destroy();
         }
 
         void addGeometryInstance(const SHGeometryInstance* instance);
@@ -175,26 +175,26 @@ namespace VLR {
             return (uint32_t)m_instances.size();
         }
 
-        optix::Acceleration getAcceleration() const {
-            return m_optixAcceleration;
-        }
+        //optix::Acceleration getAcceleration() const {
+        //    return m_optixAcceleration;
+        //}
     };
 
     class SHGeometryInstance {
         struct TriangleMeshProperty {
-            optix::Buffer vertexBuffer;
-            optix::Buffer triangleBuffer;
+            //optix::Buffer vertexBuffer;
+            //optix::Buffer triangleBuffer;
             DiscreteDistribution1D primDist;
             float sumImportances;
         };
         struct InfiniteSphereProperty {
         };
 
-        optix::Geometry m_geometry;
-        optix::GeometryTriangles m_geometryTriangles;
-        optix::Program m_progDecodeHitPoint;
+        //optix::Geometry m_geometry;
+        //optix::GeometryTriangles m_geometryTriangles;
+        //optix::Program m_progDecodeHitPoint;
         int32_t m_progSample;
-        optix::Material m_material;
+        //optix::Material m_material;
         uint32_t m_materialIndex;
         float m_importance;
         ShaderNodePlug m_nodeNormal;
@@ -205,43 +205,43 @@ namespace VLR {
         bool m_isTriMesh;
 
     public:
-        SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance,
-                           const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
-                           const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
-                           const DiscreteDistribution1D &primDist, float sumImportances) :
-        m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-        m_material(material), m_materialIndex(materialIndex), m_importance(importance),
-        m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
-            m_triMeshProp.vertexBuffer = vertexBuffer;
-            m_triMeshProp.triangleBuffer = triangleBuffer;
-            m_triMeshProp.primDist = primDist;
-            m_triMeshProp.sumImportances = sumImportances;
-            m_isTriMesh = true;
-        }
-        SHGeometryInstance(const optix::GeometryTriangles &geometryTriangles, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance,
-                           const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
-                           const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
-                           const DiscreteDistribution1D &primDist, float sumImportances) :
-            m_geometryTriangles(geometryTriangles), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-            m_material(material), m_materialIndex(materialIndex), m_importance(importance),
-            m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
-            m_triMeshProp.vertexBuffer = vertexBuffer;
-            m_triMeshProp.triangleBuffer = triangleBuffer;
-            m_triMeshProp.primDist = primDist;
-            m_triMeshProp.sumImportances = sumImportances;
-            m_isTriMesh = true;
-        }
-        SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance) :
-            m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-            m_material(material), m_materialIndex(materialIndex), m_importance(importance) {
-            m_isTriMesh = false;
-        }
+        //SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
+        //                   const optix::Material &material, uint32_t materialIndex, float importance,
+        //                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
+        //                   const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
+        //                   const DiscreteDistribution1D &primDist, float sumImportances) :
+        //m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
+        //m_material(material), m_materialIndex(materialIndex), m_importance(importance),
+        //m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
+        //    m_triMeshProp.vertexBuffer = vertexBuffer;
+        //    m_triMeshProp.triangleBuffer = triangleBuffer;
+        //    m_triMeshProp.primDist = primDist;
+        //    m_triMeshProp.sumImportances = sumImportances;
+        //    m_isTriMesh = true;
+        //}
+        //SHGeometryInstance(const optix::GeometryTriangles &geometryTriangles, const optix::Program &progDecodeHitPoint, int32_t progSample,
+        //                   const optix::Material &material, uint32_t materialIndex, float importance,
+        //                   const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
+        //                   const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
+        //                   const DiscreteDistribution1D &primDist, float sumImportances) :
+        //    m_geometryTriangles(geometryTriangles), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
+        //    m_material(material), m_materialIndex(materialIndex), m_importance(importance),
+        //    m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
+        //    m_triMeshProp.vertexBuffer = vertexBuffer;
+        //    m_triMeshProp.triangleBuffer = triangleBuffer;
+        //    m_triMeshProp.primDist = primDist;
+        //    m_triMeshProp.sumImportances = sumImportances;
+        //    m_isTriMesh = true;
+        //}
+        //SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
+        //                   const optix::Material &material, uint32_t materialIndex, float importance) :
+        //    m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
+        //    m_material(material), m_materialIndex(materialIndex), m_importance(importance) {
+        //    m_isTriMesh = false;
+        //}
         ~SHGeometryInstance() {}
 
-        optix::GeometryInstance createGeometryInstance(Context &context) const;
+        //optix::GeometryInstance createGeometryInstance(Context &context) const;
         void createGeometryInstanceDescriptor(Shared::GeometryInstanceDescriptor* desc) const;
     };
 
@@ -300,25 +300,25 @@ namespace VLR {
 
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optix::Program programCalcAttributeForTriangle; // Attribute Program
-            optix::Program programIntersectTriangle; // Intersection Program
-            optix::Program programCalcBBoxForTriangle; // Bounding Box Program
-            optix::Program callableProgramDecodeHitPointForTriangle;
-            optix::Program callableProgramSampleTriangleMesh;
+            //optixu::Program programCalcAttributeForTriangle; // Attribute Program
+            //optixu::Program programIntersectTriangle; // Intersection Program
+            //optixu::Program programCalcBBoxForTriangle; // Bounding Box Program
+            optixu::ProgramGroup callableProgramDecodeHitPointForTriangle;
+            optixu::ProgramGroup callableProgramSampleTriangleMesh;
         };
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
         struct OptiXGeometry {
             std::vector<uint32_t> indices;
-            optix::Buffer optixIndexBuffer;
-            optix::GeometryTriangles optixGeometryTriangles;
-            optix::Geometry optixGeometry;
+            cudau::Buffer optixIndexBuffer;
+            //optix::GeometryTriangles optixGeometryTriangles;
+            //optix::Geometry optixGeometry;
             DiscreteDistribution1D primDist;
         };
 
         std::vector<Vertex> m_vertices;
-        optix::Buffer m_optixVertexBuffer;
+        cudau::Buffer m_optixVertexBuffer;
         std::vector<OptiXGeometry> m_optixGeometries;
         std::vector<const SurfaceMaterial*> m_materials;
         std::vector<ShaderNodePlug> m_nodeNormals;
@@ -347,15 +347,15 @@ namespace VLR {
 
     class InfiniteSphereSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optix::Program programIntersectInfiniteSphere; // Intersection Program
-            optix::Program programCalcBBoxForInfiniteSphere; // Bounding Box Program
-            optix::Program callableProgramDecodeHitPointForInfiniteSphere;
-            optix::Program callableProgramSampleInfiniteSphere;
+            //optixu::Program programIntersectInfiniteSphere; // Intersection Program
+            //optixu::Program programCalcBBoxForInfiniteSphere; // Bounding Box Program
+            optixu::ProgramGroup callableProgramDecodeHitPointForInfiniteSphere;
+            optixu::ProgramGroup callableProgramSampleInfiniteSphere;
         };
 
         static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
 
-        optix::Geometry m_optixGeometry;
+        //optix::Geometry m_optixGeometry;
         SurfaceMaterial* m_material;
         SHGeometryInstance* m_shGeometryInstance;
 
@@ -502,7 +502,7 @@ namespace VLR {
 
     class Scene : public Object {
         RootNode m_rootNode;
-        optix::Program m_callableProgramSampleInfiniteSphere;
+        optixu::ProgramGroup m_callableProgramSampleInfiniteSphere;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
         float m_envRotationPhi;
 
@@ -550,8 +550,8 @@ namespace VLR {
     class Camera : public Queryable {
     protected:
         struct OptiXProgramSet {
-            optix::Program callableProgramSampleLensPosition;
-            optix::Program callableProgramSampleIDF;
+            optixu::ProgramGroup callableProgramSampleLensPosition;
+            optixu::ProgramGroup callableProgramSampleIDF;
         };
 
         static std::string s_cameras_ptx;

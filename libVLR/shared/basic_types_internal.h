@@ -17,6 +17,9 @@ namespace VLR {
 
 
 
+    RT_FUNCTION constexpr uint2 make_uint2(uint32_t x, uint32_t y) {
+        return uint2{ x, y };
+    }
     RT_FUNCTION constexpr float2 make_float2(float v) {
         return float2{ v, v };
     }

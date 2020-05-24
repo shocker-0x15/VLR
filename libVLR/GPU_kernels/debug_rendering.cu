@@ -217,7 +217,7 @@ namespace VLR {
             plp.topGroup,
             asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir),
             0.0f, FLT_MAX, 0.0f, 0xFF, OPTIX_RAY_FLAG_NONE,
-            DebugRayType::Primary, RayType::NumTypes, DebugRayType::Primary,
+            RayType::DebugPrimary, RayType::NumTypes, RayType::DebugPrimary,
             payloadPtr);
 
         plp.rngBuffer[launchIndex] = payload.rng;
