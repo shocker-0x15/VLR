@@ -13,16 +13,15 @@ namespace VLR {
 
 
     enum class TextureFilter {
-        Nearest = 0,
-        Linear,
-        None
+        Nearest = static_cast<TextureFilter>(cudau::TextureFilterMode::Point),
+        Linear = static_cast<TextureFilter>(cudau::TextureFilterMode::Linear)
     };
 
     enum class TextureWrapMode {
-        Repeat = 0,
-        ClampToEdge,
-        Mirror,
-        ClampToBorder,
+        Repeat = static_cast<TextureWrapMode>(cudau::TextureWrapMode::Repeat),
+        ClampToEdge = static_cast<TextureWrapMode>(cudau::TextureWrapMode::Clamp),
+        Mirror = static_cast<TextureWrapMode>(cudau::TextureWrapMode::Mirror),
+        ClampToBorder = static_cast<TextureWrapMode>(cudau::TextureWrapMode::Border),
     };
 
 
@@ -74,26 +73,33 @@ namespace VLR {
 
 
 
+    struct CallableProgram {
+        static uint32_t NextID;
+        optixu::ProgramGroup programGroup;
+        uint32_t ID;
+
+        CallableProgram() : ID(0xFFFFFFFF) {}
+        void create(optixu::Pipeline pipeline,
+                    optixu::Module moduleDC, const char* baseNameDC,
+                    optixu::Module moduleCC, const char* baseNameCC) {
+            ID = NextID++;
+            programGroup = pipeline.createCallableGroup(moduleDC, baseNameDC, moduleCC, baseNameCC);
+        }
+        void destroy() {
+            programGroup.destroy();
+        }
+        operator bool() const {
+            return ID != 0xFFFFFFFF;
+        }
+    };
+
+
+
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
             return NextID++;
         }
-
-        struct CallableProgram {
-            static uint32_t NextID;
-            optixu::ProgramGroup programGroup;
-            uint32_t ID;
-            void create(optixu::Pipeline pipeline,
-                        optixu::Module moduleDC, const char* baseNameDC,
-                        optixu::Module moduleCC, const char* baseNameCC) {
-                ID = NextID++;
-                programGroup = pipeline.createCallableGroup(moduleDC, baseNameDC, moduleCC, baseNameCC);
-            }
-            void destroy() {
-                programGroup.destroy();
-            }
-        };
 
         uint32_t m_ID;
         CUcontext m_cuContext;
@@ -187,6 +193,12 @@ namespace VLR {
         }
         optixu::Context getOptiXContext() const {
             return m_optixContext;
+        }
+        optixu::Pipeline getOptixPipeline() const {
+            return m_optixPipeline;
+        }
+        optixu::Module getEmptyModule() const {
+            return m_optixEmptyModule;
         }
 
         optixu::Material getOptiXMaterialDefault() const {
@@ -313,7 +325,7 @@ namespace VLR {
         void initialize(Context &context, const RealType* values, size_t numValues);
         void finalize(Context &context);
 
-        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
+        void getSharedType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
     };
 
     using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
@@ -334,7 +346,7 @@ namespace VLR {
         RealType getIntegral() const { return m_integral; }
         uint32_t getNumValues() const { return m_numValues; }
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
+        void getSharedType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
@@ -355,7 +367,7 @@ namespace VLR {
 
         bool isInitialized() const { return m_1DDists != nullptr; }
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
+        void getSharedType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;

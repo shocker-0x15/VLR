@@ -1,47 +1,65 @@
 ﻿#include "materials.h"
 
 namespace VLR {
-    std::string SurfaceMaterial::s_materials_ptx;
+    optixu::Module SurfaceMaterial::s_materialModule;
 
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
-        const std::string &ptx = s_materials_ptx;
-
-        optix::Context optixContext = context.getOptiXContext();
+        optixu::Pipeline pipeline = context.getOptixPipeline();
 
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
-            programSet->callableProgramSetupBSDF = optixContext->createProgramFromPTXString(ptx, identifiers[0]);
+            programSet->callableProgramSetupBSDF.create(
+                pipeline, s_materialModule, identifiers[0],
+                context.getEmptyModule(), nullptr);
 
-            programSet->callableProgramBSDFGetBaseColor = optixContext->createProgramFromPTXString(ptx, identifiers[1]);
-            programSet->callableProgramBSDFmatches = optixContext->createProgramFromPTXString(ptx, identifiers[2]);
-            programSet->callableProgramBSDFSampleInternal = optixContext->createProgramFromPTXString(ptx, identifiers[3]);
-            programSet->callableProgramBSDFEvaluateInternal = optixContext->createProgramFromPTXString(ptx, identifiers[4]);
-            programSet->callableProgramBSDFEvaluatePDFInternal = optixContext->createProgramFromPTXString(ptx, identifiers[5]);
-            programSet->callableProgramBSDFWeightInternal = optixContext->createProgramFromPTXString(ptx, identifiers[6]);
+            programSet->callableProgramBSDFGetBaseColor.create(
+                pipeline, s_materialModule, identifiers[1],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramBSDFmatches.create(
+                pipeline, s_materialModule, identifiers[2],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramBSDFSampleInternal.create(
+                pipeline, s_materialModule, identifiers[3],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramBSDFEvaluateInternal.create(
+                pipeline, s_materialModule, identifiers[4],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramBSDFEvaluatePDFInternal.create(
+                pipeline, s_materialModule, identifiers[5],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramBSDFWeightInternal.create(
+                pipeline, s_materialModule, identifiers[6],
+                context.getEmptyModule(), nullptr);
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
-                bsdfProcSet.progGetBaseColor = programSet->callableProgramBSDFGetBaseColor->getId();
-                bsdfProcSet.progMatches = programSet->callableProgramBSDFmatches->getId();
-                bsdfProcSet.progSampleInternal = programSet->callableProgramBSDFSampleInternal->getId();
-                bsdfProcSet.progEvaluateInternal = programSet->callableProgramBSDFEvaluateInternal->getId();
-                bsdfProcSet.progEvaluatePDFInternal = programSet->callableProgramBSDFEvaluatePDFInternal->getId();
-                bsdfProcSet.progWeightInternal = programSet->callableProgramBSDFWeightInternal->getId();
+                bsdfProcSet.progGetBaseColor = programSet->callableProgramBSDFGetBaseColor.ID;
+                bsdfProcSet.progMatches = programSet->callableProgramBSDFmatches.ID;
+                bsdfProcSet.progSampleInternal = programSet->callableProgramBSDFSampleInternal.ID;
+                bsdfProcSet.progEvaluateInternal = programSet->callableProgramBSDFEvaluateInternal.ID;
+                bsdfProcSet.progEvaluatePDFInternal = programSet->callableProgramBSDFEvaluatePDFInternal.ID;
+                bsdfProcSet.progWeightInternal = programSet->callableProgramBSDFWeightInternal.ID;
             }
             programSet->bsdfProcedureSetIndex = context.allocateBSDFProcedureSet();
             context.updateBSDFProcedureSet(programSet->bsdfProcedureSetIndex, bsdfProcSet);
         }
 
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
-            programSet->callableProgramSetupEDF = optixContext->createProgramFromPTXString(ptx, identifiers[7]);
+            programSet->callableProgramSetupEDF.create(
+                pipeline, s_materialModule, identifiers[7],
+                context.getEmptyModule(), nullptr);
 
-            programSet->callableProgramEDFEvaluateEmittanceInternal = optixContext->createProgramFromPTXString(ptx, identifiers[8]);
-            programSet->callableProgramEDFEvaluateInternal = optixContext->createProgramFromPTXString(ptx, identifiers[9]);
+            programSet->callableProgramEDFEvaluateEmittanceInternal.create(
+                pipeline, s_materialModule, identifiers[8],
+                context.getEmptyModule(), nullptr);
+            programSet->callableProgramEDFEvaluateInternal.create(
+                pipeline, s_materialModule, identifiers[9],
+                context.getEmptyModule(), nullptr);
 
             Shared::EDFProcedureSet edfProcSet;
             {
-                edfProcSet.progEvaluateEmittanceInternal = programSet->callableProgramEDFEvaluateEmittanceInternal->getId();
-                edfProcSet.progEvaluateInternal = programSet->callableProgramEDFEvaluateInternal->getId();
+                edfProcSet.progEvaluateEmittanceInternal = programSet->callableProgramEDFEvaluateEmittanceInternal.ID;
+                edfProcSet.progEvaluateInternal = programSet->callableProgramEDFEvaluateInternal.ID;
             }
             programSet->edfProcedureSetIndex = context.allocateEDFProcedureSet();
             context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet);
@@ -53,50 +71,55 @@ namespace VLR {
         if (programSet.callableProgramSetupEDF) {
             context.releaseEDFProcedureSet(programSet.edfProcedureSetIndex);
 
-            programSet.callableProgramEDFEvaluateInternal->destroy();
-            programSet.callableProgramEDFEvaluateEmittanceInternal->destroy();
+            programSet.callableProgramEDFEvaluateInternal.destroy();
+            programSet.callableProgramEDFEvaluateEmittanceInternal.destroy();
 
-            programSet.callableProgramSetupEDF->destroy();
+            programSet.callableProgramSetupEDF.destroy();
         }
 
         if (programSet.callableProgramSetupBSDF) {
             context.releaseBSDFProcedureSet(programSet.bsdfProcedureSetIndex);
 
-            programSet.callableProgramBSDFWeightInternal->destroy();
-            programSet.callableProgramBSDFEvaluatePDFInternal->destroy();
-            programSet.callableProgramBSDFEvaluateInternal->destroy();
-            programSet.callableProgramBSDFSampleInternal->destroy();
-            programSet.callableProgramBSDFmatches->destroy();
-            programSet.callableProgramBSDFGetBaseColor->destroy();
+            programSet.callableProgramBSDFWeightInternal.destroy();
+            programSet.callableProgramBSDFEvaluatePDFInternal.destroy();
+            programSet.callableProgramBSDFEvaluateInternal.destroy();
+            programSet.callableProgramBSDFSampleInternal.destroy();
+            programSet.callableProgramBSDFmatches.destroy();
+            programSet.callableProgramBSDFGetBaseColor.destroy();
 
-            programSet.callableProgramSetupBSDF->destroy();
+            programSet.callableProgramSetupBSDF.destroy();
         }
     }
 
     // static
     void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc) {
         if (progSet.callableProgramSetupBSDF) {
-            matDesc->progSetupBSDF = progSet.callableProgramSetupBSDF->getId();
+            matDesc->progSetupBSDF = progSet.callableProgramSetupBSDF.ID;
             matDesc->bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
         }
         else {
-            matDesc->progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF()->getId();
+            matDesc->progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF().ID;
             matDesc->bsdfProcedureSetIndex = context.getNullBSDFProcedureSetIndex();
         }
 
         if (progSet.callableProgramSetupEDF) {
-            matDesc->progSetupEDF = progSet.callableProgramSetupEDF->getId();
+            matDesc->progSetupEDF = progSet.callableProgramSetupEDF.ID;
             matDesc->edfProcedureSetIndex = progSet.edfProcedureSetIndex;
         }
         else {
-            matDesc->progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF()->getId();
+            matDesc->progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF().ID;
             matDesc->edfProcedureSetIndex = context.getNullEDFProcedureSetIndex();
         }
     }
 
     // static
     void SurfaceMaterial::initialize(Context &context) {
-        s_materials_ptx = readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx");
+        optixu::Pipeline pipeline = context.getOptixPipeline();
+        s_materialModule = pipeline.createModuleFromPTXString(
+            readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx"),
+            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
         MatteSurfaceMaterial::initialize(context);
         SpecularReflectionSurfaceMaterial::initialize(context);
@@ -124,6 +147,8 @@ namespace VLR {
         SpecularScatteringSurfaceMaterial::finalize(context);
         SpecularReflectionSurfaceMaterial::finalize(context);
         MatteSurfaceMaterial::finalize(context);
+
+        s_materialModule.destroy();
     }
 
     SurfaceMaterial::SurfaceMaterial(Context &context) : Queryable(context) {
@@ -763,7 +788,7 @@ namespace VLR {
             m_node_k = plug;
         }
         else if (testParamName(paramName, "roughness/anisotropy/rotation")) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeRoughnessAnisotropyRotation = plug;
@@ -993,7 +1018,7 @@ namespace VLR {
             m_nodeEtaInt = plug;
         }
         else if (testParamName(paramName, "roughness/anisotropy/rotation")) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeRoughnessAnisotropyRotation = plug;
@@ -1346,7 +1371,7 @@ namespace VLR {
             m_nodeBaseColor = plug;
         }
         else if (testParamName(paramName, "occlusion/roughness/metallic")) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeOcclusionRoughnessMetallic = plug;
@@ -1585,7 +1610,7 @@ namespace VLR {
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f) {
+        SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, VLR_M_PI, VLR_M_PI, VLR_M_PI), m_immScale(1.0f) {
         setupMaterialDescriptor();
     }
 
@@ -1861,7 +1886,7 @@ namespace VLR {
     }
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :
-        SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f) {
+        SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, VLR_M_PI, VLR_M_PI, VLR_M_PI), m_immScale(1.0f) {
         setupMaterialDescriptor();
     }
 
@@ -1985,7 +2010,7 @@ namespace VLR {
                 float* linearData = new float[mapWidth * mapHeight];
                 std::fill_n(linearData, mapWidth * mapHeight, 1.0f);
                 for (int y = 0; y < mapHeight; ++y) {
-                    float theta = M_PI * (y + 0.5f) / mapHeight;
+                    float theta = VLR_M_PI * (y + 0.5f) / mapHeight;
                     for (int x = 0; x < mapWidth; ++x) {
                         linearData[y * mapWidth + x] *= std::sin(theta);
                     }

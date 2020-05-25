@@ -52,7 +52,7 @@ namespace VLR {
     class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
-            optixu::ProgramGroup callablePrograms[nextPowerOf2Const(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
+            CallableProgram callablePrograms[nextPowerOf2Const(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
             uint32_t nodeProcedureSetIndex;
         };
     public:
@@ -71,12 +71,12 @@ namespace VLR {
             ShaderNodePlugType ptype;
             const char* programName;
         };
-        static std::string s_shader_nodes_ptx;
+        static optixu::Module s_shaderNodeModule;
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
         template <typename T>
-        T* getData() const {
+        T* getData() {
             if (m_nodeSizeClass == 0)
                 return smallNodeDesc.getData<T>();
             else if (m_nodeSizeClass == 1)
@@ -117,7 +117,7 @@ namespace VLR {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, GeometryShaderNode*> Instances;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -154,7 +154,7 @@ namespace VLR {
 
         TangentType m_immTangentType;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -190,7 +190,7 @@ namespace VLR {
         float m_imm0;
         float m_imm1;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -232,7 +232,7 @@ namespace VLR {
         float m_imm1;
         float m_imm2;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -278,7 +278,7 @@ namespace VLR {
         float m_imm2;
         float m_imm3;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -323,7 +323,7 @@ namespace VLR {
         float m_immScale;
         float m_immOffset;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -360,7 +360,7 @@ namespace VLR {
         ColorSpace m_colorSpace;
         float m_immE0, m_immE1, m_immE2;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -399,7 +399,7 @@ namespace VLR {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -438,7 +438,7 @@ namespace VLR {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -476,7 +476,7 @@ namespace VLR {
         SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -514,7 +514,7 @@ namespace VLR {
         float m_offset[2];
         float m_scale[2];
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -546,12 +546,11 @@ namespace VLR {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
 
-        cudau::TextureSampler m_optixTextureSampler;
+        cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;
         BumpType m_bumpType;
         float m_bumpCoeff;
-        TextureFilter m_minFilter;
-        TextureFilter m_magFilter;
+        TextureFilter m_xyFilter;
         TextureWrapMode m_wrapU;
         TextureWrapMode m_wrapV;
         ShaderNodePlug m_nodeTexCoord;
@@ -601,10 +600,9 @@ namespace VLR {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
 
-        cudau::TextureSampler m_optixTextureSampler;
+        cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;
-        TextureFilter m_minFilter;
-        TextureFilter m_magFilter;
+        TextureFilter m_xyFilter;
 
         void setupNodeDescriptor();
 

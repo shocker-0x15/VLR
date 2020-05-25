@@ -15,21 +15,22 @@ namespace VLR {
 
 
 
-    optixu::Module s_shaderNodeModule;
+    optixu::Module ShaderNode::s_shaderNodeModule;
     
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
-        const std::string &ptx = s_shader_nodes_ptx;
-
-        optixu::Context optixContext = context.getOptiXContext();
+        optixu::Pipeline pipeline = context.getOptixPipeline();
 
         Shared::NodeProcedureSet nodeProcSet;
         for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
             nodeProcSet.progs[i] = 0xFFFFFFFF;
         for (int i = 0; i < numPairs; ++i) {
-            uint32_t ptype = (uint32_t)pairs[i].ptype;
-            programSet->callablePrograms[ptype] = optixContext->createProgramFromPTXString(ptx, pairs[i].programName);
-            nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype]->getId();
+            uint32_t ptype = static_cast<uint32_t>(pairs[i].ptype);
+            programSet->callablePrograms[ptype].create(
+                pipeline,
+                s_shaderNodeModule, pairs[i].programName,
+                context.getEmptyModule(), nullptr);
+            nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype].ID;
         }
 
         programSet->nodeProcedureSetIndex = context.allocateNodeProcedureSet();
@@ -42,7 +43,7 @@ namespace VLR {
 
         for (int i = lengthof(programSet.callablePrograms) - 1; i >= 0; --i) {
             if (programSet.callablePrograms[i])
-                programSet.callablePrograms[i]->destroy();
+                programSet.callablePrograms[i].destroy();
         }
     }
 
@@ -59,7 +60,12 @@ namespace VLR {
 
     // static
     void ShaderNode::initialize(Context &context) {
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx");
+        optixu::Pipeline pipeline = context.getOptixPipeline();
+        s_shaderNodeModule = pipeline.createModuleFromPTXString(
+            readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx"),
+            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
         GeometryShaderNode::initialize(context);
         TangentShaderNode::initialize(context);
@@ -91,6 +97,8 @@ namespace VLR {
         Float2ShaderNode::finalize(context);
         TangentShaderNode::finalize(context);
         GeometryShaderNode::finalize(context);
+
+        s_shaderNodeModule.destroy();
     }
 
     ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {
@@ -161,7 +169,7 @@ namespace VLR {
     GeometryShaderNode::~GeometryShaderNode() {
     }
 
-    void GeometryShaderNode::setupNodeDescriptor() const {
+    void GeometryShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::GeometryShaderNode>();
 
         updateNodeDescriptor();
@@ -212,7 +220,7 @@ namespace VLR {
     TangentShaderNode::~TangentShaderNode() {
     }
 
-    void TangentShaderNode::setupNodeDescriptor() const {
+    void TangentShaderNode::setupNodeDescriptor() {
         auto& nodeData = *getData<Shared::TangentShaderNode>();
         nodeData.tangentType = m_immTangentType;
 
@@ -237,7 +245,7 @@ namespace VLR {
     bool TangentShaderNode::set(const char* paramName, const char* enumValue) {
         if (testParamName(paramName, "tangent type")) {
             auto v = getEnumValueFromMember<TangentType>(enumValue);
-            if (v == (TangentType)0xFFFFFFFF)
+            if (v == static_cast<TangentType>(0xFFFFFFFF))
                 return false;
 
             m_immTangentType = v;
@@ -294,7 +302,7 @@ namespace VLR {
     Float2ShaderNode::~Float2ShaderNode() {
     }
 
-    void Float2ShaderNode::setupNodeDescriptor() const {
+    void Float2ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -435,7 +443,7 @@ namespace VLR {
     Float3ShaderNode::~Float3ShaderNode() {
     }
 
-    void Float3ShaderNode::setupNodeDescriptor() const {
+    void Float3ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -601,7 +609,7 @@ namespace VLR {
     Float4ShaderNode::~Float4ShaderNode() {
     }
 
-    void Float4ShaderNode::setupNodeDescriptor() const {
+    void Float4ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -785,7 +793,7 @@ namespace VLR {
     ScaleAndOffsetFloatShaderNode::~ScaleAndOffsetFloatShaderNode() {
     }
 
-    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
+    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::ScaleAndOffsetFloatShaderNode>();
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
@@ -933,7 +941,7 @@ namespace VLR {
     TripletSpectrumShaderNode::~TripletSpectrumShaderNode() {
     }
 
-    void TripletSpectrumShaderNode::setupNodeDescriptor() const {
+    void TripletSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
@@ -981,14 +989,14 @@ namespace VLR {
     bool TripletSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
         if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
-            if (v == (SpectrumType)0xFFFFFFFF)
+            if (v == static_cast<SpectrumType>(0xFFFFFFFF))
                 return false;
 
             m_spectrumType = v;
         }
         else if (testParamName(paramName, "color space")) {
             auto v = getEnumValueFromMember<ColorSpace>(enumValue);
-            if (v == (ColorSpace)0xFFFFFFFF)
+            if (v == static_cast<ColorSpace>(0xFFFFFFFF))
                 return false;
 
             m_colorSpace = v;
@@ -1070,7 +1078,7 @@ namespace VLR {
             delete[] m_values;
     }
 
-    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -1243,7 +1251,7 @@ namespace VLR {
         }
     }
 
-    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -1382,7 +1390,7 @@ namespace VLR {
     Float3ToSpectrumShaderNode::~Float3ToSpectrumShaderNode() {
     }
 
-    void Float3ToSpectrumShaderNode::setupNodeDescriptor() const {
+    void Float3ToSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::Float3ToSpectrumShaderNode>();
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
@@ -1449,14 +1457,14 @@ namespace VLR {
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const char* enumValue) {
         if (testParamName(paramName, "spectrum type")) {
             auto v = getEnumValueFromMember<SpectrumType>(enumValue);
-            if (v == (SpectrumType)0xFFFFFFFF)
+            if (v == static_cast<SpectrumType>(0xFFFFFFFF))
                 return false;
 
             m_spectrumType = v;
         }
         else if (testParamName(paramName, "color space")) {
             auto v = getEnumValueFromMember<ColorSpace>(enumValue);
-            if (v == (ColorSpace)0xFFFFFFFF)
+            if (v == static_cast<ColorSpace>(0xFFFFFFFF))
                 return false;
 
             m_colorSpace = v;
@@ -1491,7 +1499,7 @@ namespace VLR {
 
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const ShaderNodePlug &plug) {
         if (testParamName(paramName, "value")) {
-            if (!Shared::NodeTypeInfo<optix::float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeFloat3 = plug;
@@ -1546,7 +1554,7 @@ namespace VLR {
     ScaleAndOffsetUVTextureMap2DShaderNode::~ScaleAndOffsetUVTextureMap2DShaderNode() {
     }
 
-    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
@@ -1620,8 +1628,7 @@ namespace VLR {
             ParameterInfo("image", VLRParameterFormFlag_Node, ParameterImage),
             ParameterInfo("bump type", VLRParameterFormFlag_ImmediateValue, EnumBumpType),
             ParameterInfo("bump coeff", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
-            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
-            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
+            ParameterInfo("filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
             ParameterInfo("wrap u", VLRParameterFormFlag_ImmediateValue, EnumTextureWrapMode),
             ParameterInfo("wrap v", VLRParameterFormFlag_ImmediateValue, EnumTextureWrapMode),
             ParameterInfo("texcoord", VLRParameterFormFlag_Node, ParameterTextureCoordinates),
@@ -1663,43 +1670,44 @@ namespace VLR {
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
         m_bumpType(BumpType::NormalMap_DirectX), m_bumpCoeff(1.0f),
-        m_minFilter(TextureFilter::Linear), m_magFilter(TextureFilter::Linear),
+        m_xyFilter(TextureFilter::Linear),
         m_wrapU(TextureWrapMode::Repeat), m_wrapV(TextureWrapMode::Repeat) {
-        optix::Context optixContext = context.getOptiXContext();
-        m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setBuffer(NullImages.at(m_context.getID())->getOptiXObject());
-        m_optixTextureSampler->setFilteringModes((RTfiltermode)m_minFilter, (RTfiltermode)m_magFilter, RT_FILTER_NONE);
-        m_optixTextureSampler->setWrapMode(0, (RTwrapmode)m_wrapU);
-        m_optixTextureSampler->setWrapMode(1, (RTwrapmode)m_wrapV);
-        m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
-        m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
-        m_optixTextureSampler->setMaxAnisotropy(1.0f);
+        m_textureSampler.setArray(NullImages.at(m_context.getID())->getOptiXObject());
+        m_textureSampler.setFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter),
+                                       cudau::TextureFilterMode::Point);
+        m_textureSampler.setWrapMode(0, static_cast<cudau::TextureWrapMode>(m_wrapU));
+        m_textureSampler.setWrapMode(1, static_cast<cudau::TextureWrapMode>(m_wrapV));
+        m_textureSampler.setIndexingMode(cudau::TextureIndexingMode::NormalizedCoordinates);
+        m_textureSampler.setReadMode(cudau::TextureReadMode::NormalizedFloat);
 
         setupNodeDescriptor();
     }
 
     Image2DTextureShaderNode::~Image2DTextureShaderNode() {
-        m_optixTextureSampler->destroy();
+        m_textureSampler.destroyTextureObject();
     }
 
     void Image2DTextureShaderNode::setupNodeDescriptor() {
-        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
-        m_optixTextureSampler->setFilteringModes((RTfiltermode)m_minFilter, (RTfiltermode)m_magFilter, RT_FILTER_NONE);
-        m_optixTextureSampler->setWrapMode(0, (RTwrapmode)m_wrapU);
-        m_optixTextureSampler->setWrapMode(1, (RTwrapmode)m_wrapV);
-        m_optixTextureSampler->setReadMode(m_image->needsHW_sRGB_degamma() ? RT_TEXTURE_READ_NORMALIZED_FLOAT_SRGB : RT_TEXTURE_READ_NORMALIZED_FLOAT);
+        m_textureSampler.setArray(m_image->getOptiXObject());
+        m_textureSampler.setFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter),
+                                       cudau::TextureFilterMode::Point);
+        m_textureSampler.setWrapMode(0, static_cast<cudau::TextureWrapMode>(m_wrapU));
+        m_textureSampler.setWrapMode(1, static_cast<cudau::TextureWrapMode>(m_wrapV));
+        m_textureSampler.setReadMode(m_image->needsHW_sRGB_degamma() ? 
+                                     cudau::TextureReadMode::NormalizedFloat_sRGB :
+                                     cudau::TextureReadMode::NormalizedFloat);
 
         auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
-        nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
-        nodeData.spectrumType = (unsigned int)m_image->getSpectrumType();
+        nodeData.texture = m_textureSampler.getTextureObject();
+        nodeData.dataFormat = static_cast<unsigned int>(m_image->getDataFormat());
+        nodeData.spectrumType = static_cast<unsigned int>(m_image->getSpectrumType());
         // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
         // EN: Data should be regarded as post-degamma in the case that reading with sRGB degamma by HW in a GPU kernel.
         ColorSpace colorSpace = m_image->getColorSpace();
         if (m_image->needsHW_sRGB_degamma() && colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
             colorSpace = ColorSpace::Rec709_D65;
-        nodeData.colorSpace = (unsigned int)colorSpace;
-        nodeData.bumpType = (unsigned int)m_bumpType;
+        nodeData.colorSpace = static_cast<unsigned int>(colorSpace);
+        nodeData.bumpType = static_cast<unsigned int>(m_bumpType);
         const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
         float coeff = std::round(m_bumpCoeff * (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1))) - 1;
         nodeData.bumpCoeff = VLR::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
@@ -1716,12 +1724,8 @@ namespace VLR {
             *enumValue = getEnumMemberFromValue(m_bumpType);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
-        else if (testParamName(paramName, "min filter")) {
-            *enumValue = getEnumMemberFromValue(m_minFilter);
-            VLRAssert(*enumValue != nullptr, "Invalid enum value");
-        }
-        else if (testParamName(paramName, "mag filter")) {
-            *enumValue = getEnumMemberFromValue(m_magFilter);
+        else if (testParamName(paramName, "filter")) {
+            *enumValue = getEnumMemberFromValue(m_xyFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else if (testParamName(paramName, "wrap u")) {
@@ -1787,35 +1791,28 @@ namespace VLR {
     bool Image2DTextureShaderNode::set(const char* paramName, const char* enumValue) {
         if (testParamName(paramName, "bump type")) {
             auto v = getEnumValueFromMember<BumpType>(enumValue);
-            if (v == (BumpType)0xFFFFFFFF)
+            if (v == static_cast<BumpType>(0xFFFFFFFF))
                 return false;
 
             m_bumpType = v;
         }
-        else if (testParamName(paramName, "min filter")) {
+        else if (testParamName(paramName, "filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
-            if (v == (TextureFilter)0xFFFFFFFF)
+            if (v == static_cast<TextureFilter>(0xFFFFFFFF))
                 return false;
 
-            m_minFilter = v;
-        }
-        else if (testParamName(paramName, "mag filter")) {
-            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
-            if (v == (TextureFilter)0xFFFFFFFF)
-                return false;
-
-            m_magFilter = v;
+            m_xyFilter = v;
         }
         else if (testParamName(paramName, "wrap u")) {
             auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
-            if (v == (TextureWrapMode)0xFFFFFFFF)
+            if (v == static_cast<TextureWrapMode>(0xFFFFFFFF))
                 return false;
 
             m_wrapU = v;
         }
         else if (testParamName(paramName, "wrap v")) {
             auto v = getEnumValueFromMember<TextureWrapMode>(enumValue);
-            if (v == (TextureWrapMode)0xFFFFFFFF)
+            if (v == static_cast<TextureWrapMode>(0xFFFFFFFF))
                 return false;
 
             m_wrapV = v;
@@ -1885,8 +1882,7 @@ namespace VLR {
     void EnvironmentTextureShaderNode::initialize(Context &context) {
         const ParameterInfo paramInfos[] = {
             ParameterInfo("image", VLRParameterFormFlag_Node, ParameterImage),
-            ParameterInfo("min filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
-            ParameterInfo("mag filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
+            ParameterInfo("filter", VLRParameterFormFlag_ImmediateValue, EnumTextureFilter),
         };
 
         if (ParameterInfos.size() == 0) {
@@ -1900,7 +1896,9 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        half nullData[] = { (half)1.0f, (half)0.0f, (half)1.0f, (half)1.0f };
+        half nullData[] = {
+            static_cast<half>(1.0f), static_cast<half>(1.0f), static_cast<half>(1.0f), static_cast<half>(1.0f)
+        };
         LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, SpectrumType::LightSource, ColorSpace::Rec709_D65);
 
         OptiXProgramSets[context.getID()] = programSet;
@@ -1918,30 +1916,29 @@ namespace VLR {
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
         ShaderNode(context, sizeof(Shared::EnvironmentTextureShaderNode)), m_image(NullImages.at(m_context.getID())) {
-        optix::Context optixContext = context.getOptiXContext();
-        m_optixTextureSampler = optixContext->createTextureSampler();
-        m_optixTextureSampler->setWrapMode(0, RT_WRAP_REPEAT);
-        m_optixTextureSampler->setWrapMode(1, RT_WRAP_REPEAT);
-        m_optixTextureSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
-        m_optixTextureSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
-        m_optixTextureSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
-        m_optixTextureSampler->setMaxAnisotropy(1.0f);
+        m_textureSampler.setWrapMode(0, cudau::TextureWrapMode::Repeat);
+        m_textureSampler.setWrapMode(1, cudau::TextureWrapMode::Repeat);
+        m_textureSampler.setFilterMode(cudau::TextureFilterMode::Linear,
+                                       cudau::TextureFilterMode::Point);
+        m_textureSampler.setIndexingMode(cudau::TextureIndexingMode::NormalizedCoordinates);
+        m_textureSampler.setReadMode(cudau::TextureReadMode::NormalizedFloat);
 
         setupNodeDescriptor();
     }
 
     EnvironmentTextureShaderNode::~EnvironmentTextureShaderNode() {
-        m_optixTextureSampler->destroy();
+        m_textureSampler.destroyTextureObject();
     }
 
     void EnvironmentTextureShaderNode::setupNodeDescriptor() {
-        m_optixTextureSampler->setBuffer(m_image->getOptiXObject());
-        m_optixTextureSampler->setFilteringModes((RTfiltermode)m_minFilter, (RTfiltermode)m_magFilter, RT_FILTER_NONE);
+        m_textureSampler.setArray(m_image->getOptiXObject());
+        m_textureSampler.setFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter),
+                                       cudau::TextureFilterMode::Point);
 
         auto &nodeData = *getData<Shared::EnvironmentTextureShaderNode>();
-        nodeData.textureID = m_optixTextureSampler->getId();
-        nodeData.dataFormat = (unsigned int)m_image->getDataFormat();
-        nodeData.colorSpace = (unsigned int)m_image->getColorSpace();
+        nodeData.texture = m_textureSampler.getTextureObject();
+        nodeData.dataFormat = static_cast<unsigned int>(m_image->getDataFormat());
+        nodeData.colorSpace = static_cast<unsigned int>(m_image->getColorSpace());
 
         updateNodeDescriptor();
     }
@@ -1950,12 +1947,8 @@ namespace VLR {
         if (enumValue == nullptr)
             return false;
 
-        if (testParamName(paramName, "min filter")) {
-            *enumValue = getEnumMemberFromValue(m_minFilter);
-            VLRAssert(*enumValue != nullptr, "Invalid enum value");
-        }
-        else if (testParamName(paramName, "mag filter")) {
-            *enumValue = getEnumMemberFromValue(m_magFilter);
+        if (testParamName(paramName, "filter")) {
+            *enumValue = getEnumMemberFromValue(m_xyFilter);
             VLRAssert(*enumValue != nullptr, "Invalid enum value");
         }
         else {
@@ -1980,19 +1973,12 @@ namespace VLR {
     }
 
     bool EnvironmentTextureShaderNode::set(const char* paramName, const char* enumValue) {
-        if (testParamName(paramName, "min filter")) {
+        if (testParamName(paramName, "filter")) {
             auto v = getEnumValueFromMember<TextureFilter>(enumValue);
-            if (v == (TextureFilter)0xFFFFFFFF)
+            if (v == static_cast<TextureFilter>(0xFFFFFFFF))
                 return false;
 
-            m_minFilter = v;
-        }
-        else if (testParamName(paramName, "mag filter")) {
-            auto v = getEnumValueFromMember<TextureFilter>(enumValue);
-            if (v == (TextureFilter)0xFFFFFFFF)
-                return false;
-
-            m_magFilter = v;
+            m_xyFilter = v;
         }
         else {
             return false;
@@ -2022,7 +2008,7 @@ namespace VLR {
         delete shrinkedImage;
         float* linearData = (float*)shrinkedYImage->createLinearImageData();
         for (int y = 0; y < mapHeight; ++y) {
-            float theta = M_PI * (y + 0.5f) / mapHeight;
+            float theta = VLR_M_PI * (y + 0.5f) / mapHeight;
             for (int x = 0; x < mapWidth; ++x) {
                 linearData[y * mapWidth + x] *= std::sin(theta);
             }

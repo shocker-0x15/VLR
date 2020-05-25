@@ -102,7 +102,7 @@ namespace VLR {
 
     uint32_t Context::NextID = 0;
 
-    uint32_t Context::CallableProgram::NextID = 0;
+    uint32_t CallableProgram::NextID = 0;
 
     Context::Context(bool logging, uint32_t maxCallableDepth, CUcontext cuContext) {
         vlrprintf("Start initializing VLR ...");
@@ -481,7 +481,7 @@ namespace VLR {
         m_optixBufferUpsampledSpectrum_maxBrightnesses.finalize();
 #endif
 
-        CUDADRV_CHECK(cuModuleUnload(m_cudaPostProcessModule));
+        cuModuleUnload(m_cudaPostProcessModule);
 
         m_optixDebugRenderingHitGroupWithAlpha.destroy();
         m_optixDebugRenderingHitGroupDefault.destroy();
@@ -766,7 +766,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
+    void DiscreteDistribution1DTemplate<RealType>::getSharedType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
         if (m_PMF.isInitialized() && m_CDF.isInitialized())
             new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(m_PMF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
@@ -812,7 +812,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::getSharedType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
         new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(m_PDF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
 
@@ -836,7 +836,7 @@ namespace VLR {
         for (int i = 0; i < numD2; ++i) {
             RegularConstantContinuousDistribution1DTemplate<RealType> &dist = m_1DDists[i];
             dist.initialize(context, values + i * numD1, numD1);
-            dist.getInternalType(&rawDists[i]);
+            dist.getSharedType(&rawDists[i]);
             integrals[i] = dist.getIntegral();
             sum += integrals[i];
         }
@@ -864,9 +864,9 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::getSharedType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
         Shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
-        m_top1DDist.getInternalType(&top1DDist);
+        m_top1DDist.getSharedType(&top1DDist);
         new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(m_raw1DDists.getDevicePointer(), top1DDist);
     }
 
