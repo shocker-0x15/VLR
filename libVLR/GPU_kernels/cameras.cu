@@ -4,7 +4,7 @@ namespace VLR {
     // ----------------------------------------------------------------
     // PerspectiveCamera
 
-    RT_CALLABLE_PROGRAM SampledSpectrum PerspectiveCamera_sampleLensPosition(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(PerspectiveCamera_sampleLensPosition)(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
         Matrix3x3 rotMat = plp.perspectiveCamera.orientation.toMatrix3x3();
 
         float lensRadius = plp.perspectiveCamera.lensRadius;
@@ -38,7 +38,7 @@ namespace VLR {
         return SampledSpectrum(plp.perspectiveCamera.sensitivity);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum PerspectiveCamera_sampleIDF(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(PerspectiveCamera_sampleIDF)(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
         Point3D orgLocal = Point3D(plp.perspectiveCamera.lensRadius * surfPt.u,
                                    plp.perspectiveCamera.lensRadius * surfPt.v,
                                    0.0f);
@@ -63,7 +63,7 @@ namespace VLR {
     // ----------------------------------------------------------------
     // EquirectangularCamera
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleLensPosition(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EquirectangularCamera_sampleLensPosition)(const WavelengthSamples &wls, const LensPosSample &sample, LensPosQueryResult* result) {
         Matrix3x3 rotMat = plp.equirectangularCamera.orientation.toMatrix3x3();
 
         Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
@@ -92,7 +92,7 @@ namespace VLR {
         return SampledSpectrum(plp.equirectangularCamera.sensitivity);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EquirectangularCamera_sampleIDF(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EquirectangularCamera_sampleIDF)(const SurfacePoint &surfPt, const WavelengthSamples &wls, const IDFSample &sample, IDFQueryResult* result) {
         float phi = plp.equirectangularCamera.phiAngle * (sample.uDir[0] - 0.5f);
         float theta = 0.5f * VLR_M_PI + plp.equirectangularCamera.thetaAngle * (sample.uDir[1] - 0.5f);
         result->dirLocal = Vector3D::fromPolarYUp(phi, theta);

@@ -1307,7 +1307,7 @@ namespace VLR {
     // ----------------------------------------------------------------
     // NullEDF
 
-    RT_CALLABLE_PROGRAM uint32_t NullEDF_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(NullEDF_setupEDF)(const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
         return 0;
     }
 
@@ -1331,7 +1331,7 @@ namespace VLR {
         SampledSpectrum emittance;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t DiffuseEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(DiffuseEmitterSurfaceMaterial_setupEDF)(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *reinterpret_cast<DiffuseEDF*>(params);
         auto &mat = *reinterpret_cast<const DiffuseEmitterSurfaceMaterial*>(matDesc);
 
@@ -1600,7 +1600,7 @@ namespace VLR {
         };
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MultiSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MultiSurfaceMaterial_setupEDF)(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *reinterpret_cast<MultiEDF*>(params);
         auto &mat = *reinterpret_cast<const MultiSurfaceMaterial*>(matDesc);
 
@@ -1677,7 +1677,7 @@ namespace VLR {
         SampledSpectrum emittance;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t EnvironmentEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(EnvironmentEmitterSurfaceMaterial_setupEDF)(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *reinterpret_cast<EnvironmentEDF*>(params);
         auto &mat = *reinterpret_cast<const EnvironmentEmitterSurfaceMaterial*>(matDesc);
 

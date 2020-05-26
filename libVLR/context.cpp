@@ -104,7 +104,7 @@ namespace VLR {
 
     uint32_t CallableProgram::NextID = 0;
 
-    Context::Context(bool logging, uint32_t maxCallableDepth, CUcontext cuContext) {
+    Context::Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
         vlrprintf("Start initializing VLR ...");
 
         initializeColorSystem();
@@ -718,16 +718,6 @@ namespace VLR {
 
     // ----------------------------------------------------------------
     // Miscellaneous
-
-    //template <typename RealType>
-    //static optix::Buffer createBuffer(optix::Context &context, RTbuffertype type, RTsize width);
-
-    //template <>
-    //static optix::Buffer createBuffer<float>(optix::Context &context, RTbuffertype type, RTsize width) {
-    //    return context->createBuffer(type, RT_FORMAT_FLOAT, width);
-    //}
-
-
 
     template <typename RealType>
     void DiscreteDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {

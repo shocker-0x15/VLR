@@ -139,10 +139,10 @@ namespace VLR {
     // static
     void GeometryShaderNode::initialize(Context &context) {
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Point3D, "VLR::GeometryShaderNode_Point3D",
-            ShaderNodePlugType::Normal3D, "VLR::GeometryShaderNode_Normal3D",
-            ShaderNodePlugType::Vector3D, "VLR::GeometryShaderNode_Vector3D",
-            ShaderNodePlugType::TextureCoordinates, "VLR::GeometryShaderNode_TextureCoordinates",
+            ShaderNodePlugType::Point3D, RT_DC_NAME_STR("GeometryShaderNode_Point3D"),
+            ShaderNodePlugType::Normal3D, RT_DC_NAME_STR("GeometryShaderNode_Normal3D"),
+            ShaderNodePlugType::Vector3D, RT_DC_NAME_STR("GeometryShaderNode_Vector3D"),
+            ShaderNodePlugType::TextureCoordinates, RT_DC_NAME_STR("GeometryShaderNode_TextureCoordinates"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -197,7 +197,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Vector3D, "VLR::TangentShaderNode_Vector3D",
+            ShaderNodePlugType::Vector3D, RT_DC_NAME_STR("TangentShaderNode_Vector3D"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -277,8 +277,8 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::float1, "VLR::Float2ShaderNode_float1",
-            ShaderNodePlugType::float2, "VLR::Float2ShaderNode_float2",
+            ShaderNodePlugType::float1, RT_DC_NAME_STR("Float2ShaderNode_float1"),
+            ShaderNodePlugType::float2, RT_DC_NAME_STR("Float2ShaderNode_float2"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -417,9 +417,9 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::float1, "VLR::Float3ShaderNode_float1",
-            ShaderNodePlugType::float2, "VLR::Float3ShaderNode_float2",
-            ShaderNodePlugType::float3, "VLR::Float3ShaderNode_float3",
+            ShaderNodePlugType::float1, RT_DC_NAME_STR("Float3ShaderNode_float1"),
+            ShaderNodePlugType::float2, RT_DC_NAME_STR("Float3ShaderNode_float2"),
+            ShaderNodePlugType::float3, RT_DC_NAME_STR("Float3ShaderNode_float3"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -582,10 +582,10 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::float1, "VLR::Float4ShaderNode_float1",
-            ShaderNodePlugType::float2, "VLR::Float4ShaderNode_float2",
-            ShaderNodePlugType::float3, "VLR::Float4ShaderNode_float3",
-            ShaderNodePlugType::float4, "VLR::Float4ShaderNode_float4",
+            ShaderNodePlugType::float1, RT_DC_NAME_STR("Float4ShaderNode_float1"),
+            ShaderNodePlugType::float2, RT_DC_NAME_STR("Float4ShaderNode_float2"),
+            ShaderNodePlugType::float3, RT_DC_NAME_STR("Float4ShaderNode_float3"),
+            ShaderNodePlugType::float4, RT_DC_NAME_STR("Float4ShaderNode_float4"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -770,7 +770,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::float1, "VLR::ScaleAndOffsetFloatShaderNode_float1",
+            ShaderNodePlugType::float1, RT_DC_NAME_STR("ScaleAndOffsetFloatShaderNode_float1"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -917,7 +917,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Spectrum, "VLR::TripletSpectrumShaderNode_Spectrum",
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("TripletSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1050,7 +1050,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Spectrum, "VLR::RegularSampledSpectrumShaderNode_Spectrum",
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("RegularSampledSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1218,7 +1218,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Spectrum, "VLR::IrregularSampledSpectrumShaderNode_Spectrum",
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("IrregularSampledSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1367,7 +1367,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Spectrum, "VLR::Float3ToSpectrumShaderNode_Spectrum",
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("Float3ToSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1531,7 +1531,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::TextureCoordinates, "VLR::ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates",
+            ShaderNodePlugType::TextureCoordinates, RT_DC_NAME_STR("ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1640,13 +1640,13 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::float1, "VLR::Image2DTextureShaderNode_float1",
-            ShaderNodePlugType::float2, "VLR::Image2DTextureShaderNode_float2",
-            ShaderNodePlugType::float3, "VLR::Image2DTextureShaderNode_float3",
-            ShaderNodePlugType::float4, "VLR::Image2DTextureShaderNode_float4",
-            ShaderNodePlugType::Normal3D, "VLR::Image2DTextureShaderNode_Normal3D",
-            ShaderNodePlugType::Spectrum, "VLR::Image2DTextureShaderNode_Spectrum",
-            ShaderNodePlugType::Alpha, "VLR::Image2DTextureShaderNode_Alpha",
+            ShaderNodePlugType::float1, RT_DC_NAME_STR("Image2DTextureShaderNode_float1"),
+            ShaderNodePlugType::float2, RT_DC_NAME_STR("Image2DTextureShaderNode_float2"),
+            ShaderNodePlugType::float3, RT_DC_NAME_STR("Image2DTextureShaderNode_float3"),
+            ShaderNodePlugType::float4, RT_DC_NAME_STR("Image2DTextureShaderNode_float4"),
+            ShaderNodePlugType::Normal3D, RT_DC_NAME_STR("Image2DTextureShaderNode_Normal3D"),
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("Image2DTextureShaderNode_Spectrum"),
+            ShaderNodePlugType::Alpha, RT_DC_NAME_STR("Image2DTextureShaderNode_Alpha"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
@@ -1891,7 +1891,7 @@ namespace VLR {
         }
 
         const PlugTypeToProgramPair pairs[] = {
-            ShaderNodePlugType::Spectrum, "VLR::EnvironmentTextureShaderNode_Spectrum",
+            ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("EnvironmentTextureShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);

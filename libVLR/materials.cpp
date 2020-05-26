@@ -179,13 +179,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::MatteSurfaceMaterial_setupBSDF",
-            "VLR::MatteBRDF_getBaseColor",
-            "VLR::MatteBRDF_matches",
-            "VLR::MatteBRDF_sampleInternal",
-            "VLR::MatteBRDF_evaluateInternal",
-            "VLR::MatteBRDF_evaluatePDFInternal",
-            "VLR::MatteBRDF_weightInternal",
+            RT_DC_NAME_STR("MatteSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("MatteBRDF_getBaseColor"),
+            RT_DC_NAME_STR("MatteBRDF_matches"),
+            RT_DC_NAME_STR("MatteBRDF_sampleInternal"),
+            RT_DC_NAME_STR("MatteBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("MatteBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MatteBRDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -298,13 +298,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::SpecularReflectionSurfaceMaterial_setupBSDF",
-            "VLR::SpecularBRDF_getBaseColor",
-            "VLR::SpecularBRDF_matches",
-            "VLR::SpecularBRDF_sampleInternal",
-            "VLR::SpecularBRDF_evaluateInternal",
-            "VLR::SpecularBRDF_evaluatePDFInternal",
-            "VLR::SpecularBRDF_weightInternal",
+            RT_DC_NAME_STR("SpecularReflectionSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("SpecularBRDF_getBaseColor"),
+            RT_DC_NAME_STR("SpecularBRDF_matches"),
+            RT_DC_NAME_STR("SpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -454,13 +454,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::SpecularScatteringSurfaceMaterial_setupBSDF",
-            "VLR::SpecularBSDF_getBaseColor",
-            "VLR::SpecularBSDF_matches",
-            "VLR::SpecularBSDF_sampleInternal",
-            "VLR::SpecularBSDF_evaluateInternal",
-            "VLR::SpecularBSDF_evaluatePDFInternal",
-            "VLR::SpecularBSDF_weightInternal",
+            RT_DC_NAME_STR("SpecularScatteringSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("SpecularBSDF_getBaseColor"),
+            RT_DC_NAME_STR("SpecularBSDF_matches"),
+            RT_DC_NAME_STR("SpecularBSDF_sampleInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -613,13 +613,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::MicrofacetReflectionSurfaceMaterial_setupBSDF",
-            "VLR::MicrofacetBRDF_getBaseColor",
-            "VLR::MicrofacetBRDF_matches",
-            "VLR::MicrofacetBRDF_sampleInternal",
-            "VLR::MicrofacetBRDF_evaluateInternal",
-            "VLR::MicrofacetBRDF_evaluatePDFInternal",
-            "VLR::MicrofacetBRDF_weightInternal",
+            RT_DC_NAME_STR("MicrofacetReflectionSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("MicrofacetBRDF_getBaseColor"),
+            RT_DC_NAME_STR("MicrofacetBRDF_matches"),
+            RT_DC_NAME_STR("MicrofacetBRDF_sampleInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -825,13 +825,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::MicrofacetScatteringSurfaceMaterial_setupBSDF",
-            "VLR::MicrofacetBSDF_getBaseColor",
-            "VLR::MicrofacetBSDF_matches",
-            "VLR::MicrofacetBSDF_sampleInternal",
-            "VLR::MicrofacetBSDF_evaluateInternal",
-            "VLR::MicrofacetBSDF_evaluatePDFInternal",
-            "VLR::MicrofacetBSDF_weightInternal",
+            RT_DC_NAME_STR("MicrofacetScatteringSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("MicrofacetBSDF_getBaseColor"),
+            RT_DC_NAME_STR("MicrofacetBSDF_matches"),
+            RT_DC_NAME_STR("MicrofacetBSDF_sampleInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -1050,13 +1050,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::LambertianScatteringSurfaceMaterial_setupBSDF",
-            "VLR::LambertianBSDF_getBaseColor",
-            "VLR::LambertianBSDF_matches",
-            "VLR::LambertianBSDF_sampleInternal",
-            "VLR::LambertianBSDF_evaluateInternal",
-            "VLR::LambertianBSDF_evaluatePDFInternal",
-            "VLR::LambertianBSDF_weightInternal",
+            RT_DC_NAME_STR("LambertianScatteringSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("LambertianBSDF_getBaseColor"),
+            RT_DC_NAME_STR("LambertianBSDF_matches"),
+            RT_DC_NAME_STR("LambertianBSDF_sampleInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -1215,13 +1215,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::UE4SurfaceMaterial_setupBSDF",
-            "VLR::DiffuseAndSpecularBRDF_getBaseColor",
-            "VLR::DiffuseAndSpecularBRDF_matches",
-            "VLR::DiffuseAndSpecularBRDF_sampleInternal",
-            "VLR::DiffuseAndSpecularBRDF_evaluateInternal",
-            "VLR::DiffuseAndSpecularBRDF_evaluatePDFInternal",
-            "VLR::DiffuseAndSpecularBRDF_weightInternal",
+            RT_DC_NAME_STR("UE4SurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -1404,13 +1404,13 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::OldStyleSurfaceMaterial_setupBSDF",
-            "VLR::DiffuseAndSpecularBRDF_getBaseColor",
-            "VLR::DiffuseAndSpecularBRDF_matches",
-            "VLR::DiffuseAndSpecularBRDF_sampleInternal",
-            "VLR::DiffuseAndSpecularBRDF_evaluateInternal",
-            "VLR::DiffuseAndSpecularBRDF_evaluatePDFInternal",
-            "VLR::DiffuseAndSpecularBRDF_weightInternal",
+            RT_DC_NAME_STR("OldStyleSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
             nullptr,
             nullptr,
             nullptr
@@ -1592,9 +1592,9 @@ namespace VLR {
             nullptr,
             nullptr,
             nullptr,
-            "VLR::DiffuseEmitterSurfaceMaterial_setupEDF",
-            "VLR::DiffuseEDF_evaluateEmittanceInternal",
-            "VLR::DiffuseEDF_evaluateInternal"
+            RT_DC_NAME_STR("DiffuseEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("DiffuseEDF_evaluateEmittanceInternal"),
+            RT_DC_NAME_STR("DiffuseEDF_evaluateInternal")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -1738,16 +1738,16 @@ namespace VLR {
         }
 
         const char* identifiers[] = {
-            "VLR::MultiSurfaceMaterial_setupBSDF",
-            "VLR::MultiBSDF_getBaseColor",
-            "VLR::MultiBSDF_matches",
-            "VLR::MultiBSDF_sampleInternal",
-            "VLR::MultiBSDF_evaluateInternal",
-            "VLR::MultiBSDF_evaluatePDFInternal",
-            "VLR::MultiBSDF_weightInternal",
-            "VLR::MultiSurfaceMaterial_setupEDF",
-            "VLR::MultiEDF_evaluateEmittanceInternal",
-            "VLR::MultiEDF_evaluateInternal"
+            RT_DC_NAME_STR("MultiSurfaceMaterial_setupBSDF"),
+            RT_DC_NAME_STR("MultiBSDF_getBaseColor"),
+            RT_DC_NAME_STR("MultiBSDF_matches"),
+            RT_DC_NAME_STR("MultiBSDF_sampleInternal"),
+            RT_DC_NAME_STR("MultiBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("MultiBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MultiBSDF_weightInternal"),
+            RT_DC_NAME_STR("MultiSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("MultiEDF_evaluateEmittanceInternal"),
+            RT_DC_NAME_STR("MultiEDF_evaluateInternal")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -1868,9 +1868,9 @@ namespace VLR {
             nullptr,
             nullptr,
             nullptr,
-            "VLR::EnvironmentEmitterSurfaceMaterial_setupEDF",
-            "VLR::EnvironmentEDF_evaluateEmittanceInternal",
-            "VLR::EnvironmentEDF_evaluateInternal"
+            RT_DC_NAME_STR("EnvironmentEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("EnvironmentEDF_evaluateEmittanceInternal"),
+            RT_DC_NAME_STR("EnvironmentEDF_evaluateInternal")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);

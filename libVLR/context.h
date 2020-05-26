@@ -174,7 +174,7 @@ namespace VLR {
         uint32_t m_numAccumFrames;
 
     public:
-        Context(bool logging, uint32_t maxCallableDepth, CUcontext cuContext);
+        Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
         ~Context();
 
         uint32_t getID() const {
