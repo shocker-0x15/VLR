@@ -661,10 +661,9 @@ namespace VLRCpp {
             m_enabledErrors.clear();
         }
 
-        static ContextRef create(bool logging, bool enableRTX = true, uint32_t maxCallableDepth = 8, uint32_t stackSize = 0,
-                                 const int32_t* devices = nullptr, uint32_t numDevices = 0) {
+        static ContextRef create(CUcontext cuContext, bool logging, uint32_t maxCallableDepth = 8) {
             auto ret = std::shared_ptr<Context>(new Context());
-            ret->initialize(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
+            ret->initialize(cuContext, logging, maxCallableDepth);
             ret->enableException(VLRResult_InvalidContext);
             ret->enableException(VLRResult_InvalidInstance);
             ret->enableException(VLRResult_InternalError);

@@ -43,85 +43,94 @@ inline bool nonNullAndCheckType(const VLR::TypeAwareClass* obj) {
 
 
 VLR_API VLRResult vlrPrintDevices() {
-    uint32_t numDevices;
-    RTresult res;
-    res = rtDeviceGetDeviceCount(&numDevices);
-    if (res != RT_SUCCESS)
+    int32_t numDevices;
+    CUresult res;
+    res = cuDeviceGetCount(&numDevices);
+    if (res != CUDA_SUCCESS)
         return VLRResult_InternalError;
 
+    int32_t driverVersion;
+    res = cuDriverGetVersion(&driverVersion);
+    if (res != CUDA_SUCCESS)
+        return VLRResult_InternalError;
+    vlrprintf("CUDA Driver Version: %d.%d\n",
+              driverVersion / 1000, (driverVersion % 100) / 10);
+
+    int32_t curDev;
+    res = cuDeviceGet(&curDev, 0);
+    if (res != CUDA_SUCCESS)
+        return VLRResult_InternalError;
+
+    bool allSuccess = true;
     for (int dev = 0; dev < numDevices; ++dev) {
         vlrprintf("----------------------------------------------------------------\n");
 
-        char strBuffer[256];
-        int32_t intBuffer[2];
-        RTsize sizeValue;
+        CUdevice device;
+        res = cuDeviceGet(&device, dev);
+        if (res != CUDA_SUCCESS) {
+            vlrprintf("failed to get a device %u\n", dev);
+            allSuccess = false;
+            continue;
+        }
 
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_NAME, sizeof(strBuffer), strBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("%d: %s\n", dev, strBuffer);
+        int32_t pi[2];
+        char str[512];
+        size_t size;
 
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    CUDA Device Ordinal: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(strBuffer), strBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    PCI Bus ID: %s\n", strBuffer);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(intBuffer), intBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Compute Capability: %d, %d\n", intBuffer[0], intBuffer[1]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    TCC (Tesla Compute Cluster) Driver: %s\n", intBuffer[0] ? "Yes" : "No");
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(sizeValue), &sizeValue);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Total Memory: %llu [Byte]\n", sizeValue);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Clock Rate: %d [kHz]\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Max Threads per Block: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Multi Processor Count: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Max Hardware Texture Count: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
+        cuDeviceGetName(str, sizeof(str), device);
+        vlrprintf("%d: %s\n", dev, str);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_TCC_DRIVER, device);
+        vlrprintf("    Driver Mode: %s\n", pi[0] ? "TCC (Tesla Compute Cluster)" : "WDDM (Windows Display Driver Model)");
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
+        cuDeviceGetAttribute(&pi[1], CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
+        vlrprintf("    Compute Capability: %d, %d\n", pi[0], pi[1]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, device);
+        vlrprintf("    Unified Addressing (UVA) Support: %s\n", pi[0] ? "YES" : "NO");
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device);
+        vlrprintf("    Multi Processor Count: %d\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_CLOCK_RATE, device);
+        vlrprintf("    Clock Rate: %d [kHz]\n", pi[0]);
+        cuDeviceTotalMem(&size, device);
+        vlrprintf("    Total Memory: %llu [Byte]\n", size);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, device);
+        vlrprintf("    Memory Clock: %d [kHz]\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH, device);
+        vlrprintf("    Memory Bus Width: %d-bit\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_ECC_ENABLED, device);
+        vlrprintf("    ECC: %s\n", pi[0] ? "Yes" : "No");
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, device);
+        vlrprintf("    L2 Cache Size: %d [Byte]\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device);
+        vlrprintf("    Max Threads per Block: %d\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, device);
+        vlrprintf("    Total Constant Memory: %d\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_SHARED_MEMORY_PER_BLOCK, device);
+        vlrprintf("    Shared Memory per Block: %d\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_REGISTERS_PER_BLOCK, device);
+        vlrprintf("    Registers per Block: %d\n", pi[0]);
+        cuDeviceGetAttribute(&pi[0], CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, device);
+        vlrprintf("    Execution Timeout Enabled: %s\n", pi[0] ? "Yes" : "No");
     }
     vlrprintf("----------------------------------------------------------------\n");
+
+    if (!allSuccess)
+        return VLRResult_InternalError;
 
     return VLRResult_NoError;
 }
 
-VLR_API VLRResult vlrGetDeviceName(uint32_t index, char* name, uint32_t bufferLength) {
-    RTresult res = rtDeviceGetAttribute(index, RT_DEVICE_ATTRIBUTE_NAME, bufferLength, name);
-    if (res == RT_SUCCESS)
-        return VLRResult_NoError;
-    else
+VLR_API VLRResult vlrGetDeviceName(int32_t index, char* name, uint32_t bufferLength) {
+    CUresult res;
+
+    CUdevice device;
+    res = cuDeviceGet(&device, index);
+    if (res != CUDA_SUCCESS)
         return VLRResult_InternalError;
+    res = cuDeviceGetName(name, bufferLength, device);
+    if (res != CUDA_SUCCESS)
+        return VLRResult_InternalError;
+
+    return VLRResult_NoError;
 }
 
 
@@ -150,9 +159,9 @@ VLR_API const char* vlrGetErrorMessage(VLRResult code) {
 
 
 
-VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+VLR_API VLRResult vlrCreateContext(VLRContext* context, CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
     try {
-        *context = new VLR::Context(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
+        *context = new VLR::Context(cuContext, logging, maxCallableDepth);
 
         return VLRResult_NoError;
     }
@@ -170,60 +179,60 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
 
 
 
-VLR_API VLRResult vlrContextGetNumDevices(VLRContext context, uint32_t* numDevices) {
-    try {
-        if (numDevices == nullptr)
-            return VLRResult_InvalidArgument;
+//VLR_API VLRResult vlrContextGetNumDevices(VLRContext context, uint32_t* numDevices) {
+//    try {
+//        if (numDevices == nullptr)
+//            return VLRResult_InvalidArgument;
+//
+//        *numDevices = context->getNumDevices();
+//
+//        return VLRResult_NoError;
+//    }
+//    VLR_RETURN_INTERNAL_ERROR();
+//}
+//
+//VLR_API VLRResult vlrContextGetDeviceIndexAt(VLRContext context, uint32_t index, int32_t* deviceIndex) {
+//    try {
+//        if (deviceIndex == nullptr)
+//            return VLRResult_InvalidArgument;
+//
+//        *deviceIndex = context->getDeviceIndexAt(index);
+//
+//        return VLRResult_NoError;
+//    }
+//    VLR_RETURN_INTERNAL_ERROR();
+//}
 
-        *numDevices = context->getNumDevices();
+
+
+VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t glTexID) {
+    try {
+        context->bindOutputBuffer(width, height, glTexID);
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextGetDeviceIndexAt(VLRContext context, uint32_t index, int32_t* deviceIndex) {
-    try {
-        if (deviceIndex == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *deviceIndex = context->getDeviceIndexAt(index);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-
-
-VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID) {
-    try {
-        context->bindOutputBuffer(width, height, bufferID);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr) {
-    try {
-        if (ptr == nullptr)
-            return VLRResult_InvalidArgument;
-        *ptr = context->mapOutputBuffer();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context) {
-    try {
-        context->unmapOutputBuffer();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
+//VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr) {
+//    try {
+//        if (ptr == nullptr)
+//            return VLRResult_InvalidArgument;
+//        *ptr = context->mapOutputBuffer();
+//
+//        return VLRResult_NoError;
+//    }
+//    VLR_RETURN_INTERNAL_ERROR();
+//}
+//
+//VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context) {
+//    try {
+//        context->unmapOutputBuffer();
+//
+//        return VLRResult_NoError;
+//    }
+//    VLR_RETURN_INTERNAL_ERROR();
+//}
 
 VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height) {
     try {
