@@ -36,7 +36,7 @@ namespace VLR {
     };
 
     template <typename RealType>
-    RT_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
+    CUDA_DEVICE_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
         if (value <= (RealType)0.0031308)
             return (RealType)12.92 * value;
@@ -44,7 +44,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr RealType sRGB_degamma(RealType value) {
+    CUDA_DEVICE_FUNCTION constexpr RealType sRGB_degamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
         if (value <= (RealType)0.04045)
             return value / (RealType)12.92;
@@ -107,36 +107,36 @@ namespace VLR {
     }
 
     // These matrices are column-major.
-    RT_VARIABLE HOST_STATIC_CONSTEXPR float mat_Rec709_D65_to_XYZ[] = {
+    CUDA_CONSTANT_MEM float mat_Rec709_D65_to_XYZ[] = {
         0.4124564, 0.2126729, 0.0193339,
         0.3575761, 0.7151522, 0.1191920,
         0.1804375, 0.0721750, 0.9503041,
     };
-    RT_VARIABLE HOST_STATIC_CONSTEXPR float mat_XYZ_to_Rec709_D65[] = {
+    CUDA_CONSTANT_MEM float mat_XYZ_to_Rec709_D65[] = {
         3.2404542, -0.9692660, 0.0556434,
         -1.5371385 , 1.8760108, -0.2040259,
         -0.4985314, 0.0415560, 1.0572252,
     };
-    RT_VARIABLE HOST_STATIC_CONSTEXPR float mat_Rec709_E_to_XYZ[] = {
+    CUDA_CONSTANT_MEM float mat_Rec709_E_to_XYZ[] = {
         0.4969, 0.2562, 0.0233,
         0.3391, 0.6782, 0.1130,
         0.1640, 0.0656, 0.8637,
     };
-    RT_VARIABLE HOST_STATIC_CONSTEXPR float mat_XYZ_to_Rec709_E[] = {
+    CUDA_CONSTANT_MEM float mat_XYZ_to_Rec709_E[] = {
         2.6897, -1.0221, 0.0612,
         -1.2759, 1.9783, -0.2245,
         -0.4138, 0.0438, 1.1633,
     };
 
     template <typename RealType>
-    RT_FUNCTION constexpr void transformTristimulus(const float matColMajor[9], const RealType src[3], RealType dst[3]) {
+    CUDA_DEVICE_FUNCTION constexpr void transformTristimulus(const float matColMajor[9], const RealType src[3], RealType dst[3]) {
         dst[0] = matColMajor[0] * src[0] + matColMajor[3] * src[1] + matColMajor[6] * src[2];
         dst[1] = matColMajor[1] * src[0] + matColMajor[4] * src[1] + matColMajor[7] * src[2];
         dst[2] = matColMajor[2] * src[0] + matColMajor[5] * src[1] + matColMajor[8] * src[2];
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void transformToRenderingRGB(SpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
+    CUDA_DEVICE_FUNCTION constexpr void transformToRenderingRGB(SpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
         switch (spectrumType) {
         case SpectrumType::Reflectance:
         case SpectrumType::IndexOfRefraction:
@@ -153,7 +153,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void transformFromRenderingRGB(SpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
+    CUDA_DEVICE_FUNCTION constexpr void transformFromRenderingRGB(SpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
         switch (spectrumType) {
         case SpectrumType::Reflectance:
         case SpectrumType::IndexOfRefraction:
@@ -172,7 +172,7 @@ namespace VLR {
     template <typename RealType>
     inline constexpr void transformToRenderingRGB(SpectrumType spectrumType, ColorSpace srcSpace, const RealType src[3], RealType dstRGB[3]) {
         RealType srcTriplet[3] = { src[0], src[1], src[2] };
-        switch (srcSpace.value) {
+        switch (srcSpace) {
         case ColorSpace::Rec709_D65_sRGBGamma:
             dstRGB[0] = sRGB_degamma(srcTriplet[0]);
             dstRGB[1] = sRGB_degamma(srcTriplet[1]);
@@ -216,7 +216,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
+    CUDA_DEVICE_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
         RealType b = xyz[0] + xyz[1] + xyz[2];
         if (b == 0) {
             xyY[0] = xyY[1] = (RealType)(1.0 / 3.0);
@@ -229,7 +229,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION constexpr void xyY_to_XYZ(const RealType xyY[3], RealType xyz[3]) {
+    CUDA_DEVICE_FUNCTION constexpr void xyY_to_XYZ(const RealType xyY[3], RealType xyz[3]) {
         RealType b = xyY[2] / xyY[1];
         xyz[0] = xyY[0] * b;
         xyz[1] = xyY[2];
@@ -238,7 +238,7 @@ namespace VLR {
 
     template <typename RealType>
     constexpr RealType calcLuminance(ColorSpace colorSpace, RealType e0, RealType e1, RealType e2) {
-        switch (colorSpace.value) {
+        switch (colorSpace) {
         case ColorSpace::Rec709_D65_sRGBGamma:
             VLRAssert_NotImplemented();
             break;

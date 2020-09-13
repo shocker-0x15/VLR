@@ -18,12 +18,15 @@
     <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="common.cpp" />
     <ClCompile Include="queryable.cpp" />
+    <ClCompile Include="utils\optix_util.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\cuda_util.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
-      <Filter>GPU Kernels</Filter>
-    </ClInclude>
-    <ClInclude Include="GPU_kernels\random_distributions.cuh">
       <Filter>GPU Kernels</Filter>
     </ClInclude>
     <ClInclude Include="scene.h" />
@@ -72,6 +75,21 @@
     <ClInclude Include="image.h" />
     <ClInclude Include="slot_finder.h" />
     <ClInclude Include="queryable.h" />
+    <ClInclude Include="utils\cuda_util.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\optix_util.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\optix_util_private.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\optixu_on_cudau.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\random_distributions.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
@@ -85,6 +103,9 @@
     </Filter>
     <Filter Include="Shared">
       <UniqueIdentifier>{626b6b12-ff56-4992-a1bc-68f887ae2bc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{a77135d7-bb62-437c-ab23-139546fd8996}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

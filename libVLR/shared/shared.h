@@ -6,6 +6,7 @@
 #if defined(VLR_Host)
 #include "../ext/include/half.hpp"
 #endif
+#include "random_distributions.h"
 
 namespace VLR {
 #if defined(VLR_Host)
@@ -49,25 +50,7 @@ namespace VLR {
 
     using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
 
-#if defined(VLR_Device)
-    // Context-scope Variables
-
-#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_grid, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_spectrum_data_points, , );
-#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-    rtDeclareVariable(int32_t, UpsampledSpectrum_maxBrightnesses, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_D65, , );
-    rtDeclareVariable(int32_t, UpsampledSpectrum_coefficients_sRGB_E, , );
-#   endif
-
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_xbar, , );
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_ybar, , );
-    rtDeclareVariable(DiscretizedSpectrumAlwaysSpectral::CMF, DiscretizedSpectrum_zbar, , );
-    rtDeclareVariable(float, DiscretizedSpectrum_integralCMF, , );
-#endif
-
-    RT_FUNCTION HOST_INLINE TripletSpectrum createTripletSpectrum(SpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
+    CUDA_DEVICE_FUNCTION TripletSpectrum createTripletSpectrum(SpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
@@ -194,20 +177,19 @@ namespace VLR {
     namespace Shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
-            rtBufferId<RealType, 1> m_PMF;
-            rtBufferId<RealType, 1> m_CDF;
+            const RealType* m_PMF;
+            const RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
         public:
-            DiscreteDistribution1DTemplate(const rtBufferId<RealType, 1> &PMF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) : 
-            m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
-            }
+            DiscreteDistribution1DTemplate(const RealType* PMF, const RealType* CDF, RealType integral, uint32_t numValues) :
+                m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
-            RT_FUNCTION DiscreteDistribution1DTemplate() {}
-            RT_FUNCTION ~DiscreteDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION DiscreteDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION ~DiscreteDistribution1DTemplate() {}
 
-            RT_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
+            CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
@@ -220,7 +202,7 @@ namespace VLR {
                 *prob = m_PMF[idx];
                 return idx;
             }
-            RT_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
+            CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
@@ -234,13 +216,13 @@ namespace VLR {
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return idx;
             }
-            RT_FUNCTION RealType evaluatePMF(uint32_t idx) const {
+            CUDA_DEVICE_FUNCTION RealType evaluatePMF(uint32_t idx) const {
                 VLRAssert(idx >= 0 && idx < m_numValues, "\"idx\" is out of range [0, %u)", m_numValues);
                 return m_PMF[idx];
             }
 
-            RT_FUNCTION RealType integral() const { return m_integral; }
-            RT_FUNCTION uint32_t numValues() const { return m_numValues; }
+            CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
+            CUDA_DEVICE_FUNCTION uint32_t numValues() const { return m_numValues; }
         };
 
         using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
@@ -249,20 +231,19 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution1DTemplate {
-            rtBufferId<RealType, 1> m_PDF;
-            rtBufferId<RealType, 1> m_CDF;
+            const RealType*m_PDF;
+            const RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
 
         public:
-            RegularConstantContinuousDistribution1DTemplate(const rtBufferId<RealType, 1> &PDF, const rtBufferId<RealType, 1> &CDF, RealType integral, uint32_t numValues) :
-                m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {
-            }
+            RegularConstantContinuousDistribution1DTemplate(const RealType* PDF, const RealType* CDF, RealType integral, uint32_t numValues) :
+                m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
-            RT_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
-            RT_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
 
-            RT_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
+            CUDA_DEVICE_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
                 VLRAssert(u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = m_numValues;
                 for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
@@ -276,14 +257,14 @@ namespace VLR {
                 RealType t = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return (idx + t) / m_numValues;
             }
-            RT_FUNCTION RealType evaluatePDF(RealType smp) const {
+            CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType smp) const {
                 VLRAssert(smp >= 0 && smp < 1.0, "\"smp\": %g is out of range [0, 1).", smp);
-                int32_t idx = std::min<int32_t>(m_numValues - 1, smp * m_numValues);
+                int32_t idx = VLR::min<int32_t>(m_numValues - 1, smp * m_numValues);
                 return m_PDF[idx];
             }
-            RT_FUNCTION RealType integral() const { return m_integral; }
+            CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
 
-            RT_FUNCTION uint32_t numValues() const { return m_numValues; }
+            CUDA_DEVICE_FUNCTION uint32_t numValues() const { return m_numValues; }
         };
 
         using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
@@ -292,27 +273,26 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution2DTemplate {
-            rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> m_1DDists;
+            RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
-            RegularConstantContinuousDistribution2DTemplate(const rtBufferId<RegularConstantContinuousDistribution1DTemplate<RealType>, 1> &_1DDists, 
+            RegularConstantContinuousDistribution2DTemplate(const RegularConstantContinuousDistribution1DTemplate<RealType>* _1DDists, 
                                                             const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
-                m_1DDists(_1DDists), m_top1DDist(top1DDist) {
-            }
+                m_1DDists(_1DDists), m_top1DDist(top1DDist) {}
 
-            RT_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
-            RT_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
+            CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
+            CUDA_DEVICE_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
 
-            RT_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
+            CUDA_DEVICE_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
                 *d1 = m_top1DDist.sample(u1, &topPDF);
-                uint32_t idx1D = std::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
+                uint32_t idx1D = VLR::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
                 *d0 = m_1DDists[idx1D].sample(u0, probDensity);
                 *probDensity *= topPDF;
             }
-            RT_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
-                uint32_t idx1D = std::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
+            CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
+                uint32_t idx1D = VLR::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
                 return m_top1DDist.evaluatePDF(d1) * m_1DDists[idx1D].evaluatePDF(d0);
             }
         };
@@ -326,24 +306,24 @@ namespace VLR {
             Matrix4x4 m_invMatrix;
 
         public:
-            RT_FUNCTION StaticTransform() {}
-            RT_FUNCTION StaticTransform(const Matrix4x4 &m) : m_matrix(m), m_invMatrix(invert(m)) {}
-            RT_FUNCTION StaticTransform(const Matrix4x4 &m, const Matrix4x4 &mInv) : m_matrix(m), m_invMatrix(mInv) {}
+            CUDA_DEVICE_FUNCTION StaticTransform() {}
+            CUDA_DEVICE_FUNCTION StaticTransform(const Matrix4x4 &m) : m_matrix(m), m_invMatrix(invert(m)) {}
+            CUDA_DEVICE_FUNCTION StaticTransform(const Matrix4x4 &m, const Matrix4x4 &mInv) : m_matrix(m), m_invMatrix(mInv) {}
 
-            RT_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
-            RT_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
-            RT_FUNCTION Point3D operator*(const Point3D &p) const { return m_matrix * p; }
-            RT_FUNCTION Normal3D operator*(const Normal3D &n) const {
+            CUDA_DEVICE_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
+            CUDA_DEVICE_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
+            CUDA_DEVICE_FUNCTION Point3D operator*(const Point3D &p) const { return m_matrix * p; }
+            CUDA_DEVICE_FUNCTION Normal3D operator*(const Normal3D &n) const {
                 // The length of the normal is changed if the transform has scaling, so it requires normalization.
                 return Normal3D(m_invMatrix.m00 * n.x + m_invMatrix.m10 * n.y + m_invMatrix.m20 * n.z,
                                 m_invMatrix.m01 * n.x + m_invMatrix.m11 * n.y + m_invMatrix.m21 * n.z,
                                 m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
             }
 
-            RT_FUNCTION Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
-            RT_FUNCTION Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
-            RT_FUNCTION Point3D mulInv(const Point3D& p) const { return m_invMatrix * p; }
-            RT_FUNCTION Normal3D mulInv(const Normal3D& n) const {
+            CUDA_DEVICE_FUNCTION Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
+            CUDA_DEVICE_FUNCTION Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
+            CUDA_DEVICE_FUNCTION Point3D mulInv(const Point3D& p) const { return m_invMatrix * p; }
+            CUDA_DEVICE_FUNCTION Normal3D mulInv(const Normal3D& n) const {
                 // The length of the normal is changed if the transform has scaling, so it requires normalization.
                 return Normal3D(m_matrix.m00 * n.x + m_matrix.m10 * n.y + m_matrix.m20 * n.z,
                                 m_matrix.m01 * n.x + m_matrix.m11 * n.y + m_matrix.m21 * n.z,
@@ -368,9 +348,9 @@ namespace VLR {
             };
             uint32_t asUInt;
 
-            RT_FUNCTION ShaderNodePlug() {}
+            CUDA_DEVICE_FUNCTION ShaderNodePlug() {}
             explicit constexpr ShaderNodePlug(uint32_t ui) : asUInt(ui) {}
-            RT_FUNCTION bool isValid() const { return asUInt != 0xFFFFFFFF; }
+            CUDA_DEVICE_FUNCTION bool isValid() const { return asUInt != 0xFFFFFFFF; }
 
             static constexpr ShaderNodePlug Invalid() { return ShaderNodePlug(0xFFFFFFFF); }
         };
@@ -381,12 +361,12 @@ namespace VLR {
             uint32_t data[Size];
 
             template <typename T>
-            RT_FUNCTION T* getData() const {
+            CUDA_DEVICE_FUNCTION T* getData() const {
                 VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return (T*)data;
             }
 
-            RT_FUNCTION static constexpr uint32_t NumDWSlots() { return Size; }
+            CUDA_DEVICE_FUNCTION static constexpr uint32_t NumDWSlots() { return Size; }
         };
 
         using SmallNodeDescriptor = NodeDescriptor<4>;
@@ -402,46 +382,46 @@ namespace VLR {
         template <typename Type>
         struct NodeTypeInfo {
             template <typename SrcType>
-            RT_FUNCTION static constexpr bool ConversionIsDefinedFrom() {
+            CUDA_DEVICE_FUNCTION static constexpr bool ConversionIsDefinedFrom() {
                 return false;
             }
-            RT_FUNCTION static constexpr bool ConversionIsDefinedFrom(ShaderNodePlugType plugType);
+            CUDA_DEVICE_FUNCTION static constexpr bool ConversionIsDefinedFrom(ShaderNodePlugType plugType);
             template <typename SrcType>
-            RT_FUNCTION static Type convertFrom(const SrcType &) {
+            CUDA_DEVICE_FUNCTION static Type convertFrom(const SrcType &) {
                 return Type();
             }
         };
 
 #define VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(DstType, SrcType) \
-    template <> template <> HOST_INLINE constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
-    template <> template <> HOST_INLINE DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
+    template <> template <> constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
+    template <> template <> DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, optix::float2) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float2, float) { return optix::make_float2(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float2, float2) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float2, float) { return make_float2(srcValue, srcValue); }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, optix::float3) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, float) { return optix::make_float3(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Point3D) { return asOptiXType(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Vector3D) { return asOptiXType(srcValue); }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float3, Normal3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, float3) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, float) { return make_float3(srcValue, srcValue, srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Point3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Vector3D) { return asOptiXType(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float3, Normal3D) { return asOptiXType(srcValue); }
 
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, optix::float4) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(optix::float4, float) { return optix::make_float4(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float4, float4) { return srcValue; }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float4, float) { return make_float4(srcValue, srcValue, srcValue, srcValue); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Point3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, optix::float3) { return asPoint3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, float3) { return asPoint3D(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Vector3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Point3D, Normal3D) { return Point3D(srcValue.x, srcValue.y, srcValue.z); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Vector3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, optix::float3) { return asVector3D(srcValue); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, float3) { return asVector3D(srcValue); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Point3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Vector3D, Normal3D) { return Vector3D(srcValue.x, srcValue.y, srcValue.z); }
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Normal3D) { return srcValue; }
-        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, optix::float3) { return asNormal3D(srcValue).normalize(); }
+        VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, float3) { return asNormal3D(srcValue).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Point3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(Normal3D, Vector3D) { return Normal3D(srcValue.x, srcValue.y, srcValue.z).normalize(); }
 
@@ -450,16 +430,16 @@ namespace VLR {
 #undef VLR_NODE_TYPE_INFO_DEFINE_CONVERSION
 
         template <typename Type>
-        RT_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFrom(ShaderNodePlugType plugType) {
+        CUDA_DEVICE_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFrom(ShaderNodePlugType plugType) {
             switch (plugType) {
             case ShaderNodePlugType::float1:
                 return ConversionIsDefinedFrom<float>();
             case ShaderNodePlugType::float2:
-                return ConversionIsDefinedFrom<optix::float2>();
+                return ConversionIsDefinedFrom<float2>();
             case ShaderNodePlugType::float3:
-                return ConversionIsDefinedFrom<optix::float3>();
+                return ConversionIsDefinedFrom<float3>();
             case ShaderNodePlugType::float4:
-                return ConversionIsDefinedFrom<optix::float4>();
+                return ConversionIsDefinedFrom<float4>();
             case ShaderNodePlugType::Point3D:
                 return ConversionIsDefinedFrom<Point3D>();
             case ShaderNodePlugType::Vector3D:
@@ -521,27 +501,6 @@ namespace VLR {
             uint32_t index0, index1, index2;
         };
 
-        struct GeometryInstanceDescriptor {
-            union Body {
-                struct {
-                    rtBufferId<Vertex> vertexBuffer;
-                    rtBufferId<Triangle> triangleBuffer;
-                    DiscreteDistribution1D primDistribution;
-                    StaticTransform transform;
-                } asTriMesh;
-                struct {
-                    float rotationPhi;
-                    RegularConstantContinuousDistribution2D importanceMap;
-                } asInfSphere;
-
-                RT_FUNCTION Body() {}
-                RT_FUNCTION ~Body() {}
-            } body;
-            uint32_t materialIndex;
-            float importance;
-            int32_t sampleFunc;
-        };
-
 
 
         struct PerspectiveCamera {
@@ -559,7 +518,7 @@ namespace VLR {
             float opHeight;
             float imgPlaneArea;
 
-            RT_FUNCTION PerspectiveCamera() {}
+            CUDA_DEVICE_FUNCTION PerspectiveCamera() {}
 
             void setImagePlaneArea() {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
@@ -580,21 +539,20 @@ namespace VLR {
             float phiAngle;
             float thetaAngle;
 
-            RT_FUNCTION EquirectangularCamera() {}
+            CUDA_DEVICE_FUNCTION EquirectangularCamera() {}
         };
 
 
 
         struct RayType {
             enum Value {
-                Primary = 0,
-                Scattered,
+                Closest = 0,
                 Shadow,
                 DebugPrimary,
                 NumTypes
             } value;
 
-            RT_FUNCTION constexpr RayType(Value v = Primary) : value(v) {}
+            CUDA_DEVICE_FUNCTION constexpr RayType(Value v = Closest) : value(v) {}
         };
 
 
@@ -715,7 +673,7 @@ namespace VLR {
         struct Image2DTextureShaderNode {
 #define VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH (5)
 
-            int32_t textureID;
+            CUtexObject texture;
             struct {
                 unsigned int dataFormat : 5;
                 unsigned int spectrumType : 3;
@@ -724,27 +682,31 @@ namespace VLR {
                 unsigned int bumpCoeff : VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH;
             };
             ShaderNodePlug nodeTexCoord;
+            struct {
+                unsigned int width : 16;
+                unsigned int height : 16;
+            };
 
-            RT_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
-            RT_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
-            RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
-            RT_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
-            RT_FUNCTION float getBumpCoeff() const {
+            CUDA_DEVICE_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
+            CUDA_DEVICE_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
+            CUDA_DEVICE_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
+            CUDA_DEVICE_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
+            CUDA_DEVICE_FUNCTION float getBumpCoeff() const {
                 // map to (0, 2]
                 return (float)(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
             }
         };
-        static_assert(sizeof(Image2DTextureShaderNode) == 12, "Unexpected sizeof(Image2DTextureShaderNode).");
+        static_assert(sizeof(Image2DTextureShaderNode) == 24, "Unexpected sizeof(Image2DTextureShaderNode).");
 
         struct EnvironmentTextureShaderNode {
-            int32_t textureID;
+            CUtexObject texture;
             struct {
                 unsigned int dataFormat : 5;
                 unsigned int colorSpace : 3;
             };
 
-            RT_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
-            RT_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
+            CUDA_DEVICE_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
+            CUDA_DEVICE_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
         };
 
         // END: Shader Nodes
@@ -846,6 +808,86 @@ namespace VLR {
 
         // END: Surface Materials
         // ----------------------------------------------------------------
+
+
+
+        struct GeometryInstance {
+            union {
+                struct {
+                    const Vertex* vertexBuffer;
+                    const Triangle* triangleBuffer;
+                    DiscreteDistribution1D primDistribution;
+                } asTriMesh;
+                struct {
+                    RegularConstantContinuousDistribution2D importanceMap;
+                } asInfSphere;
+            };
+
+            uint32_t geomInstIndex;
+            uint32_t progDecodeHitPoint;
+            ShaderNodePlug nodeNormal;
+            ShaderNodePlug nodeTangent;
+            ShaderNodePlug nodeAlpha;
+            float importance;
+            uint32_t materialIndex;
+        };
+
+        struct Instance {
+            StaticTransform transform;
+        };
+
+        struct GeometryInstanceDescriptor {
+            uint32_t geomInstIndex;
+            union {
+                uint32_t instIndex;
+                float rotationPhi;
+            };
+            int32_t sampleFunc;
+        };
+        
+        struct PipelineLaunchParameters {
+#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+            const UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
+            const UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
+#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            const float* UpsampledSpectrum_maxBrightnesses;
+            const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
+            const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
+#   endif
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_xbar;
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_ybar;
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_zbar;
+            float DiscretizedSpectrum_integralCMF;
+
+            const NodeProcedureSet* nodeProcedureSetBuffer;
+            const SmallNodeDescriptor* smallNodeDescriptorBuffer;
+            const MediumNodeDescriptor* mediumNodeDescriptorBuffer;
+            const LargeNodeDescriptor* largeNodeDescriptorBuffer;
+            const BSDFProcedureSet* bsdfProcedureSetBuffer;
+            const EDFProcedureSet* edfProcedureSetBuffer;
+            const SurfaceMaterialDescriptor* materialDescriptorBuffer;
+            const GeometryInstance* geomInstBuffer;
+            const Instance* instBuffer;
+            const GeometryInstanceDescriptor* geomInstDescBuffer;
+
+            PerspectiveCamera perspectiveCamera;
+            EquirectangularCamera equirectangularCamera;
+
+            OptixTraversableHandle topGroup;
+            DiscreteDistribution1D lightImpDist;
+            GeometryInstanceDescriptor envLightDescriptor;
+
+            uint2 imageSize;
+            uint32_t numAccumFrames;
+            int32_t progSampleLensPosition;
+            int32_t progSampleIDF;
+            optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
+            optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
+
+            DebugRenderingAttribute debugRenderingAttribute;
+        };
+
+        RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;
     }
 }
 

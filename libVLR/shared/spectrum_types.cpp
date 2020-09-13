@@ -3,14 +3,14 @@
 namespace VLR {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
+    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
 #   if defined(VLR_Device)
-        const auto spectrum_grid = rtBufferId<spectrum_grid_cell_t, 1>(UpsampledSpectrum_spectrum_grid);
-        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+        const auto spectrum_grid = plp.UpsampledSpectrum_spectrum_grid;
+        const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
-        u = clamp<RealType>(u, 0.0f, GridWidth());
-        v = clamp<RealType>(v, 0.0f, GridHeight());
+        u = VLR::clamp<RealType>(u, 0.0f, GridWidth());
+        v = VLR::clamp<RealType>(v, 0.0f, GridHeight());
 
         int32_t ui = (int32_t)u;
         int32_t vi = (int32_t)v;
@@ -80,13 +80,7 @@ namespace VLR {
     }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
-#   if defined(VLR_Host)
-    RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table) {
-#   else
-    RT_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, rtBufferId<PolynomialCoefficients, 1> table) {
-        const rtBufferId<float, 1> maxBrightnesses = rtBufferId<float, 1>(UpsampledSpectrum_maxBrightnesses);
-#   endif
-
+    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table) {
         RealType maxValue = std::fmax(e0, std::fmax(e1, e2));
         uint32_t maxComp = 0;
         if (e1 > e0 && e1 > e2)
@@ -150,7 +144,7 @@ namespace VLR {
 #endif
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
+    CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RealType xy[2];
         RealType brightness;
@@ -211,7 +205,7 @@ namespace VLR {
         m_scale = brightness / EqualEnergyReflectance();
         RealType uv[2];
         xy_to_uv(xy, uv);
-        VLRAssert(std::isfinite(uv[0]) && std::isfinite(uv[1]) && std::isfinite(m_scale), "Invalid value.");
+        VLRAssert(VLR::isfinite(uv[0]) && VLR::isfinite(uv[1]) && VLR::isfinite(m_scale), "Invalid value.");
 
         computeAdjacents(uv[0], uv[1]);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
@@ -271,10 +265,10 @@ namespace VLR {
     }
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+    CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
 #   if defined(VLR_Device)
-        const auto spectrum_data_points = rtBufferId<spectrum_data_point_t, 1>(UpsampledSpectrum_spectrum_data_points);
+        const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
         uint8_t adjIndices[4];
@@ -308,8 +302,8 @@ namespace VLR {
             RealType p = (lambda - MinWavelength()) / (MaxWavelength() - MinWavelength());
             p = clamp<RealType>(p, 0.0, 1.0);
             RealType sBinF = p * (NumWavelengthSamples() - 1);
-            uint32_t sBin = std::min<uint32_t>(sBinF, NumWavelengthSamples() - 1);
-            uint32_t sBinNext = std::min<uint32_t>(sBin + 1, NumWavelengthSamples() - 1);
+            uint32_t sBin = VLR::min<uint32_t>(sBinF, NumWavelengthSamples() - 1);
+            uint32_t sBinNext = VLR::min<uint32_t>(sBin + 1, NumWavelengthSamples() - 1);
             RealType t = sBinF - sBin;
             for (int j = 0; j < numAdjacents; ++j) {
                 const float* spectrum = spectrum_data_points[adjIndices[j]].spectrum;
@@ -383,7 +377,7 @@ namespace VLR {
 
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> RegularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+    CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> RegularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
         SampledSpectrumTemplate<RealType, NumSpectralSamples> ret(0.0f);
         for (int i = 0; i < NumSpectralSamples; ++i) {
             RealType binF = (wls[i] - m_minLambda) / (m_maxLambda - m_minLambda) * (m_numSamples - 1);
@@ -410,7 +404,7 @@ namespace VLR {
         const RealType binWidth = (m_maxLambda - m_minLambda) / (m_numSamples - 1);
         uint32_t curCMFIdx = 0;
         uint32_t baseIdx = 0;
-        RealType curWL = std::min<RealType>(WavelengthLowBound, m_minLambda);
+        RealType curWL = VLR::min<RealType>(WavelengthLowBound, m_minLambda);
         RealType prev_xbarVal = 0, prev_ybarVal = 0, prev_zbarVal = 0;
         RealType prevValue = 0;
         RealType halfWidth = 0;
@@ -429,7 +423,7 @@ namespace VLR {
                 ++curCMFIdx;
             }
             else {
-                uint32_t idx = std::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
+                uint32_t idx = VLR::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
                 RealType CMFBaseWL = WavelengthLowBound + idx * CMFBinWidth;
                 RealType t = (curWL - CMFBaseWL) / CMFBinWidth;
                 xbarValue = (1 - t) * xbarReferenceValues[idx] + t * xbarReferenceValues[idx + 1];
@@ -483,7 +477,7 @@ namespace VLR {
 
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+    CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
         SampledSpectrumTemplate<RealType, NumSpectralSamples> ret(0.0f);
         uint32_t baseIdx = 0;
         for (int i = 0; i < NumSpectralSamples; ++i) {
@@ -510,7 +504,7 @@ namespace VLR {
 
 #if defined(VLR_Host)
     template <typename RealType, uint32_t NumSpectralSamples>
-    RT_FUNCTION void IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::toXYZ(RealType XYZ[3]) const {
+    CUDA_DEVICE_FUNCTION void IrregularSampledSpectrumTemplate<RealType, NumSpectralSamples>::toXYZ(RealType XYZ[3]) const {
         const RealType CMFBinWidth = (WavelengthHighBound - WavelengthLowBound) / (NumCMFSamples - 1);
         uint32_t curCMFIdx = 0;
         uint32_t baseIdx = 0;
@@ -586,14 +580,14 @@ namespace VLR {
 
 
 #if defined(VLR_Device)
-#   define xbar DiscretizedSpectrum_xbar
-#   define ybar DiscretizedSpectrum_ybar
-#   define zbar DiscretizedSpectrum_zbar
-#   define integralCMF DiscretizedSpectrum_integralCMF
+#   define xbar plp.DiscretizedSpectrum_xbar
+#   define ybar plp.DiscretizedSpectrum_ybar
+#   define zbar plp.DiscretizedSpectrum_zbar
+#   define integralCMF plp.DiscretizedSpectrum_integralCMF
 #endif
 
     template <typename RealType, uint32_t NumStrataForStorage>
-    RT_FUNCTION void DiscretizedSpectrumTemplate<RealType, NumStrataForStorage>::toXYZ(RealType XYZ[3]) const {
+    CUDA_DEVICE_FUNCTION void DiscretizedSpectrumTemplate<RealType, NumStrataForStorage>::toXYZ(RealType XYZ[3]) const {
         XYZ[0] = XYZ[1] = XYZ[2] = 0;
         for (int i = 0; i < NumStrataForStorage; ++i) {
             XYZ[0] += xbar[i] * values[i];

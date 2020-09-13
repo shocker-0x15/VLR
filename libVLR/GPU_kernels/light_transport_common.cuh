@@ -3,14 +3,6 @@
 #include "kernel_common.cuh"
 
 namespace VLR {
-    // Context-scope Variables
-    rtDeclareVariable(rtObject, pv_topGroup, , );
-
-    rtDeclareVariable(DiscreteDistribution1D, pv_lightImpDist, , );
-    rtDeclareVariable(GeometryInstanceDescriptor, pv_envLightDescriptor, , );
-
-
-
     class BSDF {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
@@ -21,25 +13,25 @@ namespace VLR {
         ProgSigBSDFEvaluateInternal progEvaluateInternal;
         ProgSigBSDFEvaluatePDFInternal progEvaluatePDFInternal;
 
-        RT_FUNCTION bool matches(DirectionType dirType) {
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
             return progMatches((const uint32_t*)this, dirType);
         }
-        RT_FUNCTION SampledSpectrum sampleInternal(const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
             return progSampleInternal((const uint32_t*)this, query, uComponent, uDir, result);
         }
-        RT_FUNCTION SampledSpectrum evaluateInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluateInternal((const uint32_t*)this, query, dirLocal);
         }
-        RT_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluatePDFInternal((const uint32_t*)this, query, dirLocal);
         }
 
     public:
-        RT_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        CUDA_DEVICE_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matDesc.progSetupBSDF;
             setupBSDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
             //progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
             progMatches = (ProgSigBSDFmatches)procSet.progMatches;
@@ -48,15 +40,15 @@ namespace VLR {
             progEvaluatePDFInternal = (ProgSigBSDFEvaluatePDFInternal)procSet.progEvaluatePDFInternal;
         }
 
-        //RT_FUNCTION SampledSpectrum getBaseColor() {
+        //CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() {
         //    return progGetBaseColor((const uint32_t*)this);
         //}
 
-        RT_FUNCTION bool hasNonDelta() {
+        CUDA_DEVICE_FUNCTION bool hasNonDelta() {
             return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
         }
 
-        RT_FUNCTION SampledSpectrum sample(const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
             if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
                 result->sampledType = DirectionType();
@@ -71,13 +63,13 @@ namespace VLR {
             return fs_sn * snCorrection;
         }
 
-        RT_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) {
             SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
             float snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
             return fs_sn * snCorrection;
         }
 
-        RT_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) {
             if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
@@ -95,30 +87,30 @@ namespace VLR {
         ProgSigEDFEvaluateEmittanceInternal progEvaluateEmittanceInternal;
         ProgSigEDFEvaluateInternal progEvaluateInternal;
 
-        RT_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
             return progEvaluateEmittanceInternal((const uint32_t*)this);
         }
-        RT_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluateInternal((const uint32_t*)this, query, dirLocal);
         }
 
     public:
-        RT_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        CUDA_DEVICE_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matDesc.progSetupEDF;
             setupEDF(matDesc.data, surfPt, wls, (uint32_t*)this);
 
-            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
+            const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
             progEvaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
             progEvaluateInternal = (ProgSigEDFEvaluateInternal)procSet.progEvaluateInternal;
         }
 
-        RT_FUNCTION SampledSpectrum evaluateEmittance() {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() {
             SampledSpectrum Le0 = evaluateEmittanceInternal();
             return Le0;
         }
 
-        RT_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) {
             SampledSpectrum Le1 = evaluateInternal(query, dirLocal);
             return Le1;
         }
@@ -128,6 +120,7 @@ namespace VLR {
 
     struct Payload {
         struct {
+            unsigned int pathLength : 16;
             bool terminate : 1;
             bool maxLengthTerminate : 1;
         };
@@ -142,38 +135,29 @@ namespace VLR {
         DirectionType prevSampledType;
     };
 
+#define PayloadSignature Payload*
+
     struct ShadowPayload {
         WavelengthSamples wls;
         float fractionalVisibility;
     };
 
+#define ShadowPayloadSignature ShadowPayload*
 
 
-    rtDeclareVariable(optix::uint2, sm_launchIndex, rtLaunchIndex, );
-    rtDeclareVariable(Payload, sm_payload, rtPayload, );
-    rtDeclareVariable(ShadowPayload, sm_shadowPayload, rtPayload, );
 
-    typedef rtCallableProgramX<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
-    typedef rtCallableProgramX<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
+    typedef optixu::DirectCallableProgramID<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
 
-    typedef rtCallableProgramX<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
-    typedef rtCallableProgramX<float(const TexCoord2D &)> ProgSigFetchAlpha;
-    typedef rtCallableProgramX<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
-
-    // per GeometryInstance
-    rtDeclareVariable(uint32_t, pv_geomInstIndex, , );
-    rtDeclareVariable(ProgSigDecodeHitPoint, pv_progDecodeHitPoint, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeNormal, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeTangent, , );
-    rtDeclareVariable(ShaderNodePlug, pv_nodeAlpha, , );
-    rtDeclareVariable(uint32_t, pv_materialIndex, , );
-    rtDeclareVariable(float, pv_importance, , );
+    typedef optixu::DirectCallableProgramID<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
+    typedef optixu::DirectCallableProgramID<float(const TexCoord2D &)> ProgSigFetchAlpha;
+    typedef optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
 
 
 
     // Reference:
     // Chapter 6. A Fast and Robust Method for Avoiding Self-Intersection, Ray Tracing Gems, 2019
-    RT_FUNCTION Point3D offsetRayOrigin(const Point3D &p, const Normal3D &geometricNormal) {
+    CUDA_DEVICE_FUNCTION Point3D offsetRayOrigin(const Point3D &p, const Normal3D &geometricNormal) {
         constexpr float kOrigin = 1.0f / 32.0f;
         constexpr float kFloatScale = 1.0f / 65536.0f;
         constexpr float kIntScale = 256.0f;
@@ -206,8 +190,8 @@ namespace VLR {
     // ----------------------------------------------------------------
     // Light
 
-    RT_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint,
-                                    Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
+    CUDA_DEVICE_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, const WavelengthSamples &wls,
+                                             Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
         VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
 
         *shadowRayDir = lightSurfacePoint.calcDirectionFrom(shadingSurfacePoint.position, squaredDistance);
@@ -216,43 +200,50 @@ namespace VLR {
         bool isFrontSide = dot(geomNormal, *shadowRayDir) > 0;
         Point3D shadingPoint = offsetRayOrigin(shadingSurfacePoint.position, isFrontSide ? geomNormal : -geomNormal);
 
-        optix::Ray shadowRay = optix::make_Ray(asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), RayType::Shadow, 0.0f, FLT_MAX);
+        float tmax = FLT_MAX;
         if (!lightSurfacePoint.atInfinity)
-            shadowRay.tmax = std::sqrt(*squaredDistance) * 0.9999f;
+            tmax = std::sqrt(*squaredDistance) * 0.9999f;
 
         ShadowPayload shadowPayload;
-        shadowPayload.wls = sm_payload.wls;
+        shadowPayload.wls = wls;
         shadowPayload.fractionalVisibility = 1.0f;
-        rtTrace(pv_topGroup, shadowRay, shadowPayload);
+        ShadowPayload* shadowPayloadPtr = &shadowPayload;
+        optixu::trace<ShadowPayloadSignature>(
+            plp.topGroup, asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), 0.0f, tmax, 0.0f,
+            0xFF, OPTIX_RAY_FLAG_NONE, RayType::Shadow, RayType::NumTypes, RayType::Shadow,
+            shadowPayloadPtr);
 
         *fractionalVisibility = shadowPayload.fractionalVisibility;
 
         return *fractionalVisibility > 0;
     }
 
-    RT_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        float sumImps = pv_envLightDescriptor.importance + pv_lightImpDist.integral();
+    CUDA_DEVICE_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
+        const GeometryInstance &envLight = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
+        float sumImps = envLight.importance + plp.lightImpDist.integral();
         float su = sumImps * lightSample;
-        if (su < pv_envLightDescriptor.importance) {
-            *light = SurfaceLight(pv_envLightDescriptor);
-            *lightProb = pv_envLightDescriptor.importance / sumImps;
+        if (su < envLight.importance) {
+            *light = SurfaceLight(plp.envLightDescriptor);
+            *lightProb = envLight.importance / sumImps;
         }
         else {
-            lightSample = (su - pv_envLightDescriptor.importance) / pv_lightImpDist.integral();
-            uint32_t lightIdx = pv_lightImpDist.sample(lightSample, lightProb, remapped);
-            *light = SurfaceLight(pv_geometryInstanceDescriptorBuffer[lightIdx]);
-            *lightProb *= pv_lightImpDist.integral() / sumImps;
+            lightSample = (su - envLight.importance) / plp.lightImpDist.integral();
+            uint32_t lightIdx = plp.lightImpDist.sample(lightSample, lightProb, remapped);
+            *light = SurfaceLight(plp.geomInstDescBuffer[lightIdx]);
+            *lightProb *= plp.lightImpDist.integral() / sumImps;
         }
     }
 
-    RT_FUNCTION float getSumLightImportances() {
-        return pv_envLightDescriptor.importance + pv_lightImpDist.integral();
+    CUDA_DEVICE_FUNCTION float getSumLightImportances() {
+        const GeometryInstance &envLight = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
+        return envLight.importance + plp.lightImpDist.integral();
     }
 
-    RT_FUNCTION float evaluateEnvironmentAreaPDF(float phi, float theta) {
-        VLRAssert(std::isfinite(phi) && std::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
-        float uvPDF = pv_envLightDescriptor.body.asInfSphere.importanceMap.evaluatePDF(phi / (2 * M_PIf), theta / M_PIf);
-        return uvPDF / (2 * M_PIf * M_PIf * std::sin(theta));
+    CUDA_DEVICE_FUNCTION float evaluateEnvironmentAreaPDF(float phi, float theta) {
+        VLRAssert(VLR::isfinite(phi) && VLR::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
+        const GeometryInstance &geomInst = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
+        float uvPDF = geomInst.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
+        return uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
     }
 
     // END: Light
@@ -260,45 +251,61 @@ namespace VLR {
 
 
 
-    RT_PROGRAM void shadowAnyHitDefault() {
-        sm_shadowPayload.fractionalVisibility = 0.0f;
-        rtTerminateRay();
+    CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitDefault)() {
+        ShadowPayload* payload;
+        optixu::getPayloads<ShadowPayloadSignature>(&payload);
+        payload->fractionalVisibility = 0.0f;
+        optixTerminateRay();
     }
 
-    RT_FUNCTION float getAlpha() {
-        HitPointParameter hitPointParam = a_hitPointParam;
+    CUDA_DEVICE_FUNCTION float getAlpha(const WavelengthSamples &wls) {
+        const auto &sbtr = HitGroupSBTRecordData::get();
+        const auto hitPointParam = HitPointParameter::get();
+
         SurfacePoint surfPt;
         float hypAreaPDF;
-        pv_progDecodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        ProgSigDecodeHitPoint decodeHitPoint(sbtr.geomInst.progDecodeHitPoint);
+        decodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        surfPt.position = transform<TransformKind::ObjectToWorld>(surfPt.position);
+        surfPt.shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.x),
+                                             transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.z));
+        surfPt.geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt.geometricNormal);
+        surfPt.instanceIndex = optixGetInstanceId();
 
-        return calcNode(pv_nodeAlpha, 1.0f, surfPt, sm_payload.wls);
+        return calcNode(sbtr.geomInst.nodeAlpha, 1.0f, surfPt, wls);
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    RT_PROGRAM void anyHitWithAlpha() {
-        float alpha = getAlpha();
+    CUDA_DEVICE_KERNEL void RT_AH_NAME(anyHitWithAlpha)() {
+        Payload* payload;
+        optixu::getPayloads<PayloadSignature>(&payload);
+
+        float alpha = getAlpha(payload->wls);
 
         // Stochastic Alpha Test
-        if (sm_payload.rng.getFloat0cTo1o() >= alpha)
-            rtIgnoreIntersection();
+        if (payload->rng.getFloat0cTo1o() >= alpha)
+            optixIgnoreIntersection();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
-    RT_PROGRAM void shadowAnyHitWithAlpha() {
-        float alpha = getAlpha();
+    CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitWithAlpha)() {
+        ShadowPayload* payload;
+        optixu::getPayloads<ShadowPayloadSignature>(&payload);
 
-        sm_shadowPayload.fractionalVisibility *= (1 - alpha);
-        if (sm_shadowPayload.fractionalVisibility == 0.0f)
-            rtTerminateRay();
+        float alpha = getAlpha(payload->wls);
+
+        payload->fractionalVisibility *= (1 - alpha);
+        if (payload->fractionalVisibility == 0.0f)
+            optixTerminateRay();
         else
-            rtIgnoreIntersection();
+            optixIgnoreIntersection();
     }
 
 
 
     // JP: 変異された法線に従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the modified normal.
-    RT_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
+    CUDA_DEVICE_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
         if (modNormalInTF.x == 0.0f && modNormalInTF.y == 0.0f)
             return;
 
@@ -326,7 +333,7 @@ namespace VLR {
 
     // JP: 変異された接線に従ってシェーディングフレームを変更する。
     // EN: perturb the shading frame according to the modified tangent.
-    RT_FUNCTION void modifyTangent(const Vector3D& modTangent, SurfacePoint* surfPt) {
+    CUDA_DEVICE_FUNCTION void modifyTangent(const Vector3D& modTangent, SurfacePoint* surfPt) {
         if (modTangent == surfPt->shadingFrame.x)
             return;
 
@@ -353,15 +360,22 @@ namespace VLR {
 
 
 
-    RT_FUNCTION void calcSurfacePoint(SurfacePoint* surfPt, float* hypAreaPDF) {
-        HitPointParameter hitPointParam = a_hitPointParam;
-        pv_progDecodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
-        surfPt->geometryInstanceIndex = pv_geomInstIndex;
+    CUDA_DEVICE_FUNCTION void calcSurfacePoint(const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
+        const auto &sbtr = HitGroupSBTRecordData::get();
+        const auto hitPointParam = HitPointParameter::get();
 
-        Normal3D localNormal = calcNode(pv_nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, sm_payload.wls);
+        ProgSigDecodeHitPoint decodeHitPoint(sbtr.geomInst.progDecodeHitPoint);
+        decodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+        surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);
+        surfPt->shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x),
+                                              transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z));
+        surfPt->geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt->geometricNormal);
+        surfPt->instanceIndex = optixGetInstanceId();
+
+        Normal3D localNormal = calcNode(sbtr.geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
         applyBumpMapping(localNormal, surfPt);
 
-        Vector3D newTangent = calcNode(pv_nodeTangent, surfPt->shadingFrame.x, *surfPt, sm_payload.wls);
+        Vector3D newTangent = calcNode(sbtr.geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
         modifyTangent(newTangent, surfPt);
     }
 }

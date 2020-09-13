@@ -1,7 +1,7 @@
 ﻿#include "kernel_common.cuh"
 
 namespace VLR {
-    RT_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
+    CUDA_DEVICE_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
         bool reflect = dot(Vector3D(ng), d0) * dot(Vector3D(ng), d1) > 0;
         return DirectionType::AllFreq() | (reflect ? DirectionType::Reflection() : DirectionType::Transmission());
     }
@@ -13,9 +13,9 @@ namespace VLR {
         SampledSpectrum m_k;
 
     public:
-        RT_FUNCTION FresnelConductor(const SampledSpectrum &eta, const SampledSpectrum &k) : m_eta(eta), m_k(k) {}
+        CUDA_DEVICE_FUNCTION FresnelConductor(const SampledSpectrum &eta, const SampledSpectrum &k) : m_eta(eta), m_k(k) {}
 
-        RT_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
             cosEnter = std::fabs(cosEnter);
             float cosEnter2 = cosEnter * cosEnter;
             SampledSpectrum _2EtaCosEnter = 2.0f * m_eta * cosEnter;
@@ -26,7 +26,7 @@ namespace VLR {
 
             return (Rparl2 + Rperp2) / 2.0f;
         }
-        RT_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+        CUDA_DEVICE_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
             cosEnter = std::fabs(cosEnter);
             float cosEnter2 = cosEnter * cosEnter;
             float _2EtaCosEnter = 2.0f * m_eta[wlIdx] * cosEnter;
@@ -46,12 +46,12 @@ namespace VLR {
         SampledSpectrum m_etaInt;
 
     public:
-        RT_FUNCTION FresnelDielectric(const SampledSpectrum &etaExt, const SampledSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
+        CUDA_DEVICE_FUNCTION FresnelDielectric(const SampledSpectrum &etaExt, const SampledSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
 
-        RT_FUNCTION SampledSpectrum etaExt() const { return m_etaExt; }
-        RT_FUNCTION SampledSpectrum etaInt() const { return m_etaInt; }
+        CUDA_DEVICE_FUNCTION SampledSpectrum etaExt() const { return m_etaExt; }
+        CUDA_DEVICE_FUNCTION SampledSpectrum etaInt() const { return m_etaInt; }
 
-        RT_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
             cosEnter = clamp(cosEnter, -1.0f, 1.0f);
 
             bool entering = cosEnter > 0.0f;
@@ -72,7 +72,7 @@ namespace VLR {
             }
             return ret;
         }
-        RT_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+        CUDA_DEVICE_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
             cosEnter = clamp(cosEnter, -1.0f, 1.0f);
 
             bool entering = cosEnter > 0.0f;
@@ -90,10 +90,10 @@ namespace VLR {
             }
         }
 
-        RT_FUNCTION static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
+        CUDA_DEVICE_FUNCTION static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
     };
 
-    RT_FUNCTION float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
+    CUDA_DEVICE_FUNCTION float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
         float Rparl = ((etaExit * cosEnter) - (etaEnter * cosExit)) / ((etaExit * cosEnter) + (etaEnter * cosExit));
         float Rperp = ((etaEnter * cosEnter) - (etaExit * cosExit)) / ((etaEnter * cosEnter) + (etaExit * cosExit));
         return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
@@ -106,9 +106,9 @@ namespace VLR {
         float m_F0;
 
     public:
-        RT_FUNCTION FresnelSchlick(float F0) : m_F0(F0) {}
+        CUDA_DEVICE_FUNCTION FresnelSchlick(float F0) : m_F0(F0) {}
 
-        RT_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
             bool entering = cosEnter >= 0;
             float cosEval = cosEnter;
             if (!entering) {
@@ -134,12 +134,12 @@ namespace VLR {
         float m_sinRt;
 
     public:
-        RT_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
+        CUDA_DEVICE_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
             m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {
             VLR::sincos(rotation, &m_sinRt, &m_cosRt);
         }
 
-        RT_FUNCTION float evaluate(const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION float evaluate(const Normal3D &m) {
             Normal3D mr = Normal3D(m_cosRt * m.x + m_sinRt * m.y,
                                    -m_sinRt * m.x + m_cosRt * m.y,
                                    m.z);
@@ -147,10 +147,10 @@ namespace VLR {
             if (mr.z <= 0)
                 return 0.0f;
             float temp = pow2(mr.x / m_alpha_gx) + pow2(mr.y / m_alpha_gy) + pow2(mr.z);
-            return 1.0f / (M_PIf * m_alpha_gx * m_alpha_gy * pow2(temp));
+            return 1.0f / (VLR_M_PI * m_alpha_gx * m_alpha_gy * pow2(temp));
         }
 
-        RT_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
             Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
                                    -m_sinRt * v.x + m_cosRt * v.y,
                                    v.z);
@@ -161,7 +161,7 @@ namespace VLR {
             return chi / (1 + Lambda);
         }
 
-        RT_FUNCTION float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
             Vector3D v1r = Vector3D(m_cosRt * v1.x + m_sinRt * v1.y,
                                     -m_sinRt * v1.x + m_cosRt * v1.y,
                                     v1.z);
@@ -178,7 +178,7 @@ namespace VLR {
             return chi1 * chi2 / (1 + Lambda1 + Lambda2);
         }
 
-        RT_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
+        CUDA_DEVICE_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
             Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
                                    -m_sinRt * v.x + m_cosRt * v.y,
                                    v.z);
@@ -197,7 +197,7 @@ namespace VLR {
             // sample point with polar coordinates (r, phi)
             float a = 1.0f / (1.0f + sv.z);
             float r = std::sqrt(u0);
-            float phi = M_PIf * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
+            float phi = VLR_M_PI * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
             float sinPhi, cosPhi;
             VLR::sincos(phi, &sinPhi, &cosPhi);
             float P1 = r * cosPhi;
@@ -219,7 +219,7 @@ namespace VLR {
             return D;
         }
 
-        RT_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
             return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::fabs(v.z);
         }
     };
@@ -229,31 +229,38 @@ namespace VLR {
     // ----------------------------------------------------------------
     // NullBSDF
 
-    RT_CALLABLE_PROGRAM uint32_t NullBSDF_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(NullBSDF_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         return 0;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum NullBSDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(NullBSDF_getBaseColor)(
+        const uint32_t* params) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM bool NullBSDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(NullBSDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         return false;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum NullBSDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(NullBSDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum NullBSDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(NullBSDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM float NullBSDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(NullBSDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM float NullBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(NullBSDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         return 0.0f;
     }
 
@@ -270,7 +277,8 @@ namespace VLR {
         float roughness;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MatteSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MatteSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         MatteBRDF &p = *(MatteBRDF*)params;
         auto &mat = *(const MatteSurfaceMaterial*)matDesc;
 
@@ -280,49 +288,55 @@ namespace VLR {
         return sizeof(MatteBRDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MatteBRDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MatteBRDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const MatteBRDF*)params;
 
         return p.albedo;
     }
 
-    RT_CALLABLE_PROGRAM bool MatteBRDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(MatteBRDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MatteBRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MatteBRDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const MatteBRDF*)params;
 
         result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
-        result->dirPDF = result->dirLocal.z / M_PIf;
+        result->dirPDF = result->dirLocal.z / VLR_M_PI;
         result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
         result->dirLocal.z *= query.dirLocal.z >= 0 ? 1 : -1;
 
-        return p.albedo / M_PIf;
+        return p.albedo / VLR_M_PI;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MatteBRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MatteBRDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MatteBRDF*)params;
 
         if (query.dirLocal.z * dirLocal.z <= 0.0f) {
             SampledSpectrum fs = SampledSpectrum::Zero();
             return fs;
         }
-        SampledSpectrum fs = p.albedo / M_PIf;
+        SampledSpectrum fs = p.albedo / VLR_M_PI;
 
         return fs;
     }
 
-    RT_CALLABLE_PROGRAM float MatteBRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MatteBRDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         if (query.dirLocal.z * dirLocal.z <= 0.0f) {
             return 0.0f;
         }
 
-        return std::fabs(dirLocal.z) / M_PIf;
+        return std::fabs(dirLocal.z) / VLR_M_PI;
     }
 
-    RT_CALLABLE_PROGRAM float MatteBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MatteBRDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const MatteBRDF*)params;
         return p.albedo.importance(query.wlHint);
     }
@@ -341,7 +355,8 @@ namespace VLR {
         SampledSpectrum k;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t SpecularReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(SpecularReflectionSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(SpecularBRDF*)params;
         auto &mat = *(const SpecularReflectionSurfaceMaterial*)matDesc;
 
@@ -352,18 +367,21 @@ namespace VLR {
         return sizeof(SpecularBRDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBRDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBRDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const SpecularBRDF*)params;
 
         return p.coeffR;
     }
 
-    RT_CALLABLE_PROGRAM bool SpecularBRDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(SpecularBRDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::Reflection() | DirectionType::Delta0D();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBRDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const SpecularBRDF*)params;
 
         FresnelConductor fresnel(p.eta, p.k);
@@ -376,15 +394,18 @@ namespace VLR {
         return fs;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBRDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM float SpecularBRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(SpecularBRDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM float SpecularBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(SpecularBRDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const SpecularBRDF*)params;
 
         FresnelDielectric fresnel(p.eta, p.k);
@@ -407,7 +428,8 @@ namespace VLR {
         bool dispersive;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t SpecularScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(SpecularScatteringSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(SpecularBSDF*)params;
         auto &mat = *(const SpecularScatteringSurfaceMaterial*)matDesc;
 
@@ -419,18 +441,21 @@ namespace VLR {
         return sizeof(SpecularBSDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBSDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBSDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const SpecularBSDF*)params;
 
         return p.coeff;
     }
 
-    RT_CALLABLE_PROGRAM bool SpecularBSDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(SpecularBSDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::WholeSphere() | DirectionType::Delta0D();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBSDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBSDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const SpecularBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -483,15 +508,18 @@ namespace VLR {
         }
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum SpecularBSDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(SpecularBSDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM float SpecularBSDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(SpecularBSDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         return 0.0f;
     }
 
-    RT_CALLABLE_PROGRAM float SpecularBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(SpecularBSDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const SpecularBSDF*)params;
         return p.coeff.importance(query.wlHint);
     }
@@ -512,25 +540,27 @@ namespace VLR {
         float rotation;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MicrofacetReflectionSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MicrofacetReflectionSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(MicrofacetBRDF*)params;
         auto &mat = *(const MicrofacetReflectionSurfaceMaterial*)matDesc;
 
         p.eta = calcNode(mat.nodeEta, mat.immEta, surfPt, wls);
         p.k = calcNode(mat.node_k, mat.imm_k, surfPt, wls);
-        optix::float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation, 
-                                                             optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
-                                                             surfPt, wls);
+        float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation,
+                                                      make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation),
+                                                      surfPt, wls);
         float alpha = pow2(roughnessAnisotropyRotation.x);
         float aspect = std::sqrt(1.0f - 0.9f * roughnessAnisotropyRotation.y);
         p.alphaX = std::fmax(0.001f, alpha / aspect);
         p.alphaY = std::fmax(0.001f, alpha * aspect);
-        p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
+        p.rotation = 2 * VLR_M_PI * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBRDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBRDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBRDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const MicrofacetBRDF*)params;
 
         FresnelConductor fresnel(p.eta, p.k);
@@ -538,12 +568,14 @@ namespace VLR {
         return fresnel.evaluate(1.0f);
     }
 
-    RT_CALLABLE_PROGRAM bool MicrofacetBRDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(MicrofacetBRDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::Reflection() | DirectionType::HighFreq();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBRDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const MicrofacetBRDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -586,7 +618,8 @@ namespace VLR {
         return fs;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBRDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MicrofacetBRDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -616,7 +649,8 @@ namespace VLR {
         return fs;
     }
 
-    RT_CALLABLE_PROGRAM float MicrofacetBRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MicrofacetBRDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MicrofacetBRDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -648,7 +682,8 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM float MicrofacetBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MicrofacetBRDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const MicrofacetBRDF*)params;
 
         FresnelConductor fresnel(p.eta, p.k);
@@ -675,37 +710,41 @@ namespace VLR {
         float rotation;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MicrofacetScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MicrofacetScatteringSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(MicrofacetBSDF*)params;
         auto &mat = *(const MicrofacetScatteringSurfaceMaterial*)matDesc;
 
         p.coeff = calcNode(mat.nodeCoeff, mat.immCoeff, surfPt, wls);
         p.etaExt = calcNode(mat.nodeEtaExt, mat.immEtaExt, surfPt, wls);
         p.etaInt = calcNode(mat.nodeEtaInt, mat.immEtaInt, surfPt, wls);
-        optix::float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation,
-                                                             optix::make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation), 
-                                                             surfPt, wls);
+        float3 roughnessAnisotropyRotation = calcNode(mat.nodeRoughnessAnisotropyRotation,
+                                                      make_float3(mat.immRoughness, mat.immAnisotropy, mat.immRotation),
+                                                      surfPt, wls);
         float alpha = pow2(roughnessAnisotropyRotation.x);
         float aspect = std::sqrt(1 - 0.9f * roughnessAnisotropyRotation.y);
         p.alphaX = std::fmax(0.001f, alpha / aspect);
         p.alphaY = std::fmax(0.001f, alpha * aspect);
-        p.rotation = 2 * M_PIf * roughnessAnisotropyRotation.z;
+        p.rotation = 2 * VLR_M_PI * roughnessAnisotropyRotation.z;
 
         return sizeof(MicrofacetBSDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBSDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBSDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const MicrofacetBSDF*)params;
 
         return p.coeff;
     }
 
-    RT_CALLABLE_PROGRAM bool MicrofacetBSDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(MicrofacetBSDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::WholeSphere() | DirectionType::HighFreq();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBSDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBSDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const MicrofacetBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -724,7 +763,7 @@ namespace VLR {
         float mPDF;
         float D = ggx.sample(dirV, uDir[0], uDir[1], &m, &mPDF);
         float dotHV = dot(dirV, m);
-        if (dotHV <= 0 || std::isnan(D)) {
+        if (dotHV <= 0 || VLR::isnan(D)) {
             result->dirPDF = 0.0f;
             return SampledSpectrum::Zero();
         }
@@ -805,7 +844,8 @@ namespace VLR {
         }
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MicrofacetBSDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MicrofacetBSDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MicrofacetBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -861,7 +901,8 @@ namespace VLR {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM float MicrofacetBSDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MicrofacetBSDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MicrofacetBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -915,7 +956,8 @@ namespace VLR {
         }
     }
 
-    RT_CALLABLE_PROGRAM float MicrofacetBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MicrofacetBSDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const MicrofacetBSDF*)params;
         return p.coeff.importance(query.wlHint);
     }
@@ -933,7 +975,8 @@ namespace VLR {
         float F0;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t LambertianScatteringSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(LambertianScatteringSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(LambertianBSDF*)params;
         auto &mat = *(const LambertianScatteringSurfaceMaterial*)matDesc;
 
@@ -943,18 +986,21 @@ namespace VLR {
         return sizeof(LambertianBSDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum LambertianBSDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(LambertianBSDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const LambertianBSDF*)params;
 
         return p.coeff;
     }
 
-    RT_CALLABLE_PROGRAM bool LambertianBSDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(LambertianBSDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::WholeSphere() | DirectionType::LowFreq();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum LambertianBSDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(LambertianBSDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const LambertianBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -963,7 +1009,7 @@ namespace VLR {
 
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
         Vector3D dirL = cosineSampleHemisphere(uDir[0], uDir[1]);
-        result->dirPDF = dirL.z / M_PIf;
+        result->dirPDF = dirL.z / VLR_M_PI;
 
         SampledSpectrum F = fresnel.evaluate(query.dirLocal.z);
         float reflectProb = F.importance(query.wlHint);
@@ -975,7 +1021,7 @@ namespace VLR {
         if (uComponent < reflectProb) {
             result->dirLocal = entering ? dirL : -dirL;
             result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
-            SampledSpectrum fs = F * p.coeff / M_PIf;
+            SampledSpectrum fs = F * p.coeff / VLR_M_PI;
             result->dirPDF *= reflectProb;
 
             return fs;
@@ -983,14 +1029,15 @@ namespace VLR {
         else {
             result->dirLocal = entering ? -dirL : dirL;
             result->sampledType = DirectionType::Transmission() | DirectionType::LowFreq();
-            SampledSpectrum fs = (SampledSpectrum::One() - F) * p.coeff / M_PIf;
+            SampledSpectrum fs = (SampledSpectrum::One() - F) * p.coeff / VLR_M_PI;
             result->dirPDF *= (1 - reflectProb);
 
             return fs;
         }
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum LambertianBSDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(LambertianBSDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const LambertianBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -1003,16 +1050,17 @@ namespace VLR {
         SampledSpectrum F = fresnel.evaluate(query.dirLocal.z);
 
         if (dirV.z * dirL.z > 0.0f) {
-            SampledSpectrum fs = F * p.coeff / M_PIf;
+            SampledSpectrum fs = F * p.coeff / VLR_M_PI;
             return fs;
         }
         else {
-            SampledSpectrum fs = (SampledSpectrum::One() - F) * p.coeff / M_PIf;
+            SampledSpectrum fs = (SampledSpectrum::One() - F) * p.coeff / VLR_M_PI;
             return fs;
         }
     }
 
-    RT_CALLABLE_PROGRAM float LambertianBSDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(LambertianBSDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const LambertianBSDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -1030,16 +1078,17 @@ namespace VLR {
             reflectProb = 0.0f;
 
         if (dirV.z * dirL.z > 0.0f) {
-            float dirPDF = reflectProb * dirL.z / M_PIf;
+            float dirPDF = reflectProb * dirL.z / VLR_M_PI;
             return dirPDF;
         }
         else {
-            float dirPDF = (1 - reflectProb) * std::fabs(dirL.z) / M_PIf;
+            float dirPDF = (1 - reflectProb) * std::fabs(dirL.z) / VLR_M_PI;
             return dirPDF;
         }
     }
 
-    RT_CALLABLE_PROGRAM float LambertianBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(LambertianBSDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const LambertianBSDF*)params;
         return p.coeff.importance(query.wlHint);
     }
@@ -1060,14 +1109,15 @@ namespace VLR {
         float roughness;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t UE4SurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(UE4SurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(DiffuseAndSpecularBRDF*)params;
         auto &mat = *(const UE4SurfaceMaterial*)matDesc;
 
         SampledSpectrum baseColor = calcNode(mat.nodeBaseColor, mat.immBaseColor, surfPt, wls);
-        optix::float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic,
-                                                            optix::make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic),
-                                                            surfPt, wls);
+        float3 occlusionRoughnessMetallic = calcNode(mat.nodeOcclusionRoughnessMetallic,
+                                                     make_float3(mat.immOcclusion, mat.immRoughness, mat.immMetallic),
+                                                     surfPt, wls);
         float roughness = std::fmax(0.01f, occlusionRoughnessMetallic.y);
         float metallic = occlusionRoughnessMetallic.z;
 
@@ -1079,7 +1129,8 @@ namespace VLR {
         return sizeof(DiffuseAndSpecularBRDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM uint32_t OldStyleSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(OldStyleSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(DiffuseAndSpecularBRDF*)params;
         auto &mat = *(const OldStyleSurfaceMaterial*)matDesc;
 
@@ -1090,18 +1141,21 @@ namespace VLR {
         return sizeof(DiffuseAndSpecularBRDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum DiffuseAndSpecularBRDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(DiffuseAndSpecularBRDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const DiffuseAndSpecularBRDF*)params;
 
         return p.diffuseColor + p.specularF0Color;
     }
 
-    RT_CALLABLE_PROGRAM bool DiffuseAndSpecularBRDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(DiffuseAndSpecularBRDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
         return m_type.matches(flags);
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum DiffuseAndSpecularBRDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(DiffuseAndSpecularBRDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const DiffuseAndSpecularBRDF*)params;
 
         float alpha = p.roughness * p.roughness;
@@ -1138,7 +1192,7 @@ namespace VLR {
             // JP: コサイン分布からサンプルする。
             // EN: sample based on cosine distribution.
             dirL = cosineSampleHemisphere(uDir[0], uDir[1]);
-            diffuseDirPDF = dirL.z / M_PIf;
+            diffuseDirPDF = dirL.z / VLR_M_PI;
 
             // JP: 同じ方向サンプルを別の要素からサンプルする確率密度を求める。
             // EN: calculate PDFs to generate the sampled direction from the other distributions.
@@ -1170,7 +1224,7 @@ namespace VLR {
 
             // JP: 同じ方向サンプルを別の要素からサンプルする確率密度を求める。
             // EN: calculate PDFs to generate the sampled direction from the other distributions.
-            diffuseDirPDF = dirL.z / M_PIf;
+            diffuseDirPDF = dirL.z / VLR_M_PI;
         }
 
         float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
@@ -1189,7 +1243,7 @@ namespace VLR {
         float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
-        SampledSpectrum diffuseValue = p.diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf);
+        SampledSpectrum diffuseValue = p.diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / VLR_M_PI);
 
         SampledSpectrum ret = diffuseValue + specularValue;
 
@@ -1201,7 +1255,8 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum DiffuseAndSpecularBRDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(DiffuseAndSpecularBRDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const DiffuseAndSpecularBRDF*)params;
 
         float alpha = p.roughness * p.roughness;
@@ -1237,14 +1292,15 @@ namespace VLR {
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
 
-        SampledSpectrum diffuseValue = p.diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / M_PIf);
+        SampledSpectrum diffuseValue = p.diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / VLR_M_PI);
 
         SampledSpectrum ret = diffuseValue + specularValue;
 
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM float DiffuseAndSpecularBRDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(DiffuseAndSpecularBRDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const DiffuseAndSpecularBRDF*)params;
 
         float alpha = p.roughness * p.roughness;
@@ -1271,7 +1327,7 @@ namespace VLR {
 
         float sumWeights = diffuseWeight + specularWeight;
 
-        float diffuseDirPDF = dirL.z / M_PIf;
+        float diffuseDirPDF = dirL.z / VLR_M_PI;
         float specularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirV, m);
 
         float ret = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;
@@ -1279,7 +1335,8 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM float DiffuseAndSpecularBRDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(DiffuseAndSpecularBRDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const DiffuseAndSpecularBRDF*)params;
 
         bool entering = query.dirLocal.z >= 0.0f;
@@ -1307,15 +1364,18 @@ namespace VLR {
     // ----------------------------------------------------------------
     // NullEDF
 
-    RT_CALLABLE_PROGRAM uint32_t NullEDF_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(NullEDF_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
         return 0;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum NullEDF_evaluateEmittanceInternal(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(NullEDF_evaluateEmittanceInternal)(
+        const uint32_t* params) {
         return SampledSpectrum::Zero();
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum NullEDF_evaluateInternal(const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(NullEDF_evaluateInternal)(
+        const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
         return SampledSpectrum::Zero();
     }
 
@@ -1331,7 +1391,8 @@ namespace VLR {
         SampledSpectrum emittance;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t DiffuseEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(DiffuseEmitterSurfaceMaterial_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(DiffuseEDF*)params;
         auto &mat = *(const DiffuseEmitterSurfaceMaterial*)matDesc;
 
@@ -1340,13 +1401,15 @@ namespace VLR {
         return sizeof(DiffuseEDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum DiffuseEDF_evaluateEmittanceInternal(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(DiffuseEDF_evaluateEmittanceInternal)(
+        const uint32_t* params) {
         auto &p = *(const DiffuseEDF*)params;
         return p.emittance;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum DiffuseEDF_evaluateInternal(const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
-        return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / M_PIf : 0.0f);
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(DiffuseEDF_evaluateInternal)(
+        const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
+        return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
     }
 
     // END: DiffuseEDF
@@ -1375,7 +1438,8 @@ namespace VLR {
         };
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MultiSurfaceMaterial_setupBSDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MultiSurfaceMaterial_setupBSDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(MultiBSDF*)params;
         auto &mat = *(const MultiSurfaceMaterial*)matDesc;
 
@@ -1384,7 +1448,7 @@ namespace VLR {
         for (int i = 0; i < mat.numSubMaterials; ++i) {
             bsdfOffsets[i] = baseIndex;
 
-            const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
+            const SurfaceMaterialDescriptor subMatDesc = plp.materialDescriptorBuffer[mat.subMatIndices[i]];
             ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)subMatDesc.progSetupBSDF;
             *(params + baseIndex++) = subMatDesc.bsdfProcedureSetIndex;
             baseIndex += setupBSDF(subMatDesc.data, surfPt, wls, params + baseIndex);
@@ -1401,7 +1465,8 @@ namespace VLR {
         return baseIndex;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MultiBSDF_getBaseColor(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MultiBSDF_getBaseColor)(
+        const uint32_t* params) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1410,7 +1475,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFGetBaseColor getBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
 
             ret += getBaseColor(bsdf + 1);
@@ -1419,7 +1484,8 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM bool MultiBSDF_matches(const uint32_t* params, DirectionType flags) {
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(MultiBSDF_matches)(
+        const uint32_t* params, DirectionType flags) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1427,7 +1493,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFmatches matches = (ProgSigBSDFmatches)procSet.progMatches;
 
             if (matches(bsdf + 1, flags))
@@ -1437,7 +1503,8 @@ namespace VLR {
         return false;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MultiBSDF_sampleInternal(const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MultiBSDF_sampleInternal)(
+        const uint32_t* params, const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1446,7 +1513,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFWeightInternal weightInternal = (ProgSigBSDFWeightInternal)procSet.progWeightInternal;
 
             weights[i] = weightInternal(bsdf + 1, query);
@@ -1464,7 +1531,7 @@ namespace VLR {
 
         const uint32_t* selectedBSDF = params + bsdfOffsets[idx];
         uint32_t selProcIdx = *(const uint32_t*)selectedBSDF;
-        const BSDFProcedureSet selProcSet = pv_bsdfProcedureSetBuffer[selProcIdx];
+        const BSDFProcedureSet selProcSet = plp.bsdfProcedureSetBuffer[selProcIdx];
         ProgSigBSDFSampleInternal sampleInternal = (ProgSigBSDFSampleInternal)selProcSet.progSampleInternal;
 
         // JP: 選択したBSDFから方向をサンプリングする。
@@ -1482,7 +1549,7 @@ namespace VLR {
             for (int i = 0; i < p.numBSDFs; ++i) {
                 const uint32_t* bsdf = params + bsdfOffsets[i];
                 uint32_t procIdx = *(const uint32_t*)bsdf;
-                const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
                 ProgSigBSDFmatches matches = (ProgSigBSDFmatches)procSet.progMatches;
                 ProgSigBSDFEvaluatePDFInternal evaluatePDFInternal = (ProgSigBSDFEvaluatePDFInternal)procSet.progEvaluatePDFInternal;
 
@@ -1496,7 +1563,7 @@ namespace VLR {
             for (int i = 0; i < p.numBSDFs; ++i) {
                 const uint32_t* bsdf = params + bsdfOffsets[i];
                 uint32_t procIdx = *(const uint32_t*)bsdf;
-                const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
                 ProgSigBSDFmatches matches = (ProgSigBSDFmatches)procSet.progMatches;
                 ProgSigBSDFEvaluateInternal evaluateInternal = (ProgSigBSDFEvaluateInternal)procSet.progEvaluateInternal;
 
@@ -1510,7 +1577,8 @@ namespace VLR {
         return value;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MultiBSDF_evaluateInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MultiBSDF_evaluateInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1519,7 +1587,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFmatches matches = (ProgSigBSDFmatches)procSet.progMatches;
             ProgSigBSDFEvaluateInternal evaluateInternal = (ProgSigBSDFEvaluateInternal)procSet.progEvaluateInternal;
 
@@ -1530,7 +1598,8 @@ namespace VLR {
         return retValue;
     }
 
-    RT_CALLABLE_PROGRAM float MultiBSDF_evaluatePDFInternal(const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MultiBSDF_evaluatePDFInternal)(
+        const uint32_t* params, const BSDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1540,7 +1609,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFWeightInternal weightInternal = (ProgSigBSDFWeightInternal)procSet.progWeightInternal;
 
             weights[i] = weightInternal(bsdf + 1, query);
@@ -1553,7 +1622,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFEvaluatePDFInternal evaluatePDFInternal = (ProgSigBSDFEvaluatePDFInternal)procSet.progEvaluatePDFInternal;
 
             if (weights[i] > 0)
@@ -1564,7 +1633,8 @@ namespace VLR {
         return retPDF;
     }
 
-    RT_CALLABLE_PROGRAM float MultiBSDF_weightInternal(const uint32_t* params, const BSDFQuery &query) {
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(MultiBSDF_weightInternal)(
+        const uint32_t* params, const BSDFQuery &query) {
         auto &p = *(const MultiBSDF*)params;
 
         uint32_t bsdfOffsets[4] = { p.bsdf0, p.bsdf1, p.bsdf2, p.bsdf3 };
@@ -1573,7 +1643,7 @@ namespace VLR {
         for (int i = 0; i < p.numBSDFs; ++i) {
             const uint32_t* bsdf = params + bsdfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)bsdf;
-            const BSDFProcedureSet procSet = pv_bsdfProcedureSetBuffer[procIdx];
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
             ProgSigBSDFWeightInternal weightInternal = (ProgSigBSDFWeightInternal)procSet.progWeightInternal;
 
             ret += weightInternal(bsdf + 1, query);
@@ -1600,7 +1670,8 @@ namespace VLR {
         };
     };
 
-    RT_CALLABLE_PROGRAM uint32_t MultiSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(MultiSurfaceMaterial_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(MultiEDF*)params;
         auto &mat = *(const MultiSurfaceMaterial*)matDesc;
 
@@ -1609,7 +1680,7 @@ namespace VLR {
         for (int i = 0; i < mat.numSubMaterials; ++i) {
             edfOffsets[i] = baseIndex;
 
-            const SurfaceMaterialDescriptor subMatDesc = pv_materialDescriptorBuffer[mat.subMatIndices[i]];
+            const SurfaceMaterialDescriptor subMatDesc = plp.materialDescriptorBuffer[mat.subMatIndices[i]];
             ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)subMatDesc.progSetupEDF;
             *(params + baseIndex++) = subMatDesc.edfProcedureSetIndex;
             baseIndex += setupEDF(subMatDesc.data, surfPt, wls, params + baseIndex);
@@ -1624,7 +1695,8 @@ namespace VLR {
         return baseIndex;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MultiEDF_evaluateEmittanceInternal(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MultiEDF_evaluateEmittanceInternal)(
+        const uint32_t* params) {
         auto &p = *(const MultiEDF*)params;
 
         uint32_t edfOffsets[4] = { p.edf0, p.edf1, p.edf2, p.edf3 };
@@ -1633,7 +1705,7 @@ namespace VLR {
         for (int i = 0; i < p.numEDFs; ++i) {
             const uint32_t* edf = params + edfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)edf;
-            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[procIdx];
+            const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
             ProgSigEDFEvaluateEmittanceInternal evaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
 
             ret += evaluateEmittanceInternal(edf + 1);
@@ -1642,7 +1714,8 @@ namespace VLR {
         return ret;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum MultiEDF_evaluateInternal(const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(MultiEDF_evaluateInternal)(
+        const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *(const MultiEDF*)params;
 
         uint32_t edfOffsets[4] = { p.edf0, p.edf1, p.edf2, p.edf3 };
@@ -1652,7 +1725,7 @@ namespace VLR {
         for (int i = 0; i < p.numEDFs; ++i) {
             const uint32_t* edf = params + edfOffsets[i];
             uint32_t procIdx = *(const uint32_t*)edf;
-            const EDFProcedureSet procSet = pv_edfProcedureSetBuffer[procIdx];
+            const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
             ProgSigEDFEvaluateEmittanceInternal evaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
             ProgSigEDFEvaluateInternal evaluateInternal = (ProgSigEDFEvaluateInternal)procSet.progEvaluateInternal;
 
@@ -1677,7 +1750,8 @@ namespace VLR {
         SampledSpectrum emittance;
     };
 
-    RT_CALLABLE_PROGRAM uint32_t EnvironmentEmitterSurfaceMaterial_setupEDF(const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(EnvironmentEmitterSurfaceMaterial_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         auto &p = *(EnvironmentEDF*)params;
         auto &mat = *(const EnvironmentEmitterSurfaceMaterial*)matDesc;
 
@@ -1686,13 +1760,15 @@ namespace VLR {
         return sizeof(EnvironmentEDF) / 4;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EnvironmentEDF_evaluateEmittanceInternal(const uint32_t* params) {
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EnvironmentEDF_evaluateEmittanceInternal)(
+        const uint32_t* params) {
         auto &p = *(const EnvironmentEDF*)params;
-        return M_PIf * p.emittance;
+        return VLR_M_PI * p.emittance;
     }
 
-    RT_CALLABLE_PROGRAM SampledSpectrum EnvironmentEDF_evaluateInternal(const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
-        return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / M_PIf : 0.0f);
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EnvironmentEDF_evaluateInternal)(
+        const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {
+        return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
     }
 
     // END: EnvironmentEDF

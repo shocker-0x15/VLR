@@ -1,12 +1,7 @@
 ﻿#pragma once
 
-#if defined(__cplusplus) && !defined(VLR_Device)
+#if !defined(VLR_Device)
 #   define VLR_Host
-#   define RT_FUNCTION
-#   define RT_FUNCTION_NOINLINE
-#   define RT_VARIABLE
-#   define HOST_INLINE inline
-#   define HOST_STATIC_CONSTEXPR static constexpr
 #endif
 
 // Platform defines
@@ -75,9 +70,9 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 
 #if defined(ENABLE_ASSERT)
 #   if defined(VLR_Host)
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); abort(); }
+#       define VLRAssert(expr, fmt, ...) do { if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); abort(); } } while (0)
 #   else
-#       define VLRAssert(expr, fmt, ...) if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); }
+#       define VLRAssert(expr, fmt, ...) do { if (!(expr)) { vlrDevPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); vlrDevPrintf(fmt"\n", ##__VA_ARGS__); assert(false); } } while (0)
 #   endif
 #else
 #   define VLRAssert(expr, fmt, ...)
@@ -90,101 +85,60 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 
 
 
-// ----------------------------------------------------------------
-// JP: よく使用される基礎的な関数の定義。
-// EN: define fundamental functions often used.
-
-#if defined(VLR_Device)
-namespace std {
-    template <typename T>
-    RT_FUNCTION constexpr T min(const T &a, const T &b) {
-        return a < b ? a : b;
-    }
-
-    template <typename T>
-    RT_FUNCTION constexpr T max(const T &a, const T &b) {
-        return a > b ? a : b;
-    }
-
-    RT_FUNCTION constexpr bool isinf(float x) {
-        return ::isinf(x);
-    }
-
-    RT_FUNCTION constexpr bool isnan(float x) {
-        return ::isnan(x);
-    }
-
-    RT_FUNCTION constexpr bool isfinite(float x) {
-        return ::isfinite(x);
-    }
-}
-
-namespace VLR {
-    template <typename T>
-    RT_FUNCTION constexpr void sincos(T angle, T* s, T* c);
-
-    template <>
-    RT_FUNCTION constexpr void sincos<float>(float angle, float* s, float* c) {
-        ::sincosf(angle, s, c);
-    }
-    template <>
-    RT_FUNCTION constexpr void sincos<double>(double angle, double* s, double* c) {
-        ::sincos(angle, s, c);
-    }
-}
+#if defined(VLR_Host)
+#   define CUDA_DEVICE_FUNCTION
 #else
-namespace VLR {
-    template <typename T>
-    RT_FUNCTION HOST_INLINE constexpr void sincos(T angle, T* s, T* c) {
-        *s = std::sin(angle);
-        *c = std::cos(angle);
-    }
-}
+#   define CUDA_DEVICE_FUNCTION __device__ __forceinline__
 #endif
 
 namespace VLR {
     template <typename T>
-    RT_FUNCTION HOST_INLINE constexpr T clamp(const T &v, const T &minv, const T &maxv) {
-        return std::min<T>(maxv, std::max<T>(minv, v));
+    CUDA_DEVICE_FUNCTION constexpr T min(const T a, const T b) {
+        return a < b ? a : b;
+    }
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T max(const T a, const T b) {
+        return a > b ? a : b;
+    }
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T clamp(const T v, const T minv, const T maxv) {
+        return VLR::min(VLR::max(v, minv), maxv);
     }
 
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType lerp(RealType a, RealType b, RealType t) {
-        return a * (1 - t) + b * t;
+    CUDA_DEVICE_FUNCTION bool isinf(float x) {
+#if defined(VLR_Host)
+        return std::isinf(x);
+#else
+        return isinf(x);
+#endif
     }
 
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType pow1(RealType x) {
-        return x;
+    CUDA_DEVICE_FUNCTION bool isnan(float x) {
+#if defined(VLR_Host)
+        return std::isnan(x);
+#else
+        return isnan(x);
+#endif
     }
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType pow2(RealType x) {
-        return x * x;
-    }
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType pow3(RealType x) {
-        return x * x * x;
-    }
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType pow4(RealType x) {
-        return x * x * x * x;
-    }
-    template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType pow5(RealType x) {
-        return x * x * x * x * x;
+
+    CUDA_DEVICE_FUNCTION bool isfinite(float x) {
+#if defined(VLR_Host)
+        return std::isfinite(x);
+#else
+        return isfinite(x);
+#endif
     }
 
     template <typename T>
-    RT_FUNCTION HOST_INLINE constexpr bool realEq(T a, T b, T epsilon) {
-        bool forAbsolute = std::fabs(a - b) < epsilon;
-        bool forRelative = std::fabs(a - b) < epsilon * std::fmax(std::fabs(a), std::fabs(b));
-        return forAbsolute || forRelative;
+    CUDA_DEVICE_FUNCTION void sincos(T angle, T* s, T* c);
+
+    template <>
+    CUDA_DEVICE_FUNCTION void sincos<float>(float angle, float* s, float* c) {
+#if defined(VLR_Host)
+        *s = std::sin(angle);
+        *c = std::cos(angle);
+#else
+        ::sincosf(angle, s, c);
+#endif
     }
-    template <typename T>
-    RT_FUNCTION HOST_INLINE constexpr bool realGE(T a, T b, T epsilon) { return a > b || realEq(a, b, epsilon); }
-    template <typename T>
-    RT_FUNCTION HOST_INLINE constexpr bool realLE(T a, T b, T epsilon) { return a < b || realEq(a, b, epsilon); }
 }
-
-// END: define fundamental functions often used.
-// ----------------------------------------------------------------

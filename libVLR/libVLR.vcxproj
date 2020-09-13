@@ -32,7 +32,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.0.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -44,14 +44,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.1.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
-    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.1.0\lib64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.1.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
-    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.1.0\lib64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -59,9 +59,10 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>DEBUG;_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <CudaCompile>
       <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
@@ -74,10 +75,10 @@
     </CudaCompile>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <AdditionalOptions>-Xcompiler "/wd 4819" -DDEBUG %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>--use_fast_math -Xcompiler "/wd 4819" -DDEBUG %(AdditionalOptions)</AdditionalOptions>
       <Defines>
       </Defines>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <FastMath>true</FastMath>
     </CudaCompile>
     <Link>
       <AdditionalDependencies>optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -86,11 +87,7 @@
       <PerformDeviceLink>false</PerformDeviceLink>
     </CudaLink>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
-
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
-
-echo copy spectral upsampling tables
+      <Command>echo copy spectral upsampling tables
 
 xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampling_tables"</Command>
     </PostBuildEvent>
@@ -103,9 +100,10 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;VLR_API_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -123,18 +121,14 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     </CudaCompile>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <AdditionalOptions>-Xcompiler "/wd 4819" %(AdditionalOptions)</AdditionalOptions>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <AdditionalOptions>--use_fast_math -Xcompiler "/wd 4819" %(AdditionalOptions)</AdditionalOptions>
+      <FastMath>true</FastMath>
     </CudaCompile>
     <CudaLink>
       <PerformDeviceLink>false</PerformDeviceLink>
     </CudaLink>
     <PostBuildEvent>
-      <Command>echo copy dlls from "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64" to "$(OutDir)"
-
-copy "C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\bin64\optix.6.0.0.dll" "$(OutDir)"
-
-echo copy spectral upsampling tables
+      <Command>echo copy spectral upsampling tables
 
 xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampling_tables"</Command>
     </PostBuildEvent>
@@ -150,6 +144,8 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="slot_finder.cpp" />
     <ClCompile Include="shader_nodes.cpp" />
+    <ClCompile Include="utils\cuda_util.cpp" />
+    <ClCompile Include="utils\optix_util.cpp" />
     <ClCompile Include="VLR.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,7 +153,6 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
-    <ClInclude Include="GPU_kernels\random_distributions.cuh" />
     <ClInclude Include="image.h" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
@@ -169,12 +164,17 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared\basic_types_internal.h" />
     <ClInclude Include="shared\common_internal.h" />
+    <ClInclude Include="shared\random_distributions.h" />
     <ClInclude Include="shared\rgb_spectrum_types.h" />
     <ClInclude Include="shared\shared.h" />
     <ClInclude Include="shared\spectrum_base.h" />
     <ClInclude Include="shared\spectrum_types.h" />
     <ClInclude Include="slot_finder.h" />
     <ClInclude Include="shader_nodes.h" />
+    <ClInclude Include="utils\cuda_util.h" />
+    <ClInclude Include="utils\optixu_on_cudau.h" />
+    <ClInclude Include="utils\optix_util.h" />
+    <ClInclude Include="utils\optix_util_private.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\cameras.cu">
@@ -222,6 +222,6 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.0.targets" />
   </ImportGroup>
 </Project>

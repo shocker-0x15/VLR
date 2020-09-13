@@ -2,14 +2,11 @@
 
 #if defined(__CUDACC__)
 #   define VLR_Device
-#   define RT_FUNCTION __forceinline__ __device__
-#   define RT_FUNCTION_NOINLINE __noinline__ __device__
-#   define RT_VARIABLE __constant__
-#   define HOST_INLINE
-#   define HOST_STATIC_CONSTEXPR
 
-#   define vlrDevPrintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
-#   define vlrprintf(fmt, ...) rtPrintf(fmt, ##__VA_ARGS__)
+#   define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#   define vlrprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#   define VLR_Host
 #endif
 
 #include "common.h"
@@ -75,7 +72,13 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 #endif
 
-#include <optix_world.h>
+#include "../utils/optixu_on_cudau.h"
+#if defined(VLR_Host)
+#   undef CUDA_DEVICE_FUNCTION
+#   define CUDA_DEVICE_FUNCTION inline
+#endif
+#include <vector_types.h>
+#include <vector_functions.h>
 
 
 
@@ -107,17 +110,54 @@ inline void* VLR_memalign(size_t size, size_t alignment) {
 
 namespace VLR {
     template <typename T, size_t size>
-    RT_FUNCTION HOST_INLINE constexpr size_t lengthof(const T(&array)[size]) {
+    CUDA_DEVICE_FUNCTION constexpr size_t lengthof(const T(&array)[size]) {
         return size;
     }
 
     template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType saturate(RealType x) {
-        return clamp<RealType>(x, 0, 1);
+    CUDA_DEVICE_FUNCTION constexpr RealType lerp(RealType a, RealType b, RealType t) {
+        return a * (1 - t) + b * t;
     }
 
     template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType smoothstep(RealType edge0, RealType edge1, RealType x) {
+    CUDA_DEVICE_FUNCTION constexpr RealType pow1(RealType x) {
+        return x;
+    }
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType pow2(RealType x) {
+        return x * x;
+    }
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType pow3(RealType x) {
+        return x * x * x;
+    }
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType pow4(RealType x) {
+        return x * x * x * x;
+    }
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType pow5(RealType x) {
+        return x * x * x * x * x;
+    }
+
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr bool realEq(T a, T b, T epsilon) {
+        bool forAbsolute = std::fabs(a - b) < epsilon;
+        bool forRelative = std::fabs(a - b) < epsilon * std::fmax(std::fabs(a), std::fabs(b));
+        return forAbsolute || forRelative;
+    }
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr bool realGE(T a, T b, T epsilon) { return a > b || realEq(a, b, epsilon); }
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr bool realLE(T a, T b, T epsilon) { return a < b || realEq(a, b, epsilon); }
+
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType saturate(RealType x) {
+        return std::clamp<RealType>(x, 0, 1);
+    }
+
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION constexpr RealType smoothstep(RealType edge0, RealType edge1, RealType x) {
         // Scale, bias and saturate x to 0..1 range
         x = saturate((x - edge0) / (edge1 - edge0));
         // Evaluate polynomial
@@ -125,12 +165,12 @@ namespace VLR {
     }
 
     template <typename RealType>
-    RT_FUNCTION HOST_INLINE constexpr RealType remap(RealType orgValue, RealType orgMin, RealType orgMax, RealType newMin, RealType newMax) {
+    CUDA_DEVICE_FUNCTION constexpr RealType remap(RealType orgValue, RealType orgMin, RealType orgMax, RealType newMin, RealType newMax) {
         RealType percentage = (orgValue - orgMin) / (orgMax - orgMin);
         return newMin + percentage * (newMax - newMin);
     }
 
-    RT_FUNCTION HOST_INLINE constexpr uint32_t prevPowerOf2(uint32_t x) {
+    CUDA_DEVICE_FUNCTION constexpr uint32_t prevPowerOf2(uint32_t x) {
         x |= (x >> 1);
         x |= (x >> 2);
         x |= (x >> 4);
@@ -139,7 +179,7 @@ namespace VLR {
         return x - (x >> 1);
     }
 
-    RT_FUNCTION HOST_INLINE constexpr uint32_t nextPowerOf2(uint32_t x) {
+    CUDA_DEVICE_FUNCTION constexpr uint32_t nextPowerOf2(uint32_t x) {
         x--;
         x |= x >> 1;
         x |= x >> 2;
@@ -150,7 +190,7 @@ namespace VLR {
         return x;
     }
 
-    RT_FUNCTION HOST_INLINE uint32_t nextExpOf2(uint32_t n) {
+    CUDA_DEVICE_FUNCTION uint32_t nextExpOf2(uint32_t n) {
         if (n == 0)
             return 0;
         uint32_t np = nextPowerOf2(n);
@@ -162,16 +202,16 @@ namespace VLR {
     }
 
     template <typename IntType>
-    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplierForPowOf2(IntType value, uint32_t powOf2) {
+    CUDA_DEVICE_FUNCTION constexpr IntType nextMultiplierForPowOf2(IntType value, uint32_t powOf2) {
         return (value + powOf2 - 1) / powOf2;
     }
 
     template <typename IntType>
-    RT_FUNCTION HOST_INLINE constexpr IntType nextMultiplesOfPowOf2(IntType value, uint32_t powOf2) {
+    CUDA_DEVICE_FUNCTION constexpr IntType nextMultiplesOfPowOf2(IntType value, uint32_t powOf2) {
         return nextMultiplierForPowOf2(value, powOf2) * powOf2;
     }
 
-    RT_FUNCTION HOST_INLINE uint32_t countTrailingZeroes(uint32_t value) {
+    CUDA_DEVICE_FUNCTION uint32_t countTrailingZeroes(uint32_t value) {
         uint32_t count = 0;
         for (int i = 0; i < 32; ++i) {
             if ((value & 0x1) == 1)
@@ -186,20 +226,20 @@ namespace VLR {
     struct CompensatedSum {
         RealType result;
         RealType comp;
-        RT_FUNCTION CompensatedSum(const RealType &value) : result(value), comp(0.0) { };
-        RT_FUNCTION CompensatedSum &operator=(const RealType &value) {
+        CUDA_DEVICE_FUNCTION CompensatedSum(const RealType &value) : result(value), comp(0.0) { }
+        CUDA_DEVICE_FUNCTION CompensatedSum &operator=(const RealType &value) {
             result = value;
             comp = 0;
             return *this;
         }
-        RT_FUNCTION CompensatedSum &operator+=(const RealType &value) {
+        CUDA_DEVICE_FUNCTION CompensatedSum &operator+=(const RealType &value) {
             RealType cInput = value - comp;
             RealType sumTemp = result + cInput;
             comp = (sumTemp - result) - cInput;
             result = sumTemp;
             return *this;
         }
-        RT_FUNCTION operator RealType() const { return result; };
+        CUDA_DEVICE_FUNCTION operator RealType() const { return result; }
     };
 
 #if defined(VLR_Host)
@@ -260,12 +300,6 @@ namespace VLR {
 // filesystem
 #if defined(VLR_Host)
 namespace VLR {
-#   if defined(VLR_Platform_Windows_MSVC)
-    namespace filesystem = std::experimental::filesystem;
-#   else
-    namespace filesystem = std::filesystem;
-#   endif
-
-    filesystem::path getExecutableDirectory();
+    std::filesystem::path getExecutableDirectory();
 }
 #endif
