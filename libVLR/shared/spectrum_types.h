@@ -131,7 +131,7 @@ namespace VLR {
                 vals[i] = values[i] * r;
             return SampledSpectrumTemplate(vals);
         }
-        CUDA_DEVICE_FUNCTION friend inline SampledSpectrumTemplate operator*(RealType s, const SampledSpectrumTemplate &c) {
+        CUDA_DEVICE_FUNCTION friend SampledSpectrumTemplate operator*(RealType s, const SampledSpectrumTemplate &c) {
             RealType vals[NumSpectralSamples];
             for (int i = 0; i < NumSpectralSamples; ++i)
                 vals[i] = c.values[i] * s;
@@ -309,7 +309,7 @@ namespace VLR {
         struct PolynomialCoefficients {
             float c0, c1, c2;
 
-            CUDA_DEVICE_FUNCTION friend inline PolynomialCoefficients operator*(RealType s, const PolynomialCoefficients &v) {
+            CUDA_DEVICE_FUNCTION friend PolynomialCoefficients operator*(RealType s, const PolynomialCoefficients &v) {
                 return PolynomialCoefficients{ s * v.c0, s * v.c1, s * v.c2 };
             }
             CUDA_DEVICE_FUNCTION PolynomialCoefficients operator+(const PolynomialCoefficients &v) const {
@@ -476,7 +476,7 @@ namespace VLR {
                 vals[i] = values[i] * s;
             return DiscretizedSpectrumTemplate(vals);
         }
-        CUDA_DEVICE_FUNCTION friend inline DiscretizedSpectrumTemplate operator*(RealType s, const DiscretizedSpectrumTemplate &c) {
+        CUDA_DEVICE_FUNCTION friend DiscretizedSpectrumTemplate operator*(RealType s, const DiscretizedSpectrumTemplate &c) {
             RealType vals[NumStrataForStorage];
             for (int i = 0; i < NumStrataForStorage; ++i)
                 vals[i] = c.values[i] * s;

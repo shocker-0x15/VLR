@@ -330,8 +330,7 @@ namespace VLR {
     Image2D::Image2D(Context &context, uint32_t width, uint32_t height,
                      DataFormat originalDataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Queryable(context), m_width(width), m_height(height),
-        m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace),
-        m_initOptiXObject(false)
+        m_originalDataFormat(originalDataFormat), m_spectrumType(spectrumType), m_colorSpace(colorSpace)
     {
         m_dataFormat = getInternalFormat(m_originalDataFormat, spectrumType);
         m_needsHW_sRGB_degamma = false;
@@ -352,51 +351,39 @@ namespace VLR {
     }
 
     Image2D::~Image2D() {
-        if (m_optixDataBuffer)
-            m_optixDataBuffer->destroy();
+        if (m_optixDataBuffer.isInitialized())
+            m_optixDataBuffer.finalize();
     }
 
-    optix::Buffer Image2D::getOptiXObject() const {
-        if (m_initOptiXObject)
+    const cudau::Array &Image2D::getOptiXObject() const {
+        if (m_optixDataBuffer.isInitialized())
             return m_optixDataBuffer;
 
-        optix::Context optixContext = m_context.getOptiXContext();
+        optixu::Context optixContext = m_context.getOptiXContext();
+        CUcontext cudaContext = optixContext.getCUcontext();
+        cudau::ArraySurface useSurfaceLoadStore = cudau::ArraySurface::Disable;
+        cudau::ArrayTextureGather useTextureGather = cudau::ArrayTextureGather::Enable;
+        uint32_t numMipmapLevels = 1;
+
+#define VLR_TEMP_EXPR0(format, elementType, numChs) \
+    case format: \
+        m_optixDataBuffer.initialize2D(cudaContext, elementType, numChs, \
+                                       useSurfaceLoadStore, useTextureGather, \
+                                       m_width, m_height, numMipmapLevels); \
+        break
 
         if (m_dataFormat >= DataFormat::BC1 && m_dataFormat <= DataFormat::BC7) {
-            uint32_t widthInBlocks = nextMultiplierForPowOf2(m_width, 4);
-            uint32_t heightInBlocks = nextMultiplierForPowOf2(m_height, 4);
-
             switch (m_dataFormat) {
-            case DataFormat::BC1:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC1, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC2:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC2, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC3:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC3, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC4, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC4_Signed:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC4, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC5:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC5, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC5_Signed:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC5, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC6H:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC6H, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC6H_Signed:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_BC6H, widthInBlocks, heightInBlocks);
-                break;
-            case DataFormat::BC7:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BC7, widthInBlocks, heightInBlocks);
-                break;
+                VLR_TEMP_EXPR0(DataFormat::BC1, cudau::ArrayElementType::BC1_UNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC2, cudau::ArrayElementType::BC2_UNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC3, cudau::ArrayElementType::BC3_UNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC4, cudau::ArrayElementType::BC4_UNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC4_Signed, cudau::ArrayElementType::BC4_SNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC5, cudau::ArrayElementType::BC5_UNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC5_Signed, cudau::ArrayElementType::BC5_SNorm, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC6H, cudau::ArrayElementType::BC6H_UF16, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC6H_Signed, cudau::ArrayElementType::BC6H_SF16, 1);
+                VLR_TEMP_EXPR0(DataFormat::BC7, cudau::ArrayElementType::BC7_UNorm, 1);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
@@ -404,48 +391,25 @@ namespace VLR {
         }
         else {
             switch (m_dataFormat) {
-            case DataFormat::RGB8x3:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE3, m_width, m_height);
-                break;
-            case DataFormat::RGB_8x4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
-                break;
-            case DataFormat::RGBA8x4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
-                break;
-            case DataFormat::RGBA16Fx4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
-                break;
-            case DataFormat::RGBA32Fx4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, m_width, m_height);
-                break;
-            case DataFormat::RG32Fx2:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT2, m_width, m_height);
-                break;
-            case DataFormat::Gray32F:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, m_width, m_height);
-                break;
-            case DataFormat::Gray8:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE, m_width, m_height);
-                break;
-            case DataFormat::GrayA8x2:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE2, m_width, m_height);
-                break;
-            case DataFormat::uvsA8x4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_UNSIGNED_BYTE4, m_width, m_height);
-                break;
-            case DataFormat::uvsA16Fx4:
-                m_optixDataBuffer = optixContext->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_HALF4, m_width, m_height);
-                break;
+                VLR_TEMP_EXPR0(DataFormat::RGB_8x4, cudau::ArrayElementType::UInt8, 4);
+                VLR_TEMP_EXPR0(DataFormat::RGBA8x4, cudau::ArrayElementType::UInt8, 4);
+                VLR_TEMP_EXPR0(DataFormat::RGBA16Fx4, cudau::ArrayElementType::Float16, 4);
+                VLR_TEMP_EXPR0(DataFormat::RGBA32Fx4, cudau::ArrayElementType::Float32, 4);
+                VLR_TEMP_EXPR0(DataFormat::RG32Fx2, cudau::ArrayElementType::Float32, 2);
+                VLR_TEMP_EXPR0(DataFormat::Gray32F, cudau::ArrayElementType::Float32, 1);
+                VLR_TEMP_EXPR0(DataFormat::Gray8, cudau::ArrayElementType::UInt8, 1);
+                VLR_TEMP_EXPR0(DataFormat::GrayA8x2, cudau::ArrayElementType::UInt8, 2);
+                VLR_TEMP_EXPR0(DataFormat::uvsA8x4, cudau::ArrayElementType::UInt8, 4);
+                VLR_TEMP_EXPR0(DataFormat::uvsA16Fx4, cudau::ArrayElementType::Float16, 4);
             default:
                 VLRAssert_ShouldNotBeCalled();
                 break;
             }
         }
 
-        m_initOptiXObject = true;
-
         return m_optixDataBuffer;
+
+#undef VLR_TEMP_EXPR0
     }
 
 
@@ -1082,12 +1046,12 @@ namespace VLR {
         return ret;
     }
 
-    optix::Buffer LinearImage2D::getOptiXObject() const {
-        optix::Buffer buffer = Image2D::getOptiXObject();
+    const cudau::Array &LinearImage2D::getOptiXObject() const {
+        const cudau::Array &buffer = Image2D::getOptiXObject();
         if (!m_copyDone) {
-            auto dstData = (uint8_t*)buffer->map(0, RT_BUFFER_MAP_WRITE_DISCARD);
+            auto dstData = m_optixDataBuffer.map<uint8_t>(0);
             std::copy(m_data.cbegin(), m_data.cend(), dstData);
-            buffer->unmap();
+            m_optixDataBuffer.unmap(0);
             m_copyDone = true;
         }
         return buffer;
@@ -1131,30 +1095,15 @@ namespace VLR {
         return nullptr;
     }
 
-    optix::Buffer BlockCompressedImage2D::getOptiXObject() const {
-        optix::Buffer buffer = Image2D::getOptiXObject();
+    const cudau::Array &BlockCompressedImage2D::getOptiXObject() const {
+        const cudau::Array &buffer = Image2D::getOptiXObject();
         if (!m_copyDone) {
-            // JP: OptiXのBCブロックカウントの計算がおかしいらしく。
-            //     非2のべき乗テクスチャーだとサイズがずれる。
-            //     要問い合わせ。
-            int32_t mipCount = 1;// m_data.size();
-
-            buffer->setMipLevelCount(mipCount);
-            auto dstData = new uint8_t*[mipCount];
-
-            for (int mipLevel = 0; mipLevel < mipCount; ++mipLevel)
-                dstData[mipLevel] = (uint8_t*)buffer->map(mipLevel, RT_BUFFER_MAP_WRITE_DISCARD);
-
-            for (int mipLevel = 0; mipLevel < mipCount; ++mipLevel) {
-                const auto &mipData = m_data[mipLevel];
-                std::copy(mipData.cbegin(), mipData.cend(), dstData[mipLevel]);
+            for (int mipLevel = 0; mipLevel < m_optixDataBuffer.getNumMipmapLevels(); ++mipLevel) {
+                const std::vector<uint8_t> &srcMipData = m_data[mipLevel];
+                auto dstData = m_optixDataBuffer.map<uint8_t>(mipLevel);
+                std::copy(srcMipData.cbegin(), srcMipData.cend(), dstData);
+                m_optixDataBuffer.unmap(mipLevel);
             }
-
-            for (int mipLevel = mipCount - 1; mipLevel >= 0; --mipLevel)
-                buffer->unmap(mipLevel);
-
-            delete[] dstData;
-
             m_copyDone = true;
         }
         return buffer;

@@ -24,7 +24,7 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION Vector3DTemplate operator/(const Vector3DTemplate &v) const { return Vector3DTemplate(x / v.x, y / v.y, z / v.z); }
         CUDA_DEVICE_FUNCTION Vector3DTemplate operator*(RealType s) const { return Vector3DTemplate(x * s, y * s, z * s); }
         CUDA_DEVICE_FUNCTION Vector3DTemplate operator/(RealType s) const { RealType r = 1 / s; return Vector3DTemplate(x * r, y * r, z * r); }
-        CUDA_DEVICE_FUNCTION friend inline Vector3DTemplate operator*(RealType s, const Vector3DTemplate &v) { return Vector3DTemplate(s * v.x, s * v.y, s * v.z); }
+        CUDA_DEVICE_FUNCTION friend Vector3DTemplate operator*(RealType s, const Vector3DTemplate &v) { return Vector3DTemplate(s * v.x, s * v.y, s * v.z); }
 
         CUDA_DEVICE_FUNCTION Vector3DTemplate &operator+=(const Vector3DTemplate &v) { x += v.x; y += v.y; z += v.z; return *this; }
         CUDA_DEVICE_FUNCTION Vector3DTemplate &operator-=(const Vector3DTemplate &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
@@ -102,42 +102,42 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> normalize(const Vector3DTemplate<RealType> &v) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> normalize(const Vector3DTemplate<RealType> &v) {
         RealType l = v.length();
         return v / l;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION RealType dot(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> cross(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cross(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         return Vector3DTemplate<RealType>(vec1.y * vec2.z - vec1.z * vec2.y,
                                           vec1.z * vec2.x - vec1.x * vec2.z,
                                           vec1.x * vec2.y - vec1.y * vec2.x);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType absDot(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION RealType absDot(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         return std::fabs(vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> min(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> min(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         using std::fmin;
         return Vector3DTemplate<RealType>(fmin(vec1.x, vec2.x), fmin(vec1.y, vec2.y), fmin(vec1.z, vec2.z));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> max(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> max(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         using std::fmax;
         return Vector3DTemplate<RealType>(fmax(vec1.x, vec2.x), fmax(vec1.y, vec2.y), fmax(vec1.z, vec2.z));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> halfVector(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> halfVector(const Vector3DTemplate<RealType> &vec1, const Vector3DTemplate<RealType> &vec2) {
         return normalize(vec1 + vec2);
     }
 
@@ -164,7 +164,7 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION Vector4DTemplate operator-(const Vector4DTemplate &v) const { return Vector4DTemplate(x - v.x, y - v.y, z - v.z, w - v.w); }
         CUDA_DEVICE_FUNCTION Vector4DTemplate operator*(RealType s) const { return Vector4DTemplate(x * s, y * s, z * s, w * s); }
         CUDA_DEVICE_FUNCTION Vector4DTemplate operator/(RealType s) const { RealType r = 1 / s; return Vector4DTemplate(x * r, y * r, z * r, w * r); }
-        CUDA_DEVICE_FUNCTION friend inline Vector4DTemplate operator*(RealType s, const Vector4DTemplate &v) { return Vector4DTemplate(s * v.x, s * v.y, s * v.z, s * v.w); }
+        CUDA_DEVICE_FUNCTION friend Vector4DTemplate operator*(RealType s, const Vector4DTemplate &v) { return Vector4DTemplate(s * v.x, s * v.y, s * v.z, s * v.w); }
 
         CUDA_DEVICE_FUNCTION Vector4DTemplate &operator+=(const Vector4DTemplate &v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
         CUDA_DEVICE_FUNCTION Vector4DTemplate &operator-=(const Vector4DTemplate &v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
@@ -196,18 +196,18 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION RealType dot(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
         return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z + vec1.w * vec2.w;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector4DTemplate<RealType> min(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector4DTemplate<RealType> min(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
         using std::fmin;
         return Vector4DTemplate<RealType>(fmin(vec1.x, vec2.x), fmin(vec1.y, vec2.y), fmin(vec1.z, vec2.z), fmin(vec1.w, vec2.w));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector4DTemplate<RealType> max(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
+    CUDA_DEVICE_FUNCTION Vector4DTemplate<RealType> max(const Vector4DTemplate<RealType> &vec1, const Vector4DTemplate<RealType> &vec2) {
         using std::fmax;
         return Vector4DTemplate<RealType>(fmax(vec1.x, vec2.x), fmax(vec1.y, vec2.y), fmax(vec1.z, vec2.z), fmax(vec1.w, vec2.w));
     }
@@ -240,7 +240,7 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> operator-(const Normal3DTemplate &n) const { return Vector3DTemplate<RealType>(x - n.x, y - n.y, z - n.z); }
         CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> operator*(RealType s) const { return Vector3DTemplate<RealType>(x * s, y * s, z * s); }
         CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> operator/(RealType s) const { RealType r = 1 / s; return Vector3DTemplate<RealType>(x * r, y * r, z * r); }
-        CUDA_DEVICE_FUNCTION friend inline Vector3DTemplate<RealType> operator*(RealType s, const Normal3DTemplate &n) { return Vector3DTemplate<RealType>(s * n.x, s * n.y, s * n.z); }
+        CUDA_DEVICE_FUNCTION friend Vector3DTemplate<RealType> operator*(RealType s, const Normal3DTemplate &n) { return Vector3DTemplate<RealType>(s * n.x, s * n.y, s * n.z); }
 
         CUDA_DEVICE_FUNCTION Normal3DTemplate &operator/=(RealType s) { RealType r = 1 / s; x *= r; y *= r; z *= r; return *this; }
 
@@ -310,70 +310,70 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Normal3DTemplate<RealType> normalize(const Normal3DTemplate<RealType> &n) {
+    CUDA_DEVICE_FUNCTION Normal3DTemplate<RealType> normalize(const Normal3DTemplate<RealType> &n) {
         RealType l = n.length();
         return n / l;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> cross(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cross(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
         return Vector3DTemplate<RealType>(vec.y * norm.z - vec.z * norm.y,
                                           vec.z * norm.x - vec.x * norm.z,
                                           vec.x * norm.y - vec.y * norm.x);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> cross(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cross(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
         return Vector3DTemplate<RealType>(norm.y * vec.z - norm.z * vec.y,
                                           norm.z * vec.x - norm.x * vec.z,
                                           norm.x * vec.y - norm.y * vec.x);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> cross(const Normal3DTemplate<RealType> &n1, const Normal3DTemplate<RealType> &n2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cross(const Normal3DTemplate<RealType> &n1, const Normal3DTemplate<RealType> &n2) {
         return Vector3DTemplate<RealType>(n1.y * n2.z - n1.z * n2.y,
                                           n1.z * n2.x - n1.x * n2.z,
                                           n1.x * n2.y - n1.y * n2.x);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
+    CUDA_DEVICE_FUNCTION RealType dot(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
         return vec.x * norm.x + vec.y * norm.y + vec.z * norm.z;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
+    CUDA_DEVICE_FUNCTION RealType dot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
         return vec.x * norm.x + vec.y * norm.y + vec.z * norm.z;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const Normal3DTemplate<RealType> &n1, const Normal3DTemplate<RealType> &n2) {
+    CUDA_DEVICE_FUNCTION RealType dot(const Normal3DTemplate<RealType> &n1, const Normal3DTemplate<RealType> &n2) {
         return n1.x * n2.x + n1.y * n2.y + n1.z * n2.z;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType absDot(const Normal3DTemplate<RealType> &norm1, const Normal3DTemplate<RealType> &norm2) {
+    CUDA_DEVICE_FUNCTION RealType absDot(const Normal3DTemplate<RealType> &norm1, const Normal3DTemplate<RealType> &norm2) {
         return std::fabs(norm1.x * norm2.x + norm1.y * norm2.y + norm1.z * norm2.z);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType absDot(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
+    CUDA_DEVICE_FUNCTION RealType absDot(const Vector3DTemplate<RealType> &vec, const Normal3DTemplate<RealType> &norm) {
         return std::fabs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType absDot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
+    CUDA_DEVICE_FUNCTION RealType absDot(const Normal3DTemplate<RealType> &norm, const Vector3DTemplate<RealType> &vec) {
         return std::fabs(vec.x * norm.x + vec.y * norm.y + vec.z * norm.z);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> min(const Normal3DTemplate<RealType> &p1, const Normal3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> min(const Normal3DTemplate<RealType> &p1, const Normal3DTemplate<RealType> &p2) {
         using std::fmin;
         return Vector3DTemplate<RealType>(fmin(p1.x, p2.x), fmin(p1.y, p2.y), fmin(p1.z, p2.z));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Vector3DTemplate<RealType> max(const Normal3DTemplate<RealType> &p1, const Normal3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> max(const Normal3DTemplate<RealType> &p1, const Normal3DTemplate<RealType> &p2) {
         using std::fmax;
         return Vector3DTemplate<RealType>(fmax(p1.x, p2.x), fmax(p1.y, p2.y), fmax(p1.z, p2.z));
     }
@@ -406,8 +406,8 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> operator-(const Point3DTemplate &p) const { return Vector3DTemplate<RealType>(x - p.x, y - p.y, z - p.z); }
         CUDA_DEVICE_FUNCTION Point3DTemplate operator*(RealType s) const { return Point3DTemplate(x * s, y * s, z * s); }
         CUDA_DEVICE_FUNCTION Point3DTemplate operator/(RealType s) const { RealType r = 1 / s; return Point3DTemplate(x * r, y * r, z * r); }
-        CUDA_DEVICE_FUNCTION friend inline Point3DTemplate operator+(const Vector3DTemplate<RealType> &v, const Point3DTemplate &p) { return Point3DTemplate(p.x + v.x, p.y + v.y, p.z + v.z); }
-        CUDA_DEVICE_FUNCTION friend inline Point3DTemplate operator*(RealType s, const Point3DTemplate &p) { return Point3DTemplate(s * p.x, s * p.y, s * p.z); }
+        CUDA_DEVICE_FUNCTION friend Point3DTemplate operator+(const Vector3DTemplate<RealType> &v, const Point3DTemplate &p) { return Point3DTemplate(p.x + v.x, p.y + v.y, p.z + v.z); }
+        CUDA_DEVICE_FUNCTION friend Point3DTemplate operator*(RealType s, const Point3DTemplate &p) { return Point3DTemplate(s * p.x, s * p.y, s * p.z); }
 
         CUDA_DEVICE_FUNCTION Point3DTemplate &operator+=(const Vector3DTemplate<RealType> &v) { x += v.x; y += v.y; z += v.z; return *this; }
         CUDA_DEVICE_FUNCTION Point3DTemplate &operator-=(const Vector3DTemplate<RealType> &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
@@ -440,34 +440,34 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType absDot(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION RealType absDot(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
         return std::fabs(p1.x * p2.x + p1.y * p2.y + p1.z * p2.z);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Point3DTemplate<RealType> min(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION Point3DTemplate<RealType> min(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
         using std::fmin;
         return Point3DTemplate<RealType>(fmin(p1.x, p2.x), fmin(p1.y, p2.y), fmin(p1.z, p2.z));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Point3DTemplate<RealType> max(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION Point3DTemplate<RealType> max(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
         using std::fmax;
         return Point3DTemplate<RealType>(fmax(p1.x, p2.x), fmax(p1.y, p2.y), fmax(p1.z, p2.z));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Point3DTemplate<RealType> clamp(const Point3DTemplate<RealType> &p, const Point3DTemplate<RealType> &minP, const Point3DTemplate<RealType> &maxP) {
+    CUDA_DEVICE_FUNCTION Point3DTemplate<RealType> clamp(const Point3DTemplate<RealType> &p, const Point3DTemplate<RealType> &minP, const Point3DTemplate<RealType> &maxP) {
         return max(min(p, maxP), minP);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType sqDistance(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION RealType sqDistance(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
         return (p2 - p1).sqLength();
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType distance(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
+    CUDA_DEVICE_FUNCTION RealType distance(const Point3DTemplate<RealType> &p1, const Point3DTemplate<RealType> &p2) {
         return (p2 - p1).length();
     }
 
@@ -492,7 +492,7 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION TexCoord2DTemplate operator-(const TexCoord2DTemplate<RealType> &t) const { return TexCoord2DTemplate(u - t.u, v - t.v); }
         CUDA_DEVICE_FUNCTION TexCoord2DTemplate operator*(RealType s) const { return TexCoord2DTemplate(u * s, v * s); }
         CUDA_DEVICE_FUNCTION TexCoord2DTemplate operator/(RealType s) const { RealType r = 1 / s; return TexCoord2DTemplate(u * r, v * r); }
-        CUDA_DEVICE_FUNCTION friend inline TexCoord2DTemplate operator*(RealType s, const TexCoord2DTemplate &t) { return TexCoord2DTemplate(s * t.u, s * t.v); }
+        CUDA_DEVICE_FUNCTION friend TexCoord2DTemplate operator*(RealType s, const TexCoord2DTemplate &t) { return TexCoord2DTemplate(s * t.u, s * t.v); }
 
         CUDA_DEVICE_FUNCTION TexCoord2DTemplate &operator+=(const TexCoord2DTemplate<RealType> &t) { u += t.u; v += t.v; return *this; }
         CUDA_DEVICE_FUNCTION TexCoord2DTemplate &operator-=(const TexCoord2DTemplate<RealType> &t) { u -= t.u; v -= t.v; return *this; }
@@ -623,12 +623,12 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline BoundingBox3DTemplate<RealType> calcUnion(const BoundingBox3DTemplate<RealType> &b0, const BoundingBox3DTemplate<RealType> &b1) {
+    CUDA_DEVICE_FUNCTION BoundingBox3DTemplate<RealType> calcUnion(const BoundingBox3DTemplate<RealType> &b0, const BoundingBox3DTemplate<RealType> &b1) {
         return BoundingBox3DTemplate<RealType>(min(b0.minP, b1.minP), max(b0.maxP, b1.maxP));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline BoundingBox3DTemplate<RealType> intersection(const BoundingBox3DTemplate<RealType> &b0, const BoundingBox3DTemplate<RealType> &b1) {
+    CUDA_DEVICE_FUNCTION BoundingBox3DTemplate<RealType> intersection(const BoundingBox3DTemplate<RealType> &b0, const BoundingBox3DTemplate<RealType> &b1) {
         return BoundingBox3DTemplate<RealType>(max(b0.minP, b1.minP), min(b0.maxP, b1.maxP));
     }
 
@@ -683,7 +683,7 @@ namespace VLR {
         }
         CUDA_DEVICE_FUNCTION Matrix3x3Template operator*(RealType s) const { return Matrix3x3Template(c0 * s, c1 * s, c2 * s); }
         CUDA_DEVICE_FUNCTION Matrix3x3Template operator/(RealType s) const { return Matrix3x3Template(c0 / s, c1 / s, c2 / s); }
-        CUDA_DEVICE_FUNCTION friend inline Matrix3x3Template operator*(RealType s, const Matrix3x3Template &mat) { return Matrix3x3Template(s * mat.c0, s * mat.c1, s * mat.c2); }
+        CUDA_DEVICE_FUNCTION friend Matrix3x3Template operator*(RealType s, const Matrix3x3Template &mat) { return Matrix3x3Template(s * mat.c0, s * mat.c1, s * mat.c2); }
 
         CUDA_DEVICE_FUNCTION Matrix3x3Template &operator+=(const Matrix3x3Template &mat) { c0 += mat.c0; c1 += mat.c1; c2 += mat.c2; return *this; }
         CUDA_DEVICE_FUNCTION Matrix3x3Template &operator-=(const Matrix3x3Template &mat) { c0 -= mat.c0; c1 -= mat.c1; c2 -= mat.c2; return *this; }
@@ -844,14 +844,14 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> transpose(const Matrix3x3Template<RealType> &m) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> transpose(const Matrix3x3Template<RealType> &m) {
         return Matrix3x3Template<RealType>(Vector3DTemplate<RealType>(m.m00, m.m01, m.m02),
                                            Vector3DTemplate<RealType>(m.m10, m.m11, m.m12),
                                            Vector3DTemplate<RealType>(m.m20, m.m21, m.m22));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> invert(const Matrix3x3Template<RealType> &m) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> invert(const Matrix3x3Template<RealType> &m) {
         VLRAssert_NotImplemented();
         Matrix3x3Template<RealType> mat;
 
@@ -859,22 +859,22 @@ namespace VLR {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> scale3x3(const Vector3DTemplate<RealType> &s) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> scale3x3(const Vector3DTemplate<RealType> &s) {
         return Matrix3x3Template<RealType>(s.x * Vector3DTemplate<RealType>(1, 0, 0),
                                            s.y * Vector3DTemplate<RealType>(0, 1, 0),
                                            s.z * Vector3DTemplate<RealType>(0, 0, 1));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> scale3x3(RealType sx, RealType sy, RealType sz) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> scale3x3(RealType sx, RealType sy, RealType sz) {
         return scale3x3(Vector3DTemplate<RealType>(sx, sy, sz));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> scale3x3(RealType s) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> scale3x3(RealType s) {
         return scale3x3(Vector3DTemplate<RealType>(s, s, s));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> rotate3x3(RealType angle, const Vector3DTemplate<RealType> &axis) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> rotate3x3(RealType angle, const Vector3DTemplate<RealType> &axis) {
         Matrix3x3Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
         RealType s, c;
@@ -894,15 +894,15 @@ namespace VLR {
         return matrix;
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> rotate3x3(RealType angle, RealType ax, RealType ay, RealType az) {
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> rotate3x3(RealType angle, RealType ax, RealType ay, RealType az) {
         return rotate3x3(angle, Vector3DTemplate<RealType>(ax, ay, az));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> rotateX3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> rotateX3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> rotateY3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> rotateY3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix3x3Template<RealType> rotateZ3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
+    CUDA_DEVICE_FUNCTION Matrix3x3Template<RealType> rotateZ3x3(RealType angle) { return rotate3x3(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
 
 
 
@@ -965,7 +965,7 @@ namespace VLR {
         }
         CUDA_DEVICE_FUNCTION Matrix4x4Template operator*(RealType s) const { return Matrix4x4Template(c0 * s, c1 * s, c2 * s, c3 * s); }
         CUDA_DEVICE_FUNCTION Matrix4x4Template operator/(RealType s) const { return Matrix4x4Template(c0 / s, c1 / s, c2 / s, c3 / s); }
-        CUDA_DEVICE_FUNCTION friend inline Matrix4x4Template operator*(RealType s, const Matrix4x4Template &mat) { return Matrix4x4Template(s * mat.c0, s * mat.c1, s * mat.c2, s * mat.c3); }
+        CUDA_DEVICE_FUNCTION friend Matrix4x4Template operator*(RealType s, const Matrix4x4Template &mat) { return Matrix4x4Template(s * mat.c0, s * mat.c1, s * mat.c2, s * mat.c3); }
 
         CUDA_DEVICE_FUNCTION Matrix4x4Template &operator+=(const Matrix4x4Template &mat) { c0 += mat.c0; c1 += mat.c1; c2 += mat.c2; c3 += mat.c3; return *this; }
         CUDA_DEVICE_FUNCTION Matrix4x4Template &operator-=(const Matrix4x4Template &mat) { c0 -= mat.c0; c1 -= mat.c1; c2 -= mat.c2; c3 -= mat.c3; return *this; }
@@ -1142,7 +1142,7 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> transpose(const Matrix4x4Template<RealType> &m) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> transpose(const Matrix4x4Template<RealType> &m) {
         return Matrix4x4Template<RealType>(Vector4DTemplate<RealType>(m.m00, m.m01, m.m02, m.m03),
                                            Vector4DTemplate<RealType>(m.m10, m.m11, m.m12, m.m13),
                                            Vector4DTemplate<RealType>(m.m20, m.m21, m.m22, m.m23),
@@ -1150,7 +1150,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> invert(const Matrix4x4Template<RealType> &m) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> invert(const Matrix4x4Template<RealType> &m) {
         Matrix4x4Template<RealType> mat = m;
 
         bool colDone[] = { false, false, false, false };
@@ -1209,7 +1209,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> lookAt(const Point3DTemplate<RealType> &eye, const Point3DTemplate<RealType> &tgt, const Vector3DTemplate<RealType> &up) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> lookAt(const Point3DTemplate<RealType> &eye, const Point3DTemplate<RealType> &tgt, const Vector3DTemplate<RealType> &up) {
         Vector3DTemplate<RealType> z = normalize(eye - tgt);
         Vector3DTemplate<RealType> x = normalize(cross(up, z));
         Vector3DTemplate<RealType> y = cross(z, x);
@@ -1223,40 +1223,40 @@ namespace VLR {
                                            t);
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> lookAt(RealType ex, RealType ey, RealType ez, RealType tx, RealType ty, RealType tz, RealType ux, RealType uy, RealType uz) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> lookAt(RealType ex, RealType ey, RealType ez, RealType tx, RealType ty, RealType tz, RealType ux, RealType uy, RealType uz) {
         return lookAt(Point3DTemplate<RealType>(ex, ey, ez), Point3DTemplate<RealType>(tx, ty, tz), Vector3DTemplate<RealType>(ux, uy, uz));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> scale(const Vector3DTemplate<RealType> &s) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> scale(const Vector3DTemplate<RealType> &s) {
         return Matrix4x4Template<RealType>(s.x * Vector4DTemplate<RealType>(1, 0, 0, 0),
                                            s.y * Vector4DTemplate<RealType>(0, 1, 0, 0),
                                            s.z * Vector4DTemplate<RealType>(0, 0, 1, 0),
                                            Vector4DTemplate<RealType>(0, 0, 0, 1));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> scale(RealType sx, RealType sy, RealType sz) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> scale(RealType sx, RealType sy, RealType sz) {
         return scale(Vector3DTemplate<RealType>(sx, sy, sz));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> scale(RealType s) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> scale(RealType s) {
         return scale(Vector3DTemplate<RealType>(s, s, s));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> translate(const Vector3DTemplate<RealType> &t) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> translate(const Vector3DTemplate<RealType> &t) {
         return Matrix4x4Template<RealType>(Vector4DTemplate<RealType>(1, 0, 0, 0),
                                            Vector4DTemplate<RealType>(0, 1, 0, 0),
                                            Vector4DTemplate<RealType>(0, 0, 1, 0),
                                            Vector4DTemplate<RealType>(t, 1));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> translate(RealType tx, RealType ty, RealType tz) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> translate(RealType tx, RealType ty, RealType tz) {
         return translate(Vector3DTemplate<RealType>(tx, ty, tz));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> rotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> rotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
         Matrix4x4Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
         RealType s, c;
@@ -1280,18 +1280,18 @@ namespace VLR {
         return matrix;
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> rotate(RealType angle, RealType ax, RealType ay, RealType az) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> rotate(RealType angle, RealType ax, RealType ay, RealType az) {
         return rotate(angle, Vector3DTemplate<RealType>(ax, ay, az));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> rotateX(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> rotateX(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> rotateY(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> rotateY(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> rotateZ(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> rotateZ(RealType angle) { return rotate(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline Matrix4x4Template<RealType> camera(RealType aspect, RealType fovY, RealType near, RealType far) {
+    CUDA_DEVICE_FUNCTION Matrix4x4Template<RealType> camera(RealType aspect, RealType fovY, RealType near, RealType far) {
         Matrix4x4Template<RealType> matrix;
         RealType f = 1 / std::tan(fovY / 2);
         RealType dz = far - near;
@@ -1364,7 +1364,7 @@ namespace VLR {
         }
         CUDA_DEVICE_FUNCTION QuaternionTemplate operator*(RealType s) const { return QuaternionTemplate(v * s, w * s); }
         CUDA_DEVICE_FUNCTION QuaternionTemplate operator/(RealType s) const { RealType r = 1 / s; return QuaternionTemplate(v * r, w * r); }
-        CUDA_DEVICE_FUNCTION friend inline QuaternionTemplate operator*(RealType s, const QuaternionTemplate &q) { return QuaternionTemplate(q.v * s, q.w * s); }
+        CUDA_DEVICE_FUNCTION friend QuaternionTemplate operator*(RealType s, const QuaternionTemplate &q) { return QuaternionTemplate(q.v * s, q.w * s); }
 
         CUDA_DEVICE_FUNCTION QuaternionTemplate &operator+=(const QuaternionTemplate &q) { v += q.v; w += q.w; return *this; }
         CUDA_DEVICE_FUNCTION QuaternionTemplate &operator-=(const QuaternionTemplate &q) { v -= q.v; w -= q.w; return *this; }
@@ -1391,34 +1391,34 @@ namespace VLR {
 
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline RealType dot(const QuaternionTemplate<RealType> &q0, const QuaternionTemplate<RealType> &q1) {
+    CUDA_DEVICE_FUNCTION RealType dot(const QuaternionTemplate<RealType> &q0, const QuaternionTemplate<RealType> &q1) {
         return dot(q0.v, q1.v) + q0.w * q1.w;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> normalize(const QuaternionTemplate<RealType> &q) {
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> normalize(const QuaternionTemplate<RealType> &q) {
         return q / std::sqrt(dot(q, q));
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> qRotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
         RealType s, c;
         VLR::sincos(angle / 2, &s, &c);
         return QuaternionTemplate<RealType>(s * normalize(axis), c);
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> qRotate(RealType angle, RealType ax, RealType ay, RealType az) {
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotate(RealType angle, RealType ax, RealType ay, RealType az) {
         return qRotate(angle, Vector3DTemplate<RealType>(ax, ay, az));
     }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> qRotateX(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotateX(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(1, 0, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> qRotateY(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotateY(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(0, 1, 0)); }
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> qRotateZ(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotateZ(RealType angle) { return qRotate(angle, Vector3DTemplate<RealType>(0, 0, 1)); }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline QuaternionTemplate<RealType> Slerp(RealType t, const QuaternionTemplate<RealType> &q0, const QuaternionTemplate<RealType> &q1) {
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> Slerp(RealType t, const QuaternionTemplate<RealType> &q0, const QuaternionTemplate<RealType> &q1) {
         RealType cosTheta = dot(q0, q1);
         if (cosTheta > (RealType)0.9995)
             return normalize((1 - t) * q0 + t * q1);
@@ -1433,7 +1433,7 @@ namespace VLR {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION inline void decompose(const Matrix4x4Template<RealType> &mat, Vector3DTemplate<RealType>* T, QuaternionTemplate<RealType>* R, Matrix4x4Template<RealType>* S) {
+    CUDA_DEVICE_FUNCTION void decompose(const Matrix4x4Template<RealType> &mat, Vector3DTemplate<RealType>* T, QuaternionTemplate<RealType>* R, Matrix4x4Template<RealType>* S) {
         T->x = mat[3][0];
         T->y = mat[3][1];
         T->z = mat[3][2];

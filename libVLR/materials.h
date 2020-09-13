@@ -46,24 +46,24 @@ namespace VLR {
     class SurfaceMaterial : public Queryable {
     protected:
         struct OptiXProgramSet {
-            optix::Program callableProgramSetupBSDF;
-            optix::Program callableProgramBSDFGetBaseColor;
-            optix::Program callableProgramBSDFmatches;
-            optix::Program callableProgramBSDFSampleInternal;
-            optix::Program callableProgramBSDFEvaluateInternal;
-            optix::Program callableProgramBSDFEvaluatePDFInternal;
-            optix::Program callableProgramBSDFWeightInternal;
+            CallableProgram callableProgramSetupBSDF;
+            CallableProgram callableProgramBSDFGetBaseColor;
+            CallableProgram callableProgramBSDFmatches;
+            CallableProgram callableProgramBSDFSampleInternal;
+            CallableProgram callableProgramBSDFEvaluateInternal;
+            CallableProgram callableProgramBSDFEvaluatePDFInternal;
+            CallableProgram callableProgramBSDFWeightInternal;
             uint32_t bsdfProcedureSetIndex;
 
-            optix::Program callableProgramSetupEDF;
-            optix::Program callableProgramEDFEvaluateEmittanceInternal;
-            optix::Program callableProgramEDFEvaluateInternal;
+            CallableProgram callableProgramSetupEDF;
+            CallableProgram callableProgramEDFEvaluateEmittanceInternal;
+            CallableProgram callableProgramEDFEvaluateInternal;
             uint32_t edfProcedureSetIndex;
         };
 
         uint32_t m_matIndex;
 
-        static std::string s_materials_ptx;
+        static optixu::Module s_materialModule;
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
         static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc);

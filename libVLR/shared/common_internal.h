@@ -82,6 +82,14 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 
 
+#if defined(DEBUG)
+#   define VLR_DEBUG_SELECT(A, B) A
+#else
+#   define VLR_DEBUG_SELECT(A, B) B
+#endif
+
+
+
 #define VLR_Minimum_Machine_Alignment 16
 #define VLR_L1_Cacheline_Size 64
 

@@ -5,7 +5,9 @@
 #include "scene.h"
 
 namespace VLR {
-    std::string readTxtFile(const filesystem::path& filepath) {
+    cudau::BufferType g_bufferType = cudau::BufferType::Device;
+
+    std::string readTxtFile(const std::filesystem::path& filepath) {
         std::ifstream ifs;
         ifs.open(filepath, std::ios::in);
         if (ifs.fail()) {

@@ -187,7 +187,6 @@ namespace VLR {
                 m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
             CUDA_DEVICE_FUNCTION DiscreteDistribution1DTemplate() {}
-            CUDA_DEVICE_FUNCTION ~DiscreteDistribution1DTemplate() {}
 
             CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
@@ -241,7 +240,6 @@ namespace VLR {
                 m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
             CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
-            CUDA_DEVICE_FUNCTION ~RegularConstantContinuousDistribution1DTemplate() {}
 
             CUDA_DEVICE_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
                 VLRAssert(u < 1, "\"u\": %g must be in range [0, 1).", u);
@@ -282,7 +280,6 @@ namespace VLR {
                 m_1DDists(_1DDists), m_top1DDist(top1DDist) {}
 
             CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
-            CUDA_DEVICE_FUNCTION ~RegularConstantContinuousDistribution2DTemplate() {}
 
             CUDA_DEVICE_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
@@ -844,6 +841,8 @@ namespace VLR {
             };
             int32_t sampleFunc;
         };
+
+        using KernelRNG = PCG32RNG;
         
         struct PipelineLaunchParameters {
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING

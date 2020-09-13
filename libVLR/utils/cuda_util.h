@@ -823,8 +823,10 @@ namespace cudau {
         ~TextureSampler() {
         }
 
-        void setFilterMode(TextureFilterMode xy, TextureFilterMode mipmap) {
+        void setXyFilterMode(TextureFilterMode xy) {
             m_texDesc.filterMode = static_cast<CUfilter_mode>(xy);
+        }
+        void setMipMapFilterMode(TextureFilterMode mipmap) {
             m_texDesc.mipmapFilterMode = static_cast<CUfilter_mode>(mipmap);
         }
         void setWrapMode(uint32_t dim, TextureWrapMode mode) {
@@ -854,6 +856,38 @@ namespace cudau {
                 m_texDesc.flags |= CU_TRSF_SRGB;
             else
                 m_texDesc.flags &= ~CU_TRSF_SRGB;
+        }
+
+        TextureFilterMode getXyFilterMode() const {
+            return static_cast<TextureFilterMode>(m_texDesc.filterMode);
+        }
+        TextureFilterMode getMipMapFilterMode() const {
+            return static_cast<TextureFilterMode>(m_texDesc.mipmapFilterMode);
+        }
+        TextureWrapMode getWrapMode(uint32_t dim) {
+            if (dim >= 3)
+                return TextureWrapMode::Repeat;
+            return static_cast<TextureWrapMode>(m_texDesc.addressMode[dim]);
+        }
+        void getBorderColor(float rgba[4]) const {
+            rgba[0] = m_texDesc.borderColor[0];
+            rgba[1] = m_texDesc.borderColor[1];
+            rgba[2] = m_texDesc.borderColor[2];
+            rgba[3] = m_texDesc.borderColor[3];
+        }
+        TextureIndexingMode getIndexingMode() const {
+            if (m_texDesc.flags & CU_TRSF_NORMALIZED_COORDINATES)
+                return TextureIndexingMode::NormalizedCoordinates;
+            else
+                return TextureIndexingMode::ArrayIndex;
+        }
+        TextureReadMode getReadMode() const {
+            if (m_texDesc.flags & CU_TRSF_READ_AS_INTEGER)
+                return TextureReadMode::ElementType;
+            if (m_texDesc.flags & CU_TRSF_SRGB)
+                return TextureReadMode::NormalizedFloat_sRGB;
+            else
+                return TextureReadMode::NormalizedFloat;
         }
 
         [[nodiscard]]

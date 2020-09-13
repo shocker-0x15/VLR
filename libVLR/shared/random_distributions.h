@@ -49,10 +49,6 @@ namespace VLR {
 
 
 
-    using KernelRNG = PCG32RNG;
-
-
-
     template <typename RealType>
     CUDA_DEVICE_FUNCTION uint32_t sampleDiscrete(const RealType* importances, uint32_t numImportances, RealType u,
                                                  RealType* prob, RealType* sumImportances, RealType* remapped) {
@@ -127,28 +123,28 @@ namespace VLR {
 
     template <typename RealType, int N>
     CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cosNSampleHemisphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PIf * u1;
+        RealType phi = 2 * VLR_M_PI * u1;
         RealType theta = std::acos(std::pow(u0, 1.0 / (1 + N)));
         return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> uniformSampleHemisphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PIf * u1;
+        RealType phi = 2 * VLR_M_PI * u1;
         RealType theta = std::acos(1 - u0);
         return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> uniformSampleSphere(RealType u0, RealType u1) {
-        RealType phi = 2 * M_PIf * u1;
+        RealType phi = 2 * VLR_M_PI * u1;
         RealType theta = std::acos(1 - 2 * u0);
         return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> uniformSampleCone(RealType u0, RealType u1, RealType cosThetaMax) {
-        RealType phi = 2 * M_PIf * u1;
+        RealType phi = 2 * VLR_M_PI * u1;
         RealType theta = std::acos(1 - (1 - cosThetaMax) * u0);
         return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }

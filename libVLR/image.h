@@ -26,8 +26,9 @@ namespace VLR {
         bool m_needsHW_sRGB_degamma;
         SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
-        mutable optix::Buffer m_optixDataBuffer;
-        mutable bool m_initOptiXObject;
+
+    protected:
+        mutable cudau::Array m_optixDataBuffer;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -80,7 +81,7 @@ namespace VLR {
             return m_colorSpace;
         }
 
-        virtual optix::Buffer getOptiXObject() const;
+        virtual const cudau::Array &getOptiXObject() const;
     };
 
 
@@ -111,7 +112,7 @@ namespace VLR {
         Image2D* createLuminanceImage2D() const override;
         void* createLinearImageData() const override;
 
-        optix::Buffer getOptiXObject() const override;
+        const cudau::Array &getOptiXObject() const override;
     };
 
 
@@ -135,6 +136,6 @@ namespace VLR {
         Image2D* createLuminanceImage2D() const override;
         void* createLinearImageData() const override;
 
-        optix::Buffer getOptiXObject() const override;
+        const cudau::Array &getOptiXObject() const override;
     };
 }

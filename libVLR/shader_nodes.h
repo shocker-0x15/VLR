@@ -52,7 +52,7 @@ namespace VLR {
     class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
-            optix::Program callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
+            CallableProgram callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
             uint32_t nodeProcedureSetIndex;
         };
     public:
@@ -71,7 +71,7 @@ namespace VLR {
             ShaderNodePlugType ptype;
             const char* programName;
         };
-        static std::string s_shader_nodes_ptx;
+        static optixu::Module s_shaderNodeModule;
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
@@ -546,12 +546,11 @@ namespace VLR {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
 
-        optix::TextureSampler m_optixTextureSampler;
+        cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;
         BumpType m_bumpType;
         float m_bumpCoeff;
-        TextureFilter m_minFilter;
-        TextureFilter m_magFilter;
+        TextureFilter m_xyFilter;
         TextureWrapMode m_wrapU;
         TextureWrapMode m_wrapV;
         ShaderNodePlug m_nodeTexCoord;
@@ -601,10 +600,9 @@ namespace VLR {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, LinearImage2D*> NullImages;
 
-        optix::TextureSampler m_optixTextureSampler;
+        cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;
-        TextureFilter m_minFilter;
-        TextureFilter m_magFilter;
+        TextureFilter m_xyFilter;
 
         void setupNodeDescriptor();
 

@@ -20,31 +20,31 @@ namespace VLR {
     CUDA_DEVICE_FUNCTION constexpr Vector3D asVector3D(const float3 &v) {
         return Vector3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION inline float3 asOptiXType(const Vector3D &v) {
+    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Vector3D &v) {
         return make_float3(v.x, v.y, v.z);
     }
     CUDA_DEVICE_FUNCTION constexpr Vector4D asVector4D(const float4 &v) {
         return Vector4D(v.x, v.y, v.z, v.w);
     }
-    CUDA_DEVICE_FUNCTION inline float4 asOptiXType(const Vector4D &v) {
+    CUDA_DEVICE_FUNCTION float4 asOptiXType(const Vector4D &v) {
         return make_float4(v.x, v.y, v.z, v.w);
     }
     CUDA_DEVICE_FUNCTION constexpr Normal3D asNormal3D(const float3 &v) {
         return Normal3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION inline float3 asOptiXType(const Normal3D &n) {
+    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Normal3D &n) {
         return make_float3(n.x, n.y, n.z);
     }
     CUDA_DEVICE_FUNCTION constexpr Point3D asPoint3D(const float3 &v) {
         return Point3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION inline float3 asOptiXType(const Point3D &p) {
+    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Point3D &p) {
         return make_float3(p.x, p.y, p.z);
     }
     CUDA_DEVICE_FUNCTION constexpr TexCoord2D asTexCoord2D(const float2 &v) {
         return TexCoord2D(v.x, v.y);
     }
-    CUDA_DEVICE_FUNCTION inline float2 asOptiXType(const TexCoord2D &p) {
+    CUDA_DEVICE_FUNCTION float2 asOptiXType(const TexCoord2D &p) {
         return make_float2(p.u, p.v);
     }
 }

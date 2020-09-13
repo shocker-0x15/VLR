@@ -6,7 +6,9 @@
 #include "slot_finder.h"
 
 namespace VLR {
-    std::string readTxtFile(const filesystem::path& filepath);
+    extern cudau::BufferType g_bufferType;
+
+    std::string readTxtFile(const std::filesystem::path& filepath);
 
 
 
@@ -31,20 +33,18 @@ namespace VLR {
     template <typename InternalType>
     struct SlotBuffer {
         uint32_t maxNumElements;
-        optix::Buffer optixBuffer;
+        cudau::TypedBuffer<InternalType> optixBuffer;
         SlotFinder slotFinder;
 
-        void initialize(optix::Context &context, uint32_t _maxNumElements, const char* varName) {
+        void initialize(CUcontext cuContext, uint32_t _maxNumElements, const char* varName) {
             maxNumElements = _maxNumElements;
-            optixBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER, maxNumElements);
-            optixBuffer->setElementSize(sizeof(InternalType));
+            optixBuffer.initialize(cuContext, g_bufferType, maxNumElements);
+            optixBuffer.setMappedMemoryPersistent(true);
             slotFinder.initialize(maxNumElements);
-            if (varName)
-                context[varName]->set(optixBuffer);
         }
         void finalize() {
             slotFinder.finalize();
-            optixBuffer->destroy();
+            optixBuffer.finalize();
         }
 
         uint32_t allocate() {
@@ -60,16 +60,38 @@ namespace VLR {
 
         void get(uint32_t index, InternalType* value) {
             VLRAssert(slotFinder.getUsage(index), "Invalid index.");
-            auto values = (InternalType*)optixBuffer->map(0, RT_BUFFER_MAP_READ);
+            auto values = optixBuffer.map();
             *value = values[index];
-            optixBuffer->unmap();
+            optixBuffer.unmap();
         }
 
         void update(uint32_t index, const InternalType &value) {
             VLRAssert(slotFinder.getUsage(index), "Invalid index.");
-            auto values = (InternalType*)optixBuffer->map(0, RT_BUFFER_MAP_WRITE);
+            auto values = optixBuffer.map();
             values[index] = value;
-            optixBuffer->unmap();
+            optixBuffer.unmap();
+        }
+    };
+
+
+
+    struct CallableProgram {
+        static uint32_t NextID;
+        optixu::ProgramGroup programGroup;
+        uint32_t ID;
+
+        CallableProgram() : ID(0xFFFFFFFF) {}
+        void create(optixu::Pipeline pipeline,
+                    optixu::Module moduleDC, const char* baseNameDC,
+                    optixu::Module moduleCC, const char* baseNameCC) {
+            ID = NextID++;
+            programGroup = pipeline.createCallableProgramGroup(moduleDC, baseNameDC, moduleCC, baseNameCC);
+        }
+        void destroy() {
+            programGroup.destroy();
+        }
+        operator bool() const {
+            return ID != 0xFFFFFFFF;
         }
     };
 
@@ -82,39 +104,45 @@ namespace VLR {
         }
 
         uint32_t m_ID;
-        optix::Context m_optixContext;
-        bool m_RTXEnabled;
-        int32_t* m_devices;
-        uint32_t m_numDevices;
+        CUcontext m_cuContext;
+        optixu::Context m_optixContext;
 
-        optix::Program m_optixProgramShadowAnyHitDefault; // ---- Any Hit Program
-        optix::Program m_optixProgramAnyHitWithAlpha; // -------- Any Hit Program
-        optix::Program m_optixProgramShadowAnyHitWithAlpha; // -- Any Hit Program
-        optix::Program m_optixProgramPathTracingIteration; // --- Closest Hit Program
+        Shared::PipelineLaunchParameters m_launchParams;
+        cudau::TypedBuffer<DiscretizedSpectrumAlwaysSpectral::CMF> m_discretizedSpectrumCMFs;
 
-        optix::Program m_optixProgramPathTracing; // ------------ Ray Generation Program
-        optix::Program m_optixProgramPathTracingMiss; // -------- Miss Program
-        optix::Program m_optixProgramException; // -------------- Exception Program
+        optixu::Pipeline m_optixPipeline;
 
-        optix::Program m_optixProgramDebugRenderingClosestHit;
-        optix::Program m_optixProgramDebugRenderingAnyHitWithAlpha;
-        optix::Program m_optixProgramDebugRenderingMiss;
-        optix::Program m_optixProgramDebugRenderingRayGeneration;
-        optix::Program m_optixProgramDebugRenderingException;
+        optixu::Module m_optixEmptyModule;
 
-        optix::Program m_optixProgramConvertToRGB; // ----------- Ray Generation Program (TODO: port to pure CUDA code)
+        optixu::Module m_optixPathTracingModule;
+        optixu::ProgramGroup m_optixPathTracingRayGeneration;
+        optixu::ProgramGroup m_optixPathTracingMiss;
+        optixu::ProgramGroup m_optixPathTracingShadowMiss;
+        optixu::ProgramGroup m_optixPathTracingHitGroupDefault;
+        optixu::ProgramGroup m_optixPathTracingHitGroupWithAlpha;
+        optixu::ProgramGroup m_optixPathTracingHitGroupShadowDefault;
+        optixu::ProgramGroup m_optixPathTracingHitGroupShadowWithAlpha;
+
+        optixu::Module m_optixDebugRenderingModule;
+        optixu::ProgramGroup m_optixDebugRenderingRayGeneration;
+        optixu::ProgramGroup m_optixDebugRenderingMiss;
+        optixu::ProgramGroup m_optixDebugRenderingHitGroupDefault;
+        optixu::ProgramGroup m_optixDebugRenderingHitGroupWithAlpha;
+
+        CUmodule m_cudaPostProcessModule;
+        cudau::Kernel m_cudaPostProcessConvertToRGB;
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-        optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_grid;
-        optix::Buffer m_optixBufferUpsampledSpectrum_spectrum_data_points;
+        cudau::TypedBuffer<UpsampledSpectrum::spectrum_grid_cell_t> m_optixBufferUpsampledSpectrum_spectrum_grid;
+        cudau::TypedBuffer<UpsampledSpectrum::spectrum_data_point_t> m_optixBufferUpsampledSpectrum_spectrum_data_points;
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        optix::Buffer m_optixBufferUpsampledSpectrum_maxBrightnesses;
-        optix::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65;
-        optix::Buffer m_optixBufferUpsampledSpectrum_coefficients_sRGB_E;
+        cudau::TypedBuffer<float> m_optixBufferUpsampledSpectrum_maxBrightnesses;
+        cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> m_optixBufferUpsampledSpectrum_coefficients_sRGB_D65;
+        cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> m_optixBufferUpsampledSpectrum_coefficients_sRGB_E;
 #endif
 
-        optix::Material m_optixMaterialDefault;
-        optix::Material m_optixMaterialWithAlpha;
+        optixu::Material m_optixMaterialDefault;
+        optixu::Material m_optixMaterialWithAlpha;
 
         SlotBuffer<Shared::NodeProcedureSet> m_nodeProcedureBuffer;
 
@@ -125,65 +153,61 @@ namespace VLR {
         SlotBuffer<Shared::BSDFProcedureSet> m_BSDFProcedureBuffer;
         SlotBuffer<Shared::EDFProcedureSet> m_EDFProcedureBuffer;
 
-        optix::Program m_optixCallableProgramNullBSDF_setupBSDF;
-        optix::Program m_optixCallableProgramNullBSDF_getBaseColor;
-        optix::Program m_optixCallableProgramNullBSDF_matches;
-        optix::Program m_optixCallableProgramNullBSDF_sampleInternal;
-        optix::Program m_optixCallableProgramNullBSDF_evaluateInternal;
-        optix::Program m_optixCallableProgramNullBSDF_evaluatePDFInternal;
-        optix::Program m_optixCallableProgramNullBSDF_weightInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_setupBSDF;
+        CallableProgram m_optixCallableProgramNullBSDF_getBaseColor;
+        CallableProgram m_optixCallableProgramNullBSDF_matches;
+        CallableProgram m_optixCallableProgramNullBSDF_sampleInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_evaluateInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_evaluatePDFInternal;
+        CallableProgram m_optixCallableProgramNullBSDF_weightInternal;
         uint32_t m_nullBSDFProcedureSetIndex;
 
-        optix::Program m_optixCallableProgramNullEDF_setupEDF;
-        optix::Program m_optixCallableProgramNullEDF_evaluateEmittanceInternal;
-        optix::Program m_optixCallableProgramNullEDF_evaluateInternal;
+        CallableProgram m_optixCallableProgramNullEDF_setupEDF;
+        CallableProgram m_optixCallableProgramNullEDF_evaluateEmittanceInternal;
+        CallableProgram m_optixCallableProgramNullEDF_evaluateInternal;
         uint32_t m_nullEDFProcedureSetIndex;
 
         SlotBuffer<Shared::SurfaceMaterialDescriptor> m_surfaceMaterialDescriptorBuffer;
 
-        optix::Buffer m_rawOutputBuffer;
-        optix::Buffer m_outputBuffer;
-        optix::Buffer m_rngBuffer;
+        optixu::HostBlockBuffer2D<SpectrumStorage, 0> m_rawOutputBuffer;
+        cudau::Array m_outputBuffer;
+        optixu::HostBlockBuffer2D<Shared::KernelRNG, 2> m_rngBuffer;
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
 
     public:
-        Context(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices);
+        Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
         ~Context();
 
         uint32_t getID() const {
             return m_ID;
         }
 
-        bool RTXEnabled() const {
-            return m_RTXEnabled;
-        }
-        uint32_t getNumDevices() const {
-            return m_numDevices;
-        }
-        int32_t getDeviceIndexAt(uint32_t idx) const {
-            if (idx >= m_numDevices)
-                return 0xFFFFFFFF;
-            return m_devices[idx];
-        }
-
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID);
-        const void* mapOutputBuffer();
-        void unmapOutputBuffer();
+        const cudau::Array &getOutputBuffer();
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
         void render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
         void debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
-        const optix::Context &getOptiXContext() const {
+        CUcontext getCuContext() const {
+            return m_cuContext;
+        }
+        optixu::Context getOptiXContext() const {
             return m_optixContext;
         }
+        optixu::Pipeline getOptixPipeline() const {
+            return m_optixPipeline;
+        }
+        optixu::Module getEmptyModule() const {
+            return m_optixEmptyModule;
+        }
 
-        const optix::Material &getOptiXMaterialDefault() const {
+        optixu::Material getOptiXMaterialDefault() const {
             return m_optixMaterialDefault;
         }
-        const optix::Material &getOptiXMaterialWithAlpha() const {
+        optixu::Material getOptiXMaterialWithAlpha() const {
             return m_optixMaterialWithAlpha;
         }
 
@@ -211,11 +235,11 @@ namespace VLR {
         void releaseEDFProcedureSet(uint32_t index);
         void updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet);
 
-        const optix::Program &getOptixCallableProgramNullBSDF_setupBSDF() const {
+        CallableProgram getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optixCallableProgramNullBSDF_setupBSDF;
         }
         uint32_t getNullBSDFProcedureSetIndex() const { return m_nullBSDFProcedureSetIndex; }
-        const optix::Program &getOptixCallableProgramNullEDF_setupEDF() const {
+        CallableProgram getOptixCallableProgramNullEDF_setupEDF() const {
             return m_optixCallableProgramNullEDF_setupEDF;
         }
         uint32_t getNullEDFProcedureSetIndex() const { return m_nullEDFProcedureSetIndex; }
@@ -295,8 +319,8 @@ namespace VLR {
 
     template <typename RealType>
     class DiscreteDistribution1DTemplate {
-        optix::Buffer m_PMF;
-        optix::Buffer m_CDF;
+        cudau::TypedBuffer<RealType> m_PMF;
+        cudau::TypedBuffer<RealType> m_CDF;
         RealType m_integral;
         uint32_t m_numValues;
 
@@ -313,8 +337,8 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution1DTemplate {
-        optix::Buffer m_PDF;
-        optix::Buffer m_CDF;
+        cudau::TypedBuffer<RealType> m_PDF;
+        cudau::TypedBuffer<RealType> m_CDF;
         RealType m_integral;
         uint32_t m_numValues;
 
@@ -334,7 +358,7 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution2DTemplate {
-        optix::Buffer m_raw1DDists;
+        cudau::TypedBuffer<Shared::RegularConstantContinuousDistribution1DTemplate<RealType>> m_raw1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
