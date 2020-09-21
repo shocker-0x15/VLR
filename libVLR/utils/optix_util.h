@@ -59,11 +59,10 @@ TODO:
 #endif
 
 #if defined(__CUDACC_RTC__)
-
+// Defining cstdint and cfloat (under cuda/std) is left to the user.
 #else
 #include <cstdint>
 #include <cfloat>
-#include <type_traits>
 #include <string>
 #endif
 #include <optix.h>
@@ -104,38 +103,73 @@ TODO:
 
 
 
+inline OptixGeometryFlags operator|(OptixGeometryFlags a, OptixGeometryFlags b) {
+    return static_cast<OptixGeometryFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixPrimitiveTypeFlags operator|(OptixPrimitiveTypeFlags a, OptixPrimitiveTypeFlags b) {
+    return static_cast<OptixPrimitiveTypeFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixInstanceFlags operator|(OptixInstanceFlags a, OptixInstanceFlags b) {
+    return static_cast<OptixInstanceFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixMotionFlags operator|(OptixMotionFlags a, OptixMotionFlags b) {
+    return static_cast<OptixMotionFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixRayFlags operator|(OptixRayFlags a, OptixRayFlags b) {
+    return static_cast<OptixRayFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixTraversableGraphFlags operator|(OptixTraversableGraphFlags a, OptixTraversableGraphFlags b) {
+    return static_cast<OptixTraversableGraphFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline OptixExceptionFlags operator|(OptixExceptionFlags a, OptixExceptionFlags b) {
+    return static_cast<OptixExceptionFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+
+
+
 namespace optixu {
 #ifdef _DEBUG
 #   define OPTIXU_ENABLE_ASSERT
 #endif
 
-#if defined(OPTIXU_Platform_Windows_MSVC)
     void devPrintf(const char* fmt, ...);
-#else
-#   define devPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__);
-#endif
 
 #if 1
-#   define optixPrintf(fmt, ...) do { optixu::devPrintf(fmt, ##__VA_ARGS__); printf(fmt, ##__VA_ARGS__); } while (0)
+#   define optixuPrintf(fmt, ...) \
+        do { \
+            optixu::devPrintf(fmt, ##__VA_ARGS__); \
+            printf(fmt, ##__VA_ARGS__); \
+        } while (0)
 #else
-#   define optixPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#   define optixuPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
 
 #if defined(OPTIXU_ENABLE_ASSERT)
 #   if defined(__CUDA_ARCH__)
-#   define optixAssert(expr, fmt, ...) do { if (!(expr)) { printf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); printf(fmt"\n", ##__VA_ARGS__); assert(0); } } while (0)
+#       define optixuAssert(expr, fmt, ...) \
+            do { \
+                if (!(expr)) { \
+                    printf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); \
+                    printf(fmt"\n", ##__VA_ARGS__); \
+                    assert(0); \
+                } \
+            } while (0)
 #   else
-#   define optixAssert(expr, fmt, ...) do { if (!(expr)) { optixu::devPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); optixu::devPrintf(fmt"\n", ##__VA_ARGS__); abort(); } } while (0)
+#       define optixuAssert(expr, fmt, ...) \
+            do { \
+                if (!(expr)) { \
+                    optixu::devPrintf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); \
+                    optixu::devPrintf(fmt"\n", ##__VA_ARGS__); \
+                    abort(); \
+                } \
+            } while (0)
 #   endif
 #else
-#   define optixAssert(expr, fmt, ...)
+#   define optixuAssert(expr, fmt, ...)
 #endif
 
-#define optixAssert_ShouldNotBeCalled() optixAssert(false, "Should not be called!")
-#define optixAssert_NotImplemented() optixAssert(false, "Not implemented yet!")
-
-    template <typename T>
-    RT_DEVICE_FUNCTION constexpr bool false_T() { return false; }
+#define optixuAssert_ShouldNotBeCalled() optixuAssert(false, "Should not be called!")
+#define optixuAssert_NotImplemented() optixuAssert(false, "Not implemented yet!")
 
 
 
@@ -824,6 +858,7 @@ private: \
         void setVisibilityMask(uint32_t mask) const;
         void setFlags(OptixInstanceFlags flags) const;
         void setTransform(const float transform[12]) const;
+        void setMaterialSetIndex(uint32_t matSetIdx) const;
     };
 
 
@@ -889,8 +924,10 @@ private: \
 
         void setPipelineOptions(uint32_t numPayloadValues, uint32_t numAttributeValues,
                                 const char* launchParamsVariableName, size_t sizeOfLaunchParams,
-                                bool useMotionBlur, uint32_t traversableGraphFlags, uint32_t exceptionFlags,
-                                uint32_t supportedPrimitiveTypeFlags) const;
+                                bool useMotionBlur,
+                                OptixTraversableGraphFlags traversableGraphFlags,
+                                OptixExceptionFlags exceptionFlags,
+                                OptixPrimitiveTypeFlags supportedPrimitiveTypeFlags) const;
 
         [[nodiscard]]
         Module createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,

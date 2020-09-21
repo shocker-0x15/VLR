@@ -40,7 +40,7 @@
 
 
 #if defined(__CUDACC_RTC__)
-// Including cstdint and cfloat (under cuda/std) is left to the user.
+// Defining cstdint and cfloat (under cuda/std) is left to the user.
 typedef unsigned long long CUtexObject;
 typedef unsigned long long CUsurfObject;
 #else
@@ -351,12 +351,12 @@ namespace cudau {
             return m_devicePointer + static_cast<uintptr_t>(m_stride) * idx;
         }
         size_t sizeInBytes() const {
-            return m_numElements * m_stride;
+            return static_cast<size_t>(m_numElements) * m_stride;
         }
-        size_t stride() const {
+        uint32_t stride() const {
             return m_stride;
         }
-        size_t numElements() const {
+        uint32_t numElements() const {
             return m_numElements;
         }
         bool isInitialized() const {
@@ -416,10 +416,10 @@ namespace cudau {
     class TypedBuffer : public Buffer {
     public:
         TypedBuffer() {}
-        TypedBuffer(CUcontext context, BufferType type, int32_t numElements) {
+        TypedBuffer(CUcontext context, BufferType type, uint32_t numElements) {
             Buffer::initialize(context, type, numElements, sizeof(T));
         }
-        TypedBuffer(CUcontext context, BufferType type, int32_t numElements, const T &value) {
+        TypedBuffer(CUcontext context, BufferType type, uint32_t numElements, const T &value) {
             Buffer::initialize(context, type, numElements, sizeof(T));
             T* values = (T*)map();
             for (int i = 0; i < numElements; ++i)
@@ -427,10 +427,16 @@ namespace cudau {
             unmap();
         }
 
-        void initialize(CUcontext context, BufferType type, int32_t numElements) {
+        TypedBuffer(TypedBuffer &&b) : Buffer(std::move(b)) {}
+        TypedBuffer &operator=(TypedBuffer &&b) {
+            Buffer::operator=(std::move(b));
+            return *this;
+        }
+
+        void initialize(CUcontext context, BufferType type, uint32_t numElements) {
             Buffer::initialize(context, type, numElements, sizeof(T));
         }
-        void initialize(CUcontext context, BufferType type, int32_t numElements, const T &value, CUstream stream = 0) {
+        void initialize(CUcontext context, BufferType type, uint32_t numElements, const T &value, CUstream stream = 0) {
             std::vector<T> values(numElements, value);
             initialize(context, type, values.size());
             CUDADRV_CHECK(cuMemcpyHtoDAsync(Buffer::getCUdeviceptr(), values.data(), values.size() * sizeof(T), stream));
@@ -440,7 +446,7 @@ namespace cudau {
             CUDADRV_CHECK(cuMemcpyHtoDAsync(Buffer::getCUdeviceptr(), v, numElements * sizeof(T), stream));
         }
         void initialize(CUcontext context, BufferType type, const std::vector<T> &v, CUstream stream = 0) {
-            initialize(context, type, v.size());
+            initialize(context, type, static_cast<uint32_t>(v.size()));
             CUDADRV_CHECK(cuMemcpyHtoDAsync(Buffer::getCUdeviceptr(), v.data(), v.size() * sizeof(T), stream));
         }
         void finalize() {
@@ -897,7 +903,7 @@ namespace cudau {
             if (array.getNumMipmapLevels() > 1) {
                 resDesc.resType = CU_RESOURCE_TYPE_MIPMAPPED_ARRAY;
                 resDesc.res.mipmap.hMipmappedArray = array.getCUmipmappedArray();
-                m_texDesc.maxMipmapLevelClamp = array.getNumMipmapLevels() - 1;
+                m_texDesc.maxMipmapLevelClamp = static_cast<float>(array.getNumMipmapLevels() - 1);
             }
             else {
                 resDesc.resType = CU_RESOURCE_TYPE_ARRAY;

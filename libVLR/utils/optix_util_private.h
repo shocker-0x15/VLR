@@ -97,7 +97,7 @@ namespace optixu {
 #define THROW_RUNTIME_ERROR(expr, fmt, ...) do { if (!(expr)) throw make_runtime_error(fmt, ##__VA_ARGS__); } while (0)
 
     static void logCallBack(uint32_t level, const char* tag, const char* message, void* cbdata) {
-        optixPrintf("[%2u][%12s]: %s\n", level, tag, message);
+        optixuPrintf("[%2u][%12s]: %s\n", level, tag, message);
     }
 
     static constexpr size_t s_maxMaterialUserDataSize = 512;
@@ -797,7 +797,7 @@ namespace optixu {
                 return compactedHandle;
             if (available)
                 return handle;
-            optixAssert_ShouldNotBeCalled();
+            optixuAssert_ShouldNotBeCalled();
             return 0;
         }
     };
@@ -917,7 +917,7 @@ namespace optixu {
 
 
 
-    static inline size_t getPixelSize(OptixPixelFormat format) {
+    static inline uint32_t getPixelSize(OptixPixelFormat format) {
         switch (format) {
         case OPTIX_PIXEL_FORMAT_HALF3:
             return 3 * sizeof(uint16_t);
@@ -932,7 +932,7 @@ namespace optixu {
         case OPTIX_PIXEL_FORMAT_UCHAR4:
             return 4 * sizeof(uint8_t);
         default:
-            optixAssert_ShouldNotBeCalled();
+            optixuAssert_ShouldNotBeCalled();
             break;
         }
         return 0;

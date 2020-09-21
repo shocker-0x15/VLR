@@ -22,10 +22,14 @@ namespace optixu {
     void devPrintf(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
+#if defined(OPTIXU_Platform_Windows_MSVC)
         char str[4096];
         vsnprintf_s(str, sizeof(str), _TRUNCATE, fmt, args);
-        va_end(args);
         OutputDebugString(str);
+#else
+        vprintf_s(fmt, args);
+#endif
+        va_end(args);
     }
 
 
@@ -115,7 +119,7 @@ namespace optixu {
 
         for (_GeometryAccelerationStructure* gas : geomASs) {
             uint32_t numMatSets = gas->getNumMaterialSets();
-            for (int matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx) {
+            for (uint32_t matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx) {
                 uint32_t numRecords = gas->fillSBTRecords(pipeline, matSetIdx, records);
                 records += numRecords * singleRecordSize;
             }
@@ -186,14 +190,14 @@ namespace optixu {
         for (_GeometryAccelerationStructure* gas : m->geomASs) {
             uint32_t numMatSets = gas->getNumMaterialSets();
             SizeAlign maxRecordSizeAlign;
-            for (int matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx)
+            for (uint32_t matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx)
                 maxRecordSizeAlign = max(maxRecordSizeAlign, gas->calcMaxRecordSizeAlign(matSetIdx));
             maxRecordSizeAlign.alignUp();
             m->singleRecordSize = std::max(m->singleRecordSize, maxRecordSizeAlign.size);
         }
         for (_GeometryAccelerationStructure* gas : m->geomASs) {
             uint32_t numMatSets = gas->getNumMaterialSets();
-            for (int matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx) {
+            for (uint32_t matSetIdx = 0; matSetIdx < numMatSets; ++matSetIdx) {
                 uint32_t gasNumSBTRecords = gas->calcNumSBTRecords(matSetIdx);
                 _Scene::SBTOffsetKey key = { gas, matSetIdx };
                 m->sbtOffsets[key] = sbtOffset;
@@ -220,11 +224,11 @@ namespace optixu {
             primitiveAabbBufferArray[0] = primitiveAABBBuffer.getCUdeviceptr();
 
             customPrimArray.aabbBuffers = primitiveAabbBufferArray;
-            customPrimArray.numPrimitives = primitiveAABBBuffer.numElements();
+            customPrimArray.numPrimitives = static_cast<uint32_t>(primitiveAABBBuffer.numElements());
             customPrimArray.strideInBytes = primitiveAABBBuffer.stride();
             customPrimArray.primitiveIndexOffset = primitiveIndexOffset;
 
-            customPrimArray.numSbtRecords = buildInputFlags.size();
+            customPrimArray.numSbtRecords = static_cast<uint32_t>(buildInputFlags.size());
             if (customPrimArray.numSbtRecords > 1) {
                 customPrimArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer.getCUdeviceptr();
                 customPrimArray.sbtIndexOffsetSizeInBytes = materialIndexOffsetSize;
@@ -249,14 +253,14 @@ namespace optixu {
             vertexBufferArray[0] = vertexBuffer.getCUdeviceptr();
 
             triArray.vertexBuffers = vertexBufferArray;
-            triArray.numVertices = vertexBuffer.numElements();
+            triArray.numVertices = static_cast<uint32_t>(vertexBuffer.numElements());
             triArray.vertexFormat = vertexFormat;
             triArray.vertexStrideInBytes = vertexBuffer.stride();
 
             if (indexFormat != OPTIX_INDICES_FORMAT_NONE) {
                 triArray.indexBuffer = triangleBuffer.getCUdeviceptr();
                 triArray.indexStrideInBytes = triangleBuffer.stride();
-                triArray.numIndexTriplets = triangleBuffer.numElements();
+                triArray.numIndexTriplets = static_cast<uint32_t>(triangleBuffer.numElements());
             }
             else {
                 triArray.indexBuffer = 0;
@@ -266,7 +270,7 @@ namespace optixu {
             triArray.indexFormat = indexFormat;
             triArray.primitiveIndexOffset = primitiveIndexOffset;
 
-            triArray.numSbtRecords = buildInputFlags.size();
+            triArray.numSbtRecords = static_cast<uint32_t>(buildInputFlags.size());
             if (triArray.numSbtRecords > 1) {
                 triArray.sbtIndexOffsetBuffer = materialIndexOffsetBuffer.getCUdeviceptr();
                 triArray.sbtIndexOffsetSizeInBytes = materialIndexOffsetSize;
@@ -335,14 +339,14 @@ namespace optixu {
     uint32_t GeometryInstance::Priv::fillSBTRecords(const _Pipeline* pipeline, uint32_t gasMatSetIdx,
                                                     const void* gasUserData, const SizeAlign gasUserDataSizeAlign,
                                                     uint32_t numRayTypes, uint8_t* records) const {
-        uint32_t numMaterials = materials.size();
-        for (int matIdx = 0; matIdx < numMaterials; ++matIdx) {
+        uint32_t numMaterials = static_cast<uint32_t>(materials.size());
+        for (uint32_t matIdx = 0; matIdx < numMaterials; ++matIdx) {
             THROW_RUNTIME_ERROR(materials[matIdx][0], "Default material (== material set 0) is not set for material %u.", matIdx);
             uint32_t matSetIdx = gasMatSetIdx < materials[matIdx].size() ? gasMatSetIdx : 0;
             const _Material* mat = materials[matIdx][matSetIdx];
             if (!mat)
                 mat = materials[matIdx][0];
-            for (int rIdx = 0; rIdx < numRayTypes; ++rIdx) {
+            for (uint32_t rIdx = 0; rIdx < numRayTypes; ++rIdx) {
                 SizeAlign curSizeAlign;
                 mat->setRecordData(pipeline, rIdx, records, &curSizeAlign);
                 uint32_t offset;
@@ -409,7 +413,7 @@ namespace optixu {
         THROW_RUNTIME_ERROR(matIdx < numMaterials,
                             "Out of material bounds [0, %u).", static_cast<uint32_t>(numMaterials));
 
-        uint32_t prevNumMatSets = m->materials[matIdx].size();
+        uint32_t prevNumMatSets = static_cast<uint32_t>(m->materials[matIdx].size());
         if (matSetIdx >= prevNumMatSets)
             m->materials[matIdx].resize(matSetIdx + 1, nullptr);
         m->materials[matIdx][matSetIdx] = extract(mat);
@@ -565,8 +569,9 @@ namespace optixu {
                                        (m->allowRandomVertexAccess ? OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS : 0));
         //m->buildOptions.motionOptions
 
+        uint32_t numBuildInputs = static_cast<uint32_t>(m->buildInputs.size());
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
-                                                 m->buildInputs.data(), m->buildInputs.size(),
+                                                 m->buildInputs.data(), numBuildInputs,
                                                  &m->memoryRequirement));
 
         *memoryRequirement = m->memoryRequirement;
@@ -592,8 +597,9 @@ namespace optixu {
             child.geomInst->updateBuildInput(&m->buildInputs[childIdx++], child.preTransform);
 
         m->buildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        uint32_t numBuildInputs = static_cast<uint32_t>(m->buildInputs.size());
         OPTIX_CHECK(optixAccelBuild(m->getRawContext(), stream,
-                                    &m->buildOptions, m->buildInputs.data(), m->buildInputs.size(),
+                                    &m->buildOptions, m->buildInputs.data(), numBuildInputs,
                                     scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes(),
                                     accelBuffer.getCUdeviceptr(), accelBuffer.sizeInBytes(),
                                     &m->handle,
@@ -676,13 +682,14 @@ namespace optixu {
 
         m->buildOptions.operation = OPTIX_BUILD_OPERATION_UPDATE;
         OptixTraversableHandle tempHandle = handle;
+        uint32_t numBuildInputs = static_cast<uint32_t>(m->buildInputs.size());
         OPTIX_CHECK(optixAccelBuild(m->getRawContext(), stream,
-                                    &m->buildOptions, m->buildInputs.data(), m->buildInputs.size(),
+                                    &m->buildOptions, m->buildInputs.data(), numBuildInputs,
                                     scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes(),
                                     accelBuffer.getCUdeviceptr(), accelBuffer.sizeInBytes(),
                                     &tempHandle,
                                     nullptr, 0));
-        optixAssert(tempHandle == handle, "Update should not change the handle itself, what's going on?");
+        optixuAssert(tempHandle == handle, "Update should not change the handle itself, what's going on?");
     }
 
     void GeometryAccelerationStructure::setUserData(const void* data, uint32_t size, uint32_t alignment) const {
@@ -712,7 +719,7 @@ namespace optixu {
             return nullptr;
         else if (childType == ChildType::Transform)
             return childXfm->getDescendantGAS();
-        optixAssert_ShouldNotBeCalled();
+        optixuAssert_ShouldNotBeCalled();
         return nullptr;
     }
 
@@ -736,7 +743,7 @@ namespace optixu {
             m->data = new uint8_t[m->dataSize];
             std::memset(m->data, 0, m->dataSize);
             auto motionData = reinterpret_cast<float*>(m->data + offsetof(OptixMatrixMotionTransform, transform));
-            for (int i = 0; i < numKeys; ++i) {
+            for (uint32_t i = 0; i < numKeys; ++i) {
                 float* dataPerKey = motionData + 12 * i;
                 dataPerKey[0] = 1.0f; dataPerKey[1] = 0.0f; dataPerKey[2] = 0.0f; dataPerKey[3] = 0.0f;
                 dataPerKey[4] = 1.0f; dataPerKey[5] = 0.0f; dataPerKey[6] = 0.0f; dataPerKey[7] = 0.0f;
@@ -750,7 +757,7 @@ namespace optixu {
             m->data = new uint8_t[m->dataSize];
             std::memset(m->data, 0, m->dataSize);
             auto motionData = reinterpret_cast<OptixSRTData*>(m->data + offsetof(OptixSRTMotionTransform, srtData));
-            for (int i = 0; i < numKeys; ++i) {
+            for (uint32_t i = 0; i < numKeys; ++i) {
                 OptixSRTData* dataPerKey = motionData + i;
                 dataPerKey->sx = dataPerKey->sy = dataPerKey->sz = 1.0f;
                 dataPerKey->a = dataPerKey->b = dataPerKey->c = 0.0f;
@@ -930,10 +937,8 @@ namespace optixu {
 
     void Instance::Priv::fillInstance(OptixInstance* instance) const {
         *instance = {};
-        instance->instanceId = id;
-        instance->visibilityMask = visibilityMask;
         std::copy_n(instTransform, 12, instance->transform);
-        instance->flags = flags;
+        instance->instanceId = id;
 
         if (type == ChildType::GAS) {
             THROW_RUNTIME_ERROR(childGas->isReady(), "GAS %p is not ready.", childGas);
@@ -955,16 +960,39 @@ namespace optixu {
                 instance->sbtOffset = 0;
         }
         else {
-            optixAssert_ShouldNotBeCalled();
+            optixuAssert_ShouldNotBeCalled();
         }
+
+        instance->visibilityMask = visibilityMask;
+        instance->flags = flags;
     }
 
     void Instance::Priv::updateInstance(OptixInstance* instance) const {
-        instance->instanceId = id;
-        instance->visibilityMask = visibilityMask;
         std::copy_n(instTransform, 12, instance->transform);
-        //instance->flags = flags; これは変えられない？
-        //instance->sbtOffset = scene->getSBTOffset(childGas, matSetIndex);
+        instance->instanceId = id;
+
+        if (type == ChildType::GAS) {
+            THROW_RUNTIME_ERROR(childGas->isReady(), "GAS %p is not ready.", childGas);
+            instance->sbtOffset = scene->getSBTOffset(childGas, matSetIndex);
+        }
+        else if (type == ChildType::IAS) {
+            THROW_RUNTIME_ERROR(childIas->isReady(), "IAS %p is not ready.", childGas);
+            instance->sbtOffset = 0;
+        }
+        else if (type == ChildType::Transform) {
+            THROW_RUNTIME_ERROR(childXfm->isReady(), "Transform %p is not ready.", childXfm);
+            _GeometryAccelerationStructure* desGas = childXfm->getDescendantGAS();
+            if (desGas)
+                instance->sbtOffset = scene->getSBTOffset(desGas, matSetIndex);
+            else
+                instance->sbtOffset = 0;
+        }
+        else {
+            optixuAssert_ShouldNotBeCalled();
+        }
+
+        instance->visibilityMask = visibilityMask;
+        instance->flags = flags;
     }
 
     bool Instance::Priv::isMotionAS() const {
@@ -1024,6 +1052,10 @@ namespace optixu {
         m->flags = flags;
     }
 
+    void Instance::setMaterialSetIndex(uint32_t matSetIdx) const {
+        m->matSetIndex = matSetIdx;
+    }
+
 
 
     void InstanceAccelerationStructure::Priv::markDirty() {
@@ -1055,7 +1087,7 @@ namespace optixu {
                                         stream));
         buildInput.instanceArray.instances = instanceBuffer.getCUdeviceptr();
         if (aabbBuffer.isValid()) {
-            uint32_t numAABBs = motionOptions.numKeys * children.size();
+            uint32_t numAABBs = motionOptions.numKeys * static_cast<uint32_t>(children.size());
             THROW_RUNTIME_ERROR(aabbBuffer.sizeInBytes() >= numAABBs * sizeof(OptixAabb),
                                 "Size of the given AABB buffer is not enough.");
             buildInput.instanceArray.aabbs = aabbBuffer.getCUdeviceptr();
@@ -1155,7 +1187,7 @@ namespace optixu {
         m->aabbsRequired = transformExists || (motionASExists && m->motionOptions.numKeys >= 2);
         if (m->aabbsRequired) {
             THROW_RUNTIME_ERROR(numAABBs, "This IAS requires AABB buffer, but numAABBs is not provided.");
-            *numAABBs = m->children.size() * m->motionOptions.numKeys;
+            *numAABBs = m->motionOptions.numKeys * static_cast<uint32_t>(m->children.size());
         }
 
         // Fill the build input.
@@ -1185,7 +1217,7 @@ namespace optixu {
                                                  &m->memoryRequirement));
 
         *memoryRequirement = m->memoryRequirement;
-        *numInstances = m->instances.size();
+        *numInstances = static_cast<uint32_t>(m->instances.size());
 
         m->readyToBuild = true;
     }
@@ -1277,7 +1309,7 @@ namespace optixu {
                                     accelBuffer.getCUdeviceptr(), accelBuffer.sizeInBytes(),
                                     &tempHandle,
                                     nullptr, 0));
-        optixAssert(tempHandle == handle, "Update should not change the handle itself, what's going on?");
+        optixuAssert(tempHandle == handle, "Update should not change the handle itself, what's going on?");
     }
 
     bool InstanceAccelerationStructure::isReady() const {
@@ -1302,7 +1334,7 @@ namespace optixu {
     }
 
     void Pipeline::Priv::destroyProgram(OptixProgramGroup group) {
-        optixAssert(programGroups.count(group) > 0, "This program group has not been registered.");
+        optixuAssert(programGroups.count(group) > 0, "This program group has not been registered.");
         programGroups.erase(group);
         OPTIX_CHECK(optixProgramGroupDestroy(group));
     }
@@ -1310,9 +1342,9 @@ namespace optixu {
     void Pipeline::Priv::setupShaderBindingTable(CUstream stream) {
         if (!sbtIsUpToDate) {
             THROW_RUNTIME_ERROR(rayGenProgram, "Ray generation program is not set.");
-            for (int i = 0; i < numMissRayTypes; ++i)
+            for (uint32_t i = 0; i < numMissRayTypes; ++i)
                 THROW_RUNTIME_ERROR(missPrograms[i], "Miss program is not set for ray type %d.", i);
-            for (int i = 0; i < numCallablePrograms; ++i)
+            for (uint32_t i = 0; i < numCallablePrograms; ++i)
                 THROW_RUNTIME_ERROR(callablePrograms[i], "Callable program is not set for index %d.", i);
 
             auto records = reinterpret_cast<uint8_t*>(sbtHostMem);
@@ -1328,13 +1360,13 @@ namespace optixu {
             offset += OPTIX_SBT_RECORD_HEADER_SIZE;
 
             CUdeviceptr missRecordOffset = offset;
-            for (int i = 0; i < numMissRayTypes; ++i) {
+            for (uint32_t i = 0; i < numMissRayTypes; ++i) {
                 missPrograms[i]->packHeader(records + offset);
                 offset += OPTIX_SBT_RECORD_HEADER_SIZE;
             }
 
             CUdeviceptr callableRecordOffset = offset;
-            for (int i = 0; i < numCallablePrograms; ++i) {
+            for (uint32_t i = 0; i < numCallablePrograms; ++i) {
                 callablePrograms[i]->packHeader(records + offset);
                 offset += OPTIX_SBT_RECORD_HEADER_SIZE;
             }
@@ -1359,7 +1391,7 @@ namespace optixu {
 
             sbtParams.hitgroupRecordBase = hitGroupSbt.getCUdeviceptr();
             sbtParams.hitgroupRecordStrideInBytes = scene->getSingleRecordSize();
-            sbtParams.hitgroupRecordCount = hitGroupSbt.sizeInBytes() / scene->getSingleRecordSize();
+            sbtParams.hitgroupRecordCount = static_cast<uint32_t>(hitGroupSbt.sizeInBytes() / scene->getSingleRecordSize());
 
             hitGroupSbtIsUpToDate = true;
         }
@@ -1372,8 +1404,10 @@ namespace optixu {
 
     void Pipeline::setPipelineOptions(uint32_t numPayloadValues, uint32_t numAttributeValues,
                                       const char* launchParamsVariableName, size_t sizeOfLaunchParams,
-                                      bool useMotionBlur, uint32_t traversableGraphFlags, uint32_t exceptionFlags,
-                                      uint32_t supportedPrimitiveTypeFlags) const {
+                                      bool useMotionBlur,
+                                      OptixTraversableGraphFlags traversableGraphFlags,
+                                      OptixExceptionFlags exceptionFlags,
+                                      OptixPrimitiveTypeFlags supportedPrimitiveTypeFlags) const {
         // JP: パイプライン中のモジュール、そしてパイプライン自体に共通なコンパイルオプションの設定。
         // EN: Set pipeline compile options common among modules in the pipeline and the pipeline itself.
         m->pipelineCompileOptions = {};
@@ -1787,13 +1821,13 @@ namespace optixu {
         *scratchBufferSizeForComputeIntensity = m->scratchSizeForComputeIntensity;
 
         *numTasks = 0;
-        for (int32_t outputOffsetY = 0; outputOffsetY < imageHeight;) {
+        for (int32_t outputOffsetY = 0; outputOffsetY < static_cast<int32_t>(imageHeight);) {
             int32_t outputHeight = tileHeight;
             if (outputOffsetY == 0)
                 outputHeight += m->overlapWidth;
 
-            for (int32_t outputOffsetX = 0; outputOffsetX < imageWidth;) {
-                uint32_t outputWidth = tileWidth;
+            for (int32_t outputOffsetX = 0; outputOffsetX < static_cast<int32_t>(imageWidth);) {
+                int32_t outputWidth = tileWidth;
                 if (outputOffsetX == 0)
                     outputWidth += m->overlapWidth;
 
@@ -1814,22 +1848,22 @@ namespace optixu {
                             "Call prepare() before this function.");
 
         uint32_t taskIdx = 0;
-        for (int32_t outputOffsetY = 0; outputOffsetY < m->imageHeight;) {
+        for (int32_t outputOffsetY = 0; outputOffsetY < static_cast<int32_t>(m->imageHeight);) {
             int32_t outputHeight = m->tileHeight;
             if (outputOffsetY == 0)
                 outputHeight += m->overlapWidth;
-            if (outputOffsetY + outputHeight > m->imageHeight)
+            if (outputOffsetY + outputHeight > static_cast<int32_t>(m->imageHeight))
                 outputHeight = m->imageHeight - outputOffsetY;
 
             int32_t inputOffsetY = std::max(outputOffsetY - m->overlapWidth, 0);
             if (inputOffsetY + m->maxInputHeight > m->imageHeight)
                 inputOffsetY = m->imageHeight - m->maxInputHeight;
 
-            for (int32_t outputOffsetX = 0; outputOffsetX < m->imageWidth;) {
-                uint32_t outputWidth = m->tileWidth;
+            for (int32_t outputOffsetX = 0; outputOffsetX < static_cast<int32_t>(m->imageWidth);) {
+                int32_t outputWidth = m->tileWidth;
                 if (outputOffsetX == 0)
                     outputWidth += m->overlapWidth;
-                if (outputOffsetX + outputWidth > m->imageWidth)
+                if (outputOffsetX + outputWidth > static_cast<int32_t>(m->imageWidth))
                     outputWidth = m->imageWidth - outputOffsetX;
 
                 int32_t inputOffsetX = std::max(outputOffsetX - m->overlapWidth, 0);

@@ -79,23 +79,23 @@ namespace optixu {
         }
 
         RT_DEVICE_FUNCTION const T &operator[](uint2 idx) const {
-            optixAssert(idx.x < m_width && idx.y < m_height,
-                        "Out of bounds: %u, %u", idx.x, idx.y);
+            optixuAssert(idx.x < m_width && idx.y < m_height,
+                         "Out of bounds: %u, %u", idx.x, idx.y);
             return m_rawBuffer[calcLinearIndex(idx.x, idx.y)];
         }
         RT_DEVICE_FUNCTION T &operator[](uint2 idx) {
-            optixAssert(idx.x < m_width && idx.y < m_height,
-                        "Out of bounds: %u, %u", idx.x, idx.y);
+            optixuAssert(idx.x < m_width && idx.y < m_height,
+                         "Out of bounds: %u, %u", idx.x, idx.y);
             return m_rawBuffer[calcLinearIndex(idx.x, idx.y)];
         }
         RT_DEVICE_FUNCTION const T &operator[](int2 idx) const {
-            optixAssert(idx.x >= 0 && idx.x < m_width && idx.y >= 0 && idx.y < m_height,
-                        "Out of bounds: %d, %d", idx.x, idx.y);
+            optixuAssert(idx.x >= 0 && idx.x < m_width && idx.y >= 0 && idx.y < m_height,
+                         "Out of bounds: %d, %d", idx.x, idx.y);
             return m_rawBuffer[calcLinearIndex(idx.x, idx.y)];
         }
         RT_DEVICE_FUNCTION T &operator[](int2 idx) {
-            optixAssert(idx.x >= 0 && idx.x < m_width && idx.y >= 0 && idx.y < m_height,
-                        "Out of bounds: %d, %d", idx.x, idx.y);
+            optixuAssert(idx.x >= 0 && idx.x < m_width && idx.y >= 0 && idx.y < m_height,
+                         "Out of bounds: %d, %d", idx.x, idx.y);
             return m_rawBuffer[calcLinearIndex(idx.x, idx.y)];
         }
 #endif
@@ -180,7 +180,7 @@ namespace optixu {
                                            numBytesToCopy));
             }
             else {
-                for (int yb = 0; yb < numYBlocksToCopy; ++yb) {
+                for (uint32_t yb = 0; yb < numYBlocksToCopy; ++yb) {
                     size_t srcOffset = (m_numXBlocks * blockWidth * blockWidth * yb) * sizeof(T);
                     size_t dstOffset = (newBuffer.m_numXBlocks * blockWidth * blockWidth * yb) * sizeof(T);
                     size_t numBytesToCopy = (numXBlocksToCopy * blockWidth * blockWidth) * sizeof(T);

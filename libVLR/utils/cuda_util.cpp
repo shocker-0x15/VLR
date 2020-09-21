@@ -236,7 +236,7 @@ namespace cudau {
         else {
             auto src = map<const uint8_t>(stream, BufferMapFlag::ReadOnly);
             auto dst = newBuffer.map<uint8_t>(stream, BufferMapFlag::WriteOnlyDiscard);
-            for (int i = 0; i < numElementsToCopy; ++i) {
+            for (uint32_t i = 0; i < numElementsToCopy; ++i) {
                 std::memset(dst, 0, stride);
                 std::memcpy(dst, src, m_stride);
             }
@@ -674,14 +674,14 @@ namespace cudau {
 
         m_mappedPointers = new void*[m_numMipmapLevels];
         m_mappedArrays = new CUarray[m_numMipmapLevels];
-        for (int i = 0; i < m_numMipmapLevels; ++i) {
+        for (uint32_t i = 0; i < m_numMipmapLevels; ++i) {
             m_mappedPointers[i] = nullptr;
             m_mappedArrays[i] = nullptr;
         }
         if (surfaceLoadStore && glTexID == 0) {
             m_surfObjs = new CUsurfObject[m_numMipmapLevels];
             if (m_numMipmapLevels > 1) {
-                for (int i = 0; i < m_numMipmapLevels; ++i) {
+                for (uint32_t i = 0; i < m_numMipmapLevels; ++i) {
                     CUarray array;
                     CUDADRV_CHECK(cuMipmappedArrayGetLevel(&array, m_mipmappedArray, i));
                     CUDA_RESOURCE_DESC resDesc = {};
