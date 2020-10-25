@@ -427,12 +427,6 @@ namespace cudau {
             unmap();
         }
 
-        TypedBuffer(TypedBuffer &&b) : Buffer(std::move(b)) {}
-        TypedBuffer &operator=(TypedBuffer &&b) {
-            Buffer::operator=(std::move(b));
-            return *this;
-        }
-
         void initialize(CUcontext context, BufferType type, uint32_t numElements) {
             Buffer::initialize(context, type, numElements, sizeof(T));
         }

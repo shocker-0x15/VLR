@@ -34,8 +34,8 @@ namespace optixu {
 
 
 
-    Context Context::create(CUcontext cudaContext) {
-        return (new _Context(cudaContext))->getPublicType();
+    Context Context::create(CUcontext cudaContext, bool enableValidation) {
+        return (new _Context(cudaContext, enableValidation))->getPublicType();
     }
 
     void Context::destroy() {
@@ -216,16 +216,21 @@ namespace optixu {
         *input = OptixBuildInput{};
 
         if (forCustomPrimitives) {
-            THROW_RUNTIME_ERROR(primitiveAABBBuffer.isValid(), "Custom Primitive AABB buffer is not set.");
-
             input->type = OPTIX_BUILD_INPUT_TYPE_CUSTOM_PRIMITIVES;
             OptixBuildInputCustomPrimitiveArray &customPrimArray = input->customPrimitiveArray;
 
-            primitiveAabbBufferArray[0] = primitiveAABBBuffer.getCUdeviceptr();
+            uint32_t stride = primitiveAabbBuffers[0].stride();
+            uint32_t numElements = static_cast<uint32_t>(primitiveAabbBuffers[0].numElements());
+            for (uint32_t i = 0; i < numMotionSteps; ++i) {
+                primitiveAabbBufferArray[i] = primitiveAabbBuffers[i].getCUdeviceptr();
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].isValid(), "AABB buffer for motion step %u is not set.", i);
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].numElements() == numElements, "Num elements for motion step %u doesn't match that of 0.", i);
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].stride() == stride, "Stride for motion step %u doesn't match that of 0.", i);
+            }
 
             customPrimArray.aabbBuffers = primitiveAabbBufferArray;
-            customPrimArray.numPrimitives = static_cast<uint32_t>(primitiveAABBBuffer.numElements());
-            customPrimArray.strideInBytes = primitiveAABBBuffer.stride();
+            customPrimArray.numPrimitives = numElements;
+            customPrimArray.strideInBytes = stride;
             customPrimArray.primitiveIndexOffset = primitiveIndexOffset;
 
             customPrimArray.numSbtRecords = static_cast<uint32_t>(buildInputFlags.size());
@@ -243,19 +248,25 @@ namespace optixu {
             customPrimArray.flags = buildInputFlags.data();
         }
         else {
-            THROW_RUNTIME_ERROR(vertexBuffer.isValid(), "Vertex buffer is not set.");
             THROW_RUNTIME_ERROR((indexFormat != OPTIX_INDICES_FORMAT_NONE) == triangleBuffer.isValid(),
                                 "Triangle buffer must be provided if using a index format other than None, otherwise must not be provided.");
 
             input->type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
             OptixBuildInputTriangleArray &triArray = input->triangleArray;
 
-            vertexBufferArray[0] = vertexBuffer.getCUdeviceptr();
+            uint32_t vertexStride = vertexBuffers[0].stride();
+            uint32_t numVertices = static_cast<uint32_t>(vertexBuffers[0].numElements());
+            for (uint32_t i = 0; i < numMotionSteps; ++i) {
+                vertexBufferArray[i] = vertexBuffers[i].getCUdeviceptr();
+                THROW_RUNTIME_ERROR(vertexBuffers[i].isValid(), "Vertex buffer for motion step %u is not set.", i);
+                THROW_RUNTIME_ERROR(vertexBuffers[i].numElements() == numVertices, "Num elements for motion step %u doesn't match that of 0.", i);
+                THROW_RUNTIME_ERROR(vertexBuffers[i].stride() == vertexStride, "Vertex stride for motion step %u doesn't match that of 0.", i);
+            }
 
             triArray.vertexBuffers = vertexBufferArray;
-            triArray.numVertices = static_cast<uint32_t>(vertexBuffer.numElements());
+            triArray.numVertices = numVertices;
             triArray.vertexFormat = vertexFormat;
-            triArray.vertexStrideInBytes = vertexBuffer.stride();
+            triArray.vertexStrideInBytes = vertexStride;
 
             if (indexFormat != OPTIX_INDICES_FORMAT_NONE) {
                 triArray.indexBuffer = triangleBuffer.getCUdeviceptr();
@@ -293,7 +304,14 @@ namespace optixu {
         if (forCustomPrimitives) {
             OptixBuildInputCustomPrimitiveArray &customPrimArray = input->customPrimitiveArray;
 
-            primitiveAabbBufferArray[0] = primitiveAABBBuffer.getCUdeviceptr();
+            uint32_t stride = primitiveAabbBuffers[0].stride();
+            uint32_t numElements = static_cast<uint32_t>(primitiveAabbBuffers[0].numElements());
+            for (uint32_t i = 0; i < numMotionSteps; ++i) {
+                primitiveAabbBufferArray[i] = primitiveAabbBuffers[i].getCUdeviceptr();
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].isValid(), "AABB buffer for motion step %u is not set.", i);
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].numElements() == numElements, "Num elements for motion step %u doesn't match that of 0.", i);
+                THROW_RUNTIME_ERROR(primitiveAabbBuffers[i].stride() == stride, "Stride for motion step %u doesn't match that of 0.", i);
+            }
             customPrimArray.aabbBuffers = primitiveAabbBufferArray;
 
             if (customPrimArray.numSbtRecords > 1)
@@ -302,7 +320,14 @@ namespace optixu {
         else {
             OptixBuildInputTriangleArray &triArray = input->triangleArray;
 
-            vertexBufferArray[0] = vertexBuffer.getCUdeviceptr();
+            uint32_t vertexStride = vertexBuffers[0].stride();
+            uint32_t numElements = static_cast<uint32_t>(vertexBuffers[0].numElements());
+            for (uint32_t i = 0; i < numMotionSteps; ++i) {
+                vertexBufferArray[i] = vertexBuffers[i].getCUdeviceptr();
+                THROW_RUNTIME_ERROR(vertexBuffers[i].isValid(), "Vertex buffer for motion step %u is not set.", i);
+                THROW_RUNTIME_ERROR(vertexBuffers[i].numElements() == numElements, "Num elements for motion step %u doesn't match that of 0.", i);
+                THROW_RUNTIME_ERROR(vertexBuffers[i].stride() == vertexStride, "Vertex stride for motion step %u doesn't match that of 0.", i);
+            }
             triArray.vertexBuffers = vertexBufferArray;
 
             if (indexFormat != OPTIX_INDICES_FORMAT_NONE)
@@ -366,10 +391,32 @@ namespace optixu {
         m = nullptr;
     }
 
-    void GeometryInstance::setVertexBuffer(const BufferView &vertexBuffer, OptixVertexFormat format) const {
-        THROW_RUNTIME_ERROR(!m->forCustomPrimitives, "This geometry instance was created for custom primitives.");
-        m->vertexBuffer = vertexBuffer;
+    void GeometryInstance::setNumMotionSteps(uint32_t n) const {
+        n = std::max(n, 1u);
+        if (m->forCustomPrimitives) {
+            delete[] m->primitiveAabbBuffers;
+            delete[] m->primitiveAabbBufferArray;
+            m->primitiveAabbBufferArray = new CUdeviceptr[n];
+            m->primitiveAabbBuffers = new BufferView[n];
+        }
+        else {
+            delete[] m->vertexBuffers;
+            delete[] m->vertexBufferArray;
+            m->vertexBufferArray = new CUdeviceptr[n];
+            m->vertexBuffers = new BufferView[n];
+        }
+        m->numMotionSteps = n;
+    }
+
+    void GeometryInstance::setVertexFormat(OptixVertexFormat format) const {
         m->vertexFormat = format;
+    }
+
+    void GeometryInstance::setVertexBuffer(const BufferView &vertexBuffer, uint32_t motionStep) const {
+        THROW_RUNTIME_ERROR(!m->forCustomPrimitives, "This geometry instance was created for custom primitives.");
+        THROW_RUNTIME_ERROR(motionStep < m->numMotionSteps, "motionStep %u is out of bounds [0, %u).",
+                            motionStep, m->numMotionSteps);
+        m->vertexBuffers[motionStep] = vertexBuffer;
     }
 
     void GeometryInstance::setTriangleBuffer(const BufferView &triangleBuffer, OptixIndicesFormat format) const {
@@ -378,9 +425,11 @@ namespace optixu {
         m->indexFormat = format;
     }
 
-    void GeometryInstance::setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer) const {
+    void GeometryInstance::setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer, uint32_t motionStep) const {
         THROW_RUNTIME_ERROR(m->forCustomPrimitives, "This geometry instance was created for triangles.");
-        m->primitiveAABBBuffer = primitiveAABBBuffer;
+        THROW_RUNTIME_ERROR(motionStep < m->numMotionSteps, "motionStep %u is out of bounds [0, %u).",
+                            motionStep, m->numMotionSteps);
+        m->primitiveAabbBuffers[motionStep] = primitiveAABBBuffer;
     }
 
     void GeometryInstance::setPrimitiveIndexOffset(uint32_t offset) const {
@@ -501,6 +550,15 @@ namespace optixu {
             m->markDirty();
     }
 
+    void GeometryAccelerationStructure::setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const {
+        m->buildOptions.motionOptions.numKeys = numKeys;
+        m->buildOptions.motionOptions.timeBegin = timeBegin;
+        m->buildOptions.motionOptions.timeEnd = timeEnd;
+        m->buildOptions.motionOptions.flags = flags;
+
+        markDirty();
+    }
+
     void GeometryAccelerationStructure::addChild(GeometryInstance geomInst, CUdeviceptr preTransform) const {
         auto _geomInst = extract(geomInst);
         THROW_RUNTIME_ERROR(_geomInst, "Invalid geometry instance %p.", _geomInst);
@@ -555,11 +613,17 @@ namespace optixu {
     void GeometryAccelerationStructure::prepareForBuild(OptixAccelBufferSizes* memoryRequirement) const {
         m->buildInputs.resize(m->children.size(), OptixBuildInput{});
         uint32_t childIdx = 0;
-        for (const Priv::Child &child : m->children)
+        uint32_t numMotionSteps = std::max<uint32_t>(m->buildOptions.motionOptions.numKeys, 1u);
+        for (const Priv::Child &child : m->children) {
             child.geomInst->fillBuildInput(&m->buildInputs[childIdx++], child.preTransform);
+            uint32_t childNumMotionSteps = child.geomInst->getNumMotionSteps();
+            THROW_RUNTIME_ERROR(childNumMotionSteps == numMotionSteps,
+                                "This GAS has %u motion steps but the GeometryInstance %p has the number %u.",
+                                numMotionSteps, child.geomInst, childNumMotionSteps);
+        }
 
-        m->buildOptions = {};
         m->buildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        m->buildOptions.buildFlags = 0;
         if (m->tradeoff == ASTradeoff::PreferFastTrace)
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
         else if (m->tradeoff == ASTradeoff::PreferFastBuild)
@@ -567,7 +631,6 @@ namespace optixu {
         m->buildOptions.buildFlags |= ((m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
                                        (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0) |
                                        (m->allowRandomVertexAccess ? OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS : 0));
-        //m->buildOptions.motionOptions
 
         uint32_t numBuildInputs = static_cast<uint32_t>(m->buildInputs.size());
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
@@ -1064,57 +1127,6 @@ namespace optixu {
         readyToCompact = false;
         compactedAvailable = false;
     }
-
-    OptixTraversableHandle InstanceAccelerationStructure::Priv::rebuild(CUstream stream, const BufferView &instanceBuffer, const BufferView &aabbBuffer,
-                                                                        const BufferView &accelBuffer, const BufferView &scratchBuffer) {
-        THROW_RUNTIME_ERROR(readyToBuild, "You need to call prepareForBuild() before rebuild.");
-        THROW_RUNTIME_ERROR(accelBuffer.sizeInBytes() >= memoryRequirement.outputSizeInBytes,
-                            "Size of the given buffer is not enough.");
-        THROW_RUNTIME_ERROR(scratchBuffer.sizeInBytes() >= memoryRequirement.tempSizeInBytes,
-                            "Size of the given scratch buffer is not enough.");
-        THROW_RUNTIME_ERROR(instanceBuffer.sizeInBytes() >= instances.size() * sizeof(OptixInstance),
-                            "Size of the given instance buffer is not enough.");
-
-        // JP: アップデートの意味でリビルドするときはprepareForBuild()を呼ばないため
-        //     インスタンス情報を更新する処理をここにも書いておく必要がある。
-        // EN: User is not required to call prepareForBuild() when performing rebuild
-        //     for purpose of update so updating instance information should be here.
-        uint32_t childIdx = 0;
-        for (const _Instance* child : children)
-            child->updateInstance(&instances[childIdx++]);
-        CUDADRV_CHECK(cuMemcpyHtoDAsync(instanceBuffer.getCUdeviceptr(), instances.data(),
-                                        instanceBuffer.sizeInBytes(),
-                                        stream));
-        buildInput.instanceArray.instances = instanceBuffer.getCUdeviceptr();
-        if (aabbBuffer.isValid()) {
-            uint32_t numAABBs = motionOptions.numKeys * static_cast<uint32_t>(children.size());
-            THROW_RUNTIME_ERROR(aabbBuffer.sizeInBytes() >= numAABBs * sizeof(OptixAabb),
-                                "Size of the given AABB buffer is not enough.");
-            buildInput.instanceArray.aabbs = aabbBuffer.getCUdeviceptr();
-            buildInput.instanceArray.numAabbs = numAABBs;
-        }
-
-        bool compactionEnabled = (buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
-
-        buildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
-        OPTIX_CHECK(optixAccelBuild(getRawContext(), stream, &buildOptions, &buildInput, 1,
-                                    scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes(),
-                                    accelBuffer.getCUdeviceptr(), accelBuffer.sizeInBytes(),
-                                    &handle,
-                                    compactionEnabled ? &propertyCompactedSize : nullptr,
-                                    compactionEnabled ? 1 : 0));
-        CUDADRV_CHECK(cuEventRecord(finishEvent, stream));
-
-        this->instanceBuffer = instanceBuffer;
-        this->accelBuffer = accelBuffer;
-        this->aabbBuffer = aabbBuffer;
-        available = true;
-        readyToCompact = false;
-        compactedHandle = 0;
-        compactedAvailable = false;
-
-        return handle;
-    }
     
     void InstanceAccelerationStructure::destroy() {
         delete m;
@@ -1135,10 +1147,10 @@ namespace optixu {
     }
 
     void InstanceAccelerationStructure::setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const {
-        m->motionOptions.numKeys = numKeys;
-        m->motionOptions.timeBegin = timeBegin;
-        m->motionOptions.timeEnd = timeEnd;
-        m->motionOptions.flags = flags;
+        m->buildOptions.motionOptions.numKeys = numKeys;
+        m->buildOptions.motionOptions.timeBegin = timeBegin;
+        m->buildOptions.motionOptions.timeEnd = timeEnd;
+        m->buildOptions.motionOptions.flags = flags;
 
         markDirty();
     }
@@ -1171,8 +1183,7 @@ namespace optixu {
         m->markDirty();
     }
 
-    void InstanceAccelerationStructure::prepareForBuild(OptixAccelBufferSizes* memoryRequirement, uint32_t* numInstances,
-                                                        uint32_t* numAABBs) const {
+    void InstanceAccelerationStructure::prepareForBuild(OptixAccelBufferSizes* memoryRequirement, uint32_t* numInstances) const {
         THROW_RUNTIME_ERROR(m->scene->sbtLayoutGenerationDone(),
                             "Shader binding table layout generation has not been done.");
         m->instances.resize(m->children.size());
@@ -1184,11 +1195,6 @@ namespace optixu {
             transformExists |= child->isTransform();
             motionASExists |= child->isMotionAS();
         }
-        m->aabbsRequired = transformExists || (motionASExists && m->motionOptions.numKeys >= 2);
-        if (m->aabbsRequired) {
-            THROW_RUNTIME_ERROR(numAABBs, "This IAS requires AABB buffer, but numAABBs is not provided.");
-            *numAABBs = m->motionOptions.numKeys * static_cast<uint32_t>(m->children.size());
-        }
 
         // Fill the build input.
         {
@@ -1197,20 +1203,16 @@ namespace optixu {
             OptixBuildInputInstanceArray &instArray = m->buildInput.instanceArray;
             instArray.instances = 0;
             instArray.numInstances = static_cast<uint32_t>(m->children.size());
-            instArray.aabbs = 0;
-            if (m->aabbsRequired)
-                instArray.numAabbs = *numAABBs;
         }
 
-        m->buildOptions = {};
         m->buildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        m->buildOptions.buildFlags = 0;
         if (m->tradeoff == ASTradeoff::PreferFastTrace)
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
         else if (m->tradeoff == ASTradeoff::PreferFastBuild)
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_BUILD;
         m->buildOptions.buildFlags |= ((m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
                                        (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0));
-        m->buildOptions.motionOptions = m->motionOptions;
 
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
                                                  &m->buildInput, 1,
@@ -1224,14 +1226,45 @@ namespace optixu {
 
     OptixTraversableHandle InstanceAccelerationStructure::rebuild(CUstream stream, const BufferView &instanceBuffer,
                                                                   const BufferView &accelBuffer, const BufferView &scratchBuffer) const {
-        THROW_RUNTIME_ERROR(!m->aabbsRequired, "You need to call the motion-enabled variant of this function for this IAS.");
-        return m->rebuild(stream, instanceBuffer, BufferView(), accelBuffer, scratchBuffer);
-    }
+        THROW_RUNTIME_ERROR(m->readyToBuild, "You need to call prepareForBuild() before rebuild.");
+        THROW_RUNTIME_ERROR(accelBuffer.sizeInBytes() >= m->memoryRequirement.outputSizeInBytes,
+                            "Size of the given buffer is not enough.");
+        THROW_RUNTIME_ERROR(scratchBuffer.sizeInBytes() >= m->memoryRequirement.tempSizeInBytes,
+                            "Size of the given scratch buffer is not enough.");
+        THROW_RUNTIME_ERROR(instanceBuffer.sizeInBytes() >= m->instances.size() * sizeof(OptixInstance),
+                            "Size of the given instance buffer is not enough.");
 
-    OptixTraversableHandle InstanceAccelerationStructure::rebuild(CUstream stream, const BufferView &instanceBuffer, const BufferView &aabbBuffer,
-                                                                  const BufferView &accelBuffer, const BufferView &scratchBuffer) const {
-        THROW_RUNTIME_ERROR(m->aabbsRequired, "You need to call the motion-disabled variant of this function for this IAS.");
-        return m->rebuild(stream, instanceBuffer, aabbBuffer, accelBuffer, scratchBuffer);
+        // JP: アップデートの意味でリビルドするときはprepareForBuild()を呼ばないため
+        //     インスタンス情報を更新する処理をここにも書いておく必要がある。
+        // EN: User is not required to call prepareForBuild() when performing rebuild
+        //     for purpose of update so updating instance information should be here.
+        uint32_t childIdx = 0;
+        for (const _Instance* child : m->children)
+            child->updateInstance(&m->instances[childIdx++]);
+        CUDADRV_CHECK(cuMemcpyHtoDAsync(instanceBuffer.getCUdeviceptr(), m->instances.data(),
+                                        instanceBuffer.sizeInBytes(),
+                                        stream));
+        m->buildInput.instanceArray.instances = instanceBuffer.getCUdeviceptr();
+
+        bool compactionEnabled = (m->buildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != 0;
+
+        m->buildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        OPTIX_CHECK(optixAccelBuild(m->getRawContext(), stream, &m->buildOptions, &m->buildInput, 1,
+                                    scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes(),
+                                    accelBuffer.getCUdeviceptr(), accelBuffer.sizeInBytes(),
+                                    &m->handle,
+                                    compactionEnabled ? &m->propertyCompactedSize : nullptr,
+                                    compactionEnabled ? 1 : 0));
+        CUDADRV_CHECK(cuEventRecord(m->finishEvent, stream));
+
+        m->instanceBuffer = instanceBuffer;
+        m->accelBuffer = accelBuffer;
+        m->available = true;
+        m->readyToCompact = false;
+        m->compactedHandle = 0;
+        m->compactedAvailable = false;
+
+        return m->handle;
     }
 
     void InstanceAccelerationStructure::prepareForCompact(size_t* compactedAccelBufferSize) const {
@@ -1425,11 +1458,14 @@ namespace optixu {
 
 
     Module Pipeline::createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,
-                                               OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel) const {
+                                               OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel,
+                                               OptixModuleCompileBoundValueEntry* boundValues, uint32_t numBoundValues) const {
         OptixModuleCompileOptions moduleCompileOptions = {};
         moduleCompileOptions.maxRegisterCount = maxRegisterCount;
         moduleCompileOptions.optLevel = optLevel;
         moduleCompileOptions.debugLevel = debugLevel;
+        moduleCompileOptions.boundValues = boundValues;
+        moduleCompileOptions.numBoundValues = numBoundValues;
 
         OptixModule rawModule;
 
@@ -1780,6 +1816,8 @@ namespace optixu {
     void Denoiser::setModel(OptixDenoiserModelKind kind, void* data, size_t sizeInBytes) const {
         THROW_RUNTIME_ERROR((kind != OPTIX_DENOISER_MODEL_KIND_USER) != (data != nullptr),
                             "When a user model is used, data must be provided, otherwise data must be null.");
+        THROW_RUNTIME_ERROR(kind != OPTIX_DENOISER_MODEL_KIND_AOV,
+                            "OPTIX_DENOISER_MODEL_KIND_AOV is currently not supported.");
         OPTIX_CHECK(optixDenoiserSetModel(m->rawDenoiser, kind, data, sizeInBytes));
 
         m->stateIsReady = false;

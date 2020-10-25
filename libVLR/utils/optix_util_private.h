@@ -184,12 +184,16 @@ namespace optixu {
     public:
         OPTIX_OPAQUE_BRIDGE(Context);
 
-        Priv(CUcontext cuContext) : cudaContext(cuContext) {
+        Priv(CUcontext cuContext, bool enableValidation) : cudaContext(cuContext) {
             OPTIX_CHECK(optixInit());
 
             OptixDeviceContextOptions options = {};
             options.logCallbackFunction = &logCallBack;
+            options.logCallbackData = nullptr;
             options.logCallbackLevel = 4;
+            options.validationMode = enableValidation ?
+                OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_ALL :
+                OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_OFF;
             OPTIX_CHECK(optixDeviceContextCreate(cudaContext, &options, &rawContext));
             OPTIX_CHECK(optixDeviceContextGetProperty(rawContext, OPTIX_DEVICE_PROPERTY_LIMIT_MAX_INSTANCE_ID,
                                                       &maxInstanceID, sizeof(maxInstanceID)));
@@ -383,20 +387,20 @@ namespace optixu {
         SizeAlign userDataSizeAlign;
         std::vector<uint8_t> userData;
 
-        // TODO: support deformation blur (multiple vertex buffers)
         union {
             struct {
                 CUdeviceptr* vertexBufferArray;
-                BufferView vertexBuffer;
+                BufferView* vertexBuffers;
                 BufferView triangleBuffer;
                 OptixVertexFormat vertexFormat;
                 OptixIndicesFormat indexFormat;
             };
             struct {
                 CUdeviceptr* primitiveAabbBufferArray;
-                BufferView primitiveAABBBuffer;
+                BufferView* primitiveAabbBuffers;
             };
         };
+        uint32_t numMotionSteps;
         uint32_t primitiveIndexOffset;
         uint32_t materialIndexOffsetSize;
         BufferView materialIndexOffsetBuffer;
@@ -417,25 +421,32 @@ namespace optixu {
             primitiveIndexOffset(0),
             materialIndexOffsetSize(0),
             forCustomPrimitives(_forCustomPrimitives) {
+            numMotionSteps = 1;
             if (forCustomPrimitives) {
-                primitiveAabbBufferArray = new CUdeviceptr[1];
+                primitiveAabbBufferArray = new CUdeviceptr[numMotionSteps];
                 primitiveAabbBufferArray[0] = 0;
-                primitiveAABBBuffer = BufferView();
+                primitiveAabbBuffers = new BufferView[numMotionSteps];
+                primitiveAabbBuffers[0] = BufferView();
             }
             else {
-                vertexBufferArray = new CUdeviceptr[1];
+                vertexBufferArray = new CUdeviceptr[numMotionSteps];
                 vertexBufferArray[0] = 0;
-                vertexBuffer = BufferView();
+                vertexBuffers = new BufferView[numMotionSteps];
+                vertexBuffers[0] = BufferView();
                 triangleBuffer = BufferView();
-                vertexFormat = OPTIX_VERTEX_FORMAT_NONE;
+                vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
                 indexFormat = OPTIX_INDICES_FORMAT_NONE;
             }
         }
         ~Priv() {
-            if (forCustomPrimitives)
+            if (forCustomPrimitives) {
+                delete[] primitiveAabbBuffers;
                 delete[] primitiveAabbBufferArray;
-            else
+            }
+            else {
+                delete[] vertexBuffers;
                 delete[] vertexBufferArray;
+            }
         }
 
         const _Scene* getScene() const {
@@ -449,6 +460,9 @@ namespace optixu {
 
         bool isCustomPrimitiveInstance() const {
             return forCustomPrimitives;
+        }
+        uint32_t getNumMotionSteps() const {
+            return numMotionSteps;
         }
         void fillBuildInput(OptixBuildInput* input, CUdeviceptr preTransform) const;
         void updateBuildInput(OptixBuildInput* input, CUdeviceptr preTransform) const;
@@ -519,6 +533,8 @@ namespace optixu {
             readyToCompact(false), compactedAvailable(false) {
             scene->addGAS(this);
 
+            buildOptions = {};
+
             CUDADRV_CHECK(cuEventCreate(&finishEvent,
                                         CU_EVENT_BLOCKING_SYNC | CU_EVENT_DISABLE_TIMING));
             CUDADRV_CHECK(cuMemAlloc(&compactedSizeOnDevice, sizeof(size_t)));
@@ -557,7 +573,7 @@ namespace optixu {
         uint32_t calcNumSBTRecords(uint32_t matSetIdx) const;
         uint32_t fillSBTRecords(const _Pipeline* pipeline, uint32_t matSetIdx, uint8_t* records) const;
         bool hasMotion() const {
-            return false;
+            return buildOptions.motionOptions.numKeys >= 2;
         }
         
         void markDirty();
@@ -710,7 +726,6 @@ namespace optixu {
         OptixBuildInput buildInput;
         std::vector<OptixInstance> instances;
 
-        OptixMotionOptions motionOptions;
         OptixAccelBuildOptions buildOptions;
         OptixAccelBufferSizes memoryRequirement;
 
@@ -722,22 +737,17 @@ namespace optixu {
         OptixTraversableHandle handle;
         OptixTraversableHandle compactedHandle;
         BufferView instanceBuffer;
-        BufferView aabbBuffer;
         BufferView accelBuffer;
         BufferView compactedAccelBuffer;
         ASTradeoff tradeoff;
         struct {
             unsigned int allowUpdate : 1;
             unsigned int allowCompaction : 1;
-            unsigned int aabbsRequired : 1;
             unsigned int readyToBuild : 1;
             unsigned int available : 1;
             unsigned int readyToCompact : 1;
             unsigned int compactedAvailable : 1;
         };
-
-        OptixTraversableHandle rebuild(CUstream stream, const BufferView &instanceBuffer, const BufferView &aabbBuffer,
-                                       const BufferView &accelBuffer, const BufferView &scratchBuffer);
 
     public:
         OPTIX_OPAQUE_BRIDGE(InstanceAccelerationStructure);
@@ -751,7 +761,7 @@ namespace optixu {
             readyToCompact(false), compactedAvailable(false) {
             scene->addIAS(this);
 
-            motionOptions = {};
+            buildOptions = {};
 
             CUDADRV_CHECK(cuEventCreate(&finishEvent,
                                         CU_EVENT_BLOCKING_SYNC | CU_EVENT_DISABLE_TIMING));
@@ -781,7 +791,7 @@ namespace optixu {
 
 
         bool hasMotion() const {
-            return motionOptions.numKeys >= 2;
+            return buildOptions.motionOptions.numKeys >= 2;
         }
 
 

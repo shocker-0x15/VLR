@@ -20,17 +20,24 @@
 
 /*
 
-JP: 現状ではあらゆるAPIに破壊的変更が入る可能性が非常に高い。
-EN: It is very likely for now that any API will have breaking changes.
+Note:
+JP:
+- 現状ではあらゆるAPIに破壊的変更が入る可能性が非常に高い。
+- (少なくともホスト側コンパイラーがMSVC 16.7.6の場合は)"-std=c++17"をptxのコンパイル時に設定する必要あり。
+- Visual StudioにおけるCUDAのプロパティ"Use Fast Math"はptxコンパイルに対して機能していない？
+EN:
+- It is very likely for now that any API will have breaking changes.
+- Setting "-std=c++17" is required for ptx compilation (at least for the case the host compiler is MSVC 16.7.6).
+- In Visual Studio, does the CUDA property "Use Fast Math" not work for ptx compilation??
 
 ----------------------------------------------------------------
 TODO:
 - Linux環境でのテスト。
+- CMake整備。
 - setPayloads/getPayloadsなどで引数側が必要以上の引数を渡していてもエラーが出ない問題。
 - ASのRelocationサポート。
-- BuildInputのどの内容がアップデート時に変更できるのか確認。
 - Curve Primitiveサポート。
-- Deformation Blurサポート。
+- AOV Denoiserサポート。
 - 途中で各オブジェクトのパラメターを変更した際の処理。
   パイプラインのセットアップ順などが現状は暗黙的に固定されている。これを自由な順番で変えられるようにする。
 - Multi GPUs?
@@ -40,8 +47,10 @@ TODO:
 - HitGroup以外のProgramGroupにユーザーデータを持たせる。
 - GAS/IASに関してユーザーが気にするところはAS云々ではなくグループ化なので
   名前を変えるべき？GeometryGroup/InstanceGroupのような感じ。
+  しかしビルドやアップデートを明示的にしているため結局ASであるということをユーザーが意識する必要がある。
 - ユーザーがあるSBTレコード中の各データのストライドを意識せずともそれぞれのオフセットを取得する関数。
 - GAS中のGeometryInstanceのインデックスを取得できるようにする。
+  各GeometryInstanceが1つのSBTレコードしか使っていない場合はoptixGetSbtGASIndex()で代用できる。
 
 */
 
@@ -227,20 +236,14 @@ namespace optixu {
 #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
 
     namespace detail {
-        template <typename HeadType0, typename... TailTypes>
-        RT_DEVICE_FUNCTION constexpr size_t _calcSumDwords() {
-            uint32_t ret = sizeof(HeadType0) / sizeof(uint32_t);
-            if constexpr (sizeof...(TailTypes) > 0)
-                ret += _calcSumDwords<TailTypes...>();
-            return ret;
+        template <typename T>
+        RT_DEVICE_FUNCTION constexpr size_t getNumDwords() {
+            return (sizeof(T) + 3) / 4;
         }
 
-        template <typename... PayloadTypes>
+        template <typename... Types>
         RT_DEVICE_FUNCTION constexpr size_t calcSumDwords() {
-            if constexpr (sizeof...(PayloadTypes) > 0)
-                return _calcSumDwords<PayloadTypes...>();
-            else
-                return 0;
+            return (0 + ... + getNumDwords<Types>());
         }
 
         template <uint32_t start, typename HeadType, typename... TailTypes>
@@ -255,54 +258,52 @@ namespace optixu {
                 packToUInts<start + numDwords>(v, tails...);
         }
 
-        template <typename Func, typename Type, uint32_t offset, uint32_t start>
+        template <typename Func, typename Type, uint32_t offsetInDst, uint32_t srcSlot>
         RT_DEVICE_FUNCTION void getValue(Type* value) {
             if (!value)
                 return;
-            constexpr uint32_t numDwords = sizeof(Type) / sizeof(uint32_t);
-            *(reinterpret_cast<uint32_t*>(value) + offset) = Func::get<start>();
-            if constexpr (offset + 1 < numDwords)
-                getValue<Func, Type, offset + 1, start + 1>(value);
+            *(reinterpret_cast<uint32_t*>(value) + offsetInDst) = Func::get<srcSlot>();
+            if constexpr (offsetInDst + 1 < getNumDwords<Type>())
+                getValue<Func, Type, offsetInDst + 1, srcSlot + 1>(value);
         }
 
-        template <typename Func, uint32_t start, typename HeadType, typename... TailTypes>
+        template <typename Func, uint32_t srcStartSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION void getValues(HeadType* head, TailTypes*... tails) {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Value type of size not multiple of Dword is not supported.");
-            getValue<Func, HeadType, 0, start>(head);
+            getValue<Func, HeadType, 0, srcStartSlot>(head);
             if constexpr (sizeof...(tails) > 0)
-                getValues<Func, start + sizeof(HeadType) / sizeof(uint32_t)>(tails...);
+                getValues<Func, srcStartSlot + getNumDwords<HeadType>()>(tails...);
         }
 
-        template <typename Func, typename Type, uint32_t offset, uint32_t start>
+        template <typename Func, typename Type, uint32_t offsetInSrc, uint32_t dstSlot>
         RT_DEVICE_FUNCTION void setValue(const Type* value) {
             if (!value)
                 return;
-            constexpr uint32_t numDwords = sizeof(Type) / sizeof(uint32_t);
-            Func::set<start>(*(reinterpret_cast<const uint32_t*>(value) + offset));
-            if constexpr (offset + 1 < numDwords)
-                setValue<Func, Type, offset + 1, start + 1>(value);
+            Func::set<dstSlot>(*(reinterpret_cast<const uint32_t*>(value) + offsetInSrc));
+            if constexpr (offsetInSrc + 1 < getNumDwords<Type>())
+                setValue<Func, Type, offsetInSrc + 1, dstSlot + 1>(value);
         }
 
-        template <typename Func, uint32_t start, typename HeadType, typename... TailTypes>
+        template <typename Func, uint32_t dstStartSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION void setValues(const HeadType* head, const TailTypes*... tails) {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Value type of size not multiple of Dword is not supported.");
-            setValue<Func, HeadType, 0, start>(head);
+            setValue<Func, HeadType, 0, dstStartSlot>(head);
             if constexpr (sizeof...(tails) > 0)
-                setValues<Func, start + sizeof(HeadType) / sizeof(uint32_t)>(tails...);
+                setValues<Func, dstStartSlot + getNumDwords<HeadType>()>(tails...);
         }
 
-        template <uint32_t start, typename HeadType, typename... TailTypes>
+        template <uint32_t startSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION void traceSetPayloads(uint32_t** p, HeadType &headPayload, TailTypes &... tailPayloads) {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Payload type of size not multiple of Dword is not supported.");
-            constexpr uint32_t numDwords = sizeof(HeadType) / sizeof(uint32_t);
+            constexpr uint32_t numDwords = getNumDwords<HeadType>();
 #pragma unroll
             for (int i = 0; i < numDwords; ++i)
-                p[start + i] = reinterpret_cast<uint32_t*>(&headPayload) + i;
+                p[startSlot + i] = reinterpret_cast<uint32_t*>(&headPayload) + i;
             if constexpr (sizeof...(tailPayloads) > 0)
-                traceSetPayloads<start + numDwords>(p, tailPayloads...);
+                traceSetPayloads<startSlot + numDwords>(p, tailPayloads...);
         }
 
         struct PayloadFunc {
@@ -404,7 +405,7 @@ namespace optixu {
     RT_DEVICE_FUNCTION void trace(OptixTraversableHandle handle,
                                   const float3 &origin, const float3 &direction,
                                   float tmin, float tmax, float rayTime,
-                                  OptixVisibilityMask visibilityMask, uint32_t rayFlags,
+                                  OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
                                   uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
                                   PayloadTypes &... payloads) {
         constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
@@ -658,7 +659,7 @@ private: \
         OPTIXU_PIMPL();
 
     public:
-        static Context create(CUcontext cudaContext);
+        static Context create(CUcontext cudaContext, bool enableValidation = false);
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(Context);
 
@@ -732,9 +733,11 @@ private: \
         // EN: Calling markDirty() of a GAS to which the geometry instance belongs is
         //     required when calling the following APIs.
         //     (It is okay to use update instead of calling markDirty() when changing only vertex/AABB buffer.)
-        void setVertexBuffer(const BufferView &vertexBuffer, OptixVertexFormat format = OPTIX_VERTEX_FORMAT_FLOAT3) const;
+        void setNumMotionSteps(uint32_t n) const;
+        void setVertexFormat(OptixVertexFormat format) const;
+        void setVertexBuffer(const BufferView &vertexBuffer, uint32_t motionStep = 0) const;
         void setTriangleBuffer(const BufferView &triangleBuffer, OptixIndicesFormat format = OPTIX_INDICES_FORMAT_UNSIGNED_INT3) const;
-        void setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer) const;
+        void setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer, uint32_t motionStep = 0) const;
         void setPrimitiveIndexOffset(uint32_t offset) const;
         void setNumMaterials(uint32_t numMaterials, const BufferView &matIndexOffsetBuffer, uint32_t indexOffsetSize = sizeof(uint32_t)) const;
         void setGeometryFlags(uint32_t matIdx, OptixGeometryFlags flags) const;
@@ -763,6 +766,7 @@ private: \
         // JP: 以下のAPIを呼んだ場合はGASがdirty状態になる。
         // EN: Calling the following APIs marks the GAS dirty.
         void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess) const;
+        void setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const;
         void addChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
         void removeChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
         void markDirty() const;
@@ -889,11 +893,8 @@ private: \
         //     のmarkDirty()を呼ぶ必要がある。
         // EN: Calling markDirty() of a traversable (e.g. IAS) to which this IAS (indirectly) belongs
         //     is required when performing rebuild / compact.
-        void prepareForBuild(OptixAccelBufferSizes* memoryRequirement, uint32_t* numInstances,
-                             uint32_t* numAABBs = nullptr) const;
+        void prepareForBuild(OptixAccelBufferSizes* memoryRequirement, uint32_t* numInstances) const;
         OptixTraversableHandle rebuild(CUstream stream, const BufferView &instanceBuffer,
-                                       const BufferView &accelBuffer, const BufferView &scratchBuffer) const;
-        OptixTraversableHandle rebuild(CUstream stream, const BufferView &instanceBuffer, const BufferView &aabbBuffer,
                                        const BufferView &accelBuffer, const BufferView &scratchBuffer) const;
         // JP: リビルドが完了するのをホスト側で待つ。
         // EN: Wait on the host until rebuild operation finishes.
@@ -931,7 +932,8 @@ private: \
 
         [[nodiscard]]
         Module createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,
-                                         OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel) const;
+                                         OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel,
+                                         OptixModuleCompileBoundValueEntry* boundValues = nullptr, uint32_t numBoundValues = 0) const;
 
         [[nodiscard]]
         ProgramGroup createRayGenProgram(Module module, const char* entryFunctionName) const;
@@ -997,7 +999,8 @@ private: \
 
 
 
-    // The lifetime of a module must extend to the lifetime of any ProgramGroup that reference that module.
+    // JP: Moduleの寿命はそれを参照するあらゆるProgramGroupの寿命よりも長い必要がある。
+    // EN: The lifetime of a module must extend to the lifetime of any ProgramGroup that reference that module.
     class Module {
         OPTIXU_PIMPL();
 
