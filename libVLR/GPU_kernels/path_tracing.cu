@@ -28,9 +28,13 @@ namespace VLR {
 
             float MISWeight = 1.0f;
             if (!payload->prevSampledType.isDelta() && payload->pathLength > 1) {
+                const Instance &inst = plp.instBuffer[optixGetInstanceId()];
+                float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
+                float geomInstProb = sbtr.geomInst.importance / inst.lightGeomInstDistribution.integral();
+
                 float bsdfPDF = payload->prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(optixGetWorldRayOrigin()));
-                float lightPDF = sbtr.geomInst.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
+                float lightPDF = instProb * geomInstProb * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 
@@ -118,9 +122,10 @@ namespace VLR {
         Payload* payload;
         optixu::getPayloads<PayloadSignature>(&payload);
 
-        const GeometryInstance &envLight = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
+        const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
 
-        if (envLight.importance == 0)
+        if (geomInst.importance == 0)
             return;
 
         Vector3D direction = asVector3D(optixGetWorldRayDirection());
@@ -144,13 +149,15 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
-        phi += plp.envLightDescriptor.rotationPhi;
+        phi += inst.rotationPhi;
         phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
-        float hypAreaPDF = evaluateEnvironmentAreaPDF(phi, theta);
+        VLRAssert(VLR::isfinite(phi) && VLR::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
+        float uvPDF = geomInst.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
+        float hypAreaPDF = uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
 
-        const SurfaceMaterialDescriptor &matDesc = plp.materialDescriptorBuffer[envLight.materialIndex];
+        const SurfaceMaterialDescriptor &matDesc = plp.materialDescriptorBuffer[geomInst.materialIndex];
         EDF edf(matDesc, surfPt, payload->wls);
 
         Vector3D dirOutLocal = surfPt.shadingFrame.toLocal(-direction);
@@ -162,9 +169,12 @@ namespace VLR {
 
             float MISWeight = 1.0f;
             if (!payload->prevSampledType.isDelta() && payload->pathLength > 1) {
+                float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
+                float geomInstProb = geomInst.importance / inst.lightGeomInstDistribution.integral();
+
                 float bsdfPDF = payload->prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(optixGetWorldRayOrigin()));
-                float lightPDF = envLight.importance / getSumLightImportances() * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
+                float lightPDF = instProb * geomInstProb * hypAreaPDF * dist2 / std::fabs(dirOutLocal.z);
                 MISWeight = (bsdfPDF * bsdfPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
             }
 

@@ -35,16 +35,15 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(const GeometryInstanceDescriptor &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
-        const GeometryInstance &geomInst = plp.geomInstBuffer[desc.geomInstIndex];
-
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(const Instance &inst, const GeometryInstance &geomInst,
+                                                              const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float u, v;
         float uvPDF;
         geomInst.asInfSphere.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);
         float phi = 2 * VLR_M_PI * u;
         float theta = VLR_M_PI * v;
 
-        float posPhi = phi - desc.rotationPhi;
+        float posPhi = phi - inst.rotationPhi;
         posPhi = posPhi - std::floor(posPhi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
 
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);

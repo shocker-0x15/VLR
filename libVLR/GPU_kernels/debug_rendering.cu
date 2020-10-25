@@ -136,6 +136,9 @@ namespace VLR {
 
         WavelengthSamples &wls = payload->wls;
 
+        const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
+
         Vector3D direction = asVector3D(optixGetWorldRayDirection());
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
@@ -157,7 +160,7 @@ namespace VLR {
         surfPt.geometricNormal = -direction;
         surfPt.u = phi;
         surfPt.v = theta;
-        phi += plp.envLightDescriptor.rotationPhi;
+        phi += inst.rotationPhi;
         phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 

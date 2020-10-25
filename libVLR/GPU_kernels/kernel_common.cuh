@@ -273,21 +273,22 @@ namespace VLR {
         uint32_t materialIndex;
     };
 
-    typedef optixu::DirectCallableProgramID<void(const GeometryInstanceDescriptor &, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
+    typedef optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
 
     class SurfaceLight {
-        GeometryInstanceDescriptor m_desc;
-        ProgSigSurfaceLight_sample m_progSurfaceLight_sample;
+        Instance m_inst;
+        GeometryInstance m_geomInst;
 
     public:
         CUDA_DEVICE_FUNCTION SurfaceLight() {}
-        CUDA_DEVICE_FUNCTION SurfaceLight(const GeometryInstanceDescriptor &desc) :
-            m_desc(desc), 
-            m_progSurfaceLight_sample(desc.sampleFunc) {
+        CUDA_DEVICE_FUNCTION SurfaceLight(const Instance &inst, const GeometryInstance &geomInst) :
+            m_inst(inst), 
+            m_geomInst(geomInst) {
         }
 
         CUDA_DEVICE_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) const {
-            m_progSurfaceLight_sample(m_desc, posSample, lpResult);
+            auto sample = (ProgSigSurfaceLight_sample)m_geomInst.progSample;
+            sample(m_inst, m_geomInst, posSample, lpResult);
         }
     };
 

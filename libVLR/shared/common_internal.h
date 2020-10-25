@@ -11,9 +11,6 @@
 
 #include "common.h"
 
-#define VLR_ENABLE_VALIDATION
-#define VLR_ENABLE_TIMEOUT_CALLBACK
-
 #define VLR_Color_System_CIE_1931_2deg  0
 #define VLR_Color_System_CIE_1964_10deg 1
 #define VLR_Color_System_CIE_2012_2deg  2

@@ -230,7 +230,7 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution1DTemplate {
-            const RealType*m_PDF;
+            const RealType* m_PDF;
             const RealType* m_CDF;
             RealType m_integral;
             uint32_t m_numValues;
@@ -271,7 +271,7 @@ namespace VLR {
 
         template <typename RealType>
         class RegularConstantContinuousDistribution2DTemplate {
-            RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
+            const RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
             RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
         public:
@@ -820,31 +820,37 @@ namespace VLR {
                 } asInfSphere;
             };
 
-            uint32_t geomInstIndex;
+            // TODO: これらは関数ポインターに相当するのでインスタンス変数的に扱われるのはおかしい。
+            uint32_t progSample;
             uint32_t progDecodeHitPoint;
+
             ShaderNodePlug nodeNormal;
             ShaderNodePlug nodeTangent;
             ShaderNodePlug nodeAlpha;
-            float importance;
             uint32_t materialIndex;
+            float importance;
+
+            CUDA_DEVICE_FUNCTION GeometryInstance() {}
         };
 
         struct Instance {
-            StaticTransform transform;
-        };
-
-        struct GeometryInstanceDescriptor {
-            uint32_t geomInstIndex;
             union {
-                uint32_t instIndex;
+                StaticTransform transform;
                 float rotationPhi;
             };
-            int32_t sampleFunc;
+            uint32_t* geomInstIndices;
+            DiscreteDistribution1D lightGeomInstDistribution;
+
+            CUDA_DEVICE_FUNCTION Instance() {}
         };
 
         using KernelRNG = PCG32RNG;
         
         struct PipelineLaunchParameters {
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_xbar;
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_ybar;
+            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_zbar;
+            float DiscretizedSpectrum_integralCMF;
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
             const UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
             const UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
@@ -853,10 +859,6 @@ namespace VLR {
             const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
             const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
 #   endif
-            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_xbar;
-            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_ybar;
-            DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_zbar;
-            float DiscretizedSpectrum_integralCMF;
 
             const NodeProcedureSet* nodeProcedureSetBuffer;
             const SmallNodeDescriptor* smallNodeDescriptorBuffer;
@@ -865,23 +867,25 @@ namespace VLR {
             const BSDFProcedureSet* bsdfProcedureSetBuffer;
             const EDFProcedureSet* edfProcedureSetBuffer;
             const SurfaceMaterialDescriptor* materialDescriptorBuffer;
+
             const GeometryInstance* geomInstBuffer;
             const Instance* instBuffer;
-            const GeometryInstanceDescriptor* geomInstDescBuffer;
+
+            const uint32_t* instIndices;
+            DiscreteDistribution1D lightInstDist;
+            uint32_t envLightInstIndex;
 
             PerspectiveCamera perspectiveCamera;
             EquirectangularCamera equirectangularCamera;
 
             OptixTraversableHandle topGroup;
-            DiscreteDistribution1D lightImpDist;
-            GeometryInstanceDescriptor envLightDescriptor;
 
             uint2 imageSize;
             uint32_t numAccumFrames;
             int32_t progSampleLensPosition;
             int32_t progSampleIDF;
             optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
-            optixu::BlockBuffer2D<SpectrumStorage, 1> outputBuffer;
+            optixu::BlockBuffer2D<SpectrumStorage, 0> outputBuffer;
 
             DebugRenderingAttribute debugRenderingAttribute;
         };

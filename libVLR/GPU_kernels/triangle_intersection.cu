@@ -46,10 +46,8 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const GeometryInstanceDescriptor &desc, const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
-        const GeometryInstance &geomInst = plp.geomInstBuffer[desc.geomInstIndex];
-        const Instance &inst = plp.instBuffer[desc.instIndex];
-
+    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const Instance &inst, const GeometryInstance &geomInst,
+                                                const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
         uint32_t primIdx = geomInst.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
 

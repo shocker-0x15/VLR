@@ -4,15 +4,16 @@
 
 namespace VLR {
     class PCG32RNG {
-        uint64_t state;
+        uint64_t m_state;
 
     public:
         CUDA_DEVICE_FUNCTION PCG32RNG() {}
+        CUDA_DEVICE_FUNCTION PCG32RNG(uint64_t seed) : m_state(seed) {}
 
         CUDA_DEVICE_FUNCTION uint32_t operator()() {
-            uint64_t oldstate = state;
+            uint64_t oldstate = m_state;
             // Advance internal state
-            state = oldstate * 6364136223846793005ULL + 1;
+            m_state = oldstate * 6364136223846793005ULL + 1;
             // Calculate output function (XSH RR), uses old state for max ILP
             uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
             uint32_t rot = oldstate >> 59u;
@@ -21,7 +22,7 @@ namespace VLR {
 
         CUDA_DEVICE_FUNCTION float getFloat0cTo1o() {
             uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
-            return *(float*)&fractionBits - 1.0f;
+            return *reinterpret_cast<float*>(&fractionBits) - 1.0f;
         }
     };
 

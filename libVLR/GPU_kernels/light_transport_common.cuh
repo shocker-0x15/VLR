@@ -219,31 +219,14 @@ namespace VLR {
     }
 
     CUDA_DEVICE_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
-        const GeometryInstance &envLight = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
-        float sumImps = envLight.importance + plp.lightImpDist.integral();
-        float su = sumImps * lightSample;
-        if (su < envLight.importance) {
-            *light = SurfaceLight(plp.envLightDescriptor);
-            *lightProb = envLight.importance / sumImps;
-        }
-        else {
-            lightSample = (su - envLight.importance) / plp.lightImpDist.integral();
-            uint32_t lightIdx = plp.lightImpDist.sample(lightSample, lightProb, remapped);
-            *light = SurfaceLight(plp.geomInstDescBuffer[lightIdx]);
-            *lightProb *= plp.lightImpDist.integral() / sumImps;
-        }
-    }
-
-    CUDA_DEVICE_FUNCTION float getSumLightImportances() {
-        const GeometryInstance &envLight = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
-        return envLight.importance + plp.lightImpDist.integral();
-    }
-
-    CUDA_DEVICE_FUNCTION float evaluateEnvironmentAreaPDF(float phi, float theta) {
-        VLRAssert(VLR::isfinite(phi) && VLR::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
-        const GeometryInstance &geomInst = plp.geomInstBuffer[plp.envLightDescriptor.geomInstIndex];
-        float uvPDF = geomInst.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
-        return uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
+        float instProb;
+        uint32_t instIndex = plp.instIndices[plp.lightInstDist.sample(lightSample, &instProb, &lightSample)];
+        const Instance &inst = plp.instBuffer[instIndex];
+        float geomInstProb;
+        uint32_t geomInstIndex = inst.geomInstIndices[inst.lightGeomInstDistribution.sample(lightSample, &geomInstProb, &lightSample)];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
+        *light = SurfaceLight(inst, geomInst);
+        *lightProb = instProb * geomInstProb;
     }
 
     // END: Light
