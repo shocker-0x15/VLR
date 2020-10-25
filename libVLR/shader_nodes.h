@@ -71,7 +71,7 @@ namespace VLR {
             ShaderNodePlugType ptype;
             const char* programName;
         };
-        static optixu::Module s_shaderNodeModule;
+        static optixu::Module s_optixModule;
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
@@ -104,9 +104,9 @@ namespace VLR {
     };
 
 #define VLR_SHADER_NODE_DECLARE_PROGRAM_SET() \
-    static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets; \
+    static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets; \
     uint32_t getProcedureSetIndex() const override { \
-        return OptiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex; \
+        return s_optiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex; \
     }
 
 
@@ -115,7 +115,7 @@ namespace VLR {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
-        static std::map<uint32_t, GeometryShaderNode*> Instances;
+        static std::map<uint32_t, GeometryShaderNode*> s_instances;
 
         void setupNodeDescriptor() const;
 

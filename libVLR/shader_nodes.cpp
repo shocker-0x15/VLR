@@ -15,8 +15,8 @@ namespace VLR {
 
 
 
-    optixu::Module ShaderNode::s_shaderNodeModule;
-    
+    optixu::Module ShaderNode::s_optixModule;
+
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
         optixu::Pipeline pipeline = context.getOptixPipeline();
@@ -28,8 +28,8 @@ namespace VLR {
             uint32_t ptype = static_cast<uint32_t>(pairs[i].ptype);
             programSet->callablePrograms[ptype].create(
                 pipeline,
-                s_shaderNodeModule, pairs[i].programName,
-                context.getEmptyModule(), nullptr);
+                s_optixModule, pairs[i].programName,
+                optixu::Module(), nullptr);
             nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype].ID;
         }
 
@@ -61,10 +61,10 @@ namespace VLR {
     // static
     void ShaderNode::initialize(Context &context) {
         optixu::Pipeline pipeline = context.getOptixPipeline();
-        s_shaderNodeModule = pipeline.createModuleFromPTXString(
+        s_optixModule = pipeline.createModuleFromPTXString(
             readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx"),
             OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
             VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
         GeometryShaderNode::initialize(context);
@@ -98,7 +98,7 @@ namespace VLR {
         TangentShaderNode::finalize(context);
         GeometryShaderNode::finalize(context);
 
-        s_shaderNodeModule.destroy();
+        s_optixModule.destroy();
     }
 
     ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {
@@ -133,8 +133,8 @@ namespace VLR {
 
     std::vector<ParameterInfo> GeometryShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> GeometryShaderNode::OptiXProgramSets;
-    std::map<uint32_t, GeometryShaderNode*> GeometryShaderNode::Instances;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> GeometryShaderNode::s_optiXProgramSets;
+    std::map<uint32_t, GeometryShaderNode*> GeometryShaderNode::s_instances;
 
     // static
     void GeometryShaderNode::initialize(Context &context) {
@@ -147,18 +147,18 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
 
-        Instances[context.getID()] = new GeometryShaderNode(context);
+        s_instances[context.getID()] = new GeometryShaderNode(context);
     }
 
     // static
     void GeometryShaderNode::finalize(Context &context) {
-        delete Instances.at(context.getID());
+        delete s_instances.at(context.getID());
 
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     GeometryShaderNode::GeometryShaderNode(Context &context) :
@@ -176,14 +176,14 @@ namespace VLR {
     }
 
     GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
-        return Instances.at(context.getID());
+        return s_instances.at(context.getID());
     }
 
 
 
     std::vector<ParameterInfo> TangentShaderNode::ParameterInfos;
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> TangentShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> TangentShaderNode::s_optiXProgramSets;
 
     // static
     void TangentShaderNode::initialize(Context& context) {
@@ -202,14 +202,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void TangentShaderNode::finalize(Context& context) {
-        OptiXProgramSet& programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet& programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     TangentShaderNode::TangentShaderNode(Context& context) :
@@ -262,7 +262,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> Float2ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::s_optiXProgramSets;
 
     // static
     void Float2ShaderNode::initialize(Context &context) {
@@ -283,14 +283,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void Float2ShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     Float2ShaderNode::Float2ShaderNode(Context &context) :
@@ -401,7 +401,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> Float3ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::s_optiXProgramSets;
 
     // static
     void Float3ShaderNode::initialize(Context &context) {
@@ -424,14 +424,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void Float3ShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     Float3ShaderNode::Float3ShaderNode(Context &context) :
@@ -565,7 +565,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> Float4ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::s_optiXProgramSets;
 
     // static
     void Float4ShaderNode::initialize(Context &context) {
@@ -590,14 +590,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void Float4ShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     Float4ShaderNode::Float4ShaderNode(Context &context) :
@@ -754,7 +754,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> ScaleAndOffsetFloatShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::s_optiXProgramSets;
 
     // static
     void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
@@ -775,14 +775,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void ScaleAndOffsetFloatShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
@@ -901,7 +901,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> TripletSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void TripletSpectrumShaderNode::initialize(Context &context) {
@@ -922,14 +922,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void TripletSpectrumShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
@@ -1033,7 +1033,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> RegularSampledSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void RegularSampledSpectrumShaderNode::initialize(Context &context) {
@@ -1055,14 +1055,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void RegularSampledSpectrumShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
@@ -1202,7 +1202,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> IrregularSampledSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
@@ -1223,14 +1223,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void IrregularSampledSpectrumShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
@@ -1351,7 +1351,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> Float3ToSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ToSpectrumShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ToSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void Float3ToSpectrumShaderNode::initialize(Context &context) {
@@ -1372,14 +1372,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void Float3ToSpectrumShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
@@ -1516,7 +1516,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> ScaleAndOffsetUVTextureMap2DShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::s_optiXProgramSets;
 
     // static
     void ScaleAndOffsetUVTextureMap2DShaderNode::initialize(Context &context) {
@@ -1536,14 +1536,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void ScaleAndOffsetUVTextureMap2DShaderNode::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
@@ -1619,7 +1619,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> Image2DTextureShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::s_optiXProgramSets;
     std::map<uint32_t, LinearImage2D*> Image2DTextureShaderNode::NullImages;
 
     // static
@@ -1655,7 +1655,7 @@ namespace VLR {
         uint8_t nullData[] = { 255, 0, 255, 255 };
         LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, DataFormat::RGBA8x4, SpectrumType::Reflectance, ColorSpace::Rec709_D65);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
         NullImages[context.getID()] = nullImage;
     }
 
@@ -1663,9 +1663,9 @@ namespace VLR {
     void Image2DTextureShaderNode::finalize(Context &context) {
         delete NullImages.at(context.getID());
 
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
@@ -1878,7 +1878,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> EnvironmentTextureShaderNode::ParameterInfos;
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::OptiXProgramSets;
+    std::map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::s_optiXProgramSets;
     std::map<uint32_t, LinearImage2D*> EnvironmentTextureShaderNode::NullImages;
 
     // static
@@ -1903,7 +1903,7 @@ namespace VLR {
         half nullData[] = { (half)1.0f, (half)0.0f, (half)1.0f, (half)1.0f };
         LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, SpectrumType::LightSource, ColorSpace::Rec709_D65);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
         NullImages[context.getID()] = nullImage;
     }
 
@@ -1911,9 +1911,9 @@ namespace VLR {
     void EnvironmentTextureShaderNode::finalize(Context &context) {
         delete NullImages.at(context.getID());
 
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :

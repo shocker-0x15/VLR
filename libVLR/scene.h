@@ -45,75 +45,33 @@ namespace VLR {
     // EN: Shallower scene hierarchy is preferrable for rendering performance.
     //     Generate shallow scene graph while allowing the user build arbitrarily deep scene graph.
 
-    class SHGroup;
-    class SHTransform;
     class SHGeometryGroup;
-    class SHGeometryInstance;
+    struct SHGeometryInstance;
 
-    class SHGroup {
-        Context &m_context;
-        optix::Group m_optixGroup;
-        optix::Acceleration m_optixAcceleration;
-        struct TransformStatus {
-            bool hasGeometryDescendant;
-            optix::Transform transform;
-            optix::GeometryGroup geomGroup;
-            std::map<const SHGeometryInstance*, optix::GeometryInstance> geomInstances;
-
-            TransformStatus() : hasGeometryDescendant(false) {}
-            TransformStatus(TransformStatus &&v) {
-                hasGeometryDescendant = v.hasGeometryDescendant;
-                transform = v.transform;
-                geomGroup = v.geomGroup;
-                geomInstances = std::move(v.geomInstances);
-            }
-            TransformStatus &operator=(TransformStatus &&v) {
-                hasGeometryDescendant = v.hasGeometryDescendant;
-                transform = v.transform;
-                geomGroup = v.geomGroup;
-                geomInstances = std::move(v.geomInstances);
-                return *this;
-            }
-        };
-        std::map<const SHTransform*, TransformStatus> m_transforms;
-        uint32_t m_numValidTransforms;
-
-        SlotBuffer<Shared::GeometryInstanceDescriptor> m_geometryInstanceDescriptorBuffer;
-        DiscreteDistribution1D m_surfaceLightImpDist;
-        bool m_surfaceLightsAreSetup;
-
-        void createOptiXDescendants(SHTransform* transform);
-        void destroyOptiXDescendants(SHTransform* transform);
+    class SHGeometryGroup {
+        optixu::GeometryAccelerationStructure m_optixGas;
+        std::vector<const SHGeometryInstance*> m_shGeomInsts;
 
     public:
-        SHGroup(Context &context) : m_context(context), m_numValidTransforms(0), m_surfaceLightsAreSetup(false) {
-            optix::Context optixContext = m_context.getOptiXContext();
-            m_optixGroup = optixContext->createGroup();
-            m_optixAcceleration = optixContext->createAcceleration("Trbvh");
-            m_optixGroup->setAcceleration(m_optixAcceleration);
-
-            m_geometryInstanceDescriptorBuffer.initialize(optixContext, 65536, nullptr);
-        }
-        ~SHGroup() {
-            if (m_surfaceLightsAreSetup)
-                m_surfaceLightImpDist.finalize(m_context);
-
-            m_geometryInstanceDescriptorBuffer.finalize();
-
-            m_optixAcceleration->destroy();
-            m_optixGroup->destroy();
+        SHGeometryGroup(const optixu::GeometryAccelerationStructure &optixGas) :
+            m_optixGas(optixGas) {}
+        ~SHGeometryGroup() {
+            m_optixGas.destroy();
         }
 
-        void addChild(SHTransform* transform);
-        void removeChild(SHTransform* transform);
-        void updateChild(SHTransform* transform);
+        void addChild(const SHGeometryInstance* geomInst);
+        void removeChild(const SHGeometryInstance* geomInst);
+        void updateChild(const SHGeometryInstance* geomInst);
 
-        void addGeometryInstances(SHTransform* transform, std::set<const SHGeometryInstance*> geomInsts);
-        void removeGeometryInstances(SHTransform* transform, std::set<const SHGeometryInstance*> geomInsts);
+        uint32_t getNumChildren() const { return m_shGeomInsts.size(); }
+        void getGeometryInstanceIndices(uint32_t* indices) const;
+        void getGeometryInstanceImportanceValues(float* values) const;
+    };
 
-        void setup();
-
-        void printOptiXHierarchy();
+    struct SHGeometryInstance {
+        uint32_t geomInstIndex;
+        optixu::GeometryInstance optixGeomInst;
+        Shared::GeometryInstance data;
     };
 
     class SHTransform {
@@ -122,7 +80,7 @@ namespace VLR {
         StaticTransform m_transform;
         union {
             const SHTransform* m_childTransform;
-            SHGeometryGroup* m_childGeometryGroup;
+            const SHGeometryGroup* m_childGeomGroup;
         };
         bool m_childIsTransform;
 
@@ -143,106 +101,8 @@ namespace VLR {
         bool isStatic() const;
         StaticTransform getStaticTransform() const;
 
-        void setChild(SHGeometryGroup* geomGroup);
-        bool hasGeometryDescendant(SHGeometryGroup** descendant = nullptr) const;
-    };
-
-    class SHGeometryGroup {
-        optix::Acceleration m_optixAcceleration;
-        std::set<const SHGeometryInstance*> m_instances;
-
-    public:
-        SHGeometryGroup(Context &context) {
-            optix::Context optixContext = context.getOptiXContext();
-            m_optixAcceleration = optixContext->createAcceleration("Trbvh");
-        }
-        ~SHGeometryGroup() {
-            m_optixAcceleration->destroy();
-        }
-
-        void addGeometryInstance(const SHGeometryInstance* instance);
-        void removeGeometryInstance(const SHGeometryInstance* instance);
-        void updateGeometryInstance(const SHGeometryInstance* instance);
-        bool has(const SHGeometryInstance* instance) const {
-            return m_instances.count(instance) > 0;
-        }
-        const SHGeometryInstance* getGeometryInstanceAt(uint32_t index) const {
-            auto it = m_instances.cbegin();
-            std::advance(it, index);
-            return *it;
-        }
-        uint32_t getNumInstances() const {
-            return (uint32_t)m_instances.size();
-        }
-
-        optix::Acceleration getAcceleration() const {
-            return m_optixAcceleration;
-        }
-    };
-
-    class SHGeometryInstance {
-        struct TriangleMeshProperty {
-            optix::Buffer vertexBuffer;
-            optix::Buffer triangleBuffer;
-            DiscreteDistribution1D primDist;
-            float sumImportances;
-        };
-        struct InfiniteSphereProperty {
-        };
-
-        optix::Geometry m_geometry;
-        optix::GeometryTriangles m_geometryTriangles;
-        optix::Program m_progDecodeHitPoint;
-        int32_t m_progSample;
-        optix::Material m_material;
-        uint32_t m_materialIndex;
-        float m_importance;
-        ShaderNodePlug m_nodeNormal;
-        ShaderNodePlug m_nodeTangent;
-        ShaderNodePlug m_nodeAlpha;
-        TriangleMeshProperty m_triMeshProp;
-        InfiniteSphereProperty m_infSphereProp;
-        bool m_isTriMesh;
-
-    public:
-        SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance,
-                           const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
-                           const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
-                           const DiscreteDistribution1D &primDist, float sumImportances) :
-        m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-        m_material(material), m_materialIndex(materialIndex), m_importance(importance),
-        m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
-            m_triMeshProp.vertexBuffer = vertexBuffer;
-            m_triMeshProp.triangleBuffer = triangleBuffer;
-            m_triMeshProp.primDist = primDist;
-            m_triMeshProp.sumImportances = sumImportances;
-            m_isTriMesh = true;
-        }
-        SHGeometryInstance(const optix::GeometryTriangles &geometryTriangles, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance,
-                           const ShaderNodePlug &nodeNormal, const ShaderNodePlug &nodeTangent, const ShaderNodePlug &nodeAlpha,
-                           const optix::Buffer &vertexBuffer, const optix::Buffer &triangleBuffer,
-                           const DiscreteDistribution1D &primDist, float sumImportances) :
-            m_geometryTriangles(geometryTriangles), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-            m_material(material), m_materialIndex(materialIndex), m_importance(importance),
-            m_nodeNormal(nodeNormal), m_nodeTangent(nodeTangent), m_nodeAlpha(nodeAlpha) {
-            m_triMeshProp.vertexBuffer = vertexBuffer;
-            m_triMeshProp.triangleBuffer = triangleBuffer;
-            m_triMeshProp.primDist = primDist;
-            m_triMeshProp.sumImportances = sumImportances;
-            m_isTriMesh = true;
-        }
-        SHGeometryInstance(const optix::Geometry &geometry, const optix::Program &progDecodeHitPoint, int32_t progSample,
-                           const optix::Material &material, uint32_t materialIndex, float importance) :
-            m_geometry(geometry), m_progDecodeHitPoint(progDecodeHitPoint), m_progSample(progSample),
-            m_material(material), m_materialIndex(materialIndex), m_importance(importance) {
-            m_isTriMesh = false;
-        }
-        ~SHGeometryInstance() {}
-
-        optix::GeometryInstance createGeometryInstance(Context &context) const;
-        void createGeometryInstanceDescriptor(Shared::GeometryInstanceDescriptor* desc) const;
+        void setChild(const SHGeometryGroup* childGeomGroup);
+        bool hasGeometryDescendant(const SHGeometryGroup** descendant = nullptr) const;
     };
 
     // END: Shallow Hierarchy
@@ -300,31 +160,50 @@ namespace VLR {
 
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optix::Program programCalcAttributeForTriangle; // Attribute Program
-            optix::Program programIntersectTriangle; // Intersection Program
-            optix::Program programCalcBBoxForTriangle; // Bounding Box Program
-            optix::Program callableProgramDecodeHitPointForTriangle;
-            optix::Program callableProgramSampleTriangleMesh;
+            optixu::Module optixModule;
+            CallableProgram dcDecodeHitPointForTriangle;
+            CallableProgram dcSampleTriangleMesh;
         };
 
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
-        struct OptiXGeometry {
+        struct MaterialGroup {
             std::vector<uint32_t> indices;
-            optix::Buffer optixIndexBuffer;
-            optix::GeometryTriangles optixGeometryTriangles;
-            optix::Geometry optixGeometry;
+            cudau::TypedBuffer<Shared::Triangle> optixIndexBuffer;
             DiscreteDistribution1D primDist;
+            const SurfaceMaterial* material;
+            ShaderNodePlug nodeNormal;
+            ShaderNodePlug nodeTangent;
+            ShaderNodePlug nodeAlpha;
+            SHGeometryInstance* shGeomInst;
+
+            MaterialGroup() {}
+            MaterialGroup(MaterialGroup &&v) {
+                indices = std::move(v.indices);
+                optixIndexBuffer = std::move(v.optixIndexBuffer);
+                primDist = std::move(v.primDist);
+                material = v.material;
+                nodeNormal = v.nodeNormal;
+                nodeTangent = v.nodeTangent;
+                nodeAlpha = v.nodeAlpha;
+                shGeomInst = v.shGeomInst;
+            }
+            MaterialGroup &operator=(MaterialGroup &&v) {
+                indices = std::move(v.indices);
+                optixIndexBuffer = std::move(v.optixIndexBuffer);
+                primDist = std::move(v.primDist);
+                material = v.material;
+                nodeNormal = v.nodeNormal;
+                nodeTangent = v.nodeTangent;
+                nodeAlpha = v.nodeAlpha;
+                shGeomInst = v.shGeomInst;
+                return *this;
+            }
         };
 
         std::vector<Vertex> m_vertices;
-        optix::Buffer m_optixVertexBuffer;
-        std::vector<OptiXGeometry> m_optixGeometries;
-        std::vector<const SurfaceMaterial*> m_materials;
-        std::vector<ShaderNodePlug> m_nodeNormals;
-        std::vector<ShaderNodePlug> m_nodeTangents;
-        std::vector<ShaderNodePlug> m_nodeAlphas;
-        std::vector<SHGeometryInstance*> m_shGeometryInstances;
+        cudau::TypedBuffer<Vertex> m_optixVertexBuffer;
+        std::vector<MaterialGroup> m_materialGroups;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -347,17 +226,15 @@ namespace VLR {
 
     class InfiniteSphereSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optix::Program programIntersectInfiniteSphere; // Intersection Program
-            optix::Program programCalcBBoxForInfiniteSphere; // Bounding Box Program
-            optix::Program callableProgramDecodeHitPointForInfiniteSphere;
-            optix::Program callableProgramSampleInfiniteSphere;
+            optixu::Module optixModule;
+            CallableProgram dcDecodeHitPointForInfiniteSphere;
+            CallableProgram dcSampleInfiniteSphere;
         };
 
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
-        optix::Geometry m_optixGeometry;
         SurfaceMaterial* m_material;
-        SHGeometryInstance* m_shGeometryInstance;
+        SHGeometryInstance m_shGeomInst;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -370,24 +247,6 @@ namespace VLR {
 
         void addParent(ParentNode* parent) override;
         void removeParent(ParentNode* parent) override;
-    };
-
-
-
-    struct TransformAndGeometryInstance {
-        const SHTransform* transform;
-        const SHGeometryInstance* geomInstance;
-
-        bool operator<(const TransformAndGeometryInstance& v) const {
-            if (transform < v.transform) {
-                return true;
-            }
-            else if (transform == v.transform) {
-                if (geomInstance < v.geomInstance)
-                    return true;
-            }
-            return false;
-        }
     };
 
 
@@ -413,7 +272,7 @@ namespace VLR {
         // EN: SHTransform containing only the self transform uses nullptr as the key.
         std::map<const SHTransform*, SHTransform*> m_shTransforms;
 
-        SHGeometryGroup m_shGeomGroup;
+        SHGeometryGroup* m_shGeomGroup;
 
         void createConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
         void removeConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
@@ -431,14 +290,16 @@ namespace VLR {
 
         void setName(const std::string &name) override;
 
-        virtual void transformAddEvent(const std::set<SHTransform*>& childDelta) = 0;
-        virtual void transformRemoveEvent(const std::set<SHTransform*>& childDelta) = 0;
-        virtual void transformUpdateEvent(const std::set<SHTransform*>& childDelta) = 0;
+        virtual void transformAddEvent(const std::set<SHTransform*> &childDelta) = 0;
+        virtual void transformRemoveEvent(const std::set<SHTransform*> &childDelta) = 0;
+        virtual void transformUpdateEvent(const std::set<SHTransform*> &childDelta) = 0;
 
         void geometryAddEvent(const std::set<const SHGeometryInstance*> &childDelta);
-        virtual void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) = 0;
+        virtual void geometryAddEvent(const SHTransform* childTransform) = 0;
         void geometryRemoveEvent(const std::set<const SHGeometryInstance*> &childDelta);
-        virtual void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) = 0;
+        virtual void geometryRemoveEvent(const SHTransform* childTransform) = 0;
+        void geometryUpdateEvent(const std::set<const SHGeometryInstance*> &childDelta);
+        virtual void geometryUpdateEvent(const SHTransform* childTransform) = 0;
 
         virtual void setTransform(const Transform* localToWorld);
         const Transform* getTransform() const {
@@ -464,12 +325,13 @@ namespace VLR {
 
         InternalNode(Context &context, const std::string &name, const Transform* localToWorld);
 
-        void transformAddEvent(const std::set<SHTransform*>& childDelta) override;
-        void transformRemoveEvent(const std::set<SHTransform*>& childDelta) override;
-        void transformUpdateEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformAddEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformUpdateEvent(const std::set<SHTransform*> &childDelta) override;
 
-        void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
-        void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
+        void geometryAddEvent(const SHTransform* childTransform) override;
+        void geometryRemoveEvent(const SHTransform* childTransform) override;
+        void geometryUpdateEvent(const SHTransform* childTransform) override;
 
         void setTransform(const Transform* localToWorld) override;
 
@@ -480,7 +342,15 @@ namespace VLR {
 
 
     class RootNode : public ParentNode {
-        SHGroup m_shGroup;
+        struct Instance {
+            optixu::Instance optixInst;
+            uint32_t instIndex;
+            cudau::TypedBuffer<uint32_t> geomInstIndices;
+            DiscreteDistribution1D lightGeomInstDistribution;
+            Shared::Instance data;
+        };
+        optixu::InstanceAccelerationStructure m_optixIas;
+        std::map<const SHTransform*, Instance> m_instances;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -488,21 +358,23 @@ namespace VLR {
         RootNode(Context &context, const Transform* localToWorld);
         ~RootNode();
 
-        void transformAddEvent(const std::set<SHTransform*>& childDelta) override;
-        void transformRemoveEvent(const std::set<SHTransform*>& childDelta) override;
-        void transformUpdateEvent(const std::set<SHTransform*>& childDelta) override;
+        void transformAddEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformUpdateEvent(const std::set<SHTransform*> &childDelta) override;
 
-        void geometryAddEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
-        void geometryRemoveEvent(const SHTransform* childTransform, const std::set<const SHGeometryInstance*>& geomInstDelta) override;
+        void geometryAddEvent(const SHTransform* childTransform) override;
+        void geometryRemoveEvent(const SHTransform* childTransform) override;
+        void geometryUpdateEvent(const SHTransform* childTransform) override;
 
-        void setup();
+        void setup(Shared::PipelineLaunchParameters* launchParams);
     };
 
 
 
     class Scene : public Object {
         RootNode m_rootNode;
-        optix::Program m_callableProgramSampleInfiniteSphere;
+        optixu::Module m_optixModule;
+        CallableProgram m_dcSampleInfiniteSphere;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
         float m_envRotationPhi;
 
@@ -542,7 +414,7 @@ namespace VLR {
         void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
         void setEnvironmentRotation(float rotationPhi);
 
-        void setup();
+        void setup(Shared::PipelineLaunchParameters* launchParams);
     };
 
 
@@ -550,11 +422,11 @@ namespace VLR {
     class Camera : public Queryable {
     protected:
         struct OptiXProgramSet {
-            optix::Program callableProgramSampleLensPosition;
-            optix::Program callableProgramSampleIDF;
+            CallableProgram dcSampleLensPosition;
+            CallableProgram dcSampleIDF;
         };
 
-        static std::string s_cameras_ptx;
+        static std::map<uint32_t, optixu::Module> s_optixModules;
         static void commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet);
 
@@ -568,7 +440,7 @@ namespace VLR {
             Queryable(context) {}
         virtual ~Camera() {}
 
-        virtual void setup() const = 0;
+        virtual void setup(Shared::PipelineLaunchParameters* launchParams) const = 0;
     };
 
 
@@ -576,7 +448,7 @@ namespace VLR {
     class PerspectiveCamera : public Camera {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         Shared::PerspectiveCamera m_data;
 
@@ -596,7 +468,7 @@ namespace VLR {
         bool set(const char* paramName, const Quaternion &value) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void setup() const override;
+        void setup(Shared::PipelineLaunchParameters* launchParams) const override;
     };
 
 
@@ -604,7 +476,7 @@ namespace VLR {
     class EquirectangularCamera : public Camera {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> OptiXProgramSets;
+        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         Shared::EquirectangularCamera m_data;
 
@@ -624,6 +496,6 @@ namespace VLR {
         bool set(const char* paramName, const Quaternion& value) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void setup() const override;
+        void setup(Shared::PipelineLaunchParameters* launchParams) const override;
     };
 }

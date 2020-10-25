@@ -1,7 +1,7 @@
 ﻿#include "materials.h"
 
 namespace VLR {
-    optixu::Module SurfaceMaterial::s_materialModule;
+    optixu::Module SurfaceMaterial::s_optixModule;
 
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
@@ -9,27 +9,27 @@ namespace VLR {
 
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
             programSet->callableProgramSetupBSDF.create(
-                pipeline, s_materialModule, identifiers[0],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[0],
+                optixu::Module(), nullptr);
 
             programSet->callableProgramBSDFGetBaseColor.create(
-                pipeline, s_materialModule, identifiers[1],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[1],
+                optixu::Module(), nullptr);
             programSet->callableProgramBSDFmatches.create(
-                pipeline, s_materialModule, identifiers[2],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[2],
+                optixu::Module(), nullptr);
             programSet->callableProgramBSDFSampleInternal.create(
-                pipeline, s_materialModule, identifiers[3],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[3],
+                optixu::Module(), nullptr);
             programSet->callableProgramBSDFEvaluateInternal.create(
-                pipeline, s_materialModule, identifiers[4],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[4],
+                optixu::Module(), nullptr);
             programSet->callableProgramBSDFEvaluatePDFInternal.create(
-                pipeline, s_materialModule, identifiers[5],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[5],
+                optixu::Module(), nullptr);
             programSet->callableProgramBSDFWeightInternal.create(
-                pipeline, s_materialModule, identifiers[6],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[6],
+                optixu::Module(), nullptr);
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
@@ -46,15 +46,15 @@ namespace VLR {
 
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
             programSet->callableProgramSetupEDF.create(
-                pipeline, s_materialModule, identifiers[7],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[7],
+                optixu::Module(), nullptr);
 
             programSet->callableProgramEDFEvaluateEmittanceInternal.create(
-                pipeline, s_materialModule, identifiers[8],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[8],
+                optixu::Module(), nullptr);
             programSet->callableProgramEDFEvaluateInternal.create(
-                pipeline, s_materialModule, identifiers[9],
-                context.getEmptyModule(), nullptr);
+                pipeline, s_optixModule, identifiers[9],
+                optixu::Module(), nullptr);
 
             Shared::EDFProcedureSet edfProcSet;
             {
@@ -115,10 +115,10 @@ namespace VLR {
     // static
     void SurfaceMaterial::initialize(Context &context) {
         optixu::Pipeline pipeline = context.getOptixPipeline();
-        s_materialModule = pipeline.createModuleFromPTXString(
+        s_optixModule = pipeline.createModuleFromPTXString(
             readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx"),
             OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            OPTIX_COMPILE_OPTIMIZATION_DEFAULT,
+            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
             VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
         MatteSurfaceMaterial::initialize(context);
@@ -148,7 +148,7 @@ namespace VLR {
         SpecularReflectionSurfaceMaterial::finalize(context);
         MatteSurfaceMaterial::finalize(context);
 
-        s_materialModule.destroy();
+        s_optixModule.destroy();
     }
 
     SurfaceMaterial::SurfaceMaterial(Context &context) : Queryable(context) {
@@ -165,7 +165,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> MatteSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MatteSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MatteSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MatteSurfaceMaterial::initialize(Context &context) {
@@ -193,14 +193,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void MatteSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context) :
@@ -212,7 +212,7 @@ namespace VLR {
     }
 
     void MatteSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -282,7 +282,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> SpecularReflectionSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularReflectionSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void SpecularReflectionSurfaceMaterial::initialize(Context &context) {
@@ -312,14 +312,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void SpecularReflectionSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     SpecularReflectionSurfaceMaterial::SpecularReflectionSurfaceMaterial(Context &context) :
@@ -334,7 +334,7 @@ namespace VLR {
     }
 
     void SpecularReflectionSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -438,7 +438,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> SpecularScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularScatteringSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void SpecularScatteringSurfaceMaterial::initialize(Context &context) {
@@ -468,14 +468,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void SpecularScatteringSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     SpecularScatteringSurfaceMaterial::SpecularScatteringSurfaceMaterial(Context &context) :
@@ -490,7 +490,7 @@ namespace VLR {
     }
 
     void SpecularScatteringSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -594,7 +594,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> MicrofacetReflectionSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MicrofacetReflectionSurfaceMaterial::initialize(Context &context) {
@@ -627,14 +627,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void MicrofacetReflectionSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     MicrofacetReflectionSurfaceMaterial::MicrofacetReflectionSurfaceMaterial(Context &context) :
@@ -649,7 +649,7 @@ namespace VLR {
     }
 
     void MicrofacetReflectionSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -805,7 +805,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> MicrofacetScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MicrofacetScatteringSurfaceMaterial::initialize(Context &context) {
@@ -839,14 +839,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void MicrofacetScatteringSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     MicrofacetScatteringSurfaceMaterial::MicrofacetScatteringSurfaceMaterial(Context &context) :
@@ -862,7 +862,7 @@ namespace VLR {
     }
 
     void MicrofacetScatteringSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1035,7 +1035,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> LambertianScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void LambertianScatteringSurfaceMaterial::initialize(Context &context) {
@@ -1064,14 +1064,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void LambertianScatteringSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context) :
@@ -1084,7 +1084,7 @@ namespace VLR {
     }
 
     void LambertianScatteringSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1197,7 +1197,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> UE4SurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> UE4SurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> UE4SurfaceMaterial::s_optiXProgramSets;
 
     // static
     void UE4SurfaceMaterial::initialize(Context &context) {
@@ -1229,14 +1229,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void UE4SurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context) :
@@ -1249,7 +1249,7 @@ namespace VLR {
     }
 
     void UE4SurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1388,7 +1388,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> OldStyleSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void OldStyleSurfaceMaterial::initialize(Context &context) {
@@ -1418,14 +1418,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void OldStyleSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     OldStyleSurfaceMaterial::OldStyleSurfaceMaterial(Context &context) :
@@ -1440,7 +1440,7 @@ namespace VLR {
     }
 
     void OldStyleSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1570,7 +1570,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> DiffuseEmitterSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> DiffuseEmitterSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> DiffuseEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void DiffuseEmitterSurfaceMaterial::initialize(Context &context) {
@@ -1599,14 +1599,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void DiffuseEmitterSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
@@ -1618,7 +1618,7 @@ namespace VLR {
     }
 
     void DiffuseEmitterSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1721,7 +1721,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> MultiSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MultiSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MultiSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MultiSurfaceMaterial::initialize(Context &context) {
@@ -1752,14 +1752,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void MultiSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     MultiSurfaceMaterial::MultiSurfaceMaterial(Context &context) :
@@ -1772,7 +1772,7 @@ namespace VLR {
     }
 
     void MultiSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
@@ -1846,7 +1846,7 @@ namespace VLR {
 
     std::vector<ParameterInfo> EnvironmentEmitterSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::OptiXProgramSets;
+    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void EnvironmentEmitterSurfaceMaterial::initialize(Context &context) {
@@ -1875,14 +1875,14 @@ namespace VLR {
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
 
-        OptiXProgramSets[context.getID()] = programSet;
+        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void EnvironmentEmitterSurfaceMaterial::finalize(Context &context) {
-        OptiXProgramSet &programSet = OptiXProgramSets.at(context.getID());
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         commonFinalizeProcedure(context, programSet);
-        OptiXProgramSets.erase(context.getID());
+        s_optiXProgramSets.erase(context.getID());
     }
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :
@@ -1895,7 +1895,7 @@ namespace VLR {
     }
 
     void EnvironmentEmitterSurfaceMaterial::setupMaterialDescriptor() const {
-        OptiXProgramSet &progSet = OptiXProgramSets.at(m_context.getID());
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         Shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
