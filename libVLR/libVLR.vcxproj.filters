@@ -24,6 +24,9 @@
     <ClCompile Include="utils\cuda_util.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="ext\gl3w.c">
+      <Filter>ext\gl3w</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -90,6 +93,12 @@
     <ClInclude Include="shared\random_distributions.h">
       <Filter>Shared</Filter>
     </ClInclude>
+    <ClInclude Include="ext\include\GL\glcorearb.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\include\GL\gl3w.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">
@@ -106,6 +115,9 @@
     </Filter>
     <Filter Include="Utilities">
       <UniqueIdentifier>{a77135d7-bb62-437c-ab23-139546fd8996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\gl3w">
+      <UniqueIdentifier>{e05f5822-db6a-49c1-9039-5b4c30e5f0c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

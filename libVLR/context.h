@@ -107,6 +107,17 @@ namespace VLR {
         CUcontext m_cuContext;
 
         struct {
+            SlotBuffer<Shared::NodeProcedureSet> nodeProcedureSetBuffer;
+
+            SlotBuffer<Shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
+            SlotBuffer<Shared::MediumNodeDescriptor> mediumNodeDescriptorBuffer;
+            SlotBuffer<Shared::LargeNodeDescriptor> largeNodeDescriptorBuffer;
+
+            SlotBuffer<Shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
+            SlotBuffer<Shared::EDFProcedureSet> edfProcedureSetBuffer;
+
+            SlotBuffer<Shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
+
             optixu::Context context;
 
             optixu::Pipeline pipeline;
@@ -158,17 +169,6 @@ namespace VLR {
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_D65;
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_E;
 #endif
-
-            SlotBuffer<Shared::NodeProcedureSet> nodeProcedureSetBuffer;
-
-            SlotBuffer<Shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
-            SlotBuffer<Shared::MediumNodeDescriptor> mediumNodeDescriptorBuffer;
-            SlotBuffer<Shared::LargeNodeDescriptor> largeNodeDescriptorBuffer;
-
-            SlotBuffer<Shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
-            SlotBuffer<Shared::EDFProcedureSet> edfProcedureSetBuffer;
-
-            SlotBuffer<Shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;

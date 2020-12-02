@@ -233,8 +233,8 @@ namespace VLR {
 
         static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
-        SurfaceMaterial* m_material;
-        SHGeometryInstance m_shGeomInst;
+        EnvironmentEmitterSurfaceMaterial* m_material;
+        SHGeometryInstance* m_shGeomInst;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -242,7 +242,7 @@ namespace VLR {
         static void initialize(Context &context);
         static void finalize(Context &context);
 
-        InfiniteSphereSurfaceNode(Context &context, const std::string &name, SurfaceMaterial* material);
+        InfiniteSphereSurfaceNode(Context &context, const std::string &name, EnvironmentEmitterSurfaceMaterial* material);
         ~InfiniteSphereSurfaceNode();
 
         void addParent(ParentNode* parent) override;

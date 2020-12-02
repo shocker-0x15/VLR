@@ -44,11 +44,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -87,6 +87,9 @@
 
 xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampling_tables"</Command>
     </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>opengl32.lib;cuda.lib;cudart_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -104,6 +107,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opengl32.lib;cuda.lib;cudart_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
@@ -130,6 +134,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="ext\gl3w.c" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="queryable.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
@@ -145,6 +150,8 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="context.h" />
+    <ClInclude Include="ext\include\GL\gl3w.h" />
+    <ClInclude Include="ext\include\GL\glcorearb.h" />
     <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />

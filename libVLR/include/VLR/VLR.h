@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "public_types.h"
+#include <cuda.h>
 
 // Platform defines
 #if defined(_WIN32) || defined(_WIN64)
@@ -57,23 +58,16 @@ extern "C" {
 
 
 
-    VLR_API VLRResult vlrPrintDevices();
-    VLR_API VLRResult vlrGetDeviceName(uint32_t index, char* name, uint32_t bufferLength);
-
     VLR_API const char* vlrGetErrorMessage(VLRResult code);
 
 
 
-    VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices);
+    VLR_API VLRResult vlrCreateContext(VLRContext* context, CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
     VLR_API VLRResult vlrDestroyContext(VLRContext context);
-
-    VLR_API VLRResult vlrContextGetNumDevices(VLRContext context, uint32_t* numDevices);
-    VLR_API VLRResult vlrContextGetDeviceIndexAt(VLRContext context, uint32_t index, int32_t* deviceIndex);
+    VLR_API VLRResult vlrContextGetCUcontext(VLRContext context, CUcontext* cuContext);
 
     VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);
-    VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr);
-    VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context);
-    VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* width, uint32_t* height);
+    VLR_API VLRResult vlrContextGetOutputBuffer(VLRContext context, CUarray* array, uint32_t* width, uint32_t* height);
     VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
     VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 

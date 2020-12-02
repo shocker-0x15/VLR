@@ -457,8 +457,7 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", image);
-        nodeAlbedo->set("min filter", "Nearest");
-        nodeAlbedo->set("mag filter", "Nearest");
+        nodeAlbedo->set("filter", "Nearest");
         nodeAlbedo->set("texcoord", nodeTexCoord->getPlug(VLRShaderNodePlugType_TextureCoordinates, 0));
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
@@ -2199,8 +2198,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
             texNormal = context->createShaderNode("Image2DTexture");
             texNormal->set("image", imgNormal);
 
-            namespace filesystem = std::experimental::filesystem;
-            filesystem::path texPath = strValue.C_Str();
+            std::filesystem::path texPath = strValue.C_Str();
             std::string stem = texPath.stem().string();
             if (stem.find("N_") == std::string::npos)
                 texNormal->set("bump type", "Height Map");

@@ -12,7 +12,8 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForInfiniteSphere)(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForInfiniteSphere)(
+        const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         Vector3D direction = Vector3D::fromPolarYUp(param.phi, param.theta);
         float sinPhi, cosPhi;
         VLR::sincos(param.phi, &sinPhi, &cosPhi);
@@ -35,8 +36,9 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(const Instance &inst, const GeometryInstance &geomInst,
-                                                              const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(
+        const Instance &inst, const GeometryInstance &geomInst,
+        const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float u, v;
         float uvPDF;
         geomInst.asInfSphere.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);

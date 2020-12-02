@@ -88,6 +88,10 @@ namespace VLR {
 
 
 
+    uint32_t CallableProgram::NextID = 0;
+
+
+
     struct EntryPoint {
         enum Value {
             PathTracing = 0,
@@ -110,6 +114,24 @@ namespace VLR {
         m_ID = getInstanceID();
 
         m_cuContext = cuContext;
+
+        m_optix = {};
+        m_optix.nodeProcedureSetBuffer.initialize(m_cuContext, 256);
+        m_optix.smallNodeDescriptorBuffer.initialize(m_cuContext, 8192);
+        m_optix.mediumNodeDescriptorBuffer.initialize(m_cuContext, 8192);
+        m_optix.largeNodeDescriptorBuffer.initialize(m_cuContext, 1024);
+        m_optix.bsdfProcedureSetBuffer.initialize(m_cuContext, 64);
+        m_optix.edfProcedureSetBuffer.initialize(m_cuContext, 64);
+        m_optix.launchParams.nodeProcedureSetBuffer = m_optix.nodeProcedureSetBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.smallNodeDescriptorBuffer = m_optix.smallNodeDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.mediumNodeDescriptorBuffer = m_optix.mediumNodeDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.largeNodeDescriptorBuffer = m_optix.largeNodeDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.bsdfProcedureSetBuffer = m_optix.bsdfProcedureSetBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.edfProcedureSetBuffer = m_optix.edfProcedureSetBuffer.optixBuffer.getDevicePointer();
+
+        m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
+        m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
+
         m_optix.context = optixu::Context::create(cuContext);
 
         m_optix.pipeline = m_optix.context.createPipeline();
@@ -136,11 +158,11 @@ namespace VLR {
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
             m_optix.pathTracingRayGeneration = m_optix.pipeline.createRayGenProgram(
-                m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracing"));
+                m_optix.pathTracingModule, RT_RG_NAME_STR("pathTracing"));
 
-            m_optix.pathTracingMiss = m_optix.pipeline.createRayGenProgram(
-                m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracingMiss"));
-            m_optix.pathTracingShadowMiss = m_optix.pipeline.createRayGenProgram(
+            m_optix.pathTracingMiss = m_optix.pipeline.createMissProgram(
+                m_optix.pathTracingModule, RT_MS_NAME_STR("pathTracingMiss"));
+            m_optix.pathTracingShadowMiss = m_optix.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
 
             m_optix.pathTracingHitGroupDefault = m_optix.pipeline.createHitProgramGroup(
@@ -169,10 +191,10 @@ namespace VLR {
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
             m_optix.debugRenderingRayGeneration = m_optix.pipeline.createRayGenProgram(
-                m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingRayGeneration"));
+                m_optix.debugRenderingModule, RT_RG_NAME_STR("debugRenderingRayGeneration"));
 
-            m_optix.debugRenderingMiss = m_optix.pipeline.createRayGenProgram(
-                m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingMiss"));
+            m_optix.debugRenderingMiss = m_optix.pipeline.createMissProgram(
+                m_optix.debugRenderingModule, RT_MS_NAME_STR("debugRenderingMiss"));
 
             m_optix.debugRenderingHitGroupDefault = m_optix.pipeline.createHitProgramGroup(
                 m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingClosestHit"),
@@ -308,28 +330,12 @@ namespace VLR {
         m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_E = m_optix.UpsampledSpectrum_coefficients_sRGB_E.getDevicePointer();
 #endif
 
-        m_optix.nodeProcedureSetBuffer.initialize(m_cuContext, 256);
-        m_optix.smallNodeDescriptorBuffer.initialize(m_cuContext, 8192);
-        m_optix.mediumNodeDescriptorBuffer.initialize(m_cuContext, 8192);
-        m_optix.largeNodeDescriptorBuffer.initialize(m_cuContext, 1024);
-        m_optix.bsdfProcedureSetBuffer.initialize(m_cuContext, 64);
-        m_optix.edfProcedureSetBuffer.initialize(m_cuContext, 64);
-        m_optix.launchParams.nodeProcedureSetBuffer = m_optix.nodeProcedureSetBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.smallNodeDescriptorBuffer = m_optix.smallNodeDescriptorBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.mediumNodeDescriptorBuffer = m_optix.mediumNodeDescriptorBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.largeNodeDescriptorBuffer = m_optix.largeNodeDescriptorBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.bsdfProcedureSetBuffer = m_optix.bsdfProcedureSetBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.edfProcedureSetBuffer = m_optix.edfProcedureSetBuffer.optixBuffer.getDevicePointer();
-
-        m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
-        m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
-
         CUDADRV_CHECK(cuMemAlloc(&m_optix.launchParamsOnDevice, sizeof(Shared::PipelineLaunchParameters)));
 
 
 
         {
-            CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, "ptxes/convert_to_rgb.ptx"));
+            CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/convert_to_rgb.ptx").string().c_str()));
             m_cudaPostProcessConvertToRGB.set(m_cudaPostProcessModule, "convertToRGB", cudau::dim3(32), 0);
         }
 
@@ -438,6 +444,16 @@ namespace VLR {
         m_height = height;
 
         if (glTexID > 0) {
+            // JP: gl3wInit()は何らかのOpenGLコンテキストが作られた後に呼ぶ必要がある。
+            int32_t gl3wRet = gl3wInit();
+            VLRAssert(gl3wRet == 0, "gl3wInit() failed.");
+            constexpr uint32_t OpenGLMajorVersion = 3;
+            constexpr uint32_t OpenGLMinorVersion = 0;
+            if (!gl3wIsSupported(OpenGLMajorVersion, OpenGLMinorVersion)) {
+                vlrprintf("gl3w doesn't support OpenGL %u.%u\n", OpenGLMajorVersion, OpenGLMinorVersion);
+                return;
+            }
+
             m_outputBuffer.initializeFromGLTexture2D(
                 m_cuContext, glTexID,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable);
@@ -454,13 +470,14 @@ namespace VLR {
 
         m_rngBuffer.initialize(m_cuContext, g_bufferType, width, height);
         {
+            m_rngBuffer.map();
             std::mt19937_64 rng(591842031321323413);
-
             for (int y = 0; y < m_height; ++y) {
                 for (int x = 0; x < m_width; ++x) {
                     m_rngBuffer(x, y) = rng();
                 }
             }
+            m_rngBuffer.unmap();
         }
         m_optix.launchParams.rngBuffer = m_rngBuffer.getBlockBuffer2D();
     }

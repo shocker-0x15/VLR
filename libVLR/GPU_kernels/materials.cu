@@ -814,7 +814,7 @@ namespace VLR {
                 return SampledSpectrum::Zero();
             }
             float dotHL = dot(dirL, m);
-            float commonPDFTerm = (1 - reflectProb) / std::pow(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL, 2);
+            float commonPDFTerm = (1 - reflectProb) / pow2(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL);
             result->dirPDF = commonPDFTerm * mPDF * eExit[query.wlHint] * eExit[query.wlHint] * std::fabs(dotHL);
             result->sampledType = DirectionType::Transmission() | DirectionType::HighFreq();
 
@@ -828,7 +828,7 @@ namespace VLR {
                 float F_wl = fresnel.evaluate(dotHV_wl, wlIdx);
                 float G_wl = ggx.evaluateSmithG1(dirV, m_wl) * ggx.evaluateSmithG1(dirL, m_wl);
                 float D_wl = ggx.evaluate(m_wl);
-                ret[wlIdx] = std::fabs(dotHV_wl * dotHL_wl) * (1 - F_wl) * G_wl * D_wl / std::pow(eEnter[wlIdx] * dotHV_wl + eExit[wlIdx] * dotHL_wl, 2);
+                ret[wlIdx] = std::fabs(dotHV_wl * dotHL_wl) * (1 - F_wl) * G_wl * D_wl / pow2(eEnter[wlIdx] * dotHV_wl + eExit[wlIdx] * dotHL_wl);
 
                 //VLRAssert(std::isfinite(ret[wlIdx]), "fs: %g, F: %g, G, %g, D: %g, wlIdx: %u, qDir: %s",
                 //          ret[wlIdx], F_wl, G_wl, D_wl, query.wlHint, dirV.toString().c_str());
@@ -883,7 +883,7 @@ namespace VLR {
                 float F_wl = fresnel.evaluate(dotHV_wl, wlIdx);
                 float G_wl = ggx.evaluateSmithG1(dirV, m_wl) * ggx.evaluateSmithG1(dirL, m_wl);
                 float D_wl = ggx.evaluate(m_wl);
-                ret[wlIdx] = std::fabs(dotHV_wl * dotHL_wl) * (1 - F_wl) * G_wl * D_wl / std::pow(eEnter[wlIdx] * dotHV_wl + eExit[wlIdx] * dotHL_wl, 2);
+                ret[wlIdx] = std::fabs(dotHV_wl * dotHL_wl) * (1 - F_wl) * G_wl * D_wl / pow2(eEnter[wlIdx] * dotHV_wl + eExit[wlIdx] * dotHL_wl);
 
                 //VLRAssert(std::isfinite(ret[wlIdx]), "fs: %g, F: %g, G, %g, D: %g, wlIdx: %u, qDir: %s, dir: %s",
                 //          ret[wlIdx], F_wl, G_wl, D_wl, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
@@ -946,7 +946,7 @@ namespace VLR {
         }
         else {
             float dotHL = dot(dirL, m);
-            float commonPDFTerm = (1 - reflectProb) / std::pow(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL, 2);
+            float commonPDFTerm = (1 - reflectProb) / pow2(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL);
 
             //VLRAssert(std::isfinite(commonPDFTerm) && std::isfinite(mPDF),
             //          "commonPDFTerm: %g, mPDF: %g, F: %s, wlIdx: %u, qDir: %s, dir: %s",
@@ -1166,11 +1166,11 @@ namespace VLR {
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
         float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
-        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float oneMinusDotVN5 = pow5(1 - dirV.z);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
         float iBaseColor = p.diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
 
-        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float expectedOneMinusDotVH5 = pow5(1 - dirV.z);
         float iSpecularF0 = p.specularF0Color.importance(query.wlHint);
 
         float diffuseWeight = iBaseColor;
@@ -1227,7 +1227,7 @@ namespace VLR {
             diffuseDirPDF = dirL.z / VLR_M_PI;
         }
 
-        float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
+        float oneMinusDotLH5 = pow5(1 - dotLH);
 
 #if defined(USE_HEIGHT_CORRELATED_SMITH)
         float G = ggx.evaluateHeightCorrelatedSmithG(dirL, dirV, m);
@@ -1240,7 +1240,7 @@ namespace VLR {
         SampledSpectrum specularValue = F * ((D * G) / microfacetDenom);
 
         float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
-        float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
+        float oneMinusDotLN5 = pow5(1 - dirL.z);
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
         SampledSpectrum diffuseValue = p.diffuseColor * (diffuseFresnelOut * diffuseFresnelIn * lerp(1.0f, 1.0f / 1.51f, p.roughness) / VLR_M_PI);
@@ -1273,7 +1273,7 @@ namespace VLR {
         Normal3D m = halfVector(dirL, dirV);
         float dotLH = dot(dirL, m);
 
-        float oneMinusDotLH5 = std::pow(1 - dotLH, 5);
+        float oneMinusDotLH5 = pow5(1 - dotLH);
 
         float D = ggx.evaluate(m);
 #if defined(USE_HEIGHT_CORRELATED_SMITH)
@@ -1287,8 +1287,8 @@ namespace VLR {
         SampledSpectrum specularValue = F * ((D * G) / microfacetDenom);
 
         float F_D90 = 0.5f * p.roughness + 2 * p.roughness * dotLH * dotLH;
-        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
-        float oneMinusDotLN5 = std::pow(1 - dirL.z, 5);
+        float oneMinusDotVN5 = pow5(1 - dirV.z);
+        float oneMinusDotLN5 = pow5(1 - dirL.z);
         float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
         float diffuseFresnelIn = lerp(1.0f, F_D90, oneMinusDotLN5);
 
@@ -1315,11 +1315,11 @@ namespace VLR {
         float commonPDFTerm = 1.0f / (4 * dotLH);
 
         float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
-        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float oneMinusDotVN5 = pow5(1 - dirV.z);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
         float iBaseColor = p.diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
 
-        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float expectedOneMinusDotVH5 = pow5(1 - dirV.z);
         float iSpecularF0 = p.specularF0Color.importance(query.wlHint);
 
         float diffuseWeight = iBaseColor;
@@ -1343,11 +1343,11 @@ namespace VLR {
         Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
         float expectedF_D90 = 0.5f * p.roughness + 2 * p.roughness * query.dirLocal.z * query.dirLocal.z;
-        float oneMinusDotVN5 = std::pow(1 - dirV.z, 5);
+        float oneMinusDotVN5 = pow5(1 - dirV.z);
         float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
         float iBaseColor = p.diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, p.roughness);
 
-        float expectedOneMinusDotVH5 = std::pow(1 - dirV.z, 5);
+        float expectedOneMinusDotVH5 = pow5(1 - dirV.z);
         float iSpecularF0 = p.specularF0Color.importance(query.wlHint);
 
         float diffuseWeight = iBaseColor;

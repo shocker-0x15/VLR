@@ -390,8 +390,10 @@ namespace VLR {
         };
 
 #define VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(DstType, SrcType) \
-    template <> template <> constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
-    template <> template <> DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
+    template <> template <> \
+    CUDA_DEVICE_FUNCTION constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
+    template <> template <> \
+    CUDA_DEVICE_FUNCTION DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
 
@@ -521,7 +523,7 @@ namespace VLR {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
                 imgPlaneDistance = 1.0f;
-                imgPlaneArea = 1;// opWidth * opHeight * std::pow(imgPlaneDistance / objPlaneDistance, 2);
+                imgPlaneArea = 1;// opWidth * opHeight * pow2(imgPlaneDistance / objPlaneDistance);
             }
         };
 
@@ -890,7 +892,9 @@ namespace VLR {
             DebugRenderingAttribute debugRenderingAttribute;
         };
 
+#if defined(VLR_Device)
         RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;
+#endif
     }
 }
 

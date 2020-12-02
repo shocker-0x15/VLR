@@ -42,90 +42,6 @@ inline bool nonNullAndCheckType(const VLR::TypeAwareClass* obj) {
 
 
 
-VLR_API VLRResult vlrPrintDevices() {
-    uint32_t numDevices;
-    RTresult res;
-    res = rtDeviceGetDeviceCount(&numDevices);
-    if (res != RT_SUCCESS)
-        return VLRResult_InternalError;
-
-    for (int dev = 0; dev < numDevices; ++dev) {
-        vlrprintf("----------------------------------------------------------------\n");
-
-        char strBuffer[256];
-        int32_t intBuffer[2];
-        RTsize sizeValue;
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_NAME, sizeof(strBuffer), strBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("%d: %s\n", dev, strBuffer);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    CUDA Device Ordinal: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_PCI_BUS_ID, sizeof(strBuffer), strBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    PCI Bus ID: %s\n", strBuffer);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(intBuffer), intBuffer);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Compute Capability: %d, %d\n", intBuffer[0], intBuffer[1]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    TCC (Tesla Compute Cluster) Driver: %s\n", intBuffer[0] ? "Yes" : "No");
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(sizeValue), &sizeValue);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Total Memory: %llu [Byte]\n", sizeValue);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Clock Rate: %d [kHz]\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Max Threads per Block: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Multi Processor Count: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Max Hardware Texture Count: %d\n", intBuffer[0]);
-
-        res = rtDeviceGetAttribute(dev, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(intBuffer[0]), &intBuffer[0]);
-        if (res != RT_SUCCESS)
-            return VLRResult_InternalError;
-        vlrprintf("    Execution Timeout Enabled: %s\n", intBuffer[0] ? "Yes" : "No");
-    }
-    vlrprintf("----------------------------------------------------------------\n");
-
-    return VLRResult_NoError;
-}
-
-VLR_API VLRResult vlrGetDeviceName(uint32_t index, char* name, uint32_t bufferLength) {
-    RTresult res = rtDeviceGetAttribute(index, RT_DEVICE_ATTRIBUTE_NAME, bufferLength, name);
-    if (res == RT_SUCCESS)
-        return VLRResult_NoError;
-    else
-        return VLRResult_InternalError;
-}
-
-
-
 VLR_API const char* vlrGetErrorMessage(VLRResult code) {
     switch (code) {
     case VLRResult_NoError:
@@ -150,9 +66,9 @@ VLR_API const char* vlrGetErrorMessage(VLRResult code) {
 
 
 
-VLR_API VLRResult vlrCreateContext(VLRContext* context, bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize, const int32_t* devices, uint32_t numDevices) {
+VLR_API VLRResult vlrCreateContext(VLRContext* context, CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
     try {
-        *context = new VLR::Context(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
+        *context = new VLR::Context(cuContext, logging, maxCallableDepth);
 
         return VLRResult_NoError;
     }
@@ -168,26 +84,9 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-
-
-VLR_API VLRResult vlrContextGetNumDevices(VLRContext context, uint32_t* numDevices) {
+VLR_API VLRResult vlrContextGetCUcontext(VLRContext context, CUcontext* cuContext) {
     try {
-        if (numDevices == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *numDevices = context->getNumDevices();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrContextGetDeviceIndexAt(VLRContext context, uint32_t index, int32_t* deviceIndex) {
-    try {
-        if (deviceIndex == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *deviceIndex = context->getDeviceIndexAt(index);
+        *cuContext = context->getCuContext();
 
         return VLRResult_NoError;
     }
@@ -205,20 +104,14 @@ VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width,
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextMapOutputBuffer(VLRContext context, const void** ptr) {
+VLR_API VLRResult vlrContextGetOutputBuffer(VLRContext context, CUarray* array, uint32_t* width, uint32_t* height) {
     try {
-        if (ptr == nullptr)
+        if (array == nullptr || width == nullptr || height == nullptr)
             return VLRResult_InvalidArgument;
-        *ptr = context->mapOutputBuffer();
 
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrContextUnmapOutputBuffer(VLRContext context) {
-    try {
-        context->unmapOutputBuffer();
+        const cudau::Array &cudauArray = context->getOutputBuffer();
+        *array = cudauArray.getCUarray(0);
+        context->getOutputBufferSize(width, height);
 
         return VLRResult_NoError;
     }
@@ -1052,8 +945,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(VLRTriangleMeshSurfaceNo
         if (vertices == nullptr)
             return VLRResult_InvalidArgument;
 
-        std::vector<VLR::Vertex> vecVertices;
-        vecVertices.resize(numVertices);
+        std::vector<VLR::Vertex> vecVertices(numVertices);
         std::copy_n((VLR::Vertex*)vertices, numVertices, vecVertices.data());
 
         surfaceNode->setVertices(std::move(vecVertices));
@@ -1071,8 +963,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(VLRTriangleMeshSurf
         if (indices == nullptr || !nonNullAndCheckType<VLR::SurfaceMaterial>(material))
             return VLRResult_InvalidArgument;
 
-        std::vector<uint32_t> vecIndices;
-        vecIndices.resize(numIndices);
+        std::vector<uint32_t> vecIndices(numIndices);
         std::copy_n(indices, numIndices, vecIndices.data());
 
         surfaceNode->addMaterialGroup(std::move(vecIndices), material,

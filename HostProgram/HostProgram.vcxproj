@@ -31,7 +31,9 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.1.props" />
+  </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -60,9 +62,10 @@
       <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;OPENEXR_DLL;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
@@ -97,11 +100,12 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
       <AdditionalIncludeDirectories>C:\Users\shocker_0x15\Applications\vdb-win;$(ProjectDir)ext\include;$(ProjectDir)ext\include\imGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>OPENEXR_DLL;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>echo OpenEXR dlls
@@ -165,5 +169,7 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     <None Include="shaders\scale.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.1.targets" />
+  </ImportGroup>
 </Project>

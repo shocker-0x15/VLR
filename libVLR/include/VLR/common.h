@@ -86,9 +86,11 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 
 
 #if defined(VLR_Host)
-#   define CUDA_DEVICE_FUNCTION
+#   define CUDA_DEVICE_FUNCTION inline
+#   define HOST_STATIC_CONSTEXPR static constexpr
 #else
 #   define CUDA_DEVICE_FUNCTION __device__ __forceinline__
+#   define HOST_STATIC_CONSTEXPR
 #endif
 
 namespace VLR {

@@ -329,7 +329,6 @@ namespace VLR {
 
 
 
-    /*
     std::map<uint32_t, InfiniteSphereSurfaceNode::OptiXProgramSet> InfiniteSphereSurfaceNode::s_optiXProgramSets;
 
     // static
@@ -362,30 +361,29 @@ namespace VLR {
         s_optiXProgramSets.erase(context.getID());
     }
 
-    InfiniteSphereSurfaceNode::InfiniteSphereSurfaceNode(Context &context, const std::string &name, SurfaceMaterial* material) : 
+    InfiniteSphereSurfaceNode::InfiniteSphereSurfaceNode(Context &context, const std::string &name, EnvironmentEmitterSurfaceMaterial* material) :
         SurfaceNode(context, name), m_material(material) {
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         optixu::Scene optixScene = m_context.getOptiXScene();
 
-        Shared::GeometryInstance geomInst = {};
-        geomInst.asInfSphere.importanceMap = ;
-        geomInst.progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere.ID;
-        geomInst.materialIndex = material->getMaterialIndex();
-        geomInst.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO
-
-        m_optixGeomInst = optixScene.createGeometryInstance();
-        m_optixGeomInst.setNumMaterials(1, optixu::BufferView());
-        m_optixGeomInst.setMaterial(0, 0, );
-        m_optixGeomInst.setUserData(geomInst);
-        m_optixGeomInst.setGeometryFlags(0, OPTIX_GEOMETRY_FLAG_NONE);
-
         m_shGeomInst = new SHGeometryInstance();
+
+        m_material->getImportanceMap().getInternalType(&m_shGeomInst->data.asInfSphere.importanceMap);
+        m_shGeomInst->data.progSample = progSet.dcSampleInfiniteSphere.ID;
+        m_shGeomInst->data.progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere.ID;
+        m_shGeomInst->data.materialIndex = material->getMaterialIndex();
+        m_shGeomInst->data.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO
+
+        m_shGeomInst->optixGeomInst = optixScene.createGeometryInstance();
+        m_shGeomInst->optixGeomInst.setNumMaterials(1, optixu::BufferView());
+        m_shGeomInst->optixGeomInst.setMaterial(0, 0, m_context.getOptiXMaterialDefault());
+        m_shGeomInst->optixGeomInst.setUserData(m_shGeomInst->data);
+        m_shGeomInst->optixGeomInst.setGeometryFlags(0, OPTIX_GEOMETRY_FLAG_NONE);
     }
 
     InfiniteSphereSurfaceNode::~InfiniteSphereSurfaceNode() {
+        m_shGeomInst->optixGeomInst.destroy();
         delete m_shGeomInst;
-
-        m_optixGeomInst.destroy();
     }
 
     void InfiniteSphereSurfaceNode::addParent(ParentNode* parent) {
@@ -408,8 +406,7 @@ namespace VLR {
         delta.insert(m_shGeomInst);
 
         parent->geometryRemoveEvent(delta);
-    }
-    */
+    }    
 
 
 
@@ -724,7 +721,7 @@ namespace VLR {
         optixu::Scene optixScene = m_context.getOptiXScene();
 
         {
-            SHTransform* shtr = m_shTransforms[nullptr];
+            SHTransform* shtr = m_shTransforms.at(nullptr);
 
             StaticTransform xfm = shtr->getStaticTransform();
             float mat[16], invMat[16];
@@ -777,6 +774,7 @@ namespace VLR {
             tMat[ 8] = mat[ 2]; tMat[ 9] = mat[ 6]; tMat[10] = mat[10]; tMat[11] = mat[14];
 
             Instance &inst = m_instances[shtr];
+            inst = {};
             inst.instIndex = m_context.allocateInstance();
             inst.optixInst = optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
@@ -844,20 +842,22 @@ namespace VLR {
         const SHGeometryGroup* geomGroup;
         if (transform->hasGeometryDescendant(&geomGroup)) {
             uint32_t numGeomInsts = geomGroup->getNumChildren();
-            std::vector<uint32_t> geomInstIndices(numGeomInsts);
-            std::vector<float> geomInstImportanceValues(numGeomInsts);
-            geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
-            geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
+            if (numGeomInsts > 0) {
+                std::vector<uint32_t> geomInstIndices(numGeomInsts);
+                std::vector<float> geomInstImportanceValues(numGeomInsts);
+                geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
+                geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
 
-            inst.geomInstIndices.finalize();
-            inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-            inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
-            inst.lightGeomInstDistribution.finalize(m_context);
-            inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
+                inst.geomInstIndices.finalize();
+                inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
+                inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
+                inst.lightGeomInstDistribution.finalize(m_context);
+                inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-            inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
-            inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
-            m_context.updateInstance(inst.instIndex, inst.data);
+                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
+                inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+                m_context.updateInstance(inst.instIndex, inst.data);
+            }
         }
     }
 
@@ -870,20 +870,30 @@ namespace VLR {
         const SHGeometryGroup* geomGroup;
         if (transform->hasGeometryDescendant(&geomGroup)) {
             uint32_t numGeomInsts = geomGroup->getNumChildren();
-            std::vector<uint32_t> geomInstIndices(numGeomInsts);
-            std::vector<float> geomInstImportanceValues(numGeomInsts);
-            geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
-            geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
+            if (numGeomInsts > 0) {
+                std::vector<uint32_t> geomInstIndices(numGeomInsts);
+                std::vector<float> geomInstImportanceValues(numGeomInsts);
+                geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
+                geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
 
-            inst.geomInstIndices.finalize();
-            inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-            inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
-            inst.lightGeomInstDistribution.finalize(m_context);
-            inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
+                inst.geomInstIndices.finalize();
+                inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
+                inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
+                inst.lightGeomInstDistribution.finalize(m_context);
+                inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-            inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
-            inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
-            m_context.updateInstance(inst.instIndex, inst.data);
+                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
+                inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+                m_context.updateInstance(inst.instIndex, inst.data);
+            }
+            else {
+                inst.geomInstIndices.finalize();
+                inst.lightGeomInstDistribution.finalize(m_context);
+
+                inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+                inst.data.geomInstIndices = nullptr;
+                m_context.updateInstance(inst.instIndex, inst.data);
+            }
         }
         else {
             inst.geomInstIndices.finalize();

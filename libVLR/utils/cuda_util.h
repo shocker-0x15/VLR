@@ -61,7 +61,7 @@ typedef unsigned long long CUsurfObject;
 //     CUDA_UTIL_USE_GL_INTEROPの定義を行う。
 // EN: Obtain OpenGL function declarations (e.g. include gl3w.h) and define CUDA_UTIL_USE_GL_INTEROP
 //     if CUDA/OpenGL interoperability is required.
-//#   define CUDA_UTIL_USE_GL_INTEROP
+#   define CUDA_UTIL_USE_GL_INTEROP
 #   if defined(CUDA_UTIL_USE_GL_INTEROP)
 #       include <GL/gl3w.h>
 #       include <cudaGL.h>

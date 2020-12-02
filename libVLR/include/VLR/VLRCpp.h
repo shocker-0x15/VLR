@@ -636,9 +636,8 @@ namespace VLRCpp {
 
         Context() : m_rawContext(nullptr) {}
 
-        void initialize(bool logging, bool enableRTX, uint32_t maxCallableDepth, uint32_t stackSize,
-                        const int32_t* devices, uint32_t numDevices) {
-            errorCheck(vlrCreateContext(&m_rawContext, logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices));
+        void initialize(CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
+            errorCheck(vlrCreateContext(&m_rawContext, cuContext, logging, maxCallableDepth));
             m_identityTransform = std::make_shared<StaticTransformHolder>(shared_from_this(), VLR::Matrix4x4::Identity());
         }
 
@@ -661,10 +660,9 @@ namespace VLRCpp {
             m_enabledErrors.clear();
         }
 
-        static ContextRef create(bool logging, bool enableRTX = true, uint32_t maxCallableDepth = 8, uint32_t stackSize = 0,
-                                 const int32_t* devices = nullptr, uint32_t numDevices = 0) {
+        static ContextRef create(CUcontext cuContext, bool logging, uint32_t maxCallableDepth = 8) {
             auto ret = std::shared_ptr<Context>(new Context());
-            ret->initialize(logging, enableRTX, maxCallableDepth, stackSize, devices, numDevices);
+            ret->initialize(cuContext, logging, maxCallableDepth);
             ret->enableException(VLRResult_InvalidContext);
             ret->enableException(VLRResult_InvalidInstance);
             ret->enableException(VLRResult_InternalError);
@@ -685,34 +683,18 @@ namespace VLRCpp {
             return m_rawContext;
         }
 
-        uint32_t getNumDevices() const {
-            uint32_t numDevices;
-            errorCheck(vlrContextGetNumDevices(m_rawContext, &numDevices));
-            return numDevices;
-        }
-
-        int32_t getDeviceIndexAt(uint32_t index) const {
-            int32_t deviceIndex;
-            errorCheck(vlrContextGetDeviceIndexAt(m_rawContext, index, &deviceIndex));
-            return deviceIndex;
+        CUcontext getCUcontext() const {
+            CUcontext cuContext;
+            errorCheck(vlrContextGetCUcontext(m_rawContext, &cuContext));
+            return cuContext;
         }
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {
             errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID));
         }
 
-        const void* mapOutputBuffer() const {
-            const void* ptr = nullptr;
-            errorCheck(vlrContextMapOutputBuffer(m_rawContext, &ptr));
-            return ptr;
-        }
-
-        void unmapOutputBuffer() const {
-            errorCheck(vlrContextUnmapOutputBuffer(m_rawContext));
-        }
-
-        void getOutputBufferSize(uint32_t* width, uint32_t* height) const {
-            errorCheck(vlrContextGetOutputBufferSize(m_rawContext, width, height));
+        void getOutputBuffer(CUarray* array, uint32_t* width, uint32_t* height) const {
+            errorCheck(vlrContextGetOutputBuffer(m_rawContext, array, width, height));
         }
 
         void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {

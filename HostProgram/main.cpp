@@ -19,9 +19,24 @@
 
 
 
-namespace filesystem = std::experimental::filesystem;
-static filesystem::path getExecutableDirectory() {
-    static filesystem::path ret;
+#define CUDADRV_CHECK(call) \
+    do { \
+        CUresult error = call; \
+        if (error != CUDA_SUCCESS) { \
+            std::stringstream ss; \
+            const char* errMsg = "failed to get an error message."; \
+            cuGetErrorString(error, &errMsg); \
+            ss << "CUDA call (" << #call << " ) failed with error: '" \
+               << errMsg \
+               << "' (" __FILE__ << ":" << __LINE__ << ")\n"; \
+            throw std::runtime_error(ss.str().c_str()); \
+        } \
+    } while (0)
+
+
+
+static std::filesystem::path getExecutableDirectory() {
+    static std::filesystem::path ret;
 
     static bool done = false;
     if (!done) {
@@ -42,7 +57,7 @@ static filesystem::path getExecutableDirectory() {
     return ret;
 }
 
-static std::string readTxtFile(const filesystem::path& filepath) {
+static std::string readTxtFile(const std::filesystem::path& filepath) {
     std::ifstream ifs;
     ifs.open(filepath, std::ios::in);
     if (ifs.fail())
@@ -111,50 +126,52 @@ RGB max(const RGB &v, float maxValue) {
 }
 
 static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename, float brightnessCoeff, bool debugRendering) {
-    using namespace VLR;
-    using namespace VLRCpp;
+    //using namespace VLR;
+    //using namespace VLRCpp;
 
-    auto output = (const RGB*)context->mapOutputBuffer();
-    uint32_t width, height;
-    context->getOutputBufferSize(&width, &height);
-    auto data = new uint32_t[width * height];
+    //CUarray outputBuffer;
+    //uint32_t width, height;
+    //context->getOutputBuffer(&outputBuffer, &width, &height);
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            RGB srcPix = output[y * width + x];
-            uint32_t &pix = data[y * width + x];
+    //auto data = new uint32_t[width * height];
+    //auto output = (const RGB*)outputBuffer;
 
-            if (srcPix.r < -0.001f || srcPix.g < -0.001f || srcPix.b < -0.001f)
-                hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-            srcPix = max(srcPix, 0.0f);
-            if (!debugRendering) {
-                srcPix *= brightnessCoeff;
-                srcPix = RGB::One() - exp(-srcPix);
-                srcPix = sRGB_gamma(srcPix);
-            }
+    //for (int y = 0; y < height; ++y) {
+    //    for (int x = 0; x < width; ++x) {
+    //        RGB srcPix = output[y * width + x];
+    //        uint32_t &pix = data[y * width + x];
 
-            //float Y = srcPix.g;
-            //float b = srcPix.r + srcPix.g + srcPix.b;
-            //srcPix.r = srcPix.r / b;
-            //srcPix.g = srcPix.g / b;
-            //srcPix.b = Y * 0.6f;
-            //if (srcPix.r > 1.0f || srcPix.g > 1.0f || srcPix.b > 1.0f)
-            //    hpprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-            //srcPix = min(srcPix, 1.0f);
+    //        if (srcPix.r < -0.001f || srcPix.g < -0.001f || srcPix.b < -0.001f)
+    //            hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
+    //        srcPix = max(srcPix, 0.0f);
+    //        if (!debugRendering) {
+    //            srcPix *= brightnessCoeff;
+    //            srcPix = RGB::One() - exp(-srcPix);
+    //            srcPix = sRGB_gamma(srcPix);
+    //        }
 
-            Assert(srcPix.r <= 1.0f && srcPix.g <= 1.0f && srcPix.b <= 1.0f, "Pixel value should not be greater than 1.0.");
+    //        //float Y = srcPix.g;
+    //        //float b = srcPix.r + srcPix.g + srcPix.b;
+    //        //srcPix.r = srcPix.r / b;
+    //        //srcPix.g = srcPix.g / b;
+    //        //srcPix.b = Y * 0.6f;
+    //        //if (srcPix.r > 1.0f || srcPix.g > 1.0f || srcPix.b > 1.0f)
+    //        //    hpprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
+    //        //srcPix = min(srcPix, 1.0f);
 
-            pix = ((std::min<uint32_t>(srcPix.r * 256, 255) << 0) |
-                   (std::min<uint32_t>(srcPix.g * 256, 255) << 8) |
-                   (std::min<uint32_t>(srcPix.b * 256, 255) << 16) |
-                   (0xFF << 24));
-        }
-    }
+    //        Assert(srcPix.r <= 1.0f && srcPix.g <= 1.0f && srcPix.b <= 1.0f, "Pixel value should not be greater than 1.0.");
 
-    stbi_write_bmp(filename.c_str(), width, height, 4, data);
-    delete[] data;
+    //        pix = ((std::min<uint32_t>(srcPix.r * 256, 255) << 0) |
+    //               (std::min<uint32_t>(srcPix.g * 256, 255) << 8) |
+    //               (std::min<uint32_t>(srcPix.b * 256, 255) << 16) |
+    //               (0xFF << 24));
+    //    }
+    //}
 
-    context->unmapOutputBuffer();
+    //stbi_write_bmp(filename.c_str(), width, height, 4, data);
+    //delete[] data;
+
+    //context->unmapOutputBuffer();
 }
 
 
@@ -167,7 +184,6 @@ static void glfw_error_callback(int32_t error, const char* description) {
 
 class HostProgram {
     VLRCpp::ContextRef m_context;
-    std::vector<std::string> m_deviceNames;
 
     GLFWwindow* m_window;
     float m_UIScaling;
@@ -179,8 +195,8 @@ class HostProgram {
     int32_t m_curFBHeight;
 
     GLTK::VertexArray m_vertexArrayForFullScreen;
-    GLTK::Buffer m_outputBufferGL;
-    GLTK::BufferTexture m_outputTexture;
+    GLTK::Texture2D m_outputBufferGL;
+    GLTK::Sampler m_outputSampler;
     GLTK::GraphicsShader m_drawOptiXResultShader;
     GLTK::FrameBuffer m_frameBuffer;
     GLTK::GraphicsShader m_scaleShader;
@@ -290,13 +306,13 @@ class HostProgram {
     void showMiscWindow() {
         ImGui::Begin("Misc", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-        if (m_deviceNames.size() == 1)
-            ImGui::Text("Device: %s", m_deviceNames[0].c_str());
-        else {
-            ImGui::Text("Devices:");
-            for (int i = 0; i < m_deviceNames.size(); ++i)
-                ImGui::Text("%d: %s", i, m_deviceNames[i].c_str());
-        }
+        //if (m_deviceNames.size() == 1)
+        //    ImGui::Text("Device: %s", m_deviceNames[0].c_str());
+        //else {
+        //    ImGui::Text("Devices:");
+        //    for (int i = 0; i < m_deviceNames.size(); ++i)
+        //        ImGui::Text("%d: %s", i, m_deviceNames[i].c_str());
+        //}
 
         if (ImGui::InputInt2("Render Size", m_requestedSize, ImGuiInputTextFlags_EnterReturnsTrue))
             m_resizeRequested = true;
@@ -726,15 +742,6 @@ public:
     void initialize(const VLRCpp::ContextRef& context, GLFWmonitor* monitor, uint32_t initWindowSizeX, uint32_t initWindowSizeY) {
         m_context = context;
 
-        uint32_t numDevices = m_context->getNumDevices();
-        for (int i = 0; i < numDevices; ++i) {
-            int32_t deviceIndex = m_context->getDeviceIndexAt(i);
-            char deviceName[128];
-            vlrGetDeviceName(deviceIndex, deviceName, lengthof(deviceName));
-            m_deviceNames.emplace_back(deviceName);
-        }
-
-
         m_frameIndex = 0;
         m_resizeRequested = false;
         m_operatedCameraOnPrevFrame = false;
@@ -814,14 +821,16 @@ public:
 
 
 
-        m_outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(RGB), m_renderTargetSizeX * m_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+        m_outputBufferGL.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GLTK::SizedInternalFormat::RGBA32F);
         m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getRawHandle());
-        m_outputTexture.initialize(m_outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
+
+        m_outputSampler.initialize(GLTK::Sampler::MinFilter::Nearest, GLTK::Sampler::MagFilter::Nearest,
+                                   GLTK::Sampler::WrapMode::Repeat, GLTK::Sampler::WrapMode::Repeat);
 
         // JP: フルスクリーンクアッド(or 三角形)用の空のVAO。
         m_vertexArrayForFullScreen.initialize();
 
-        const filesystem::path exeDir = getExecutableDirectory();
+        const std::filesystem::path exeDir = getExecutableDirectory();
 
         // JP: OptiXの出力を書き出すシェーダー。
         m_drawOptiXResultShader.initializeVSPS(readTxtFile(exeDir / "shaders/drawOptiXResult.vert"),
@@ -864,7 +873,6 @@ public:
         m_frameBuffer.finalize();
 
         m_drawOptiXResultShader.finalize();
-        m_outputTexture.finalize();
         m_outputBufferGL.finalize();
 
         m_vertexArrayForFullScreen.finalize();
@@ -946,12 +954,10 @@ public:
                 m_requestedSize[1] = m_renderTargetSizeY;
 
                 m_frameBuffer.finalize();
-                m_outputTexture.finalize();
                 m_outputBufferGL.finalize();
 
-                m_outputBufferGL.initialize(GLTK::Buffer::Target::ArrayBuffer, sizeof(RGB), m_renderTargetSizeX * m_renderTargetSizeY, nullptr, GLTK::Buffer::Usage::StreamDraw);
+                m_outputBufferGL.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GLTK::SizedInternalFormat::RGBA32F);
                 m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getRawHandle());
-                m_outputTexture.initialize(m_outputBufferGL, GLTK::SizedInternalFormat::RGB32F);
 
                 m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
 
@@ -1103,13 +1109,14 @@ public:
                     glUniform1i(3, (int32_t)m_enableDebugRendering); GLTK::errorCheck();
 
                     glActiveTexture(GL_TEXTURE0); GLTK::errorCheck();
-                    m_outputTexture.bind();
+                    m_outputBufferGL.bind();
+                    m_outputSampler.bindToTextureUnit(0);
 
                     m_vertexArrayForFullScreen.bind();
                     glDrawArrays(GL_TRIANGLES, 0, 3); GLTK::errorCheck();
                     m_vertexArrayForFullScreen.unbind();
 
-                    m_outputTexture.unbind();
+                    m_outputBufferGL.unbind();
                 }
 
                 ImGui::Render();
@@ -1169,34 +1176,15 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     using namespace VLRCpp;
     using namespace VLR;
 
-    std::set<int32_t> devices;
     bool enableLogging = false;
-    bool enableRTX = true;
     bool enableGUI = true;
     uint32_t renderImageSizeX = 1920;
     uint32_t renderImageSizeY = 1080;
     uint32_t maxCallableDepth = 8;
-    uint32_t stackSize = 0;
 
     for (int i = 1; i < argc; ++i) {
         if (strncmp(argv[i], "--", 2) == 0) {
-            if (strcmp(argv[i] + 2, "list") == 0) {
-                vlrPrintDevices();
-            }
-            else if (strcmp(argv[i] + 2, "devices") == 0) {
-                ++i;
-                for (; i < argc; ++i) {
-                    if (strncmp(argv[i], "--", 2) == 0) {
-                        break;
-                    }
-                    devices.insert(atoi(argv[i]));
-                }
-                --i;
-            }
-            else if (strcmp(argv[i] + 2, "disableRTX") == 0) {
-                enableRTX = false;
-            }
-            else if (strcmp(argv[i] + 2, "logging") == 0) {
+            if (strcmp(argv[i] + 2, "logging") == 0) {
                 enableLogging = true;
             }
             else if (strcmp(argv[i] + 2, "nodisplay") == 0) {
@@ -1213,22 +1201,19 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 if (strncmp(argv[i], "--", 2) != 0)
                     maxCallableDepth = atoi(argv[i]);
             }
-            else if (strcmp(argv[i] + 2, "stacksize") == 0) {
-                ++i;
-                if (strncmp(argv[i], "--", 2) != 0)
-                    stackSize = atoi(argv[i]);
-            }
         }
     }
 
-    std::vector<int32_t> deviceArray;
-    if (!devices.empty()) {
-        for (auto it = devices.cbegin(); it != devices.cend(); ++it)
-            deviceArray.push_back(*it);
-    }
+    CUcontext cuContext;
+    int32_t cuDeviceCount;
+    CUstream cuStream;
+    CUDADRV_CHECK(cuInit(0));
+    CUDADRV_CHECK(cuDeviceGetCount(&cuDeviceCount));
+    CUDADRV_CHECK(cuCtxCreate(&cuContext, 0, 0));
+    CUDADRV_CHECK(cuCtxSetCurrent(cuContext));
+    CUDADRV_CHECK(cuStreamCreate(&cuStream, 0));
 
-    VLRCpp::ContextRef context = VLRCpp::Context::create(enableLogging, enableRTX, maxCallableDepth, stackSize,
-                                                         deviceArray.empty() ? nullptr : deviceArray.data(), deviceArray.size());
+    VLRCpp::ContextRef context = VLRCpp::Context::create(cuContext, enableLogging, maxCallableDepth);
 
     context->enableAllExceptions();
 

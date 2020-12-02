@@ -1,7 +1,8 @@
 ﻿#include "kernel_common.cuh"
 
 namespace VLR {
-    RT_CALLABLE_PROGRAM void decodeHitPointForTriangle(const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(
+        const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const auto &sbtr = HitGroupSBTRecordData::get();
 
         const Triangle &triangle = sbtr.geomInst.asTriMesh.triangleBuffer[param.primIndex];
@@ -46,8 +47,9 @@ namespace VLR {
 
 
 
-    RT_CALLABLE_PROGRAM void sampleTriangleMesh(const Instance &inst, const GeometryInstance &geomInst,
-                                                const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleTriangleMesh)(
+        const Instance &inst, const GeometryInstance &geomInst,
+        const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
         uint32_t primIdx = geomInst.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
 

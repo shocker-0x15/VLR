@@ -125,7 +125,7 @@ namespace VLR {
     template <typename RealType, int N>
     CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> cosNSampleHemisphere(RealType u0, RealType u1) {
         RealType phi = 2 * VLR_M_PI * u1;
-        RealType theta = std::acos(std::pow(u0, 1.0 / (1 + N)));
+        RealType theta = std::acos(std::pow(u0, 1.0f / (1 + N)));
         return Vector3DTemplate<RealType>::fromPolarZUp(phi, theta);
     }
 

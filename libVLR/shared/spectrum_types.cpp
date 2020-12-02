@@ -600,10 +600,10 @@ namespace VLR {
     }
 
 #if defined(VLR_Host)
-    template <> DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::xbar;
-    template <> DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::ybar;
-    template <> DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::zbar;
-    template <> float DiscretizedSpectrumTemplate<float, NumStrataForStorage>::integralCMF;
+    DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::xbar;
+    DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::ybar;
+    DiscretizedSpectrumTemplate<float, NumStrataForStorage>::CMF DiscretizedSpectrumTemplate<float, NumStrataForStorage>::zbar;
+    float DiscretizedSpectrumTemplate<float, NumStrataForStorage>::integralCMF;
 
     template <typename RealType, uint32_t NumStrataForStorage>
     void DiscretizedSpectrumTemplate<RealType, NumStrataForStorage>::initialize() {

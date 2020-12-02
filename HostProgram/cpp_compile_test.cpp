@@ -3,6 +3,18 @@
 
 // Just for compile test for C++ language.
 
+#define CUDADRV_CHECK(call) \
+    do { \
+        CUresult error = call; \
+        if (error != CUDA_SUCCESS) { \
+            const char* errMsg = "failed to get an error message."; \
+            cuGetErrorString(error, &errMsg); \
+            fprintf(stderr, "CUDA call (" ## #call ## " ) failed with error: %s (%s:%u)\n", \
+                    errMsg, __FILE__, __LINE__); \
+            exit(-1); \
+        } \
+    } while (0)
+
 static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef& context, const std::string& filepath, const std::string& spectrumType, const std::string& colorSpace) {
     return nullptr;
 }
@@ -17,7 +29,16 @@ static void Cpp_CompileTest() {
     using namespace VLR;
     using namespace VLRCpp;
 
-    ContextRef context = Context::create(enableLogging);
+    CUcontext cuContext;
+    int32_t cuDeviceCount;
+    CUstream cuStream;
+    CUDADRV_CHECK(cuInit(0));
+    CUDADRV_CHECK(cuDeviceGetCount(&cuDeviceCount));
+    CUDADRV_CHECK(cuCtxCreate(&cuContext, 0, 0));
+    CUDADRV_CHECK(cuCtxSetCurrent(cuContext));
+    CUDADRV_CHECK(cuStreamCreate(&cuStream, 0));
+    
+    ContextRef context = Context::create(cuContext, enableLogging);
 
     // Construct a scene by defining meshes and materials.
 
