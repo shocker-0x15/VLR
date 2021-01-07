@@ -75,28 +75,6 @@ namespace VLR {
 
 
 
-    struct CallableProgram {
-        static uint32_t NextID;
-        optixu::ProgramGroup programGroup;
-        uint32_t ID;
-
-        CallableProgram() : ID(0xFFFFFFFF) {}
-        void create(optixu::Pipeline pipeline,
-                    optixu::Module moduleDC, const char* baseNameDC,
-                    optixu::Module moduleCC, const char* baseNameCC) {
-            ID = NextID++;
-            programGroup = pipeline.createCallableProgramGroup(moduleDC, baseNameDC, moduleCC, baseNameCC);
-        }
-        void destroy() {
-            programGroup.destroy();
-        }
-        operator bool() const {
-            return ID != 0xFFFFFFFF;
-        }
-    };
-
-
-
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
@@ -137,18 +115,20 @@ namespace VLR {
             optixu::ProgramGroup debugRenderingHitGroupDefault;
             optixu::ProgramGroup debugRenderingHitGroupWithAlpha;
 
+            std::vector<optixu::ProgramGroup> callablePrograms;
+
             optixu::Module nullDFModule;
-            CallableProgram dcNullBSDF_setupBSDF;
-            CallableProgram dcNullBSDF_getBaseColor;
-            CallableProgram dcNullBSDF_matches;
-            CallableProgram dcNullBSDF_sampleInternal;
-            CallableProgram dcNullBSDF_evaluateInternal;
-            CallableProgram dcNullBSDF_evaluatePDFInternal;
-            CallableProgram dcNullBSDF_weightInternal;
+            uint32_t dcNullBSDF_setupBSDF;
+            uint32_t dcNullBSDF_getBaseColor;
+            uint32_t dcNullBSDF_matches;
+            uint32_t dcNullBSDF_sampleInternal;
+            uint32_t dcNullBSDF_evaluateInternal;
+            uint32_t dcNullBSDF_evaluatePDFInternal;
+            uint32_t dcNullBSDF_weightInternal;
             uint32_t nullBSDFProcedureSetIndex;
-            CallableProgram dcNullEDF_setupEDF;
-            CallableProgram dcNullEDF_evaluateEmittanceInternal;
-            CallableProgram dcNullEDF_evaluateInternal;
+            uint32_t dcNullEDF_setupEDF;
+            uint32_t dcNullEDF_evaluateEmittanceInternal;
+            uint32_t dcNullEDF_evaluateInternal;
             uint32_t nullEDFProcedureSetIndex;
 
             optixu::Material materialDefault;
@@ -169,14 +149,18 @@ namespace VLR {
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_D65;
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_E;
 #endif
+
+            optixu::HostBlockBuffer2D<SpectrumStorage, 0> rawOutputBuffer;
+            cudau::Array outputBuffer;
+            optixu::HostBlockBuffer2D<Shared::KernelRNG, 2> rngBuffer;
+
+            cudau::Buffer shaderBindingTable;
+            cudau::Buffer hitGroupShaderBindingTable;
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;
         cudau::Kernel m_cudaPostProcessConvertToRGB;
 
-        optixu::HostBlockBuffer2D<SpectrumStorage, 0> m_rawOutputBuffer;
-        cudau::Array m_outputBuffer;
-        optixu::HostBlockBuffer2D<Shared::KernelRNG, 2> m_rngBuffer;
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
@@ -217,6 +201,9 @@ namespace VLR {
             return m_optix.scene;
         }
 
+        uint32_t createDirectCallableProgram(optixu::Module dcModule, const char* dcName);
+        void destroyDirectCallableProgram(uint32_t index);
+
         uint32_t allocateNodeProcedureSet();
         void releaseNodeProcedureSet(uint32_t index);
         void updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet);
@@ -241,11 +228,11 @@ namespace VLR {
         void releaseEDFProcedureSet(uint32_t index);
         void updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet);
 
-        CallableProgram getOptixCallableProgramNullBSDF_setupBSDF() const {
+        uint32_t getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optix.dcNullBSDF_setupBSDF;
         }
         uint32_t getNullBSDFProcedureSetIndex() const { return m_optix.nullBSDFProcedureSetIndex; }
-        CallableProgram getOptixCallableProgramNullEDF_setupEDF() const {
+        uint32_t getOptixCallableProgramNullEDF_setupEDF() const {
             return m_optix.dcNullEDF_setupEDF;
         }
         uint32_t getNullEDFProcedureSetIndex() const { return m_optix.nullEDFProcedureSetIndex; }

@@ -200,6 +200,12 @@ namespace optixu {
             return m_rawBuffer.getBufferType();
         }
 
+        uint32_t getWidth() const {
+            return m_width;
+        }
+        uint32_t getHeight() const {
+            return m_height;
+        }
         CUdeviceptr getCUdeviceptr() const {
             return m_rawBuffer.getCUdeviceptr();
         }
@@ -229,7 +235,13 @@ namespace optixu {
 }
 
 #if !defined(__CUDA_ARCH__)
-inline optixu::BufferView getView(const cudau::Buffer &buffer) {
-    return optixu::BufferView(buffer.getCUdeviceptr(), buffer.numElements(), buffer.stride());
+
+template <>
+cudau::Buffer::operator optixu::BufferView() const {
+    return optixu::BufferView(getCUdeviceptr(), numElements(), stride());
 }
+
+//inline optixu::BufferView getView(const cudau::Buffer &buffer) {
+//    return optixu::BufferView(buffer.getCUdeviceptr(), buffer.numElements(), buffer.stride());
+//}
 #endif // !defined(__CUDA_ARCH__)

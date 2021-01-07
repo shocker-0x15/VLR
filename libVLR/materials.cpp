@@ -5,61 +5,49 @@ namespace VLR {
 
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
-        optixu::Pipeline pipeline = context.getOptixPipeline();
-
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
-            programSet->callableProgramSetupBSDF.create(
-                pipeline, s_optixModule, identifiers[0],
-                optixu::Module(), nullptr);
+            programSet->dcSetupBSDF = context.createDirectCallableProgram(
+                s_optixModule, identifiers[0]);
 
-            programSet->callableProgramBSDFGetBaseColor.create(
-                pipeline, s_optixModule, identifiers[1],
-                optixu::Module(), nullptr);
-            programSet->callableProgramBSDFmatches.create(
-                pipeline, s_optixModule, identifiers[2],
-                optixu::Module(), nullptr);
-            programSet->callableProgramBSDFSampleInternal.create(
-                pipeline, s_optixModule, identifiers[3],
-                optixu::Module(), nullptr);
-            programSet->callableProgramBSDFEvaluateInternal.create(
-                pipeline, s_optixModule, identifiers[4],
-                optixu::Module(), nullptr);
-            programSet->callableProgramBSDFEvaluatePDFInternal.create(
-                pipeline, s_optixModule, identifiers[5],
-                optixu::Module(), nullptr);
-            programSet->callableProgramBSDFWeightInternal.create(
-                pipeline, s_optixModule, identifiers[6],
-                optixu::Module(), nullptr);
+            programSet->dcBSDFGetBaseColor = context.createDirectCallableProgram(
+                s_optixModule, identifiers[1]);
+            programSet->dcBSDFmatches = context.createDirectCallableProgram(
+                s_optixModule, identifiers[2]);
+            programSet->dcBSDFSampleInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[3]);
+            programSet->dcBSDFEvaluateInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[4]);
+            programSet->dcBSDFEvaluatePDFInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[5]);
+            programSet->dcBSDFWeightInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[6]);
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
-                bsdfProcSet.progGetBaseColor = programSet->callableProgramBSDFGetBaseColor.ID;
-                bsdfProcSet.progMatches = programSet->callableProgramBSDFmatches.ID;
-                bsdfProcSet.progSampleInternal = programSet->callableProgramBSDFSampleInternal.ID;
-                bsdfProcSet.progEvaluateInternal = programSet->callableProgramBSDFEvaluateInternal.ID;
-                bsdfProcSet.progEvaluatePDFInternal = programSet->callableProgramBSDFEvaluatePDFInternal.ID;
-                bsdfProcSet.progWeightInternal = programSet->callableProgramBSDFWeightInternal.ID;
+                bsdfProcSet.progGetBaseColor = programSet->dcBSDFGetBaseColor;
+                bsdfProcSet.progMatches = programSet->dcBSDFmatches;
+                bsdfProcSet.progSampleInternal = programSet->dcBSDFSampleInternal;
+                bsdfProcSet.progEvaluateInternal = programSet->dcBSDFEvaluateInternal;
+                bsdfProcSet.progEvaluatePDFInternal = programSet->dcBSDFEvaluatePDFInternal;
+                bsdfProcSet.progWeightInternal = programSet->dcBSDFWeightInternal;
             }
             programSet->bsdfProcedureSetIndex = context.allocateBSDFProcedureSet();
             context.updateBSDFProcedureSet(programSet->bsdfProcedureSetIndex, bsdfProcSet);
         }
 
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
-            programSet->callableProgramSetupEDF.create(
-                pipeline, s_optixModule, identifiers[7],
-                optixu::Module(), nullptr);
+            programSet->dcSetupEDF = context.createDirectCallableProgram(
+                s_optixModule, identifiers[7]);
 
-            programSet->callableProgramEDFEvaluateEmittanceInternal.create(
-                pipeline, s_optixModule, identifiers[8],
-                optixu::Module(), nullptr);
-            programSet->callableProgramEDFEvaluateInternal.create(
-                pipeline, s_optixModule, identifiers[9],
-                optixu::Module(), nullptr);
+            programSet->dcEDFEvaluateEmittanceInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[8]);
+            programSet->dcEDFEvaluateInternal = context.createDirectCallableProgram(
+                s_optixModule, identifiers[9]);
 
             Shared::EDFProcedureSet edfProcSet;
             {
-                edfProcSet.progEvaluateEmittanceInternal = programSet->callableProgramEDFEvaluateEmittanceInternal.ID;
-                edfProcSet.progEvaluateInternal = programSet->callableProgramEDFEvaluateInternal.ID;
+                edfProcSet.progEvaluateEmittanceInternal = programSet->dcEDFEvaluateEmittanceInternal;
+                edfProcSet.progEvaluateInternal = programSet->dcEDFEvaluateInternal;
             }
             programSet->edfProcedureSetIndex = context.allocateEDFProcedureSet();
             context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet);
@@ -68,46 +56,56 @@ namespace VLR {
 
     // static
     void SurfaceMaterial::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
-        if (programSet.callableProgramSetupEDF) {
+        if (programSet.dcSetupEDF) {
             context.releaseEDFProcedureSet(programSet.edfProcedureSetIndex);
 
-            programSet.callableProgramEDFEvaluateInternal.destroy();
-            programSet.callableProgramEDFEvaluateEmittanceInternal.destroy();
+            if (programSet.dcEDFEvaluateInternal != 0xFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcEDFEvaluateInternal);
+            if (programSet.dcEDFEvaluateEmittanceInternal != 0xFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcEDFEvaluateEmittanceInternal);
 
-            programSet.callableProgramSetupEDF.destroy();
+            if (programSet.dcSetupEDF != 0xFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcSetupEDF);
         }
 
-        if (programSet.callableProgramSetupBSDF) {
+        if (programSet.dcSetupBSDF) {
             context.releaseBSDFProcedureSet(programSet.bsdfProcedureSetIndex);
 
-            programSet.callableProgramBSDFWeightInternal.destroy();
-            programSet.callableProgramBSDFEvaluatePDFInternal.destroy();
-            programSet.callableProgramBSDFEvaluateInternal.destroy();
-            programSet.callableProgramBSDFSampleInternal.destroy();
-            programSet.callableProgramBSDFmatches.destroy();
-            programSet.callableProgramBSDFGetBaseColor.destroy();
+            if (programSet.dcBSDFWeightInternal != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFWeightInternal);
+            if (programSet.dcBSDFEvaluatePDFInternal != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFEvaluatePDFInternal);
+            if (programSet.dcBSDFEvaluateInternal != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFEvaluateInternal);
+            if (programSet.dcBSDFSampleInternal != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFSampleInternal);
+            if (programSet.dcBSDFmatches != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFmatches);
+            if (programSet.dcBSDFGetBaseColor != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcBSDFGetBaseColor);
 
-            programSet.callableProgramSetupBSDF.destroy();
+            if (programSet.dcSetupBSDF != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.dcSetupBSDF);
         }
     }
 
     // static
     void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc) {
-        if (progSet.callableProgramSetupBSDF) {
-            matDesc->progSetupBSDF = progSet.callableProgramSetupBSDF.ID;
+        if (progSet.dcSetupBSDF) {
+            matDesc->progSetupBSDF = progSet.dcSetupBSDF;
             matDesc->bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
         }
         else {
-            matDesc->progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF().ID;
+            matDesc->progSetupBSDF = context.getOptixCallableProgramNullBSDF_setupBSDF();
             matDesc->bsdfProcedureSetIndex = context.getNullBSDFProcedureSetIndex();
         }
 
-        if (progSet.callableProgramSetupEDF) {
-            matDesc->progSetupEDF = progSet.callableProgramSetupEDF.ID;
+        if (progSet.dcSetupEDF) {
+            matDesc->progSetupEDF = progSet.dcSetupEDF;
             matDesc->edfProcedureSetIndex = progSet.edfProcedureSetIndex;
         }
         else {
-            matDesc->progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF().ID;
+            matDesc->progSetupEDF = context.getOptixCallableProgramNullEDF_setupEDF();
             matDesc->edfProcedureSetIndex = context.getNullEDFProcedureSetIndex();
         }
     }

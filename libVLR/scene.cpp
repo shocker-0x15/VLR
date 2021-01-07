@@ -13,7 +13,7 @@ namespace VLR {
         auto idx = std::find(m_shGeomInsts.cbegin(), m_shGeomInsts.cend(), geomInst);
         VLRAssert(idx != m_shGeomInsts.cend(), "SHGeometryInstance %p is not a child of SHGeometryGroup %p.", geomInst, this);
         m_shGeomInsts.erase(idx);
-        m_optixGas.removeChild(geomInst->optixGeomInst);
+        m_optixGas.removeChildAt(m_optixGas.findChildIndex(geomInst->optixGeomInst));
     }
 
     void SHGeometryGroup::updateChild(const SHGeometryInstance* geomInst) {
@@ -153,14 +153,10 @@ namespace VLR {
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
             VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-        programSet.dcDecodeHitPointForTriangle.create(
-            optixPipeline,
-            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForTriangle"),
-            optixu::Module(), nullptr);
-        programSet.dcSampleTriangleMesh.create(
-            optixPipeline,
-            programSet.optixModule, RT_DC_NAME_STR("sampleTriangleMesh"),
-            optixu::Module(), nullptr);
+        programSet.dcDecodeHitPointForTriangle = context.createDirectCallableProgram(
+            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForTriangle"));
+        programSet.dcSampleTriangleMesh = context.createDirectCallableProgram(
+            programSet.optixModule, RT_DC_NAME_STR("sampleTriangleMesh"));
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -168,8 +164,8 @@ namespace VLR {
     // static
     void TriangleMeshSurfaceNode::finalize(Context &context) {
         OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
-        programSet.dcSampleTriangleMesh.destroy();
-        programSet.dcDecodeHitPointForTriangle.destroy();
+        context.destroyDirectCallableProgram(programSet.dcSampleTriangleMesh);
+        context.destroyDirectCallableProgram(programSet.dcDecodeHitPointForTriangle);
         s_optiXProgramSets.erase(context.getID());
     }
 
@@ -295,8 +291,8 @@ namespace VLR {
         shGeomInst->data.asTriMesh.vertexBuffer = m_optixVertexBuffer.getDevicePointer();
         shGeomInst->data.asTriMesh.triangleBuffer = matGroup.optixIndexBuffer.getDevicePointer();
         matGroup.primDist.getInternalType(&shGeomInst->data.asTriMesh.primDistribution);
-        shGeomInst->data.progSample = progSet.dcSampleTriangleMesh.ID;
-        shGeomInst->data.progDecodeHitPoint = progSet.dcDecodeHitPointForTriangle.ID;
+        shGeomInst->data.progSample = progSet.dcSampleTriangleMesh;
+        shGeomInst->data.progDecodeHitPoint = progSet.dcDecodeHitPointForTriangle;
         shGeomInst->data.nodeNormal = matGroup.nodeNormal.getSharedType();
         shGeomInst->data.nodeTangent = matGroup.nodeTangent.getSharedType();
         shGeomInst->data.nodeAlpha = matGroup.nodeAlpha.getSharedType();
@@ -304,8 +300,8 @@ namespace VLR {
         shGeomInst->data.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
 
         shGeomInst->optixGeomInst = optixScene.createGeometryInstance();
-        shGeomInst->optixGeomInst.setVertexBuffer(getView(m_optixVertexBuffer));
-        shGeomInst->optixGeomInst.setTriangleBuffer(getView(matGroup.optixIndexBuffer));
+        shGeomInst->optixGeomInst.setVertexBuffer(m_optixVertexBuffer);
+        shGeomInst->optixGeomInst.setTriangleBuffer(matGroup.optixIndexBuffer);
         shGeomInst->optixGeomInst.setNumMaterials(1, optixu::BufferView());
         shGeomInst->optixGeomInst.setMaterial(0, 0, optixMaterial);
         shGeomInst->optixGeomInst.setUserData(shGeomInst->data);
@@ -341,14 +337,10 @@ namespace VLR {
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
             VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-        programSet.dcDecodeHitPointForInfiniteSphere.create(
-            optixPipeline,
-            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForInfiniteSphere"),
-            optixu::Module(), nullptr);
-        programSet.dcSampleInfiniteSphere.create(
-            optixPipeline,
-            programSet.optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"),
-            optixu::Module(), nullptr);
+        programSet.dcDecodeHitPointForInfiniteSphere = context.createDirectCallableProgram(
+            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForInfiniteSphere"));
+        programSet.dcSampleInfiniteSphere = context.createDirectCallableProgram(
+            programSet.optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"));
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -356,8 +348,8 @@ namespace VLR {
     // static
     void InfiniteSphereSurfaceNode::finalize(Context &context) {
         OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
-        programSet.dcSampleInfiniteSphere.destroy();
-        programSet.dcDecodeHitPointForInfiniteSphere.destroy();
+        context.destroyDirectCallableProgram(programSet.dcSampleInfiniteSphere);
+        context.destroyDirectCallableProgram(programSet.dcDecodeHitPointForInfiniteSphere);
         s_optiXProgramSets.erase(context.getID());
     }
 
@@ -369,8 +361,8 @@ namespace VLR {
         m_shGeomInst = new SHGeometryInstance();
 
         m_material->getImportanceMap().getInternalType(&m_shGeomInst->data.asInfSphere.importanceMap);
-        m_shGeomInst->data.progSample = progSet.dcSampleInfiniteSphere.ID;
-        m_shGeomInst->data.progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere.ID;
+        m_shGeomInst->data.progSample = progSet.dcSampleInfiniteSphere;
+        m_shGeomInst->data.progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere;
         m_shGeomInst->data.materialIndex = material->getMaterialIndex();
         m_shGeomInst->data.importance = material->isEmitting() ? 1.0f : 0.0f; // TODO
 
@@ -588,6 +580,23 @@ namespace VLR {
         return it->second;
     }
 
+    void ParentNode::prepareSetup(size_t* asScratchSize) {
+        *asScratchSize = 0;
+        size_t tempAsScratchSize;
+        m_shGeomGroup->prepareSetup(&tempAsScratchSize);
+        *asScratchSize = std::max(tempAsScratchSize, *asScratchSize);
+        for (auto it = m_childToSerialIDMap.cbegin(); it != m_childToSerialIDMap.cend(); ++it) {
+            it->first->prepareSetup(&tempAsScratchSize);
+            *asScratchSize = std::max(tempAsScratchSize, *asScratchSize);
+        }
+    }
+
+    void ParentNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+        for (auto it = m_childToSerialIDMap.cbegin(); it != m_childToSerialIDMap.cend(); ++it)
+            it->first->setup(cuStream, asScratchMem, launchParams);
+        m_shGeomGroup->setup(cuStream, asScratchMem);
+    }
+
 
 
     InternalNode::InternalNode(Context &context, const std::string &name, const Transform* localToWorld) :
@@ -742,6 +751,8 @@ namespace VLR {
     }
 
     RootNode::~RootNode() {
+        m_optixInstanceBuffer.finalize();
+        m_optixIasMem.finalize();
         m_optixIas.destroy();
 
         const SHTransform* shtr = m_shTransforms.at(nullptr);
@@ -857,6 +868,9 @@ namespace VLR {
                 inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
                 inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
                 m_context.updateInstance(inst.instIndex, inst.data);
+
+                inst.optixInst.setChild(geomGroup->getOptixGas());
+                m_optixIas.addChild(inst.optixInst);
             }
         }
     }
@@ -887,6 +901,8 @@ namespace VLR {
                 m_context.updateInstance(inst.instIndex, inst.data);
             }
             else {
+                m_optixIas.removeChildAt(m_optixIas.findChildIndex(inst.optixInst));
+
                 inst.geomInstIndices.finalize();
                 inst.lightGeomInstDistribution.finalize(m_context);
 
@@ -896,6 +912,8 @@ namespace VLR {
             }
         }
         else {
+            m_optixIas.removeChildAt(m_optixIas.findChildIndex(inst.optixInst));
+
             inst.geomInstIndices.finalize();
             inst.lightGeomInstDistribution.finalize(m_context);
 
@@ -931,26 +949,62 @@ namespace VLR {
         }
     }
 
-    void RootNode::setup(Shared::PipelineLaunchParameters* launchParams) {
-        
+    void RootNode::prepareSetup(size_t* asScratchSize) {
+        *asScratchSize = 0;
+        size_t tempAsScratchSize;
+        ParentNode::prepareSetup(&tempAsScratchSize);
+        *asScratchSize = std::max(tempAsScratchSize, *asScratchSize);
+
+        OptixAccelBufferSizes asSizes;
+        m_optixIas.prepareForBuild(&asSizes);
+        if (!m_optixIasMem.isInitialized() || m_optixIasMem.sizeInBytes() < asSizes.outputSizeInBytes) {
+            m_optixInstanceBuffer.finalize();
+            m_optixIasMem.finalize();
+            CUcontext cuContext = m_optixIas.getContext().getCUcontext();
+            m_optixIasMem.initialize(cuContext, g_bufferType, asSizes.outputSizeInBytes, 1);
+            m_optixInstanceBuffer.initialize(cuContext, g_bufferType, std::max(m_optixIas.getNumChildren(), 1u));
+        }
+        *asScratchSize = std::max(std::max(asSizes.tempSizeInBytes, asSizes.tempUpdateSizeInBytes), *asScratchSize);
+    }
+
+    void RootNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+        ParentNode::setup(cuStream, asScratchMem, launchParams);
+
+        launchParams->topGroup = m_optixIas.rebuild(cuStream, m_optixInstanceBuffer, m_optixIasMem, asScratchMem);
     }
 
 
 
-    Scene::Scene(Context &context, const Transform* localToWorld) : 
-    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr), m_envRotationPhi(0) {
+    std::map<uint32_t, Scene::OptiXProgramSet> Scene::s_optiXProgramSets;
+
+    // static
+    void Scene::initialize(Context &context) {
         optixu::Pipeline optixPipeline = context.getOptixPipeline();
+
+        OptiXProgramSet programSet;
         std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere_intersection.ptx");
-        m_optixModule = optixPipeline.createModuleFromPTXString(
+        programSet.optixModule = optixPipeline.createModuleFromPTXString(
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
             VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-        m_dcSampleInfiniteSphere.create(optixPipeline, m_optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"), optixu::Module(), nullptr);
+        programSet.dcSampleInfiniteSphere = context.createDirectCallableProgram(
+            programSet.optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"));
+
+        s_optiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void Scene::finalize(Context &context) {
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
+        context.destroyDirectCallableProgram(programSet.dcSampleInfiniteSphere);
+        s_optiXProgramSets.erase(context.getID());
+    }
+    
+    Scene::Scene(Context &context, const Transform* localToWorld) : 
+    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr), m_envRotationPhi(0) {
     }
 
     Scene::~Scene() {
-        m_dcSampleInfiniteSphere.destroy();
-        m_optixModule.destroy();
     }
 
     void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
@@ -961,8 +1015,14 @@ namespace VLR {
         m_envRotationPhi = rotationPhi;
     }
 
-    void Scene::setup(Shared::PipelineLaunchParameters* launchParams) {
-        m_rootNode.setup(launchParams);
+    void Scene::prepareSetup(size_t* asScratchSize) {
+        m_rootNode.prepareSetup(asScratchSize);
+    }
+
+    void Scene::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+        CUcontext cuContext = m_context.getCuContext();
+
+        m_rootNode.setup(cuStream, asScratchMem, launchParams);
 
         //optixu::Context optixContext = m_context.getOptiXContext();
 
@@ -986,17 +1046,16 @@ namespace VLR {
     // static
     void Camera::commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet) {
         optixu::Module optixModule = s_optixModules.at(context.getID());
-        optixu::Pipeline pipeline = context.getOptixPipeline();
 
-        programSet->dcSampleLensPosition.create(pipeline, optixModule, identifiers[0], optixu::Module(), nullptr);
-        programSet->dcSampleIDF.create(pipeline, optixModule, identifiers[1], optixu::Module(), nullptr);
+        programSet->dcSampleLensPosition = context.createDirectCallableProgram(optixModule, identifiers[0]);
+        programSet->dcSampleIDF = context.createDirectCallableProgram(optixModule, identifiers[1]);
     }
 
     // static
     void Camera::commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet) {
         if (programSet.dcSampleLensPosition) {
-            programSet.dcSampleIDF.destroy();
-            programSet.dcSampleLensPosition.destroy();
+            context.destroyDirectCallableProgram(programSet.dcSampleIDF);
+            context.destroyDirectCallableProgram(programSet.dcSampleLensPosition);
         }
     }
     
@@ -1204,8 +1263,8 @@ namespace VLR {
     void PerspectiveCamera::setup(Shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->perspectiveCamera = m_data;
-        launchParams->progSampleLensPosition = progSet.dcSampleLensPosition.ID;
-        launchParams->progSampleIDF = progSet.dcSampleIDF.ID;
+        launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
+        launchParams->progSampleIDF = progSet.dcSampleIDF;
     }
 
 
@@ -1360,7 +1419,7 @@ namespace VLR {
     void EquirectangularCamera::setup(Shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->equirectangularCamera = m_data;
-        launchParams->progSampleLensPosition = progSet.dcSampleLensPosition.ID;
-        launchParams->progSampleIDF = progSet.dcSampleIDF.ID;
+        launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
+        launchParams->progSampleIDF = progSet.dcSampleIDF;
     }
 }

@@ -1,6 +1,6 @@
 ﻿/*
 
-   Copyright 2020 Shin Watanabe
+   Copyright 2021 Shin Watanabe
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@
 
 
 #if defined(__CUDACC_RTC__)
-// Defining cstdint and cfloat (under cuda/std) is left to the user.
+// Defining things corresponding to cstdint and cfloat is left to the user.
 typedef unsigned long long CUtexObject;
 typedef unsigned long long CUsurfObject;
 #else
@@ -311,18 +311,17 @@ namespace cudau {
         Buffer(Buffer &&b);
         Buffer &operator=(Buffer &&b);
 
+        template <typename T>
+        inline operator T() const;
+
         void initialize(CUcontext context, BufferType type,
                         uint32_t numElements, uint32_t stride) {
             initialize(context, type, numElements, stride, 0);
         }
         void initializeFromGLBuffer(CUcontext context, uint32_t stride, uint32_t glBufferID) {
 #if defined(CUDA_UTIL_USE_GL_INTEROP)
-            GLint currentBuffer;
-            glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &currentBuffer);
-            glBindBuffer(GL_ARRAY_BUFFER, glBufferID);
             GLint size;
-            glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-            glBindBuffer(GL_ARRAY_BUFFER, currentBuffer);
+            glGetNamedBufferParameteriv(glBufferID, GL_BUFFER_SIZE, &size);
             if (size % stride != 0)
                 throw std::runtime_error("Given buffer's size is not a multiple of the given stride.");
             initialize(context, BufferType::GL_Interop, size / stride, stride, glBufferID);
@@ -374,10 +373,14 @@ namespace cudau {
         }
         void unmap(CUstream stream = 0);
         void* getMappedPointer() const {
+            if (m_mappedPointer == nullptr)
+                throw std::runtime_error("The buffer is not not mapped.");
             return m_mappedPointer;
         }
         template <typename T>
         T* getMappedPointer() const {
+            if (m_mappedPointer == nullptr)
+                throw std::runtime_error("The buffer is not not mapped.");
             return reinterpret_cast<T*>(m_mappedPointer);
         }
         template <typename T>
@@ -620,18 +623,14 @@ namespace cudau {
         void initializeFromGLTexture2D(CUcontext context, uint32_t glTexID,
                                        ArraySurface surfaceLoadStore, ArrayTextureGather useTextureGather) {
 #if defined(CUDA_UTIL_USE_GL_INTEROP)
-            GLint currentTexture;
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
-            glBindTexture(GL_TEXTURE_2D, glTexID);
             GLint width, height;
             GLint numMipmapLevels;
             GLint format;
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &format);
-            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_VIEW_NUM_LEVELS, &numMipmapLevels);
+            glGetTextureLevelParameteriv(glTexID, 0, GL_TEXTURE_WIDTH, &width);
+            glGetTextureLevelParameteriv(glTexID, 0, GL_TEXTURE_HEIGHT, &height);
+            glGetTextureLevelParameteriv(glTexID, 0, GL_TEXTURE_INTERNAL_FORMAT, &format);
+            glGetTextureParameteriv(glTexID, GL_TEXTURE_VIEW_NUM_LEVELS, &numMipmapLevels);
             numMipmapLevels = std::max(numMipmapLevels, 1);
-            glBindTexture(GL_TEXTURE_2D, currentTexture);
             ArrayElementType elemType;
             uint32_t numChannels;
             getArrayElementFormat((GLenum)format, &elemType, &numChannels);

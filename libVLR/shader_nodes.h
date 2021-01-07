@@ -52,8 +52,12 @@ namespace VLR {
     class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
-            CallableProgram callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
+            uint32_t callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
             uint32_t nodeProcedureSetIndex;
+
+            OptiXProgramSet() {
+                std::fill_n(callablePrograms, lengthof(callablePrograms), 0xFFFFFFFF);
+            }
         };
     public:
         virtual uint32_t getProcedureSetIndex() const = 0;

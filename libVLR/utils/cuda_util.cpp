@@ -1,6 +1,6 @@
 ﻿/*
 
-   Copyright 2020 Shin Watanabe
+   Copyright 2021 Shin Watanabe
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -501,6 +501,7 @@ namespace cudau {
         m_width = b.m_width;
         m_height = b.m_height;
         m_depth = b.m_depth;
+        m_numMipmapLevels = b.m_numMipmapLevels;
         m_stride = b.m_stride;
         m_elemType = b.m_elemType;
         m_numChannels = b.m_numChannels;
@@ -515,6 +516,7 @@ namespace cudau {
         m_GLTexID = b.m_GLTexID;
         m_cudaGfxResource = b.m_cudaGfxResource;
         m_surfaceLoadStore = b.m_surfaceLoadStore;
+        m_useTextureGather = b.m_useTextureGather;
         m_cubemap = b.m_cubemap;
         m_layered = b.m_layered;
         m_initialized = b.m_initialized;
@@ -529,6 +531,7 @@ namespace cudau {
         m_width = b.m_width;
         m_height = b.m_height;
         m_depth = b.m_depth;
+        m_numMipmapLevels = b.m_numMipmapLevels;
         m_stride = b.m_stride;
         m_elemType = b.m_elemType;
         m_numChannels = b.m_numChannels;
@@ -543,6 +546,7 @@ namespace cudau {
         m_GLTexID = b.m_GLTexID;
         m_cudaGfxResource = b.m_cudaGfxResource;
         m_surfaceLoadStore = b.m_surfaceLoadStore;
+        m_useTextureGather = b.m_useTextureGather;
         m_cubemap = b.m_cubemap;
         m_layered = b.m_layered;
         m_initialized = b.m_initialized;

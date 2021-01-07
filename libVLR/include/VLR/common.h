@@ -111,7 +111,7 @@ namespace VLR {
 #if defined(VLR_Host)
         return std::isinf(x);
 #else
-        return isinf(x);
+        return ::isinf(x);
 #endif
     }
 
@@ -119,7 +119,7 @@ namespace VLR {
 #if defined(VLR_Host)
         return std::isnan(x);
 #else
-        return isnan(x);
+        return ::isnan(x);
 #endif
     }
 
@@ -127,7 +127,7 @@ namespace VLR {
 #if defined(VLR_Host)
         return std::isfinite(x);
 #else
-        return isfinite(x);
+        return ::isfinite(x);
 #endif
     }
 

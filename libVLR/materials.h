@@ -46,19 +46,23 @@ namespace VLR {
     class SurfaceMaterial : public Queryable {
     protected:
         struct OptiXProgramSet {
-            CallableProgram callableProgramSetupBSDF;
-            CallableProgram callableProgramBSDFGetBaseColor;
-            CallableProgram callableProgramBSDFmatches;
-            CallableProgram callableProgramBSDFSampleInternal;
-            CallableProgram callableProgramBSDFEvaluateInternal;
-            CallableProgram callableProgramBSDFEvaluatePDFInternal;
-            CallableProgram callableProgramBSDFWeightInternal;
+            uint32_t dcSetupBSDF;
+            uint32_t dcBSDFGetBaseColor;
+            uint32_t dcBSDFmatches;
+            uint32_t dcBSDFSampleInternal;
+            uint32_t dcBSDFEvaluateInternal;
+            uint32_t dcBSDFEvaluatePDFInternal;
+            uint32_t dcBSDFWeightInternal;
             uint32_t bsdfProcedureSetIndex;
 
-            CallableProgram callableProgramSetupEDF;
-            CallableProgram callableProgramEDFEvaluateEmittanceInternal;
-            CallableProgram callableProgramEDFEvaluateInternal;
+            uint32_t dcSetupEDF;
+            uint32_t dcEDFEvaluateEmittanceInternal;
+            uint32_t dcEDFEvaluateInternal;
             uint32_t edfProcedureSetIndex;
+
+            OptiXProgramSet() {
+                std::memset(this, 0, sizeof(*this));
+            }
         };
 
         uint32_t m_matIndex;

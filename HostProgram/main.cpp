@@ -914,7 +914,8 @@ public:
         m_environmentRotation = shot.environmentRotation * 180 / M_PI;
         m_environmentRotation = m_environmentRotation - std::floor(m_environmentRotation / 360) * 360;
 
-        m_enableDebugRendering = false;
+        //m_enableDebugRendering = false;
+        m_enableDebugRendering = true;
         m_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
 
 

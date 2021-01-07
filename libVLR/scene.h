@@ -50,12 +50,14 @@ namespace VLR {
 
     class SHGeometryGroup {
         optixu::GeometryAccelerationStructure m_optixGas;
+        cudau::Buffer m_optixGasMem;
         std::vector<const SHGeometryInstance*> m_shGeomInsts;
 
     public:
         SHGeometryGroup(const optixu::GeometryAccelerationStructure &optixGas) :
             m_optixGas(optixGas) {}
         ~SHGeometryGroup() {
+            m_optixGasMem.finalize();
             m_optixGas.destroy();
         }
 
@@ -63,9 +65,26 @@ namespace VLR {
         void removeChild(const SHGeometryInstance* geomInst);
         void updateChild(const SHGeometryInstance* geomInst);
 
+        optixu::GeometryAccelerationStructure getOptixGas() const {
+            return m_optixGas;
+        }
         uint32_t getNumChildren() const { return m_shGeomInsts.size(); }
         void getGeometryInstanceIndices(uint32_t* indices) const;
         void getGeometryInstanceImportanceValues(float* values) const;
+
+        void prepareSetup(size_t* asScratchSize) {
+            OptixAccelBufferSizes asSizes;
+            m_optixGas.prepareForBuild(&asSizes);
+            if (!m_optixGasMem.isInitialized() || m_optixGasMem.sizeInBytes() < asSizes.outputSizeInBytes) {
+                m_optixGasMem.finalize();
+                CUcontext cuContext = m_optixGas.getContext().getCUcontext();
+                m_optixGasMem.initialize(cuContext, g_bufferType, std::max(asSizes.outputSizeInBytes, 4llu), 1);
+            }
+            *asScratchSize = std::max(asSizes.tempSizeInBytes, asSizes.tempUpdateSizeInBytes);
+        }
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem) const {
+            m_optixGas.rebuild(cuStream, m_optixGasMem, asScratchMem);
+        }
     };
 
     struct SHGeometryInstance {
@@ -135,6 +154,12 @@ namespace VLR {
         const std::string &getName() const {
             return m_name;
         }
+
+        virtual void prepareSetup(size_t* asScratchSize) {
+            *asScratchSize = 0;
+        }
+        virtual void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+        }
     };
 
 
@@ -161,8 +186,8 @@ namespace VLR {
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
             optixu::Module optixModule;
-            CallableProgram dcDecodeHitPointForTriangle;
-            CallableProgram dcSampleTriangleMesh;
+            uint32_t dcDecodeHitPointForTriangle;
+            uint32_t dcSampleTriangleMesh;
         };
 
         static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
@@ -227,8 +252,8 @@ namespace VLR {
     class InfiniteSphereSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
             optixu::Module optixModule;
-            CallableProgram dcDecodeHitPointForInfiniteSphere;
-            CallableProgram dcSampleInfiniteSphere;
+            uint32_t dcDecodeHitPointForInfiniteSphere;
+            uint32_t dcSampleInfiniteSphere;
         };
 
         static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
@@ -313,6 +338,9 @@ namespace VLR {
         uint32_t getNumChildren() const;
         void getChildren(Node** children) const;
         Node* getChildAt(uint32_t index) const;
+
+        void prepareSetup(size_t* asScratchSize) override;
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) override;
     };
 
 
@@ -350,6 +378,8 @@ namespace VLR {
             Shared::Instance data;
         };
         optixu::InstanceAccelerationStructure m_optixIas;
+        cudau::Buffer m_optixIasMem;
+        cudau::TypedBuffer<OptixInstance> m_optixInstanceBuffer;
         std::map<const SHTransform*, Instance> m_instances;
 
     public:
@@ -366,20 +396,31 @@ namespace VLR {
         void geometryRemoveEvent(const SHTransform* childTransform) override;
         void geometryUpdateEvent(const SHTransform* childTransform) override;
 
-        void setup(Shared::PipelineLaunchParameters* launchParams);
+        void prepareSetup(size_t* asScratchSize) override;
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) override;
     };
 
 
 
     class Scene : public Object {
+        struct OptiXProgramSet {
+            optixu::Module optixModule;
+            uint32_t dcSampleInfiniteSphere;
+        };
+
+        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+
         RootNode m_rootNode;
-        optixu::Module m_optixModule;
-        CallableProgram m_dcSampleInfiniteSphere;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
         float m_envRotationPhi;
 
+        cudau::Buffer m_asScratchMem;
+
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
 
         Scene(Context &context, const Transform* localToWorld);
         ~Scene();
@@ -414,7 +455,8 @@ namespace VLR {
         void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
         void setEnvironmentRotation(float rotationPhi);
 
-        void setup(Shared::PipelineLaunchParameters* launchParams);
+        void prepareSetup(size_t* asScratchSize);
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams);
     };
 
 
@@ -422,8 +464,8 @@ namespace VLR {
     class Camera : public Queryable {
     protected:
         struct OptiXProgramSet {
-            CallableProgram dcSampleLensPosition;
-            CallableProgram dcSampleIDF;
+            uint32_t dcSampleLensPosition;
+            uint32_t dcSampleIDF;
         };
 
         static std::map<uint32_t, optixu::Module> s_optixModules;

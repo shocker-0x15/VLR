@@ -19,18 +19,14 @@ namespace VLR {
 
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
-        optixu::Pipeline pipeline = context.getOptixPipeline();
-
         Shared::NodeProcedureSet nodeProcSet;
         for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
             nodeProcSet.progs[i] = 0xFFFFFFFF;
         for (int i = 0; i < numPairs; ++i) {
             uint32_t ptype = static_cast<uint32_t>(pairs[i].ptype);
-            programSet->callablePrograms[ptype].create(
-                pipeline,
-                s_optixModule, pairs[i].programName,
-                optixu::Module(), nullptr);
-            nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype].ID;
+            programSet->callablePrograms[ptype] = context.createDirectCallableProgram(
+                s_optixModule, pairs[i].programName);
+            nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype];
         }
 
         programSet->nodeProcedureSetIndex = context.allocateNodeProcedureSet();
@@ -42,8 +38,8 @@ namespace VLR {
         context.releaseNodeProcedureSet(programSet.nodeProcedureSetIndex);
 
         for (int i = lengthof(programSet.callablePrograms) - 1; i >= 0; --i) {
-            if (programSet.callablePrograms[i])
-                programSet.callablePrograms[i].destroy();
+            if (programSet.callablePrograms[i] != 0xFFFFFFFF)
+                context.destroyDirectCallableProgram(programSet.callablePrograms[i]);
         }
     }
 

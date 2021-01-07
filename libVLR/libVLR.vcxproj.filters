@@ -99,6 +99,9 @@
     <ClInclude Include="ext\include\GL\gl3w.h">
       <Filter>ext\gl3w</Filter>
     </ClInclude>
+    <ClInclude Include="ext\include\KHR\khrplatform.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

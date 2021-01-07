@@ -153,6 +153,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
     <ClInclude Include="ext\include\GL\gl3w.h" />
     <ClInclude Include="ext\include\GL\glcorearb.h" />
     <ClInclude Include="ext\include\half.hpp" />
+    <ClInclude Include="ext\include\KHR\khrplatform.h" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
     <ClInclude Include="image.h" />
@@ -186,9 +187,7 @@ xcopy /I /Y "$(ProjectDir)spectral_upsampling_tables" "$(OutDir)spectral_upsampl
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
     </CudaCompile>
-    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu">
-      <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
-    </CudaCompile>
+    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu" />
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>

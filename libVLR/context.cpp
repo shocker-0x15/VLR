@@ -88,10 +88,6 @@ namespace VLR {
 
 
 
-    uint32_t CallableProgram::NextID = 0;
-
-
-
     struct EntryPoint {
         enum Value {
             PathTracing = 0,
@@ -132,7 +128,7 @@ namespace VLR {
         m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
         m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
 
-        m_optix.context = optixu::Context::create(cuContext);
+        m_optix.context = optixu::Context::create(cuContext, 4, true);
 
         m_optix.pipeline = m_optix.context.createPipeline();
         m_optix.pipeline.setPipelineOptions(
@@ -213,65 +209,45 @@ namespace VLR {
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
-            m_optix.dcNullBSDF_setupBSDF.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_setupBSDF"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_getBaseColor.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_getBaseColor"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_matches.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_matches"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_sampleInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_sampleInternal"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_evaluateInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluateInternal"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_evaluatePDFInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullBSDF_weightInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_weightInternal"),
-                optixu::Module(), nullptr);
+            m_optix.dcNullBSDF_setupBSDF = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_setupBSDF"));
+            m_optix.dcNullBSDF_getBaseColor = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_getBaseColor"));
+            m_optix.dcNullBSDF_matches = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_matches"));
+            m_optix.dcNullBSDF_sampleInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_sampleInternal"));
+            m_optix.dcNullBSDF_evaluateInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluateInternal"));
+            m_optix.dcNullBSDF_evaluatePDFInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"));
+            m_optix.dcNullBSDF_weightInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_weightInternal"));
 
             Shared::BSDFProcedureSet bsdfProcSet;
             {
-                bsdfProcSet.progGetBaseColor = m_optix.dcNullBSDF_getBaseColor.ID;
-                bsdfProcSet.progMatches = m_optix.dcNullBSDF_matches.ID;
-                bsdfProcSet.progSampleInternal = m_optix.dcNullBSDF_sampleInternal.ID;
-                bsdfProcSet.progEvaluateInternal = m_optix.dcNullBSDF_evaluateInternal.ID;
-                bsdfProcSet.progEvaluatePDFInternal = m_optix.dcNullBSDF_evaluatePDFInternal.ID;
-                bsdfProcSet.progWeightInternal = m_optix.dcNullBSDF_weightInternal.ID;
+                bsdfProcSet.progGetBaseColor = m_optix.dcNullBSDF_getBaseColor;
+                bsdfProcSet.progMatches = m_optix.dcNullBSDF_matches;
+                bsdfProcSet.progSampleInternal = m_optix.dcNullBSDF_sampleInternal;
+                bsdfProcSet.progEvaluateInternal = m_optix.dcNullBSDF_evaluateInternal;
+                bsdfProcSet.progEvaluatePDFInternal = m_optix.dcNullBSDF_evaluatePDFInternal;
+                bsdfProcSet.progWeightInternal = m_optix.dcNullBSDF_weightInternal;
             }
             m_optix.nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
             updateBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex, bsdfProcSet);
             VLRAssert(m_optix.nullBSDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
 
-            m_optix.dcNullEDF_setupEDF.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_setupEDF"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullEDF_evaluateEmittanceInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"),
-                optixu::Module(), nullptr);
-            m_optix.dcNullEDF_evaluateInternal.create(
-                m_optix.pipeline,
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"),
-                optixu::Module(), nullptr);
+            m_optix.dcNullEDF_setupEDF = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_setupEDF"));
+            m_optix.dcNullEDF_evaluateEmittanceInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"));
+            m_optix.dcNullEDF_evaluateInternal = createDirectCallableProgram(
+                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"));
 
             Shared::EDFProcedureSet edfProcSet;
             {
-                edfProcSet.progEvaluateEmittanceInternal = m_optix.dcNullEDF_evaluateEmittanceInternal.ID;
-                edfProcSet.progEvaluateInternal = m_optix.dcNullEDF_evaluateInternal.ID;
+                edfProcSet.progEvaluateEmittanceInternal = m_optix.dcNullEDF_evaluateEmittanceInternal;
+                edfProcSet.progEvaluateInternal = m_optix.dcNullEDF_evaluateInternal;
             }
             m_optix.nullEDFProcedureSetIndex = allocateEDFProcedureSet();
             updateEDFProcedureSet(m_optix.nullEDFProcedureSetIndex, edfProcSet);
@@ -346,11 +322,28 @@ namespace VLR {
         SurfaceMaterial::initialize(*this);
         SurfaceNode::initialize(*this);
         Camera::initialize(*this);
+        Scene::initialize(*this);
+
+        m_optix.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+
+        m_optix.pipeline.setNumCallablePrograms(m_optix.callablePrograms.size());
+        for (int i = 0; i < m_optix.callablePrograms.size(); ++i)
+            m_optix.pipeline.setCallableProgram(i, m_optix.callablePrograms[i]);
 
         vlrprintf(" done.\n");
     }
 
     Context::~Context() {
+        m_optix.hitGroupShaderBindingTable.finalize();
+        m_optix.shaderBindingTable.finalize();
+
+        m_optix.outputBuffer.finalize();
+        m_optix.rawOutputBuffer.finalize();
+        m_optix.rngBuffer.finalize();
+
+
+
+        Scene::finalize(*this);
         Camera::finalize(*this);
         SurfaceNode::finalize(*this);
         SurfaceMaterial::finalize(*this);
@@ -388,18 +381,18 @@ namespace VLR {
 
         {
             releaseEDFProcedureSet(m_optix.nullEDFProcedureSetIndex);
-            m_optix.dcNullEDF_evaluateInternal.destroy();
-            m_optix.dcNullEDF_evaluateEmittanceInternal.destroy();
-            m_optix.dcNullEDF_setupEDF.destroy();
+            destroyDirectCallableProgram(m_optix.dcNullEDF_evaluateInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_evaluateEmittanceInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_setupEDF);
 
             releaseBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex);
-            m_optix.dcNullBSDF_weightInternal.destroy();
-            m_optix.dcNullBSDF_evaluatePDFInternal.destroy();
-            m_optix.dcNullBSDF_evaluateInternal.destroy();
-            m_optix.dcNullBSDF_sampleInternal.destroy();
-            m_optix.dcNullBSDF_matches.destroy();
-            m_optix.dcNullBSDF_getBaseColor.destroy();
-            m_optix.dcNullBSDF_setupBSDF.destroy();
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_weightInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluatePDFInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluateInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_sampleInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_matches);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_getBaseColor);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_setupBSDF);
 
             m_optix.nullDFModule.destroy();
         }
@@ -433,12 +426,12 @@ namespace VLR {
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID) {
-        if (m_outputBuffer.isInitialized())
-            m_outputBuffer.finalize();
-        if (m_rawOutputBuffer.isInitialized())
-            m_rawOutputBuffer.finalize();
-        if (m_rngBuffer.isInitialized())
-            m_rngBuffer.finalize();
+        if (m_optix.outputBuffer.isInitialized())
+            m_optix.outputBuffer.finalize();
+        if (m_optix.rawOutputBuffer.isInitialized())
+            m_optix.rawOutputBuffer.finalize();
+        if (m_optix.rngBuffer.isInitialized())
+            m_optix.rngBuffer.finalize();
 
         m_width = width;
         m_height = height;
@@ -454,36 +447,36 @@ namespace VLR {
                 return;
             }
 
-            m_outputBuffer.initializeFromGLTexture2D(
+            m_optix.outputBuffer.initializeFromGLTexture2D(
                 m_cuContext, glTexID,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable);
         }
         else {
-            m_outputBuffer.initialize2D(
+            m_optix.outputBuffer.initialize2D(
                 m_cuContext, cudau::ArrayElementType::Float32, 4,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable,
                 width, height, 1);
         }
 
-        m_rawOutputBuffer.initialize(m_cuContext, g_bufferType, width, height);
-        m_optix.launchParams.outputBuffer = m_rawOutputBuffer.getBlockBuffer2D();
+        m_optix.rawOutputBuffer.initialize(m_cuContext, g_bufferType, width, height);
+        m_optix.launchParams.outputBuffer = m_optix.rawOutputBuffer.getBlockBuffer2D();
 
-        m_rngBuffer.initialize(m_cuContext, g_bufferType, width, height);
+        m_optix.rngBuffer.initialize(m_cuContext, g_bufferType, width, height);
         {
-            m_rngBuffer.map();
+            m_optix.rngBuffer.map();
             std::mt19937_64 rng(591842031321323413);
             for (int y = 0; y < m_height; ++y) {
                 for (int x = 0; x < m_width; ++x) {
-                    m_rngBuffer(x, y) = rng();
+                    m_optix.rngBuffer(x, y) = rng();
                 }
             }
-            m_rngBuffer.unmap();
+            m_optix.rngBuffer.unmap();
         }
-        m_optix.launchParams.rngBuffer = m_rngBuffer.getBlockBuffer2D();
+        m_optix.launchParams.rngBuffer = m_optix.rngBuffer.getBlockBuffer2D();
     }
 
     const cudau::Array &Context::getOutputBuffer() const {
-        return m_outputBuffer;
+        return m_optix.outputBuffer;
     }
 
     void Context::getOutputBufferSize(uint32_t* width, uint32_t* height) {
@@ -496,10 +489,32 @@ namespace VLR {
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         if (firstFrame) {
-            scene.setup(&m_optix.launchParams);
+            size_t sbtSize;
+            m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
+
+            m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            m_optix.pipeline.setScene(m_optix.scene);
+            m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
+                                                           m_optix.hitGroupShaderBindingTable.getMappedPointer());
+
+            size_t asScratchSize;
+            scene.prepareSetup(&asScratchSize);
+            cudau::Buffer asScratchMem;
+            asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
+            scene.setup(stream, asScratchMem, &m_optix.launchParams);
+            asScratchMem.finalize();
+
             camera->setup(&m_optix.launchParams);
 
             m_optix.launchParams.imageSize = imageSize;
+
+            m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
+            m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
+            m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
+            m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
+                                                   m_optix.shaderBindingTable.getMappedPointer());
 
             m_numAccumFrames = 0;
         }
@@ -508,13 +523,14 @@ namespace VLR {
         *numAccumFrames = m_numAccumFrames;
         m_optix.launchParams.numAccumFrames = m_numAccumFrames;
 
-        m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
+        CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                        sizeof(m_optix.launchParams), stream));
         m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
                                 imageSize.x, imageSize.y, 1);
 
         m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
-                                      m_rawOutputBuffer.getBlockBuffer2D(),
-                                      m_outputBuffer.getSurfaceObject(0),
+                                      m_optix.rawOutputBuffer.getBlockBuffer2D(),
+                                      m_optix.outputBuffer.getSurfaceObject(0),
                                       m_numAccumFrames);
 
         CUDADRV_CHECK(cuStreamSynchronize(stream));
@@ -525,10 +541,32 @@ namespace VLR {
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         if (firstFrame) {
-            scene.setup(&m_optix.launchParams);
+            size_t sbtSize;
+            m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
+
+            m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            m_optix.pipeline.setScene(m_optix.scene);
+            m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
+                                                           m_optix.hitGroupShaderBindingTable.getMappedPointer());
+
+            size_t asScratchSize;
+            scene.prepareSetup(&asScratchSize);
+            cudau::Buffer asScratchMem;
+            asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
+            scene.setup(stream, asScratchMem, &m_optix.launchParams);
+            asScratchMem.finalize();
+
             camera->setup(&m_optix.launchParams);
 
             m_optix.launchParams.imageSize = imageSize;
+
+            m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
+            m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
+            m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
+            m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
+                                                   m_optix.shaderBindingTable.getMappedPointer());
 
             m_numAccumFrames = 0;
         }
@@ -538,14 +576,33 @@ namespace VLR {
         m_optix.launchParams.numAccumFrames = m_numAccumFrames;
         m_optix.launchParams.debugRenderingAttribute = static_cast<Shared::DebugRenderingAttribute>(renderMode);
 
-        m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
+        CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                        sizeof(m_optix.launchParams), stream));
         m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
                                 imageSize.x, imageSize.y, 1);
 
+        CUDADRV_CHECK(cuStreamSynchronize(stream));
+
         m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
-                                      m_rawOutputBuffer.getBlockBuffer2D(),
-                                      m_outputBuffer.getSurfaceObject(0),
+                                      m_optix.rawOutputBuffer.getBlockBuffer2D(),
+                                      m_optix.outputBuffer.getSurfaceObject(0),
                                       m_numAccumFrames);
+
+        CUDADRV_CHECK(cuStreamSynchronize(stream));
+    }
+
+
+
+    uint32_t Context::createDirectCallableProgram(optixu::Module dcModule, const char* dcName) {
+        optixu::ProgramGroup program = m_optix.pipeline.createCallableProgramGroup(
+            dcModule, dcName,
+            optixu::Module(), nullptr);
+        uint32_t index = m_optix.callablePrograms.size();
+        m_optix.callablePrograms.push_back(program);
+        return index;
+    }
+    void Context::destroyDirectCallableProgram(uint32_t index) {
+        m_optix.callablePrograms[index].destroy();
     }
 
 

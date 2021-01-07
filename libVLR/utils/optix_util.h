@@ -1,6 +1,6 @@
 ﻿/*
 
-   Copyright 2020 Shin Watanabe
+   Copyright 2021 Shin Watanabe
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,16 +22,44 @@
 
 Note:
 JP:
-- 現状ではあらゆるAPIに破壊的変更が入る可能性が非常に高い。
-- (少なくともホスト側コンパイラーがMSVC 16.7.6の場合は)"-std=c++17"をptxのコンパイル時に設定する必要あり。
+- 現状ではあらゆるAPIに破壊的変更が入る可能性がある。
+- (少なくともホスト側コンパイラーがMSVC 16.8.2の場合は)"-std=c++17"をptxのコンパイル時に設定する必要あり。
 - Visual StudioにおけるCUDAのプロパティ"Use Fast Math"はptxコンパイルに対して機能していない？
 EN:
-- It is very likely for now that any API will have breaking changes.
-- Setting "-std=c++17" is required for ptx compilation (at least for the case the host compiler is MSVC 16.7.6).
+- It is likely for now that any API will have breaking changes.
+- Setting "-std=c++17" is required for ptx compilation (at least for the case the host compiler is MSVC 16.8.2).
 - In Visual Studio, does the CUDA property "Use Fast Math" not work for ptx compilation??
+
+変更履歴 / Update History:
+- !!BREAKING
+  JP: GeometryInstanceとGASをSceneから生成する関数の引数の型をenumに変更。
+  EN: Changed the type of argument of the functions to create a GeometryInstance or a GAS from a Scene to enum.
+- !!BREAKING
+  JP: GAS/IASのremoveChild()を削除。代わりにremoveChildAt()を定義。
+      GAS/IAS::findChildIndex()を使用すれば目的の子のインデックスを特定できる。
+      また、GAS/IAS::clearChildren()を定義。
+  EN: Removed GAS/IAS's removeChild(), instead defined removeChildAt().
+      Use GAS/IAS::findChildIndex() to identify the index of the target child.
+      Also, defined GAS/IAS::clearChildren().
+- JP: GASの子ごとのユーザーデータを設定するAPIを追加。
+  EN: Added APIs to set per-GAS child user data.
+- JP: 各種パラメターを取得するためのAPIを追加。
+  EN: Added APIs to get parameters.
+- JP: マテリアルのユーザーデータのサイズやアラインメントを、シェーダーバインディングテーブルレイアウト生成後に
+      変更した場合にレイアウトを手動で無効化するためのScene::markShaderBindingTableLayoutDirty()を追加。
+      併せてScene::shaderBindingTableLayoutIsReady()も追加。
+  EN: Added Scene::markShaderBindingTableLayoutDirty() to manually invalidate the layout of shader binding table
+      for the case changing the size and/or alignment of a material's user data after generating the layout.
+      Added Scene::shaderBindingTableLayoutIsReady() as well.
+- !!BREAKING
+  JP: InstanceAccelerationStructure::prepareForBuild()が引数でインスタンス数を返さないように変更。
+      InstanceAccelerationStructure::getNumChildren()を代わりに使用してください。
+  EN: Changed InstanceAccelerationStructure::prepareForBuild() not to return the number of instances as an argument.
+      Use InstanceAccelerationStructure::getNumChildren() instead.
 
 ----------------------------------------------------------------
 TODO:
+- ユニットテスト。
 - Linux環境でのテスト。
 - CMake整備。
 - setPayloads/getPayloadsなどで引数側が必要以上の引数を渡していてもエラーが出ない問題。
@@ -43,14 +71,27 @@ TODO:
 - Multi GPUs?
 - Assertとexceptionの整理。
 
-検討事項:
+検討事項 (Items under author's consideration, ignore this :) ):
+- GeometryInstanceのGASをdirtyにする処理のうち、いくつかは内部的にSBTレイアウトの無効化をスキップできるはず。
 - HitGroup以外のProgramGroupにユーザーデータを持たせる。
 - GAS/IASに関してユーザーが気にするところはAS云々ではなくグループ化なので
   名前を変えるべき？GeometryGroup/InstanceGroupのような感じ。
   しかしビルドやアップデートを明示的にしているため結局ASであるということをユーザーが意識する必要がある。
 - ユーザーがあるSBTレコード中の各データのストライドを意識せずともそれぞれのオフセットを取得する関数。
-- GAS中のGeometryInstanceのインデックスを取得できるようにする。
-  各GeometryInstanceが1つのSBTレコードしか使っていない場合はoptixGetSbtGASIndex()で代用できる。
+  => オフセット値を読み取った後にデータを読み取るというindirectionになるため、そもそもあまり好ましくない気も。
+- Material::setHitGroup()はレイタイプの数値が同じでもヒットグループのパイプラインが違っていれば別個に登録できるが、
+  これがAPI上からは読み取りづらい。冗長だが敢えてパイプラインの識別情報も引数として受け取るべき？
+- Scene::generateShaderBindingTableLayout()はPipelineに依存すべき？
+  => その場合はこの関数自体setSceneを使った後に呼ばれるPipelineの関数となるべき？
+     SBT自体内容はレコードのヘッダーによって必ずパイプラインに依存するので
+     レイアウトがパイプラインに依存するのは問題ない？
+  現状の問題点：
+  - パイプラインごとにマテリアルに設定されているレイタイプ数が異なる場合に、
+    最大のレイタイプ数をGASに設定すると、SBTレコードを書き込む際にマテリアルがあるレイタイプに対して
+    設定されていないと言われてしまう。
+    => GASのレイタイプ数設定をパイプラインに依存させる？ => Sceneとパイプラインは切り離したい。
+  - GASがレイタイプ数設定を持っているのが不自然？ => パイプラインがレイタイプ数を持つようにして
+    SBTレイアウト計算もPipelineに依存させる？
 
 */
 
@@ -68,7 +109,7 @@ TODO:
 #endif
 
 #if defined(__CUDACC_RTC__)
-// Defining cstdint and cfloat (under cuda/std) is left to the user.
+// Defining things corresponding to cstdint and cfloat is left to the user.
 #else
 #include <cstdint>
 #include <cfloat>
@@ -79,6 +120,11 @@ TODO:
 #if !defined(__CUDA_ARCH__)
 #include <optix_stubs.h>
 #endif
+
+#ifdef _DEBUG
+#   define OPTIXU_ENABLE_ASSERT
+#endif
+#define OPTIXU_ENABLE_RUNTIME_ERROR
 
 #if defined(__CUDA_ARCH__)
 #   define RT_CALLABLE_PROGRAM extern "C" __device__
@@ -112,35 +158,38 @@ TODO:
 
 
 
-inline OptixGeometryFlags operator|(OptixGeometryFlags a, OptixGeometryFlags b) {
-    return static_cast<OptixGeometryFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixPrimitiveTypeFlags operator|(OptixPrimitiveTypeFlags a, OptixPrimitiveTypeFlags b) {
-    return static_cast<OptixPrimitiveTypeFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixInstanceFlags operator|(OptixInstanceFlags a, OptixInstanceFlags b) {
-    return static_cast<OptixInstanceFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixMotionFlags operator|(OptixMotionFlags a, OptixMotionFlags b) {
-    return static_cast<OptixMotionFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixRayFlags operator|(OptixRayFlags a, OptixRayFlags b) {
-    return static_cast<OptixRayFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixTraversableGraphFlags operator|(OptixTraversableGraphFlags a, OptixTraversableGraphFlags b) {
-    return static_cast<OptixTraversableGraphFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
-inline OptixExceptionFlags operator|(OptixExceptionFlags a, OptixExceptionFlags b) {
-    return static_cast<OptixExceptionFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-}
+#define OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(Type) \
+    RT_DEVICE_FUNCTION inline Type operator~(Type a) { \
+        return static_cast<Type>(~static_cast<uint32_t>(a)); \
+    } \
+    RT_DEVICE_FUNCTION inline Type operator|(Type a, Type b) { \
+        return static_cast<Type>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b)); \
+    } \
+    RT_DEVICE_FUNCTION inline Type &operator|=(Type &a, Type b) { \
+        a = static_cast<Type>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b)); \
+        return a; \
+    } \
+    RT_DEVICE_FUNCTION inline Type operator&(Type a, Type b) { \
+        return static_cast<Type>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b)); \
+    } \
+    RT_DEVICE_FUNCTION inline Type &operator&=(Type &a, Type b) { \
+        a = static_cast<Type>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b)); \
+        return a; \
+    }
+
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixGeometryFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixPrimitiveTypeFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixInstanceFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixMotionFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixRayFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixTraversableGraphFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixExceptionFlags);
+
+#undef OPTIXU_DEFINE_OPERATORS_FOR_FLAGS
 
 
 
 namespace optixu {
-#ifdef _DEBUG
-#   define OPTIXU_ENABLE_ASSERT
-#endif
-
     void devPrintf(const char* fmt, ...);
 
 #if 1
@@ -179,6 +228,18 @@ namespace optixu {
 
 #define optixuAssert_ShouldNotBeCalled() optixuAssert(false, "Should not be called!")
 #define optixuAssert_NotImplemented() optixuAssert(false, "Not implemented yet!")
+
+    namespace detail {
+        template <typename T>
+        RT_DEVICE_FUNCTION constexpr size_t getNumDwords() {
+            return (sizeof(T) + 3) / 4;
+        }
+
+        template <typename... Types>
+        RT_DEVICE_FUNCTION constexpr size_t calcSumDwords() {
+            return (0 + ... + getNumDwords<Types>());
+        }
+    }
 
 
 
@@ -236,16 +297,6 @@ namespace optixu {
 #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
 
     namespace detail {
-        template <typename T>
-        RT_DEVICE_FUNCTION constexpr size_t getNumDwords() {
-            return (sizeof(T) + 3) / 4;
-        }
-
-        template <typename... Types>
-        RT_DEVICE_FUNCTION constexpr size_t calcSumDwords() {
-            return (0 + ... + getNumDwords<Types>());
-        }
-
         template <uint32_t start, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION void packToUInts(uint32_t* v, const HeadType &head, const TailTypes &... tails) {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
@@ -586,18 +637,29 @@ namespace optixu {
 
     */
 
-    class Context;
-    class Material;
-    class Scene;
-    class GeometryInstance;
-    class GeometryAccelerationStructure;
-    class Transform;
-    class Instance;
-    class InstanceAccelerationStructure;
-    class Pipeline;
-    class Module;
-    class ProgramGroup;
-    class Denoiser;
+#define OPTIXU_PREPROCESS_OBJECTS() \
+    OPTIXU_PREPROCESS_OBJECT(Context); \
+    OPTIXU_PREPROCESS_OBJECT(Material); \
+    OPTIXU_PREPROCESS_OBJECT(Scene); \
+    OPTIXU_PREPROCESS_OBJECT(GeometryInstance); \
+    OPTIXU_PREPROCESS_OBJECT(GeometryAccelerationStructure); \
+    OPTIXU_PREPROCESS_OBJECT(Transform); \
+    OPTIXU_PREPROCESS_OBJECT(Instance); \
+    OPTIXU_PREPROCESS_OBJECT(InstanceAccelerationStructure); \
+    OPTIXU_PREPROCESS_OBJECT(Pipeline); \
+    OPTIXU_PREPROCESS_OBJECT(Module); \
+    OPTIXU_PREPROCESS_OBJECT(ProgramGroup); \
+    OPTIXU_PREPROCESS_OBJECT(Denoiser);
+
+    // Forward Declarations
+#define OPTIXU_PREPROCESS_OBJECT(Type) class Type
+    OPTIXU_PREPROCESS_OBJECTS();
+#undef OPTIXU_PREPROCESS_OBJECT
+
+    enum class GeometryType {
+        Triangles = 0,
+        CustomPrimitives,
+    };
 
     enum class ASTradeoff {
         Default = 0,
@@ -609,6 +671,13 @@ namespace optixu {
         MatrixMotion = 0,
         SRTMotion,
         Static,
+        Invalid
+    };
+
+    enum class ChildType {
+        GAS = 0,
+        IAS,
+        Transform,
         Invalid
     };
 
@@ -635,6 +704,11 @@ namespace optixu {
         }
     };
 
+    template <typename... Types>
+    constexpr size_t calcSumDwords() {
+        return detail::calcSumDwords<Types...>();
+    }
+
 
 
 #define OPTIXU_PIMPL() \
@@ -651,7 +725,10 @@ private: \
         static_assert(std::is_same<decltype(r), decltype(*this)>::value, \
                       "This function can be defined only for the self type."); \
         return m < r.m; \
-    }
+    } \
+    Context getContext() const; \
+    void setName(const std::string &name) const; \
+    const char* getName() const;
 
 
 
@@ -659,11 +736,14 @@ private: \
         OPTIXU_PIMPL();
 
     public:
-        static Context create(CUcontext cudaContext, bool enableValidation = false);
+        [[nodiscard]]
+        static Context create(CUcontext cuContext, uint32_t logLevel = 4, bool enableValidation = false);
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(Context);
 
         CUcontext getCUcontext() const;
+
+        void setLogCallback(OptixLogCallback callback, void* callbackData, uint32_t logLevel) const;
 
         [[nodiscard]]
         Pipeline createPipeline() const;
@@ -686,13 +766,26 @@ private: \
 
         // JP: 以下のAPIを呼んだ場合はシェーダーバインディングテーブルを更新する必要がある。
         //     パイプラインのmarkHitGroupShaderBindingTableDirty()を呼べばローンチ時にセットアップされる。
+        //     シェーダーバインディングテーブルのレイアウト生成後に、再度ユーザーデータのサイズや
+        //     アラインメントを変更する場合には、レイアウトをシーンのmarkShaderBindingTableLayoutDirty()を
+        //     呼んで無効化する必要もある。
         // EN: Updating a shader binding table is required when calling the following APIs.
         //     Calling pipeline's markHitGroupShaderBindingTableDirty() triggers re-setup of the table at launch.
-        void setHitGroup(uint32_t rayType, ProgramGroup hitGroup);
+        //     In the case where user data size and/or alignment changes again after generating the layout of
+        //     a shader binding table, the invalidation of the layout is required as well by calling
+        //     scene's markShaderBindingTableLayoutDirty().
+        void setHitGroup(uint32_t rayType, ProgramGroup hitGroup) const;
         void setUserData(const void* data, uint32_t size, uint32_t alignment) const;
         template <typename T>
         void setUserData(const T &data) const {
             setUserData(&data, sizeof(T), alignof(T));
+        }
+
+        ProgramGroup getHitGroup(Pipeline pipeline, uint32_t rayType) const;
+        void getUserData(void* data, uint32_t* size, uint32_t* alignment) const;
+        template <typename T>
+        void getUserData(T* data, uint32_t* size = nullptr, uint32_t* alignment = nullptr) const {
+            getUserData(reinterpret_cast<void*>(data), size, alignment);
         }
     };
 
@@ -706,9 +799,9 @@ private: \
         OPTIXU_COMMON_FUNCTIONS(Scene);
 
         [[nodiscard]]
-        GeometryInstance createGeometryInstance(bool forCustomPrimitives = false) const;
+        GeometryInstance createGeometryInstance(GeometryType geomType = GeometryType::Triangles) const;
         [[nodiscard]]
-        GeometryAccelerationStructure createGeometryAccelerationStructure(bool forCustomPrimitives = false) const;
+        GeometryAccelerationStructure createGeometryAccelerationStructure(GeometryType geomType = GeometryType::Triangles) const;
         [[nodiscard]]
         Transform createTransform() const;
         [[nodiscard]]
@@ -716,7 +809,13 @@ private: \
         [[nodiscard]]
         InstanceAccelerationStructure createInstanceAccelerationStructure() const;
 
+        // JP: シェーダーバインディングテーブルレイアウトをdirty状態にする。
+        // EN: Mark the layout of shader binding table dirty.
+        void markShaderBindingTableLayoutDirty() const;
+
         void generateShaderBindingTableLayout(size_t* memorySize) const;
+
+        bool shaderBindingTableLayoutIsReady() const;
     };
 
 
@@ -744,13 +843,28 @@ private: \
 
         // JP: 以下のAPIを呼んだ場合はシェーダーバインディングテーブルを更新する必要がある。
         //     パイプラインのmarkHitGroupShaderBindingTableDirty()を呼べばローンチ時にセットアップされる。
+        //     シェーダーバインディングテーブルのレイアウト生成後に、再度ユーザーデータのサイズや
+        //     アラインメントを変更する場合レイアウトが自動で無効化される。
         // EN: Updating a shader binding table is required when calling the following APIs.
         //     Calling pipeline's markHitGroupShaderBindingTableDirty() triggers re-setup of the table at launch.
+        //     In the case where user data size and/or alignment changes again after generating the layout of
+        //     a shader binding table, the layout is automatically invalidated.
         void setMaterial(uint32_t matSetIdx, uint32_t matIdx, Material mat) const;
         void setUserData(const void* data, uint32_t size, uint32_t alignment) const;
         template <typename T>
         void setUserData(const T &data) const {
             setUserData(&data, sizeof(T), alignof(T));
+        }
+
+        uint32_t getNumMotionSteps() const;
+        uint32_t getPrimitiveIndexOffset() const;
+        uint32_t getNumMaterials() const;
+        OptixGeometryFlags getGeometryFlags(uint32_t matIdx) const;
+        Material getMaterial(uint32_t matSetIdx, uint32_t matIdx) const;
+        void getUserData(void* data, uint32_t* size, uint32_t* alignment) const;
+        template <typename T>
+        void getUserData(T* data, uint32_t* size = nullptr, uint32_t* alignment = nullptr) const {
+            getUserData(reinterpret_cast<void*>(data), size, alignment);
         }
     };
 
@@ -763,16 +877,24 @@ private: \
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(GeometryAccelerationStructure);
 
-        // JP: 以下のAPIを呼んだ場合はGASがdirty状態になる。
-        // EN: Calling the following APIs marks the GAS dirty.
+        // JP: 以下のAPIを呼んだ場合はGASが自動でdirty状態になる。
+        //     子の数が変更される場合はヒットグループのシェーダーバインディングテーブルレイアウトも無効化される。
+        // EN: Calling the following APIs automatically marks the GAS dirty.
+        //     Changing the number of children invalidates the shader binding table layout of hit group.
         void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess) const;
         void setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const;
         void addChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
-        void removeChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
+        void removeChildAt(uint32_t index) const;
+        void clearChildren() const;
+
+        // JP: GASをdirty状態にする。
+        //     ヒットグループのシェーダーバインディングテーブルレイアウトも無効化される。
+        // EN: Mark the GAS dirty.
+        //     Invalidate the shader binding table layout of hit group as well.
         void markDirty() const;
 
-        // JP: 以下のAPIを呼んだ場合はヒットグループのシェーダーバインディングテーブルレイアウトが無効化される。
-        // EN: Calling the following APIs invalidate the shader binding table layout of hit group.
+        // JP: 以下のAPIを呼んだ場合はヒットグループのシェーダーバインディングテーブルレイアウトが自動で無効化される。
+        // EN: Calling the following APIs automatically invalidates the shader binding table layout of hit group.
         void setNumMaterialSets(uint32_t numMatSets) const;
         void setNumRayTypes(uint32_t matSetIdx, uint32_t numRayTypes) const;
 
@@ -798,8 +920,17 @@ private: \
 
         // JP: 以下のAPIを呼んだ場合はシェーダーバインディングテーブルを更新する必要がある。
         //     パイプラインのmarkHitGroupShaderBindingTableDirty()を呼べばローンチ時にセットアップされる。
+        //     シェーダーバインディングテーブルのレイアウト生成後に、再度ユーザーデータのサイズや
+        //     アラインメントを変更する場合レイアウトが自動で無効化される。
         // EN: Updating a shader binding table is required when calling the following APIs.
         //     Calling pipeline's markHitGroupShaderBindingTableDirty() triggers re-setup of the table at launch.
+        //     In the case where user data size and/or alignment changes again after generating the layout of
+        //     a shader binding table, the layout is automatically invalidated.
+        void setChildUserData(uint32_t index, const void* data, uint32_t size, uint32_t alignment) const;
+        template <typename T>
+        void setChildUserData(uint32_t index, const T &data) const {
+            setChildUserData(index, &data, sizeof(T), alignof(T));
+        }
         void setUserData(const void* data, uint32_t size, uint32_t alignment) const;
         template <typename T>
         void setUserData(const T &data) const {
@@ -808,6 +939,24 @@ private: \
 
         bool isReady() const;
         OptixTraversableHandle getHandle() const;
+
+        void getConfiguration(ASTradeoff* tradeOff, bool* allowUpdate, bool* allowCompaction, bool* allowRandomVertexAccess) const;
+        void getMotionOptions(uint32_t* numKeys, float* timeBegin, float* timeEnd, OptixMotionFlags* flags) const;
+        uint32_t getNumChildren() const;
+        uint32_t findChildIndex(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
+        GeometryInstance getChild(uint32_t index, CUdeviceptr* preTransform = nullptr) const;
+        uint32_t getNumMaterialSets() const;
+        uint32_t getNumRayTypes(uint32_t matSetIdx) const;
+        void getChildUserData(uint32_t index, void* data, uint32_t* size, uint32_t* alignment) const;
+        template <typename T>
+        void getChildUserData(uint32_t index, T* data, uint32_t* size = nullptr, uint32_t* alignment = nullptr) const {
+            getChildUserData(index, reinterpret_cast<void*>(data), size, alignment);
+        }
+        void getUserData(void* data, uint32_t* size, uint32_t* alignment) const;
+        template <typename T>
+        void getUserData(T* data, uint32_t* size = nullptr, uint32_t* alignment = nullptr) const {
+            getUserData(reinterpret_cast<void*>(data), size, alignment);
+        }
     };
 
 
@@ -819,10 +968,10 @@ private: \
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(Transform);
 
-        // JP: 以下のAPIを呼んだ場合はTransformがdirty状態になる。
-        // EN: Calling the following APIs marks the transform dirty.
+        // JP: 以下のAPIを呼んだ場合はTransformが自動でdirty状態になる。
+        // EN: Calling the following APIs automatically marks the transform dirty.
         void setConfiguration(TransformType type, uint32_t numKeys,
-                              size_t* transformSize);
+                              size_t* transformSize) const;
         void setMotionOptions(float timeBegin, float timeEnd, OptixMotionFlags flags) const;
         void setMatrixMotionKey(uint32_t keyIdx, const float matrix[12]) const;
         void setSRTMotionKey(uint32_t keyIdx, const float scale[3], const float orientation[4], const float translation[3]) const;
@@ -830,15 +979,27 @@ private: \
         void setChild(GeometryAccelerationStructure child) const;
         void setChild(InstanceAccelerationStructure child) const;
         void setChild(Transform child) const;
+
+        // JP: Transformをdirty状態にする。
+        // EN: Mark the transform dirty.
         void markDirty() const;
 
         // JP: (間接的に)所属するTraversable (例: IAS)のmarkDirty()を呼ぶ必要がある。
         // EN: Calling markDirty() of a traversable (e.g. IAS) to which the transform
         //     (indirectly) belongs is required.
-        OptixTraversableHandle rebuild(CUstream stream, const BufferView &trDeviceMem);
+        OptixTraversableHandle rebuild(CUstream stream, const BufferView &trDeviceMem) const;
 
         bool isReady() const;
         OptixTraversableHandle getHandle() const;
+
+        void getConfiguration(TransformType* type, uint32_t* numKeys) const;
+        void getMotionOptions(float* timeBegin, float* timeEnd, OptixMotionFlags* flags) const;
+        void getMatrixMotionKey(uint32_t keyIdx, float matrix[12]) const;
+        void getSRTMotionKey(uint32_t keyIdx, float scale[3], float orientation[4], float translation[3]) const;
+        void getStaticTransform(float matrix[12]) const;
+        ChildType getChildType() const;
+        template <typename T>
+        T getChild() const;
     };
 
 
@@ -863,6 +1024,15 @@ private: \
         void setFlags(OptixInstanceFlags flags) const;
         void setTransform(const float transform[12]) const;
         void setMaterialSetIndex(uint32_t matSetIdx) const;
+
+        ChildType getChildType() const;
+        template <typename T>
+        T getChild() const;
+        uint32_t getID() const;
+        uint32_t getVisibilityMask() const;
+        OptixInstanceFlags getFlags() const;
+        void getTransform(float transform[12]) const;
+        uint32_t getMaterialSetIndex() const;
     };
 
 
@@ -881,19 +1051,23 @@ private: \
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(InstanceAccelerationStructure);
 
-        // JP: 以下のAPIを呼んだ場合はIASがdirty状態になる。
-        // EN: Calling the following APIs marks the IAS dirty.
+        // JP: 以下のAPIを呼んだ場合はIASが自動でdirty状態になる。
+        // EN: Calling the following APIs automatically marks the IAS dirty.
         void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction) const;
         void setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const;
         void addChild(Instance instance) const;
-        void removeChild(Instance instance) const;
+        void removeChildAt(uint32_t index) const;
+        void clearChildren() const;
+
+        // JP: IASをdirty状態にする。
+        // EN: Mark the IAS dirty.
         void markDirty() const;
 
         // JP: リビルド・コンパクトを行った場合はこのIASが(間接的に)所属するTraversable (例: IAS)
         //     のmarkDirty()を呼ぶ必要がある。
         // EN: Calling markDirty() of a traversable (e.g. IAS) to which this IAS (indirectly) belongs
         //     is required when performing rebuild / compact.
-        void prepareForBuild(OptixAccelBufferSizes* memoryRequirement, uint32_t* numInstances) const;
+        void prepareForBuild(OptixAccelBufferSizes* memoryRequirement) const;
         OptixTraversableHandle rebuild(CUstream stream, const BufferView &instanceBuffer,
                                        const BufferView &accelBuffer, const BufferView &scratchBuffer) const;
         // JP: リビルドが完了するのをホスト側で待つ。
@@ -912,6 +1086,12 @@ private: \
 
         bool isReady() const;
         OptixTraversableHandle getHandle() const;
+
+        void getConfiguration(ASTradeoff* tradeOff, bool* allowUpdate, bool* allowCompaction) const;
+        void getMotionOptions(uint32_t* numKeys, float* timeBegin, float* timeEnd, OptixMotionFlags* flags) const;
+        uint32_t getNumChildren() const;
+        uint32_t findChildIndex(Instance instance) const;
+        Instance getChild(uint32_t index) const;
     };
 
 
@@ -951,18 +1131,18 @@ private: \
 
         void link(uint32_t maxTraceDepth, OptixCompileDebugLevel debugLevel) const;
 
-        // JP: 以下のAPIを呼んだ場合は(非ヒットグループの)シェーダーバインディングテーブルレイアウトが無効化される。
-        // EN: Calling the following APIs invalidate the (non-hit group) shader binding table layout.
+        // JP: 以下のAPIを呼んだ場合は(非ヒットグループの)シェーダーバインディングテーブルレイアウトが自動で無効化される。
+        // EN: Calling the following APIs automatically invalidates the (non-hit group) shader binding table layout.
         void setNumMissRayTypes(uint32_t numMissRayTypes) const;
         void setNumCallablePrograms(uint32_t numCallablePrograms) const;
 
         void generateShaderBindingTableLayout(size_t* memorySize) const;
 
-        // JP: 以下のAPIを呼んだ場合は(非ヒットグループの)シェーダーバインディングテーブルがdirty状態になり
+        // JP: 以下のAPIを呼んだ場合は(非ヒットグループの)シェーダーバインディングテーブルが自動でdirty状態になり
         //     ローンチ時に再セットアップされる。
         //     ただしローンチ時のセットアップはSBTバッファーの内容変更・転送を伴うので、
         //     非同期書き換えを行う場合は安全のためにはSBTバッファーをダブルバッファリングする必要がある。
-        // EN: Calling the following API marks the (non-hit group) shader binding table dirty
+        // EN: Calling the following API automatically marks the (non-hit group) shader binding table dirty
         //     then triggers re-setup of the table at launch.
         //     However note that the setup in the launch involves the change of the SBT buffer's contents
         //     and transfer, so double buffered SBT is required for safety
@@ -973,17 +1153,20 @@ private: \
         void setCallableProgram(uint32_t index, ProgramGroup program) const;
         void setShaderBindingTable(const BufferView &shaderBindingTable, void* hostMem) const;
 
-        // JP: 以下のAPIを呼んだ場合はヒットグループのシェーダーバインディングテーブルがdirty状態になり
+        // JP: 以下のAPIを呼んだ場合はヒットグループのシェーダーバインディングテーブルが自動でdirty状態になり
         //     ローンチ時に再セットアップされる。
         //     ただしローンチ時のセットアップはSBTバッファーの内容変更・転送を伴うので、
         //     非同期書き換えを行う場合は安全のためにはSBTバッファーをダブルバッファリングする必要がある。
-        // EN: Calling the following APIs marks the hit group's shader binding table dirty,
+        // EN: Calling the following APIs automatically marks the hit group's shader binding table dirty,
         //     then triggers re-setup of the table at launch.
         //     However note that the setup in the launch involves the change of the SBT buffer's contents
         //     and transfer, so double buffered SBT is required for safety
         //     in the case performing asynchronous update.
         void setScene(const Scene &scene) const;
         void setHitGroupShaderBindingTable(const BufferView &shaderBindingTable, void* hostMem) const;
+
+        // JP: ヒットグループのシェーダーバインディングテーブルをdirty状態にする。
+        // EN: Mark the hit group's shader binding table dirty.
         void markHitGroupShaderBindingTableDirty() const;
 
         void setStackSize(uint32_t directCallableStackSizeFromTraversal,
@@ -1028,7 +1211,7 @@ private: \
 
         // TODO: ? implement a function to query required window (tile + overlap).
     };
-    
+
     class Denoiser {
         OPTIXU_PIMPL();
 
@@ -1045,9 +1228,9 @@ private: \
                        OptixPixelFormat colorFormat, OptixPixelFormat albedoFormat, OptixPixelFormat normalFormat) const;
         void setupState(CUstream stream, const BufferView &stateBuffer, const BufferView &scratchBuffer) const;
 
-        void computeIntensity(CUstream stream, const BufferView &scratchBuffer, CUdeviceptr outputIntensity);
+        void computeIntensity(CUstream stream, const BufferView &scratchBuffer, CUdeviceptr outputIntensity) const;
         void invoke(CUstream stream, bool denoiseAlpha, CUdeviceptr hdrIntensity, float blendFactor,
-                    const DenoisingTask &task);
+                    const DenoisingTask &task) const;
     };
 
 
