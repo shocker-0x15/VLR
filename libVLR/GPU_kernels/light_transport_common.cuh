@@ -242,20 +242,19 @@ namespace VLR {
     }
 
     CUDA_DEVICE_FUNCTION float getAlpha(const WavelengthSamples &wls) {
-        const auto &sbtr = HitGroupSBTRecordData::get();
-        const auto hitPointParam = HitPointParameter::get();
+        const auto hp = HitPointParameter::get();
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        ProgSigDecodeHitPoint decodeHitPoint(sbtr.geomInst.progDecodeHitPoint);
-        decodeHitPoint(hitPointParam, &surfPt, &hypAreaPDF);
+        ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        decodeHitPoint(hp, &surfPt, &hypAreaPDF);
         surfPt.position = transform<TransformKind::ObjectToWorld>(surfPt.position);
         surfPt.shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.x),
                                              transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.z));
         surfPt.geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt.geometricNormal);
         surfPt.instanceIndex = optixGetInstanceId();
 
-        return calcNode(sbtr.geomInst.nodeAlpha, 1.0f, surfPt, wls);
+        return calcNode(hp.sbtr->geomInst.nodeAlpha, 1.0f, surfPt, wls);
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
@@ -343,22 +342,19 @@ namespace VLR {
 
 
 
-    CUDA_DEVICE_FUNCTION void calcSurfacePoint(const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
-        const auto &sbtr = HitGroupSBTRecordData::get();
-        const auto hitPointParam = HitPointParameter::get();
-
-        ProgSigDecodeHitPoint decodeHitPoint(sbtr.geomInst.progDecodeHitPoint);
-        decodeHitPoint(hitPointParam, surfPt, hypAreaPDF);
+    CUDA_DEVICE_FUNCTION void calcSurfacePoint(const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
+        ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        decodeHitPoint(hp, surfPt, hypAreaPDF);
         surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);
         surfPt->shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x),
                                               transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z));
         surfPt->geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt->geometricNormal);
         surfPt->instanceIndex = optixGetInstanceId();
 
-        Normal3D localNormal = calcNode(sbtr.geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
+        Normal3D localNormal = calcNode(hp.sbtr->geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
         applyBumpMapping(localNormal, surfPt);
 
-        Vector3D newTangent = calcNode(sbtr.geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
+        Vector3D newTangent = calcNode(hp.sbtr->geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
         modifyTangent(newTangent, surfPt);
     }
 }

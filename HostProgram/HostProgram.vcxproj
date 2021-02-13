@@ -32,7 +32,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.1.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -69,24 +69,8 @@
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>echo OpenEXR dlls
-
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Half.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Iex-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IexMath-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImf-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImfUtil-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmThread-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Imath-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\bin\zlib.dll" "$(OutDir)"
-
-echo copy assimp dll
-
-copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"
-
-echo copy shaders
-
-xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -108,29 +92,14 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
       <AdditionalDependencies>cuda.lib;cudart_static.lib;Half.lib;Iex-2_2.lib;IexMath-2_2.lib;IlmImf-2_2.lib;IlmImfUtil-2_2.lib;IlmThread-2_2.lib;Imath-2_2.lib;zlib.lib;assimp-vc140-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>echo OpenEXR dlls
-
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Half.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Iex-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IexMath-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImf-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmImfUtil-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\IlmThread-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\lib\Imath-2_2.dll" "$(OutDir)"
-copy "C:\Users\shocker_0x15\Desktop\libraries\install\bin\zlib.dll" "$(OutDir)"
-
-echo copy assimp dll
-
-copy "C:\Program Files\Assimp\bin\x64\assimp-vc140-mt.dll" "$(OutDir)"
-
-echo copy shaders
-
-xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cpp_compile_test.cpp" />
     <ClCompile Include="c_compile_test.c" />
+    <ClCompile Include="dds_loader.cpp" />
     <ClCompile Include="ext\src\gl3w\gl3w.c" />
     <ClCompile Include="ext\src\imGui\imgui.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_demo.cpp" />
@@ -138,12 +107,14 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     <ClCompile Include="ext\src\imGui\imgui_impl_glfw.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_widgets.cpp" />
+    <ClCompile Include="gl_util.cpp" />
     <ClCompile Include="image_loader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
+    <ClInclude Include="dds_loader.h" />
     <ClInclude Include="ext\include\GLFW\glfw3.h" />
     <ClInclude Include="ext\include\GLFW\glfw3native.h" />
     <ClInclude Include="ext\include\GL\gl3w.h" />
@@ -156,20 +127,37 @@ xcopy /I /Y "$(ProjectDir)shaders" "$(OutDir)shaders"</Command>
     <ClInclude Include="ext\include\imGui\imstb_rectpack.h" />
     <ClInclude Include="ext\include\imGui\imstb_textedit.h" />
     <ClInclude Include="ext\include\imGui\imstb_truetype.h" />
-    <ClInclude Include="GLToolkit.h" />
+    <ClInclude Include="ext\include\KHR\khrplatform.h" />
+    <ClInclude Include="gl_util.h" />
     <ClInclude Include="image_loader.h" />
     <ClInclude Include="parameter.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="StopWatch.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\drawOptiXResult.frag" />
-    <None Include="shaders\drawOptiXResult.vert" />
-    <None Include="shaders\scale.frag" />
-    <None Include="shaders\scale.vert" />
+    <CopyFileToFolders Include="shaders\drawOptiXResult.frag">
+      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\drawOptiXResult.vert">
+      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\scale.frag">
+      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\scale.vert">
+      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.1.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.2.targets" />
   </ImportGroup>
 </Project>

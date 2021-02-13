@@ -2286,4 +2286,5 @@ void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);
     //createSanMiguelScene(context, shot);
+    context->setScene(shot->scene);
 }

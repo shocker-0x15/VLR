@@ -128,7 +128,7 @@ namespace VLR {
         m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
         m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
 
-        m_optix.context = optixu::Context::create(cuContext, 4, true);
+        m_optix.context = optixu::Context::create(cuContext/*, 4, true*/);
 
         m_optix.pipeline = m_optix.context.createPipeline();
         m_optix.pipeline.setPipelineOptions(
@@ -161,22 +161,22 @@ namespace VLR {
             m_optix.pathTracingShadowMiss = m_optix.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
 
-            m_optix.pathTracingHitGroupDefault = m_optix.pipeline.createHitProgramGroup(
+            m_optix.pathTracingHitGroupDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
-                optixu::Module(), nullptr,
                 optixu::Module(), nullptr);
-            m_optix.pathTracingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroup(
+            m_optix.pathTracingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
-                m_optix.pathTracingModule, RT_AH_NAME_STR("anyHitWithAlpha"),
-                optixu::Module(), nullptr);
-            m_optix.pathTracingHitGroupShadowDefault = m_optix.pipeline.createHitProgramGroup(
+                m_optix.pathTracingModule, RT_AH_NAME_STR("anyHitWithAlpha"));
+            m_optix.pathTracingHitGroupShadowDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 optixu::Module(), nullptr,
-                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitDefault"),
-                optixu::Module(), nullptr);
-            m_optix.pathTracingHitGroupShadowWithAlpha = m_optix.pipeline.createHitProgramGroup(
+                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitDefault"));
+            m_optix.pathTracingHitGroupShadowWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 optixu::Module(), nullptr,
-                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitWithAlpha"),
-                optixu::Module(), nullptr);
+                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitWithAlpha"));
         }
 
         {
@@ -192,14 +192,14 @@ namespace VLR {
             m_optix.debugRenderingMiss = m_optix.pipeline.createMissProgram(
                 m_optix.debugRenderingModule, RT_MS_NAME_STR("debugRenderingMiss"));
 
-            m_optix.debugRenderingHitGroupDefault = m_optix.pipeline.createHitProgramGroup(
+            m_optix.debugRenderingHitGroupDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingClosestHit"),
-                optixu::Module(), nullptr,
                 optixu::Module(), nullptr);
-            m_optix.debugRenderingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroup(
+            m_optix.debugRenderingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingClosestHit"),
-                m_optix.debugRenderingModule, RT_AH_NAME_STR("debugRenderingAnyHitWithAlpha"),
-                optixu::Module(), nullptr);
+                m_optix.debugRenderingModule, RT_AH_NAME_STR("debugRenderingAnyHitWithAlpha"));
         }
 
         {
@@ -330,6 +330,13 @@ namespace VLR {
         for (int i = 0; i < m_optix.callablePrograms.size(); ++i)
             m_optix.pipeline.setCallableProgram(i, m_optix.callablePrograms[i]);
 
+        size_t sbtSize;
+        m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
+        m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+        m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
+        m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
+                                               m_optix.shaderBindingTable.getMappedPointer());
+
         vlrprintf(" done.\n");
     }
 
@@ -426,6 +433,7 @@ namespace VLR {
     }
 
     void Context::bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID) {
+        m_optix.outputBufferHolder.finalize();
         if (m_optix.outputBuffer.isInitialized())
             m_optix.outputBuffer.finalize();
         if (m_optix.rawOutputBuffer.isInitialized())
@@ -450,6 +458,7 @@ namespace VLR {
             m_optix.outputBuffer.initializeFromGLTexture2D(
                 m_cuContext, glTexID,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable);
+            m_optix.outputBufferHolder.initialize(&m_optix.outputBuffer);
         }
         else {
             m_optix.outputBuffer.initialize2D(
@@ -484,89 +493,43 @@ namespace VLR {
         *height = m_height;
     }
 
-    void Context::render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    void Context::setScene(Scene &scene) {
         CUstream stream = 0;
 
-        uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
-        if (firstFrame) {
-            size_t sbtSize;
-            m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
+        size_t sbtSize;
+        m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
+        m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+        m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
 
-            m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
-            m_optix.pipeline.setScene(m_optix.scene);
-            m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
-                                                           m_optix.hitGroupShaderBindingTable.getMappedPointer());
+        m_optix.pipeline.setScene(m_optix.scene);
+        m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
+                                                       m_optix.hitGroupShaderBindingTable.getMappedPointer());
 
-            size_t asScratchSize;
-            scene.prepareSetup(&asScratchSize);
-            cudau::Buffer asScratchMem;
-            asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
-            scene.setup(stream, asScratchMem, &m_optix.launchParams);
-            asScratchMem.finalize();
-
-            camera->setup(&m_optix.launchParams);
-
-            m_optix.launchParams.imageSize = imageSize;
-
-            m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
-            m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
-            m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
-            m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
-                                                   m_optix.shaderBindingTable.getMappedPointer());
-
-            m_numAccumFrames = 0;
-        }
-
-        ++m_numAccumFrames;
-        *numAccumFrames = m_numAccumFrames;
-        m_optix.launchParams.numAccumFrames = m_numAccumFrames;
-
-        CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
-                                        sizeof(m_optix.launchParams), stream));
-        m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
-                                imageSize.x, imageSize.y, 1);
-
-        m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
-                                      m_optix.rawOutputBuffer.getBlockBuffer2D(),
-                                      m_optix.outputBuffer.getSurfaceObject(0),
-                                      m_numAccumFrames);
+        size_t asScratchSize;
+        scene.prepareSetup(&asScratchSize);
+        cudau::Buffer asScratchMem;
+        asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
+        scene.setup(stream, asScratchMem, &m_optix.launchParams);
+        asScratchMem.finalize();
 
         CUDADRV_CHECK(cuStreamSynchronize(stream));
     }
 
-    void Context::debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    void Context::render(const Camera* camera,
+                         bool debugRender, VLRDebugRenderingMode renderMode,
+                         uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         CUstream stream = 0;
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         if (firstFrame) {
-            size_t sbtSize;
-            m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
-
-            m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
-            m_optix.pipeline.setScene(m_optix.scene);
-            m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
-                                                           m_optix.hitGroupShaderBindingTable.getMappedPointer());
-
-            size_t asScratchSize;
-            scene.prepareSetup(&asScratchSize);
-            cudau::Buffer asScratchMem;
-            asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
-            scene.setup(stream, asScratchMem, &m_optix.launchParams);
-            asScratchMem.finalize();
-
             camera->setup(&m_optix.launchParams);
 
             m_optix.launchParams.imageSize = imageSize;
 
-            m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
-            m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
-            m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
-            m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
-                                                   m_optix.shaderBindingTable.getMappedPointer());
+            if (debugRender)
+                m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
+            else
+                m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
 
             m_numAccumFrames = 0;
         }
@@ -581,14 +544,22 @@ namespace VLR {
         m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
                                 imageSize.x, imageSize.y, 1);
 
-        CUDADRV_CHECK(cuStreamSynchronize(stream));
-
+        m_optix.outputBufferHolder.beginCUDAAccess(stream);
         m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
                                       m_optix.rawOutputBuffer.getBlockBuffer2D(),
-                                      m_optix.outputBuffer.getSurfaceObject(0),
+                                      m_optix.outputBufferHolder.getNext(),
                                       m_numAccumFrames);
+        m_optix.outputBufferHolder.endCUDAAccess(stream);
 
         CUDADRV_CHECK(cuStreamSynchronize(stream));
+    }
+
+    void Context::render(const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+        render(camera, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame, numAccumFrames);
+    }
+
+    void Context::debugRender(const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+        render(camera, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
 

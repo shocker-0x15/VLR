@@ -32,6 +32,13 @@ EN:
 
 変更履歴 / Update History:
 - !!BREAKING
+  JP: カーブプリミティブをサポート。
+      ヒットグループを生成する関数を変更。三角形とカーブに関してはcreateHitProgramGroupForBuiltinIS()を、
+      カスタムプリミティブに関してはcreateHitProgramGroupForCustomIS()を使用してください。
+  EN: Added support for curve primitives.
+      Changed the function to create a hit group. Use createHitProgramGroupForBuiltinIS() for triangles and
+      curves and createHitProgramGroupForCustomIS() for custom primitives.
+- !!BREAKING
   JP: GeometryInstanceとGASをSceneから生成する関数の引数の型をenumに変更。
   EN: Changed the type of argument of the functions to create a GeometryInstance or a GAS from a Scene to enum.
 - !!BREAKING
@@ -62,23 +69,28 @@ TODO:
 - ユニットテスト。
 - Linux環境でのテスト。
 - CMake整備。
-- setPayloads/getPayloadsなどで引数側が必要以上の引数を渡していてもエラーが出ない問題。
 - ASのRelocationサポート。
-- Curve Primitiveサポート。
 - AOV Denoiserサポート。
+- Instance Pointersサポート。
+- removeUncompacted再考。(compaction終了待ちとしてとらえる？)
 - 途中で各オブジェクトのパラメターを変更した際の処理。
   パイプラインのセットアップ順などが現状は暗黙的に固定されている。これを自由な順番で変えられるようにする。
 - Multi GPUs?
 - Assertとexceptionの整理。
 
 検討事項 (Items under author's consideration, ignore this :) ):
+- Priv構造体がOptiXの構造体を直接持っていない場合が多々あるのがもったいない？
+  => OptixBuildInputは巨大なパディングを含んでいるので好ましくない。
+  => IASが直接持っているOptixBuildInputを除去orポインター化？
+     OptixBuildInputInstanceArrayを持つようにするとrebuildなどの各処理で毎回OptixBuildInputのクリアが必要。
+     ポインター化はメモリの無駄遣いを本質的には解決しない。
+- optixuのenumかOptiXのenum、使い分ける基準について考える。
+  => OptiX側のenumが余計なものを含んでいる場合はoptixu側でenumを定義したほうがミスが少ない。
+  GeometryTypeはOptiX側のでも良い気もするが、OPTIX_PRIMITIVE_TYPE_とOPTIX_PRIMITIVE_TYPE_FLAGS_でミスりそう。
+- MaterialのヒットグループのISとGeometryInstanceの一致確認。
+  => ついでにプログラムタイプごとの型つくる？
 - GeometryInstanceのGASをdirtyにする処理のうち、いくつかは内部的にSBTレイアウトの無効化をスキップできるはず。
 - HitGroup以外のProgramGroupにユーザーデータを持たせる。
-- GAS/IASに関してユーザーが気にするところはAS云々ではなくグループ化なので
-  名前を変えるべき？GeometryGroup/InstanceGroupのような感じ。
-  しかしビルドやアップデートを明示的にしているため結局ASであるということをユーザーが意識する必要がある。
-- ユーザーがあるSBTレコード中の各データのストライドを意識せずともそれぞれのオフセットを取得する関数。
-  => オフセット値を読み取った後にデータを読み取るというindirectionになるため、そもそもあまり好ましくない気も。
 - Material::setHitGroup()はレイタイプの数値が同じでもヒットグループのパイプラインが違っていれば別個に登録できるが、
   これがAPI上からは読み取りづらい。冗長だが敢えてパイプラインの識別情報も引数として受け取るべき？
 - Scene::generateShaderBindingTableLayout()はPipelineに依存すべき？
@@ -92,6 +104,16 @@ TODO:
     => GASのレイタイプ数設定をパイプラインに依存させる？ => Sceneとパイプラインは切り離したい。
   - GASがレイタイプ数設定を持っているのが不自然？ => パイプラインがレイタイプ数を持つようにして
     SBTレイアウト計算もPipelineに依存させる？
+----------------------------------------------------------------
+- GAS/IASに関してユーザーが気にするところはAS云々ではなくグループ化なので
+  名前を変えるべき？GeometryGroup/InstanceGroupのような感じ。
+  しかしビルドやアップデートを明示的にしているため結局ASであるということをユーザーが意識する必要がある。
+- ユーザーがあるSBTレコード中の各データのストライドを意識せずともそれぞれのオフセットを取得する関数。
+  => オフセット値を読み取った後にデータを読み取るというindirectionになるため、そもそもあまり好ましくない気も。
+- setPayloads/getPayloadsなどで引数側が必要以上の引数を渡していてもエラーが出ない問題。
+  => 言語機能的に難しいか。
+- InstanceのsetChildはTraversal Graph Depthに影響しないので名前を変えるべき？setTraversable()?
+  => GASのsetChildもDepthに影響しないことを考えるとこのままで良いかも。
 
 */
 
@@ -608,7 +630,7 @@ namespace optixu {
 
     // ----------------------------------------------------------------
     // JP: ホスト側API
-    // EN: Host-side API.
+    // EN: Host-side API
 #if !defined(__CUDA_ARCH__)
     /*
 
@@ -658,6 +680,9 @@ namespace optixu {
 
     enum class GeometryType {
         Triangles = 0,
+        LinearSegments,
+        QuadraticBSplines,
+        CubicBSplines,
         CustomPrimitives,
     };
 
@@ -828,14 +853,16 @@ private: \
         OPTIXU_COMMON_FUNCTIONS(GeometryInstance);
 
         // JP: 以下のAPIを呼んだ場合は所属するGASのmarkDirty()を呼ぶ必要がある。
-        //     (頂点/AABBバッファーの変更のみの場合は、markDirty()を呼ばずにGASのアップデートだけでも良い。)
+        //     (頂点/Width/AABBバッファーの変更のみの場合は、markDirty()を呼ばずにGASのアップデートだけでも良い。)
         // EN: Calling markDirty() of a GAS to which the geometry instance belongs is
         //     required when calling the following APIs.
-        //     (It is okay to use update instead of calling markDirty() when changing only vertex/AABB buffer.)
+        //     (It is okay to use update instead of calling markDirty() when changing only vertex/width/AABB buffer.)
         void setNumMotionSteps(uint32_t n) const;
         void setVertexFormat(OptixVertexFormat format) const;
         void setVertexBuffer(const BufferView &vertexBuffer, uint32_t motionStep = 0) const;
+        void setWidthBuffer(const BufferView &widthBuffer, uint32_t motionStep = 0) const;
         void setTriangleBuffer(const BufferView &triangleBuffer, OptixIndicesFormat format = OPTIX_INDICES_FORMAT_UNSIGNED_INT3) const;
+        void setSegmentIndexBuffer(const BufferView &segmentIndexBuffer) const;
         void setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer, uint32_t motionStep = 0) const;
         void setPrimitiveIndexOffset(uint32_t offset) const;
         void setNumMaterials(uint32_t numMaterials, const BufferView &matIndexOffsetBuffer, uint32_t indexOffsetSize = sizeof(uint32_t)) const;
@@ -857,6 +884,12 @@ private: \
         }
 
         uint32_t getNumMotionSteps() const;
+        OptixVertexFormat getVertexFormat() const;
+        BufferView getVertexBuffer(uint32_t motionStep = 0);
+        BufferView getWidthBuffer(uint32_t motionStep = 0);
+        BufferView getTriangleBuffer(OptixIndicesFormat* format = nullptr) const;
+        BufferView getSegmentIndexBuffer() const;
+        BufferView getCustomPrimitiveAABBBuffer(uint32_t motionStep = 0) const;
         uint32_t getPrimitiveIndexOffset() const;
         uint32_t getNumMaterials() const;
         OptixGeometryFlags getGeometryFlags(uint32_t matIdx) const;
@@ -883,7 +916,12 @@ private: \
         //     Changing the number of children invalidates the shader binding table layout of hit group.
         void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess) const;
         void setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const;
-        void addChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0) const;
+        void addChild(GeometryInstance geomInst, CUdeviceptr preTransform = 0,
+                      const void* data = nullptr, uint32_t size = 0, uint32_t alignment = 1) const;
+        template <typename T>
+        void addChild(GeometryInstance geomInst, CUdeviceptr preTransform, const T &data) const {
+            addChild(geomInst, preTransform, &data, sizeof(T), alignof(T));
+        }
         void removeChildAt(uint32_t index) const;
         void clearChildren() const;
 
@@ -1122,9 +1160,13 @@ private: \
         [[nodiscard]]
         ProgramGroup createMissProgram(Module module, const char* entryFunctionName) const;
         [[nodiscard]]
-        ProgramGroup createHitProgramGroup(Module module_CH, const char* entryFunctionNameCH,
-                                           Module module_AH, const char* entryFunctionNameAH,
-                                           Module module_IS, const char* entryFunctionNameIS) const;
+        ProgramGroup createHitProgramGroupForBuiltinIS(OptixPrimitiveType primType,
+                                                       Module module_CH, const char* entryFunctionNameCH,
+                                                       Module module_AH, const char* entryFunctionNameAH) const;
+        [[nodiscard]]
+        ProgramGroup createHitProgramGroupForCustomIS(Module module_CH, const char* entryFunctionNameCH,
+                                                      Module module_AH, const char* entryFunctionNameAH,
+                                                      Module module_IS, const char* entryFunctionNameIS) const;
         [[nodiscard]]
         ProgramGroup createCallableProgramGroup(Module module_DC, const char* entryFunctionNameDC,
                                                 Module module_CC, const char* entryFunctionNameCC) const;
@@ -1239,6 +1281,6 @@ private: \
 #undef OPTIXU_PIMPL
 
 #endif // #if !defined(__CUDA_ARCH__)
-    // END: Host-side API.
+    // END: Host-side API
     // ----------------------------------------------------------------
 } // namespace optixu

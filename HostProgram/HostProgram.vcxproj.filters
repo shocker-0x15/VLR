@@ -26,7 +26,15 @@
       <Filter>imGui</Filter>
     </ClCompile>
     <ClCompile Include="cpp_compile_test.cpp" />
-    <ClCompile Include="image_loader.cpp" />
+    <ClCompile Include="dds_loader.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_util.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="image_loader.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">
@@ -41,6 +49,12 @@
     <Filter Include="GLFW">
       <UniqueIdentifier>{087fdc49-3034-48a3-95d9-953bde5f51ac}</UniqueIdentifier>
     </Filter>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{079c8b79-02fc-414e-b18d-35ee05d2185f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="files to copy">
+      <UniqueIdentifier>{e25caf6d-50c3-4ffd-af1c-9537fca00240}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ext\include\GL\gl3w.h">
@@ -49,7 +63,6 @@
     <ClInclude Include="ext\include\GL\glcorearb.h">
       <Filter>gl3w</Filter>
     </ClInclude>
-    <ClInclude Include="GLToolkit.h" />
     <ClInclude Include="StopWatch.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="common.h" />
@@ -84,7 +97,18 @@
       <Filter>GLFW</Filter>
     </ClInclude>
     <ClInclude Include="parameter.h" />
-    <ClInclude Include="image_loader.h" />
+    <ClInclude Include="ext\include\KHR\khrplatform.h">
+      <Filter>gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_util.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="dds_loader.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="image_loader.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\scale.frag">

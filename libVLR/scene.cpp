@@ -861,7 +861,7 @@ namespace VLR {
 
                 inst.geomInstIndices.finalize();
                 inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-                inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
+                inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
                 inst.lightGeomInstDistribution.finalize(m_context);
                 inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
@@ -892,7 +892,7 @@ namespace VLR {
 
                 inst.geomInstIndices.finalize();
                 inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-                inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
+                inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
                 inst.lightGeomInstDistribution.finalize(m_context);
                 inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
@@ -939,7 +939,7 @@ namespace VLR {
 
             inst.geomInstIndices.finalize();
             inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-            inst.geomInstIndices.transfer(geomInstIndices.data(), numGeomInsts);
+            inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
             inst.lightGeomInstDistribution.finalize(m_context);
             inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 

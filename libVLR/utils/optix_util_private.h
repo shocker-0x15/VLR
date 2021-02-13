@@ -240,8 +240,8 @@ namespace optixu {
         }
         void unregisterName(const void* p) {
             optixuAssert(p, "Object must not be nullptr.");
-            optixuAssert(registeredNames.count(p) > 0, "The object %p has not been registered.", p);
-            registeredNames.erase(p);
+            if (registeredNames.count(p) > 0)
+                registeredNames.erase(p);
         }
         const char* getRegisteredName(const void* p) const {
             if (registeredNames.count(p) > 0)
@@ -327,7 +327,9 @@ namespace optixu {
 
         Priv(_Context* ctxt) :
             context(ctxt), userData(sizeof(uint32_t)) {}
-        ~Priv() {}
+        ~Priv() {
+            context->unregisterName(this);
+        }
 
         _Context* getContext() const {
             return context;
@@ -348,14 +350,14 @@ namespace optixu {
 
     class Scene::Priv {
         struct SBTOffsetKey {
-            const _GeometryAccelerationStructure* gas;
+            uint32_t gasSerialID;
             uint32_t matSetIndex;
 
             bool operator<(const SBTOffsetKey &rKey) const {
-                if (gas < rKey.gas) {
+                if (gasSerialID < rKey.gasSerialID) {
                     return true;
                 }
-                else if (gas == rKey.gas) {
+                else if (gasSerialID == rKey.gasSerialID) {
                     if (matSetIndex < rKey.matSetIndex)
                         return true;
                 }
@@ -367,7 +369,7 @@ namespace optixu {
 
                 std::size_t operator()(const SBTOffsetKey& key) const {
                     size_t seed = 0;
-                    auto hash0 = std::hash<const _GeometryAccelerationStructure*>()(key.gas);
+                    auto hash0 = std::hash<uint32_t>()(key.gasSerialID);
                     auto hash1 = std::hash<uint32_t>()(key.matSetIndex);
                     seed ^= hash0 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
                     seed ^= hash1 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -375,13 +377,14 @@ namespace optixu {
                 }
             };
             bool operator==(const SBTOffsetKey &rKey) const {
-                return gas == rKey.gas && matSetIndex == rKey.matSetIndex;
+                return gasSerialID == rKey.gasSerialID && matSetIndex == rKey.matSetIndex;
             }
         };
 
         _Context* context;
-        std::unordered_set<_GeometryAccelerationStructure*> geomASs;
+        std::unordered_map<uint32_t, _GeometryAccelerationStructure*> geomASs;
         std::unordered_map<SBTOffsetKey, uint32_t, SBTOffsetKey::Hash> sbtOffsets;
+        uint32_t nextGeomASSerialID;
         uint32_t singleRecordSize;
         uint32_t numSBTRecords;
         std::unordered_set<_Transform*> transforms;
@@ -394,9 +397,12 @@ namespace optixu {
         OPTIXU_OPAQUE_BRIDGE(Scene);
 
         Priv(_Context* ctxt) : context(ctxt),
+            nextGeomASSerialID(0),
             singleRecordSize(OPTIX_SBT_RECORD_HEADER_SIZE), numSBTRecords(0),
             sbtLayoutIsUpToDate(false) {}
-        ~Priv() {}
+        ~Priv() {
+            context->unregisterName(this);
+        }
 
         _Context* getContext() const {
             return context;
@@ -409,12 +415,8 @@ namespace optixu {
 
 
 
-        void addGAS(_GeometryAccelerationStructure* gas) {
-            geomASs.insert(gas);
-        }
-        void removeGAS(_GeometryAccelerationStructure* gas) {
-            geomASs.erase(gas);
-        }
+        void addGAS(_GeometryAccelerationStructure* gas);
+        void removeGAS(_GeometryAccelerationStructure* gas);
         void addTransform(_Transform* tr) {
             transforms.insert(tr);
         }
@@ -455,19 +457,30 @@ namespace optixu {
             BufferView triangleBuffer;
             OptixVertexFormat vertexFormat;
             OptixIndicesFormat indexFormat;
+            BufferView materialIndexOffsetBuffer;
+            uint32_t materialIndexOffsetSize;
+        };
+        struct CurveGeometry {
+            CUdeviceptr* vertexBufferArray;
+            CUdeviceptr* widthBufferArray;
+            BufferView* vertexBuffers;
+            BufferView* widthBuffers;
+            BufferView segmentIndexBuffer;
         };
         struct CustomPrimitiveGeometry {
             CUdeviceptr* primitiveAabbBufferArray;
             BufferView* primitiveAabbBuffers;
+            BufferView materialIndexOffsetBuffer;
+            uint32_t materialIndexOffsetSize;
         };
         std::variant<
             TriangleGeometry,
+            CurveGeometry,
             CustomPrimitiveGeometry
         > geometry;
+        GeometryType geomType;
         uint32_t numMotionSteps;
         uint32_t primitiveIndexOffset;
-        uint32_t materialIndexOffsetSize;
-        BufferView materialIndexOffsetBuffer;
         std::vector<OptixGeometryFlags> buildInputFlags; // per SBT record
 
         std::vector<std::vector<_Material*>> materials;
@@ -475,11 +488,15 @@ namespace optixu {
     public:
         OPTIXU_OPAQUE_BRIDGE(GeometryInstance);
 
-        Priv(_Scene* _scene, GeometryType geomType) :
+        Priv(_Scene* _scene, GeometryType _geomType) :
             scene(_scene),
-            userData(sizeof(uint32_t)),
-            primitiveIndexOffset(0),
-            materialIndexOffsetSize(0) {
+            userData(),
+            geomType(_geomType),
+            primitiveIndexOffset(0) {
+            buildInputFlags.resize(1, OPTIX_GEOMETRY_FLAG_NONE);
+            materials.resize(1);
+            materials[0].resize(1, nullptr);
+
             numMotionSteps = 1;
             if (geomType == GeometryType::Triangles) {
                 geometry = TriangleGeometry{};
@@ -491,6 +508,22 @@ namespace optixu {
                 geom.triangleBuffer = BufferView();
                 geom.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
                 geom.indexFormat = OPTIX_INDICES_FORMAT_NONE;
+                geom.materialIndexOffsetSize = 0;
+            }
+            else if (geomType == GeometryType::LinearSegments ||
+                     geomType == GeometryType::QuadraticBSplines ||
+                     geomType == GeometryType::CubicBSplines) {
+                geometry = CurveGeometry{};
+                auto &geom = std::get<CurveGeometry>(geometry);
+                geom.vertexBufferArray = new CUdeviceptr[numMotionSteps];
+                geom.vertexBufferArray[0] = 0;
+                geom.vertexBuffers = new BufferView[numMotionSteps];
+                geom.vertexBuffers[0] = BufferView();
+                geom.widthBufferArray = new CUdeviceptr[numMotionSteps];
+                geom.widthBufferArray[0] = 0;
+                geom.widthBuffers = new BufferView[numMotionSteps];
+                geom.widthBuffers[0] = BufferView();
+                geom.segmentIndexBuffer = BufferView();
             }
             else if (geomType == GeometryType::CustomPrimitives) {
                 geometry = CustomPrimitiveGeometry{};
@@ -499,14 +532,22 @@ namespace optixu {
                 geom.primitiveAabbBufferArray[0] = 0;
                 geom.primitiveAabbBuffers = new BufferView[numMotionSteps];
                 geom.primitiveAabbBuffers[0] = BufferView();
+                geom.materialIndexOffsetSize = 0;
             }
             else {
-                optixuAssert_NotImplemented();
+                optixuAssert_ShouldNotBeCalled();
             }
         }
         ~Priv() {
             if (std::holds_alternative<TriangleGeometry>(geometry)) {
                 auto &geom = std::get<TriangleGeometry>(geometry);
+                delete[] geom.vertexBuffers;
+                delete[] geom.vertexBufferArray;
+            }
+            else if (std::holds_alternative<CurveGeometry>(geometry)) {
+                auto &geom = std::get<CurveGeometry>(geometry);
+                delete[] geom.widthBuffers;
+                delete[] geom.widthBufferArray;
                 delete[] geom.vertexBuffers;
                 delete[] geom.vertexBufferArray;
             }
@@ -516,8 +557,9 @@ namespace optixu {
                 delete[] geom.primitiveAabbBufferArray;
             }
             else {
-                optixuAssert_NotImplemented();
+                optixuAssert_ShouldNotBeCalled();
             }
+            getContext()->unregisterName(this);
         }
 
         const _Scene* getScene() const {
@@ -535,12 +577,7 @@ namespace optixu {
 
 
         GeometryType getGeometryType() const {
-            if (std::holds_alternative<TriangleGeometry>(geometry))
-                return GeometryType::Triangles;
-            else if (std::holds_alternative<CustomPrimitiveGeometry>(geometry))
-                return GeometryType::CustomPrimitives;
-            optixuAssert_NotImplemented();
-            return GeometryType::Triangles;
+            return geomType;
         }
         uint32_t getNumMotionSteps() const {
             return numMotionSteps;
@@ -570,6 +607,7 @@ namespace optixu {
         };
 
         _Scene* scene;
+        uint32_t serialID;
         GeometryType geomType;
         SizeAlign userDataSizeAlign;
         std::vector<uint8_t> userData;
@@ -605,8 +643,9 @@ namespace optixu {
     public:
         OPTIXU_OPAQUE_BRIDGE(GeometryAccelerationStructure);
 
-        Priv(_Scene* _scene, GeometryType _geomType) :
+        Priv(_Scene* _scene, uint32_t _serialID, GeometryType _geomType) :
             scene(_scene),
+            serialID(_serialID),
             geomType(_geomType),
             userData(sizeof(uint32_t)),
             handle(0), compactedHandle(0),
@@ -615,6 +654,8 @@ namespace optixu {
             readyToBuild(false), available(false), 
             readyToCompact(false), compactedAvailable(false) {
             scene->addGAS(this);
+
+            numRayTypesPerMaterialSet.resize(1, 0);
 
             buildOptions = {};
 
@@ -631,6 +672,7 @@ namespace optixu {
             cuEventDestroy(finishEvent);
 
             scene->removeGAS(this);
+            getContext()->unregisterName(this);
         }
 
         const _Scene* getScene() const {
@@ -647,6 +689,10 @@ namespace optixu {
 
 
 
+        uint32_t getSerialID() const {
+            return serialID;
+        }
+        
         uint32_t getNumMaterialSets() const {
             return static_cast<uint32_t>(numRayTypesPerMaterialSet.size());
         }
@@ -671,6 +717,7 @@ namespace optixu {
                 return compactedHandle;
             if (available)
                 return handle;
+            optixuAssert_ShouldNotBeCalled();
             return 0;
         }
     };
@@ -715,6 +762,7 @@ namespace optixu {
                 delete data;
             data = nullptr;
             scene->removeTransform(this);
+            getContext()->unregisterName(this);
         }
 
         const _Scene* getScene() const {
@@ -776,7 +824,9 @@ namespace optixu {
             };
             std::copy_n(identity, 12, instTransform);
         }
-        ~Priv() {}
+        ~Priv() {
+            getContext()->unregisterName(this);
+        }
 
         const _Scene* getScene() const {
             return scene;
@@ -854,6 +904,7 @@ namespace optixu {
             cuEventDestroy(finishEvent);
 
             scene->removeIAS(this);
+            getContext()->unregisterName(this);
         }
 
         const _Scene* getScene() const {
@@ -907,6 +958,7 @@ namespace optixu {
         uint32_t numCallablePrograms;
         size_t sbtSize;
 
+        std::unordered_map<OptixPrimitiveType, _Module*> modulesForBuiltin;
         _ProgramGroup* rayGenProgram;
         _ProgramGroup* exceptionProgram;
         std::vector<_ProgramGroup*> missPrograms;
@@ -937,10 +989,7 @@ namespace optixu {
             pipelineLinked(false), sbtLayoutIsUpToDate(false), sbtIsUpToDate(false), hitGroupSbtIsUpToDate(false) {
             sbtParams = {};
         }
-        ~Priv() {
-            if (pipelineLinked)
-                optixPipelineDestroy(rawPipeline);
-        }
+        ~Priv();
 
         _Context* getContext() const {
             return context;
@@ -954,6 +1003,7 @@ namespace optixu {
 
 
         void markDirty();
+        OptixModule getModuleForBuiltin(OptixPrimitiveType primType);
         void createProgram(const OptixProgramGroupDesc &desc, const OptixProgramGroupOptions &options, OptixProgramGroup* group);
         void destroyProgram(OptixProgramGroup group);
     };
@@ -969,8 +1019,9 @@ namespace optixu {
 
         Priv(const _Pipeline* pl, OptixModule _rawModule) :
             pipeline(pl), rawModule(_rawModule) {}
-
-
+        ~Priv() {
+            getContext()->unregisterName(this);
+        }
 
         _Context* getContext() const {
             return pipeline->getContext();
@@ -996,8 +1047,9 @@ namespace optixu {
 
         Priv(_Pipeline* pl, OptixProgramGroup _rawGroup) :
             pipeline(pl), rawGroup(_rawGroup) {}
-
-
+        ~Priv() {
+            getContext()->unregisterName(this);
+        }
 
         _Context* getContext() const {
             return pipeline->getContext();
@@ -1110,6 +1162,7 @@ namespace optixu {
         }
         ~Priv() {
             optixDenoiserDestroy(rawDenoiser);
+            context->unregisterName(this);
         }
 
         _Context* getContext() const {

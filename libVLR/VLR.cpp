@@ -130,24 +130,36 @@ VLR_API VLRResult vlrContextGetOutputBufferSize(VLRContext context, uint32_t* wi
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextSetScene(VLRContext context, VLRScene scene) {
     try {
-        if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
+        if (!scene->is<VLR::Scene>())
             return VLRResult_InvalidArgument;
 
-        context->render(*scene, camera, shrinkCoeff, firstFrame, numAccumFrames);
+        context->setScene(*scene);
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
-        if (!scene->is<VLR::Scene>() || !camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
+        if (!camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
 
-        context->debugRender(*scene, camera, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
+        context->render(camera, shrinkCoeff, firstFrame, numAccumFrames);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+    try {
+        if (!camera->isMemberOf<VLR::Camera>() || numAccumFrames == nullptr)
+            return VLRResult_InvalidArgument;
+
+        context->debugRender(camera, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
 
         return VLRResult_NoError;
     }

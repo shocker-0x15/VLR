@@ -44,7 +44,12 @@ namespace VLR {
 
 
 
+    struct HitGroupSBTRecordData {
+        GeometryInstance geomInst;
+    };
+    
     struct HitPointParameter {
+        const HitGroupSBTRecordData* sbtr;
         union {
             struct {
                 float b1, b2;
@@ -57,19 +62,12 @@ namespace VLR {
 
         CUDA_DEVICE_FUNCTION static HitPointParameter get() {
             HitPointParameter ret;
+            ret.sbtr = reinterpret_cast<HitGroupSBTRecordData*>(optixGetSbtDataPointer());
             float2 bc = optixGetTriangleBarycentrics();
             ret.b1 = bc.x;
             ret.b2 = bc.y;
             ret.primIndex = optixGetPrimitiveIndex();
             return ret;
-        }
-    };
-
-    struct HitGroupSBTRecordData {
-        GeometryInstance geomInst;
-
-        CUDA_DEVICE_FUNCTION static const HitGroupSBTRecordData &get() {
-            return *reinterpret_cast<HitGroupSBTRecordData*>(optixGetSbtDataPointer());
         }
     };
 

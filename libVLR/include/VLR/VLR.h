@@ -68,8 +68,9 @@ extern "C" {
 
     VLR_API VLRResult vlrContextBindOutputBuffer(VLRContext context, uint32_t width, uint32_t height, uint32_t bufferID);
     VLR_API VLRResult vlrContextGetOutputBuffer(VLRContext context, CUarray* array, uint32_t* width, uint32_t* height);
-    VLR_API VLRResult vlrContextRender(VLRContext context, VLRScene scene, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-    VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRScene scene, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+    VLR_API VLRResult vlrContextSetScene(VLRContext context, VLRScene scene);
+    VLR_API VLRResult vlrContextRender(VLRContext context, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+    VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
 
 

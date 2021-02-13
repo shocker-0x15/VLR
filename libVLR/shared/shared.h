@@ -833,6 +833,19 @@ namespace VLR {
             float importance;
 
             CUDA_DEVICE_FUNCTION GeometryInstance() {}
+
+            CUDA_DEVICE_FUNCTION void print() const {
+                vlrprintf("progSample: %u\n", progSample);
+                vlrprintf("progDecodeHitPoint: %u\n", progDecodeHitPoint);
+                vlrprintf("nodeNormal: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                          nodeNormal.nodeType, nodeNormal.plugType, nodeNormal.nodeDescIndex, nodeNormal.option);
+                vlrprintf("nodeTangent: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                          nodeTangent.nodeType, nodeTangent.plugType, nodeTangent.nodeDescIndex, nodeTangent.option);
+                vlrprintf("nodeAlpha: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                          nodeAlpha.nodeType, nodeAlpha.plugType, nodeAlpha.nodeDescIndex, nodeAlpha.option);
+                vlrprintf("materialIndex: %u\n", materialIndex);
+                vlrprintf("importance: %g\n", importance);
+            }
         };
 
         struct Instance {
@@ -853,14 +866,14 @@ namespace VLR {
             DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_ybar;
             DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_zbar;
             float DiscretizedSpectrum_integralCMF;
-#   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
             const UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
             const UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
-#   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
             const float* UpsampledSpectrum_maxBrightnesses;
             const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
             const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
-#   endif
+#endif
 
             const NodeProcedureSet* nodeProcedureSetBuffer;
             const SmallNodeDescriptor* smallNodeDescriptorBuffer;
@@ -890,9 +903,46 @@ namespace VLR {
             optixu::BlockBuffer2D<SpectrumStorage, 0> outputBuffer;
 
             DebugRenderingAttribute debugRenderingAttribute;
-        };
 
-#if defined(VLR_Device)
+            CUDA_DEVICE_FUNCTION void print() const {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+                vlrprintf("UpsampledSpectrum_spectrum_grid: 0x%p\n", UpsampledSpectrum_spectrum_grid);
+                vlrprintf("UpsampledSpectrum_spectrum_data_points: 0x%p\n", UpsampledSpectrum_spectrum_data_points);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+                vlrprintf("UpsampledSpectrum_maxBrightnesses: 0x%p\n", UpsampledSpectrum_maxBrightnesses);
+                vlrprintf("UpsampledSpectrum_coefficients_sRGB_D65: 0x%p\n", UpsampledSpectrum_coefficients_sRGB_D65);
+                vlrprintf("UpsampledSpectrum_coefficients_sRGB_E: 0x%p\n", UpsampledSpectrum_coefficients_sRGB_E);
+#endif
+
+                vlrprintf("nodeProcedureSetBuffer: 0x%p\n", nodeProcedureSetBuffer);
+                vlrprintf("smallNodeDescriptorBuffer: 0x%p\n", smallNodeDescriptorBuffer);
+                vlrprintf("mediumNodeDescriptorBuffer: 0x%p\n", mediumNodeDescriptorBuffer);
+                vlrprintf("largeNodeDescriptorBuffer: 0x%p\n", largeNodeDescriptorBuffer);
+                vlrprintf("bsdfProcedureSetBuffer: 0x%p\n", bsdfProcedureSetBuffer);
+                vlrprintf("edfProcedureSetBuffer: 0x%p\n", edfProcedureSetBuffer);
+                vlrprintf("materialDescriptorBuffer: 0x%p\n", materialDescriptorBuffer);
+
+                vlrprintf("geomInstBuffer: 0x%p\n", geomInstBuffer);
+                vlrprintf("instBuffer: 0x%p\n", instBuffer);
+
+                vlrprintf("instIndices: 0x%p\n", instIndices);
+                vlrprintf("envLightInstIndex: %u\n", envLightInstIndex);
+
+                vlrprintf("topGroup: 0x%p\n", topGroup);
+
+                vlrprintf("imageSize: %ux%u\n", imageSize.x, imageSize.y);
+                vlrprintf("numAccumFrames: %u\n", numAccumFrames);
+                vlrprintf("progSampleLensPosition: %d\n", progSampleLensPosition);
+                vlrprintf("progSampleIDF: %d\n", progSampleIDF);
+
+                vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
+            }
+        };
+        static_assert(sizeof(PipelineLaunchParameters) == 520 &&
+                      alignof(PipelineLaunchParameters) == 8,
+                      "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;
 #endif
     }

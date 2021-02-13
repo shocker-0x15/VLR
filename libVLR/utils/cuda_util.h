@@ -349,6 +349,12 @@ namespace cudau {
         CUdeviceptr getCUdeviceptrAt(uint32_t idx) const {
             return m_devicePointer + static_cast<uintptr_t>(m_stride) * idx;
         }
+        void* getDevicePointer() const {
+            return reinterpret_cast<void*>(getCUdeviceptr());
+        }
+        void* getDevicePointerAt(uint32_t idx) const {
+            return reinterpret_cast<void*>(getCUdeviceptrAt(idx));
+        }
         size_t sizeInBytes() const {
             return static_cast<size_t>(m_numElements) * m_stride;
         }
@@ -384,7 +390,7 @@ namespace cudau {
             return reinterpret_cast<T*>(m_mappedPointer);
         }
         template <typename T>
-        void transfer(const T* srcValues, uint32_t numValues, CUstream stream = 0) const {
+        void write(const T* srcValues, uint32_t numValues, CUstream stream = 0) const {
             const size_t transferSize = sizeof(T) * numValues;
             const size_t bufferSize = static_cast<size_t>(m_stride) * m_numElements;
             if (transferSize > bufferSize)
@@ -392,8 +398,20 @@ namespace cudau {
             CUDADRV_CHECK(cuMemcpyHtoDAsync(getCUdeviceptr(), srcValues, transferSize, stream));
         }
         template <typename T>
-        void transfer(const std::vector<T> &values, CUstream stream = 0) const {
-            transfer(values.data(), values.size(), stream);
+        void write(const std::vector<T> &values, CUstream stream = 0) const {
+            write(values.data(), values.size(), stream);
+        }
+        template <typename T>
+        void read(T* dstValues, uint32_t numValues, CUstream stream = 0) const {
+            const size_t transferSize = sizeof(T) * numValues;
+            const size_t bufferSize = static_cast<size_t>(m_stride) * m_numElements;
+            if (transferSize > bufferSize)
+                throw std::runtime_error("Too large transfer");
+            CUDADRV_CHECK(cuMemcpyDtoHAsync(dstValues, getCUdeviceptr(), transferSize, stream));
+        }
+        template <typename T>
+        void read(std::vector<T> &values, CUstream stream = 0) const {
+            read(values.data(), values.size(), stream);
         }
         template <typename T>
         void fill(const T &value, CUstream stream = 0) const {
@@ -402,11 +420,11 @@ namespace cudau {
                 T* values = reinterpret_cast<T*>(m_mappedPointer);
                 for (int i = 0; i < numValues; ++i)
                     values[i] = value;
-                transfer(values, numValues, stream);
+                write(values, numValues, stream);
             }
             else {
-                std::vector values(numValues, value);
-                transfer(values, stream);
+                std::vector<T> values(numValues, value);
+                write(values, stream);
             }
         }
 
@@ -467,8 +485,17 @@ namespace cudau {
         T* getMappedPointer() const {
             return Buffer::getMappedPointer<T>();
         }
-        void transfer(const T* srcValues, uint32_t numValues, CUstream stream = 0) const {
-            Buffer::transfer<T>(srcValues, numValues, stream);
+        void write(const T* srcValues, uint32_t numValues, CUstream stream = 0) const {
+            Buffer::write<T>(srcValues, numValues, stream);
+        }
+        void write(const std::vector<T> &values, CUstream stream = 0) const {
+            write(values.data(), values.size(), stream);
+        }
+        void read(T* dstValues, uint32_t numValues, CUstream stream = 0) const {
+            Buffer::read<T>(dstValues, numValues, stream);
+        }
+        void read(std::vector<T> &values, CUstream stream = 0) const {
+            read(values.data(), values.size(), stream);
         }
         void fill(const T &value, CUstream stream = 0) const {
             Buffer::fill<T>(value, stream);
@@ -487,34 +514,6 @@ namespace cudau {
             // safe ?
             *reinterpret_cast<Buffer*>(&ret) = Buffer::copy(stream);
             return ret;
-        }
-    };
-
-    template <typename T>
-    class TypedHostBuffer {
-        std::vector<T> m_values;
-
-    public:
-        TypedHostBuffer() {}
-        TypedHostBuffer(TypedBuffer<T> &b, CUstream stream = 0) {
-            m_values.resize(b.numElements());
-            auto srcValues = b.map(stream);
-            std::copy_n(srcValues, b.numElements(), m_values.data());
-            b.unmap(stream);
-        }
-
-        T* getPointer() {
-            return m_values.data();
-        }
-        size_t numElements() const {
-            return m_values.size();
-        }
-
-        const T &operator[](uint32_t idx) const {
-            return m_values[idx];
-        }
-        T &operator[](uint32_t idx) {
-            return m_values[idx];
         }
     };
 
@@ -698,7 +697,7 @@ namespace cudau {
         }
         void unmap(uint32_t mipmapLevel = 0, CUstream stream = 0);
         template <typename T>
-        void transfer(const T* srcValues, uint32_t numValues, uint32_t mipmapLevel = 0, CUstream stream = 0) {
+        void write(const T* srcValues, uint32_t numValues, uint32_t mipmapLevel = 0, CUstream stream = 0) {
             uint32_t width = std::max<uint32_t>(1, m_width >> mipmapLevel);
             uint32_t height = std::max<uint32_t>(1, m_height >> mipmapLevel);
             uint32_t depth = std::max<uint32_t>(1, m_depth);
@@ -706,6 +705,18 @@ namespace cudau {
             if (sizeof(T) * numValues > size)
                 throw std::runtime_error("Too large transfer.");
             auto dstValues = map<T>(mipmapLevel, stream);
+            std::copy_n(srcValues, numValues, dstValues);
+            unmap(mipmapLevel, stream);
+        }
+        template <typename T>
+        void read(T* dstValues, uint32_t numValues, uint32_t mipmapLevel = 0, CUstream stream = 0) {
+            uint32_t width = std::max<uint32_t>(1, m_width >> mipmapLevel);
+            uint32_t height = std::max<uint32_t>(1, m_height >> mipmapLevel);
+            uint32_t depth = std::max<uint32_t>(1, m_depth);
+            size_t size = static_cast<size_t>(m_stride) * depth * height * width;
+            if (sizeof(T) * numValues > size)
+                throw std::runtime_error("Too large transfer.");
+            auto srcValues = map<T>(mipmapLevel, stream);
             std::copy_n(srcValues, numValues, dstValues);
             unmap(mipmapLevel, stream);
         }

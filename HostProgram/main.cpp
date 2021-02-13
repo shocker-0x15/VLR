@@ -4,7 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
-#include "GLToolkit.h"
+#include "gl_util.h"
 // Include glfw3.h after our OpenGL definitions
 #include "GLFW/glfw3.h"
 
@@ -194,13 +194,13 @@ class HostProgram {
     int32_t m_curFBWidth;
     int32_t m_curFBHeight;
 
-    GLTK::VertexArray m_vertexArrayForFullScreen;
-    GLTK::Texture2D m_outputBufferGL;
-    GLTK::Sampler m_outputSampler;
-    GLTK::GraphicsShader m_drawOptiXResultShader;
-    GLTK::FrameBuffer m_frameBuffer;
-    GLTK::GraphicsShader m_scaleShader;
-    GLTK::Sampler m_scaleSampler;
+    glu::VertexArray m_vertexArrayForFullScreen;
+    glu::Texture2D m_outputBufferGL;
+    glu::Sampler m_outputSampler;
+    glu::GraphicsProgram m_drawOptiXResultShader;
+    glu::FrameBuffer m_frameBuffer;
+    glu::GraphicsProgram m_scaleShader;
+    glu::Sampler m_scaleSampler;
 
     uint64_t m_accumFrameTimes;
     bool m_forceLowResolution;
@@ -751,6 +751,8 @@ public:
         m_renderTargetSizeX = initWindowSizeX;
         m_renderTargetSizeY = initWindowSizeY;
 
+        constexpr bool enableGLDebugCallback = true;
+
         // JP: OpenGL 4.6 Core Profileのコンテキストを作成する。
         const uint32_t OpenGLMajorVersion = 4;
         const uint32_t OpenGLMinorVersion = 6;
@@ -762,6 +764,8 @@ public:
 #if defined(Platform_macOS)
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+        if constexpr (enableGLDebugCallback)
+            glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
         // JP: ウインドウの初期化。
         //     HiDPIディスプレイに対応する。
@@ -792,8 +796,10 @@ public:
             return;
         }
 
-        glEnable(GL_FRAMEBUFFER_SRGB);
-        GLTK::errorCheck();
+        if constexpr (enableGLDebugCallback) {
+            glu::enableDebugCallback(true);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, false);
+        }
 
 
 
@@ -821,11 +827,11 @@ public:
 
 
 
-        m_outputBufferGL.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GLTK::SizedInternalFormat::RGBA32F);
-        m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getRawHandle());
+        m_outputBufferGL.initialize(GL_RGBA32F, m_renderTargetSizeX, m_renderTargetSizeY, 1);
+        m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getHandle());
 
-        m_outputSampler.initialize(GLTK::Sampler::MinFilter::Nearest, GLTK::Sampler::MagFilter::Nearest,
-                                   GLTK::Sampler::WrapMode::Repeat, GLTK::Sampler::WrapMode::Repeat);
+        m_outputSampler.initialize(glu::Sampler::MinFilter::Nearest, glu::Sampler::MagFilter::Nearest,
+                                   glu::Sampler::WrapMode::Repeat, glu::Sampler::WrapMode::Repeat);
 
         // JP: フルスクリーンクアッド(or 三角形)用の空のVAO。
         m_vertexArrayForFullScreen.initialize();
@@ -837,7 +843,11 @@ public:
                                                readTxtFile(exeDir / "shaders/drawOptiXResult.frag"));
 
         // JP: HiDPIディスプレイで過剰なレンダリング負荷になってしまうため低解像度フレームバッファーを作成する。
-        m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
+        GLenum colorFormats[] = { GL_RGBA8 };
+        GLenum depthFormat = GL_DEPTH_COMPONENT32;
+        m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, 1,
+                                 colorFormats, 0, 1,
+                                 &depthFormat, false);
 
         // JP: アップスケール用のシェーダー。
         m_scaleShader.initializeVSPS(readTxtFile(exeDir / "shaders/scale.vert"),
@@ -845,7 +855,7 @@ public:
 
         // JP: アップスケール用のサンプラー。
         //     texelFetch()を使う場合には設定値は無関係。だがバインドは必要な様子。
-        m_scaleSampler.initialize(GLTK::Sampler::MinFilter::Nearest, GLTK::Sampler::MagFilter::Nearest, GLTK::Sampler::WrapMode::Repeat, GLTK::Sampler::WrapMode::Repeat);
+        m_scaleSampler.initialize(glu::Sampler::MinFilter::Nearest, glu::Sampler::MagFilter::Nearest, glu::Sampler::WrapMode::Repeat, glu::Sampler::WrapMode::Repeat);
 
 
 
@@ -957,10 +967,14 @@ public:
                 m_frameBuffer.finalize();
                 m_outputBufferGL.finalize();
 
-                m_outputBufferGL.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GLTK::SizedInternalFormat::RGBA32F);
-                m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getRawHandle());
+                m_outputBufferGL.initialize(GL_RGBA32F, m_renderTargetSizeX, m_renderTargetSizeY, 1);
+                m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getHandle());
 
-                m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, GL_RGBA8, GL_DEPTH_COMPONENT32);
+                GLenum colorFormats[] = { GL_RGBA8 };
+                GLenum depthFormat = GL_DEPTH_COMPONENT32;
+                m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, 1,
+                                         colorFormats, 0, 1,
+                                         &depthFormat, false);
 
                 m_perspectiveCamera->set("aspect", (float)m_renderTargetSizeX / m_renderTargetSizeY);
 
@@ -1094,7 +1108,8 @@ public:
                 // ----------------------------------------------------------------
                 // JP: OptiXの出力とImGuiの描画。
 
-                m_frameBuffer.bind(GLTK::FrameBuffer::Target::ReadDraw);
+                glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer.getHandle(0));
+                m_frameBuffer.setDrawBuffers();
 
                 glViewport(0, 0, m_frameBuffer.getWidth(), m_frameBuffer.getHeight());
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1102,28 +1117,25 @@ public:
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 {
-                    m_drawOptiXResultShader.useProgram();
+                    glUseProgram(m_drawOptiXResultShader.getHandle());
 
-                    glUniform1i(0, (int32_t)m_renderTargetSizeX); GLTK::errorCheck();
-                    glUniform1f(1, (float)shrinkCoeff); GLTK::errorCheck();
-                    glUniform1f(2, m_brightnessCoeff); GLTK::errorCheck();
-                    glUniform1i(3, (int32_t)m_enableDebugRendering); GLTK::errorCheck();
+                    glUniform1i(0, (int32_t)m_renderTargetSizeX);
+                    glUniform1f(1, (float)shrinkCoeff);
+                    glUniform1f(2, m_brightnessCoeff);
+                    glUniform1i(3, (int32_t)m_enableDebugRendering);
 
-                    glActiveTexture(GL_TEXTURE0); GLTK::errorCheck();
-                    m_outputBufferGL.bind();
-                    m_outputSampler.bindToTextureUnit(0);
+                    glBindTextureUnit(0, m_outputBufferGL.getHandle());
+                    glBindSampler(0, m_outputSampler.getHandle());
 
-                    m_vertexArrayForFullScreen.bind();
-                    glDrawArrays(GL_TRIANGLES, 0, 3); GLTK::errorCheck();
-                    m_vertexArrayForFullScreen.unbind();
-
-                    m_outputBufferGL.unbind();
+                    glBindVertexArray(m_vertexArrayForFullScreen.getHandle());
+                    glDrawArrays(GL_TRIANGLES, 0, 3);
                 }
 
                 ImGui::Render();
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-                m_frameBuffer.unbind();
+                m_frameBuffer.resetDrawBuffers();
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
                 // END: draw OptiX's output and ImGui.
                 // ----------------------------------------------------------------
@@ -1136,26 +1148,22 @@ public:
                 glDisable(GL_FRAMEBUFFER_SRGB);
             else
                 glEnable(GL_FRAMEBUFFER_SRGB);
-            GLTK::errorCheck();
 
             int32_t display_w, display_h;
             glfwGetFramebufferSize(m_window, &display_w, &display_h);
             glViewport(0, 0, display_w, display_h);
 
-            m_scaleShader.useProgram();
+            glUseProgram(m_scaleShader.getHandle());
 
             glUniform1f(0, m_UIScaling);
 
             glActiveTexture(GL_TEXTURE0);
-            GLTK::Texture2D& srcFBTex = m_frameBuffer.getRenderTargetTexture();
-            srcFBTex.bind();
-            m_scaleSampler.bindToTextureUnit(0);
+            const glu::Texture2D& srcFBTex = m_frameBuffer.getRenderTargetTexture(0, 0);
+            glBindTextureUnit(0, srcFBTex.getHandle());
+            glBindSampler(0, m_scaleSampler.getHandle());
 
-            m_vertexArrayForFullScreen.bind();
+            glBindVertexArray(m_vertexArrayForFullScreen.getHandle());
             glDrawArrays(GL_TRIANGLES, 0, 3);
-            m_vertexArrayForFullScreen.unbind();
-
-            srcFBTex.unbind();
 
             // END: scaling
             // ----------------------------------------------------------------

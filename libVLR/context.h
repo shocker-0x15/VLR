@@ -152,6 +152,7 @@ namespace VLR {
 
             optixu::HostBlockBuffer2D<SpectrumStorage, 0> rawOutputBuffer;
             cudau::Array outputBuffer;
+            cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
             optixu::HostBlockBuffer2D<Shared::KernelRNG, 2> rngBuffer;
 
             cudau::Buffer shaderBindingTable;
@@ -165,6 +166,10 @@ namespace VLR {
         uint32_t m_height;
         uint32_t m_numAccumFrames;
 
+        void render(const Camera* camera,
+                    bool debugRender, VLRDebugRenderingMode renderMode,
+                    uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+
     public:
         Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
         ~Context();
@@ -177,8 +182,9 @@ namespace VLR {
         const cudau::Array &getOutputBuffer() const;
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
-        void render(Scene &scene, const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-        void debugRender(Scene &scene, const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void setScene(Scene &scene);
+        void render(const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void debugRender(const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         CUcontext getCuContext() const {
             return m_cuContext;

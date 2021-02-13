@@ -122,6 +122,9 @@
     <Filter Include="ext\gl3w">
       <UniqueIdentifier>{e05f5822-db6a-49c1-9039-5b4c30e5f0c7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="files to copy">
+      <UniqueIdentifier>{1a6a3f67-18ee-4950-82f9-85e1c1ce1c1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="GPU_kernels\triangle_intersection.cu">
@@ -148,5 +151,13 @@
     <CudaCompile Include="GPU_kernels\convert_to_rgb.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="spectral_upsampling_tables\sRGB_E.coeff">
+      <Filter>files to copy</Filter>
+    </None>
+    <None Include="spectral_upsampling_tables\sRGB_D65.coeff">
+      <Filter>files to copy</Filter>
+    </None>
   </ItemGroup>
 </Project>

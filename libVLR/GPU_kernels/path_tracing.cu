@@ -3,7 +3,7 @@
 namespace VLR {
     // Common Closest Hit Program for All Primitive Types and Materials
     CUDA_DEVICE_KERNEL void RT_CH_NAME(pathTracingIteration)() {
-        const auto &sbtr = HitGroupSBTRecordData::get();
+        const auto hp = HitPointParameter::get();
 
         Payload* payload;
         optixu::getPayloads<PayloadSignature>(&payload);
@@ -13,9 +13,9 @@ namespace VLR {
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        calcSurfacePoint(payload->wls, &surfPt, &hypAreaPDF);
+        calcSurfacePoint(hp, payload->wls, &surfPt, &hypAreaPDF);
 
-        const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[sbtr.geomInst.materialIndex];
+        const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
         BSDF bsdf(matDesc, surfPt, wls);
         EDF edf(matDesc, surfPt, wls);
 
@@ -30,7 +30,7 @@ namespace VLR {
             if (!payload->prevSampledType.isDelta() && payload->pathLength > 1) {
                 const Instance &inst = plp.instBuffer[optixGetInstanceId()];
                 float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
-                float geomInstProb = sbtr.geomInst.importance / inst.lightGeomInstDistribution.integral();
+                float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
 
                 float bsdfPDF = payload->prevDirPDF;
                 float dist2 = surfPt.calcSquaredDistance(asPoint3D(optixGetWorldRayOrigin()));

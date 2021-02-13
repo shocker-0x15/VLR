@@ -3,12 +3,12 @@
 namespace VLR {
     RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(
         const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
-        const auto &sbtr = HitGroupSBTRecordData::get();
+        const GeometryInstance &geomInst = param.sbtr->geomInst;
 
-        const Triangle &triangle = sbtr.geomInst.asTriMesh.triangleBuffer[param.primIndex];
-        const Vertex &v0 = sbtr.geomInst.asTriMesh.vertexBuffer[triangle.index0];
-        const Vertex &v1 = sbtr.geomInst.asTriMesh.vertexBuffer[triangle.index1];
-        const Vertex &v2 = sbtr.geomInst.asTriMesh.vertexBuffer[triangle.index2];
+        const Triangle &triangle = geomInst.asTriMesh.triangleBuffer[param.primIndex];
+        const Vertex &v0 = geomInst.asTriMesh.vertexBuffer[triangle.index0];
+        const Vertex &v1 = geomInst.asTriMesh.vertexBuffer[triangle.index1];
+        const Vertex &v2 = geomInst.asTriMesh.vertexBuffer[triangle.index2];
 
         Vector3D e1 = v1.position - v0.position;
         Vector3D e2 = v2.position - v0.position;
@@ -18,7 +18,7 @@ namespace VLR {
 
         // JP: プログラムがこの点を光源としてサンプルする場合の面積に関する(仮想的な)PDFを求める。
         // EN: calculate a hypothetical area PDF value in the case where the program sample this point as light.
-        float probLightPrim = area / sbtr.geomInst.asTriMesh.primDistribution.integral();
+        float probLightPrim = area / geomInst.asTriMesh.primDistribution.integral();
         *hypAreaPDF = probLightPrim / area;
 
         float b0 = 1 - param.b1 - param.b2, b1 = param.b1, b2 = param.b2;
