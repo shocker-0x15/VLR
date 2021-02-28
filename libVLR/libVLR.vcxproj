@@ -77,6 +77,7 @@
       <Defines>
       </Defines>
       <FastMath>true</FastMath>
+      <GenerateLineInfo>true</GenerateLineInfo>
     </CudaCompile>
     <Link />
     <CudaLink>

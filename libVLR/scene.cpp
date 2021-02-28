@@ -211,7 +211,7 @@ namespace VLR {
     void TriangleMeshSurfaceNode::setVertices(std::vector<Vertex> &&vertices) {
         m_vertices = vertices;
 
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
         m_optixVertexBuffer.initialize(cuContext, g_bufferType, m_vertices);
 
         // TODO: 頂点情報更新時の処理。(IndexBufferとの整合性など)
@@ -220,7 +220,7 @@ namespace VLR {
     void TriangleMeshSurfaceNode::addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
                                                    const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha) {
         optixu::Scene optixScene = m_context.getOptiXScene();
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
         CUstream cuStream = 0;
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
@@ -758,6 +758,8 @@ namespace VLR {
         const SHTransform* shtr = m_shTransforms.at(nullptr);
 
         Instance &inst = m_instances.at(shtr);
+        inst.lightGeomInstDistribution.finalize(m_context);
+        inst.geomInstIndices.finalize();
         inst.optixInst.destroy();
         m_context.releaseInstance(inst.instIndex);
         m_instances.erase(shtr);
@@ -791,8 +793,9 @@ namespace VLR {
             inst.optixInst.setID(inst.instIndex);
             inst.optixInst.setTransform(tMat);
             inst.data.transform = Shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
-            inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
+            inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+            inst.data.importance = 0.0f;
             m_context.updateInstance(inst.instIndex, inst.data);
         }
     }
@@ -845,7 +848,7 @@ namespace VLR {
     }
 
     void RootNode::geometryAddEvent(const SHTransform* childTransform) {
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
 
         SHTransform* transform = m_shTransforms.at(childTransform);
         Instance &inst = m_instances.at(transform);
@@ -859,24 +862,40 @@ namespace VLR {
                 geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
                 geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
 
+                float sumImportances = 0.0f;
+                for (float importance : geomInstImportanceValues)
+                    sumImportances += importance;
+
                 inst.geomInstIndices.finalize();
                 inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
                 inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
                 inst.lightGeomInstDistribution.finalize(m_context);
                 inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
                 inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
+                inst.data.importance = sumImportances > 0.0f ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
                 m_context.updateInstance(inst.instIndex, inst.data);
 
                 inst.optixInst.setChild(geomGroup->getOptixGas());
+                //optixu::GeometryInstance geomInst = geomGroup->getOptixGas().getChild(0);
+                //optixu::BufferView triBuffer = geomInst.getTriangleBuffer();
+                //uint32_t numPrims = triBuffer.numElements();
+                //if (numPrims == 2178)
+                //    inst.optixInst.setVisibilityMask(0b0001);
+                //else if (numPrims == 2)
+                //    inst.optixInst.setVisibilityMask(0b0010);
+                //else if (numPrims == 3936)
+                //    inst.optixInst.setVisibilityMask(0b0100);
+                //else if (numPrims == 57152)
+                //    inst.optixInst.setVisibilityMask(0b1000);
                 m_optixIas.addChild(inst.optixInst);
             }
         }
     }
 
     void RootNode::geometryRemoveEvent(const SHTransform* childTransform) {
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
 
         SHTransform* transform = m_shTransforms.at(childTransform);
         Instance &inst = m_instances.at(transform);
@@ -890,14 +909,19 @@ namespace VLR {
                 geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
                 geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
 
+                float sumImportances = 0.0f;
+                for (float importance : geomInstImportanceValues)
+                    sumImportances += importance;
+
                 inst.geomInstIndices.finalize();
                 inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
                 inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
                 inst.lightGeomInstDistribution.finalize(m_context);
                 inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
                 inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+                inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
+                inst.data.importance = sumImportances > 0.0f ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
                 m_context.updateInstance(inst.instIndex, inst.data);
             }
             else {
@@ -906,8 +930,9 @@ namespace VLR {
                 inst.geomInstIndices.finalize();
                 inst.lightGeomInstDistribution.finalize(m_context);
 
-                inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
                 inst.data.geomInstIndices = nullptr;
+                inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+                inst.data.importance = 0.0f;
                 m_context.updateInstance(inst.instIndex, inst.data);
             }
         }
@@ -917,6 +942,7 @@ namespace VLR {
             inst.geomInstIndices.finalize();
             inst.lightGeomInstDistribution.finalize(m_context);
 
+            inst.data.importance = 0.0f;
             inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
             m_context.updateInstance(inst.instIndex, inst.data);
@@ -924,7 +950,7 @@ namespace VLR {
     }
 
     void RootNode::geometryUpdateEvent(const SHTransform* childTransform) {
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
 
         SHTransform* transform = m_shTransforms.at(childTransform);
         Instance &inst = m_instances.at(transform);
@@ -937,14 +963,19 @@ namespace VLR {
             geomGroup->getGeometryInstanceIndices(geomInstIndices.data());
             geomGroup->getGeometryInstanceImportanceValues(geomInstImportanceValues.data());
 
+            float sumImportances = 0.0f;
+            for (float importance : geomInstImportanceValues)
+                sumImportances += importance;
+
             inst.geomInstIndices.finalize();
             inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
             inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts);
             inst.lightGeomInstDistribution.finalize(m_context);
             inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-            inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
             inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+            inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
+            inst.data.importance = sumImportances > 0.0f ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
             m_context.updateInstance(inst.instIndex, inst.data);
         }
     }
@@ -971,6 +1002,18 @@ namespace VLR {
         ParentNode::setup(cuStream, asScratchMem, launchParams);
 
         launchParams->topGroup = m_optixIas.rebuild(cuStream, m_optixInstanceBuffer, m_optixIasMem, asScratchMem);
+    }
+
+    void RootNode::getInstanceIndices(uint32_t* indices) const {
+        int i = 0;
+        for (auto &it : m_instances)
+            indices[i++] = it.second.instIndex;
+    }
+
+    void RootNode::getInstanceImportanceValues(float* importances) const {
+        int i = 0;
+        for (auto &it : m_instances)
+            importances[i++] = it.second.data.importance;
     }
 
 
@@ -1001,18 +1044,52 @@ namespace VLR {
     }
     
     Scene::Scene(Context &context, const Transform* localToWorld) : 
-    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr), m_envRotationPhi(0) {
+    Object(context), m_rootNode(context, localToWorld), m_matEnv(nullptr) {
+        const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
+        CUcontext cuContext = m_context.getCUcontext();
+
+        m_geomInstIndex = m_context.allocateGeometryInstance();
+        m_geomInstance.progSample = progSet.dcSampleInfiniteSphere;
+        m_geomInstance.progDecodeHitPoint = 0xFFFFFFFF;
+        m_geomInstance.nodeNormal = Shared::ShaderNodePlug::Invalid();
+        m_geomInstance.nodeTangent = Shared::ShaderNodePlug::Invalid();
+        m_geomInstance.nodeAlpha = Shared::ShaderNodePlug::Invalid();
+        m_geomInstance.materialIndex = 0;
+        m_geomInstance.importance = 0.0f;
+        m_context.updateGeometryInstance(m_geomInstIndex, m_geomInstance);
+
+        std::vector<uint32_t> geomInstIndices;
+        std::vector<float> geomInstImportanceValues;
+        geomInstIndices.push_back(m_geomInstIndex);
+        geomInstImportanceValues.push_back(1.0f);
+        m_instIndex = m_context.allocateInstance();
+        m_geomInstIndices.initialize(cuContext, g_bufferType, geomInstIndices);
+        m_lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), geomInstImportanceValues.size());
+
+        m_instance.geomInstIndices = m_geomInstIndices.getDevicePointer();
+        m_lightGeomInstDistribution.getInternalType(&m_instance.lightGeomInstDistribution);
+        m_instance.rotationPhi = 0.0f;
+        m_context.updateInstance(m_instIndex, m_instance);
     }
 
     Scene::~Scene() {
+        m_lightInstDist.finalize(m_context);
+        m_lightInstIndices.finalize();
+
+        m_geomInstIndices.finalize();
+        m_context.releaseInstance(m_instIndex);
+        m_context.releaseGeometryInstance(m_geomInstIndex);
     }
 
     void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
         m_matEnv = matEnv;
+        m_instance.importance = matEnv ? 1.0f : 0.0f; // TODO: どこでImportance Map取得する？
+        m_context.updateInstance(m_instIndex, m_instance);
     }
 
     void Scene::setEnvironmentRotation(float rotationPhi) {
-        m_envRotationPhi = rotationPhi;
+        m_instance.rotationPhi = rotationPhi;
+        m_context.updateInstance(m_instIndex, m_instance);
     }
 
     void Scene::prepareSetup(size_t* asScratchSize) {
@@ -1020,23 +1097,37 @@ namespace VLR {
     }
 
     void Scene::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
-        CUcontext cuContext = m_context.getCuContext();
+        CUcontext cuContext = m_context.getCUcontext();
 
         m_rootNode.setup(cuStream, asScratchMem, launchParams);
 
-        //optixu::Context optixContext = m_context.getOptiXContext();
+        uint32_t numInsts = m_rootNode.getNumInstances();
+        std::vector<uint32_t> instIndices(numInsts + 1);
+        std::vector<float> lightImportances(numInsts + 1);
+        instIndices[0] = m_instIndex;
+        lightImportances[0] = m_instance.importance;
+        if (m_matEnv) {
+            m_matEnv->getImportanceMap().getInternalType(&m_geomInstance.asInfSphere.importanceMap);
+            m_geomInstance.materialIndex = m_matEnv->getMaterialIndex();
+            m_geomInstance.importance = 1.0f;
+        }
+        else {
+            m_geomInstance.materialIndex = 0xFFFFFFFF;
+            m_geomInstance.importance = 0.0f;
+        }
+        m_context.updateGeometryInstance(m_geomInstIndex, m_geomInstance);
 
-        //Shared::GeometryInstanceDescriptor envLight;
-        //envLight.importance = 0.0f;
-        //if (m_matEnv) {
-        //    m_matEnv->getImportanceMap().getInternalType(&envLight.body.asInfSphere.importanceMap);
-        //    envLight.body.asInfSphere.rotationPhi = m_envRotationPhi;
-        //    envLight.materialIndex = m_matEnv->getMaterialIndex();
-        //    envLight.importance = 1.0f;
-        //    envLight.sampleFunc = m_callableProgramSampleInfiniteSphere->getId();
-        //}
+        m_rootNode.getInstanceIndices(instIndices.data() + 1);
+        m_rootNode.getInstanceImportanceValues(lightImportances.data() + 1);
+        m_lightInstIndices.finalize();
+        m_lightInstIndices.initialize(cuContext, g_bufferType, instIndices);
+        launchParams->instIndices = m_lightInstIndices.getDevicePointer();
 
-        //optixContext["VLR::pv_envLightDescriptor"]->setUserData(sizeof(envLight), &envLight);
+        m_lightInstDist.finalize(m_context);
+        m_lightInstDist.initialize(m_context, lightImportances.data(), lightImportances.size());
+        m_lightInstDist.getInternalType(&launchParams->lightInstDist);
+
+        launchParams->envLightInstIndex = m_instIndex;
     }
 
 

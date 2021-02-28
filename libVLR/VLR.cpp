@@ -86,7 +86,7 @@ VLR_API VLRResult vlrDestroyContext(VLRContext context) {
 
 VLR_API VLRResult vlrContextGetCUcontext(VLRContext context, CUcontext* cuContext) {
     try {
-        *cuContext = context->getCuContext();
+        *cuContext = context->getCUcontext();
 
         return VLRResult_NoError;
     }

@@ -287,8 +287,7 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
             auto image = loadImage2D(context, "resources/checkerboard_line.png", "Reflectance", "Rec709(D65) sRGB Gamma");
             auto nodeAlbedo = context->createShaderNode("Image2DTexture");
             nodeAlbedo->set("image", image);
-            nodeAlbedo->set("min filter", "Nearest");
-            nodeAlbedo->set("mag filter", "Nearest");
+            nodeAlbedo->set("filter", "Nearest");
             auto matMatte = context->createSurfaceMaterial("Matte");
             matMatte->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
 
@@ -633,8 +632,7 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", image);
-        nodeAlbedo->set("min filter", "Nearest");
-        nodeAlbedo->set("mag filter", "Nearest");
+        nodeAlbedo->set("filter", "Nearest");
         nodeAlbedo->set("texcoord", nodeTexCoord->getPlug(VLRShaderNodePlugType_TextureCoordinates, 0));
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
@@ -1035,8 +1033,7 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", image);
-        nodeAlbedo->set("min filter", "Nearest");
-        nodeAlbedo->set("mag filter", "Nearest");
+        nodeAlbedo->set("filter", "Nearest");
         nodeAlbedo->set("texcoord", nodeTexCoord->getPlug(VLRShaderNodePlugType_TextureCoordinates, 0));
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
@@ -1174,8 +1171,7 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
         ShaderNodeRef nodeAlbedo = context->createShaderNode("Image2DTexture");
         nodeAlbedo->set("image", image);
-        nodeAlbedo->set("min filter", "Nearest");
-        nodeAlbedo->set("mag filter", "Nearest");
+        nodeAlbedo->set("filter", "Nearest");
         nodeAlbedo->set("texcoord", nodeTexCoord->getPlug(VLRShaderNodePlugType_TextureCoordinates, 0));
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("Matte");
@@ -1576,8 +1572,7 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
             texDiffuse = context->createShaderNode("Image2DTexture");
             imgDiffuse = loadImage2D(context, pathPrefix + strValue.C_Str(), "Reflectance", "Rec709(D65) sRGB Gamma");
             texDiffuse->set("image", imgDiffuse);
-            texDiffuse->set("min filter", "Nearest");
-            texDiffuse->set("mag filter", "Nearest");
+            texDiffuse->set("filter", "Nearest");
             mat->set("albedo", texDiffuse->getPlug(VLRShaderNodePlugType_Spectrum, 0));
         }
         else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color, nullptr) == aiReturn_SUCCESS) {
@@ -2273,7 +2268,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
 
 void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    createMaterialTestScene(context, shot);
+    //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
@@ -2281,7 +2276,7 @@ void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
     //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
-    //createRungholtScene(context, shot);
+    createRungholtScene(context, shot);
     //createPowerplantScene(context, shot);
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);

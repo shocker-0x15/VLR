@@ -220,10 +220,22 @@ namespace optixu {
     }
 
     GeometryInstance Scene::createGeometryInstance(GeometryType geomType) const {
+        m->throwRuntimeError(geomType == GeometryType::Triangles ||
+                             geomType == GeometryType::LinearSegments ||
+                             geomType == GeometryType::QuadraticBSplines ||
+                             geomType == GeometryType::CubicBSplines ||
+                             geomType == GeometryType::CustomPrimitives,
+                             "Invalid geometry type: %u.", static_cast<uint32_t>(geomType));
         return (new _GeometryInstance(m, geomType))->getPublicType();
     }
 
     GeometryAccelerationStructure Scene::createGeometryAccelerationStructure(GeometryType geomType) const {
+        m->throwRuntimeError(geomType == GeometryType::Triangles ||
+                             geomType == GeometryType::LinearSegments ||
+                             geomType == GeometryType::QuadraticBSplines ||
+                             geomType == GeometryType::CubicBSplines ||
+                             geomType == GeometryType::CustomPrimitives,
+                             "Invalid geometry type: %u.", static_cast<uint32_t>(geomType));
         // JP: GASを生成するだけならSBTレイアウトには影響を与えないので無効化は不要。
         // EN: Only generating a GAS doesn't affect a SBT layout, no need to invalidate it.
         optixuAssert(m->geomASs.count(m->nextGeomASSerialID) == 0,
@@ -327,9 +339,9 @@ namespace optixu {
 
             triArray.numSbtRecords = static_cast<uint32_t>(buildInputFlags.size());
             if (triArray.numSbtRecords > 1) {
-                triArray.sbtIndexOffsetBuffer = geom.materialIndexOffsetBuffer.getCUdeviceptr();
-                triArray.sbtIndexOffsetSizeInBytes = geom.materialIndexOffsetSize;
-                triArray.sbtIndexOffsetStrideInBytes = geom.materialIndexOffsetBuffer.stride();
+                triArray.sbtIndexOffsetBuffer = geom.materialIndexBuffer.getCUdeviceptr();
+                triArray.sbtIndexOffsetSizeInBytes = geom.materialIndexSize;
+                triArray.sbtIndexOffsetStrideInBytes = geom.materialIndexBuffer.stride();
             }
             else {
                 triArray.sbtIndexOffsetBuffer = 0; // No per-primitive record
@@ -409,9 +421,9 @@ namespace optixu {
 
             customPrimArray.numSbtRecords = static_cast<uint32_t>(buildInputFlags.size());
             if (customPrimArray.numSbtRecords > 1) {
-                customPrimArray.sbtIndexOffsetBuffer = geom.materialIndexOffsetBuffer.getCUdeviceptr();
-                customPrimArray.sbtIndexOffsetSizeInBytes = geom.materialIndexOffsetSize;
-                customPrimArray.sbtIndexOffsetStrideInBytes = geom.materialIndexOffsetBuffer.stride();
+                customPrimArray.sbtIndexOffsetBuffer = geom.materialIndexBuffer.getCUdeviceptr();
+                customPrimArray.sbtIndexOffsetSizeInBytes = geom.materialIndexSize;
+                customPrimArray.sbtIndexOffsetStrideInBytes = geom.materialIndexBuffer.stride();
             }
             else {
                 customPrimArray.sbtIndexOffsetBuffer = 0; // No per-primitive record
@@ -447,7 +459,7 @@ namespace optixu {
                 triArray.indexBuffer = geom.triangleBuffer.getCUdeviceptr();
 
             if (triArray.numSbtRecords > 1)
-                triArray.sbtIndexOffsetBuffer = geom.materialIndexOffsetBuffer.getCUdeviceptr();
+                triArray.sbtIndexOffsetBuffer = geom.materialIndexBuffer.getCUdeviceptr();
 
             triArray.preTransform = preTransform;
             triArray.transformFormat = preTransform ? OPTIX_TRANSFORM_FORMAT_MATRIX_FLOAT12 : OPTIX_TRANSFORM_FORMAT_NONE;
@@ -494,7 +506,7 @@ namespace optixu {
             customPrimArray.aabbBuffers = geom.primitiveAabbBufferArray;
 
             if (customPrimArray.numSbtRecords > 1)
-                customPrimArray.sbtIndexOffsetBuffer = geom.materialIndexOffsetBuffer.getCUdeviceptr();
+                customPrimArray.sbtIndexOffsetBuffer = geom.materialIndexBuffer.getCUdeviceptr();
         }
         else {
             optixuAssert_ShouldNotBeCalled();
@@ -643,27 +655,27 @@ namespace optixu {
         m->primitiveIndexOffset = offset;
     }
 
-    void GeometryInstance::setNumMaterials(uint32_t numMaterials, const BufferView &matIndexOffsetBuffer, uint32_t indexOffsetSize) const {
+    void GeometryInstance::setNumMaterials(uint32_t numMaterials, const BufferView &matIndexBuffer, uint32_t indexSize) const {
         m->throwRuntimeError(!std::holds_alternative<Priv::CurveGeometry>(m->geometry),
                              "Geometry instance for curves is not allowed to have multiple materials.");
         m->throwRuntimeError(numMaterials > 0, "Invalid number of materials %u.", numMaterials);
-        m->throwRuntimeError((numMaterials == 1) != matIndexOffsetBuffer.isValid(),
+        m->throwRuntimeError((numMaterials == 1) != matIndexBuffer.isValid(),
                              "Material index offset buffer must be provided when multiple materials are used.");
-        m->throwRuntimeError(indexOffsetSize >= 1 && indexOffsetSize <= 4,
+        m->throwRuntimeError(indexSize >= 1 && indexSize <= 4,
                              "Invalid index offset size.");
-        if (matIndexOffsetBuffer.isValid())
-            m->throwRuntimeError(matIndexOffsetBuffer.stride() >= indexOffsetSize,
+        if (matIndexBuffer.isValid())
+            m->throwRuntimeError(matIndexBuffer.stride() >= indexSize,
                                  "Buffer's stride is smaller than the given index offset size.");
         m->buildInputFlags.resize(numMaterials, OPTIX_GEOMETRY_FLAG_NONE);
         if (std::holds_alternative<Priv::TriangleGeometry>(m->geometry)) {
             auto &geom = std::get<Priv::TriangleGeometry>(m->geometry);
-            geom.materialIndexOffsetBuffer = matIndexOffsetBuffer;
-            geom.materialIndexOffsetSize = indexOffsetSize;
+            geom.materialIndexBuffer = matIndexBuffer;
+            geom.materialIndexSize = indexSize;
         }
         else if (std::holds_alternative<Priv::CustomPrimitiveGeometry>(m->geometry)) {
             auto &geom = std::get<Priv::CustomPrimitiveGeometry>(m->geometry);
-            geom.materialIndexOffsetBuffer = matIndexOffsetBuffer;
-            geom.materialIndexOffsetSize = indexOffsetSize;
+            geom.materialIndexBuffer = matIndexBuffer;
+            geom.materialIndexSize = indexSize;
         }
         else {
             optixuAssert_ShouldNotBeCalled();
@@ -772,7 +784,29 @@ namespace optixu {
         return m->primitiveIndexOffset;
     }
 
-    uint32_t GeometryInstance::getNumMaterials() const {
+    uint32_t GeometryInstance::getNumMaterials(BufferView* matIndexBuffer, uint32_t* indexSize) const {
+        if (matIndexBuffer || indexSize) {
+            if (std::holds_alternative<Priv::TriangleGeometry>(m->geometry)) {
+                const auto &geom = std::get<Priv::TriangleGeometry>(m->geometry);
+                if (matIndexBuffer)
+                    *matIndexBuffer = geom.materialIndexBuffer;
+                if (indexSize)
+                    *indexSize = geom.materialIndexSize;
+            }
+            else if (std::holds_alternative<Priv::CustomPrimitiveGeometry>(m->geometry)) {
+                const auto &geom = std::get<Priv::CustomPrimitiveGeometry>(m->geometry);
+                if (matIndexBuffer)
+                    *matIndexBuffer = geom.materialIndexBuffer;
+                if (indexSize)
+                    *indexSize = geom.materialIndexSize;
+            }
+            else {
+                if (matIndexBuffer)
+                    *matIndexBuffer = BufferView();
+                if (indexSize)
+                    *indexSize = 0;
+            }
+        }
         return static_cast<uint32_t>(m->materials.size());
     }
 
@@ -1312,6 +1346,9 @@ namespace optixu {
             xfm->invTransform[4] = 1.0f; xfm->invTransform[5] = 0.0f; xfm->invTransform[6] = 0.0f; xfm->invTransform[7] = 0.0f;
             xfm->invTransform[8] = 1.0f; xfm->invTransform[9] = 0.0f; xfm->invTransform[10] = 0.0f; xfm->invTransform[11] = 0.0f;
         }
+        else {
+            m->throwRuntimeError(false, "Invalid transform type %u.", static_cast<uint32_t>(type));
+        }
 
         *transformSize = m->dataSize;
 
@@ -1438,6 +1475,8 @@ namespace optixu {
             childHandle = std::get<_InstanceAccelerationStructure*>(m->child)->getHandle();
         else if (std::holds_alternative<_Transform*>(m->child))
             childHandle = std::get<_Transform*>(m->child)->getHandle();
+        else 
+            optixuAssert_ShouldNotBeCalled();
 
         OptixTraversableType travType;
         if (m->type == TransformType::MatrixMotion) {
@@ -1456,6 +1495,9 @@ namespace optixu {
             auto tr = reinterpret_cast<OptixStaticTransform*>(m->data);
             tr->child = childHandle;
             travType = OPTIX_TRAVERSABLE_TYPE_STATIC_TRANSFORM;
+        }
+        else {
+            optixuAssert_ShouldNotBeCalled();
         }
 
         CUDADRV_CHECK(cuMemcpyHtoDAsync(trDeviceMem.getCUdeviceptr(), m->data, m->dataSize, stream));
@@ -1576,6 +1618,9 @@ namespace optixu {
                 instance->sbtOffset = scene->getSBTOffset(desGas, matSetIndex);
             else
                 instance->sbtOffset = 0;
+        }
+        else {
+            optixuAssert_ShouldNotBeCalled();
         }
 
         instance->visibilityMask = visibilityMask;

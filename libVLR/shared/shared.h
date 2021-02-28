@@ -190,26 +190,28 @@ namespace VLR {
 
             CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
-                int idx = m_numValues;
-                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
-                    int newIdx = idx - d;
-                    if (newIdx > 0 && m_CDF[newIdx] > u)
-                        idx = newIdx;
+                int idx = 0;
+                for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
+                    if (m_CDF[idx + d] <= u)
+                        idx += d;
+                    if (idx + 1 >= m_numValues)
+                        break;
                 }
-                --idx;
+                idx = min<int32_t>(m_numValues - 1, idx);
                 VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 return idx;
             }
             CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
-                int idx = m_numValues;
-                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
-                    int newIdx = idx - d;
-                    if (newIdx > 0 && m_CDF[newIdx] > u)
-                        idx = newIdx;
+                int idx = 0;
+                for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
+                    if (m_CDF[idx + d] <= u)
+                        idx += d;
+                    if (idx + 1 >= m_numValues)
+                        break;
                 }
-                --idx;
+                idx = min<int32_t>(m_numValues - 1, idx);
                 VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
@@ -855,6 +857,7 @@ namespace VLR {
             };
             uint32_t* geomInstIndices;
             DiscreteDistribution1D lightGeomInstDistribution;
+            float importance;
 
             CUDA_DEVICE_FUNCTION Instance() {}
         };
@@ -886,21 +889,20 @@ namespace VLR {
             const GeometryInstance* geomInstBuffer;
             const Instance* instBuffer;
 
+            optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
+            optixu::BlockBuffer2D<SpectrumStorage, 0> outputBuffer;
+
+            OptixTraversableHandle topGroup;
             const uint32_t* instIndices;
             DiscreteDistribution1D lightInstDist;
             uint32_t envLightInstIndex;
 
+            uint2 imageSize;
             PerspectiveCamera perspectiveCamera;
             EquirectangularCamera equirectangularCamera;
-
-            OptixTraversableHandle topGroup;
-
-            uint2 imageSize;
-            uint32_t numAccumFrames;
             int32_t progSampleLensPosition;
             int32_t progSampleIDF;
-            optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
-            optixu::BlockBuffer2D<SpectrumStorage, 0> outputBuffer;
+            uint32_t numAccumFrames;
 
             DebugRenderingAttribute debugRenderingAttribute;
 
@@ -938,7 +940,7 @@ namespace VLR {
                 vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
             }
         };
-        static_assert(sizeof(PipelineLaunchParameters) == 520 &&
+        static_assert(sizeof(PipelineLaunchParameters) == 512 &&
                       alignof(PipelineLaunchParameters) == 8,
                       "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
 

@@ -106,6 +106,7 @@
     <ClCompile Include="ext\src\imGui\imgui_draw.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_impl_glfw.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="ext\src\imGui\imgui_tables.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_widgets.cpp" />
     <ClCompile Include="gl_util.cpp" />
     <ClCompile Include="image_loader.cpp" />

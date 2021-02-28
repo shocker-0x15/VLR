@@ -52,6 +52,7 @@ namespace VLR {
         const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
         float primProb;
         uint32_t primIdx = geomInst.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
+        //printf("%g, %u, %g\n", sample.uElem, primIdx, primProb);
 
         const Triangle &triangle = geomInst.asTriMesh.triangleBuffer[primIdx];
         const Vertex &v0 = geomInst.asTriMesh.vertexBuffer[triangle.index0];

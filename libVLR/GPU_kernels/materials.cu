@@ -1365,7 +1365,7 @@ namespace VLR {
     // NullEDF
 
     RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(NullEDF_setupEDF)(
-        const uint32_t* matDesc, const SurfacePoint &surfPt, uint32_t* params) {
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
         return 0;
     }
 

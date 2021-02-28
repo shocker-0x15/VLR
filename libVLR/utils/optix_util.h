@@ -727,6 +727,12 @@ namespace optixu {
         bool isValid() const {
             return m_devicePtr != 0;
         }
+
+        bool operator==(const BufferView &b) const {
+            return (m_devicePtr == b.m_devicePtr &&
+                    m_numElements == b.m_numElements &&
+                    m_stride == b.m_stride);
+        }
     };
 
     template <typename... Types>
@@ -865,7 +871,7 @@ private: \
         void setSegmentIndexBuffer(const BufferView &segmentIndexBuffer) const;
         void setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer, uint32_t motionStep = 0) const;
         void setPrimitiveIndexOffset(uint32_t offset) const;
-        void setNumMaterials(uint32_t numMaterials, const BufferView &matIndexOffsetBuffer, uint32_t indexOffsetSize = sizeof(uint32_t)) const;
+        void setNumMaterials(uint32_t numMaterials, const BufferView &matIndexBuffer, uint32_t indexSize = sizeof(uint32_t)) const;
         void setGeometryFlags(uint32_t matIdx, OptixGeometryFlags flags) const;
 
         // JP: 以下のAPIを呼んだ場合はシェーダーバインディングテーブルを更新する必要がある。
@@ -891,7 +897,7 @@ private: \
         BufferView getSegmentIndexBuffer() const;
         BufferView getCustomPrimitiveAABBBuffer(uint32_t motionStep = 0) const;
         uint32_t getPrimitiveIndexOffset() const;
-        uint32_t getNumMaterials() const;
+        uint32_t getNumMaterials(BufferView* matIndexBuffer = nullptr, uint32_t* indexSize = nullptr) const;
         OptixGeometryFlags getGeometryFlags(uint32_t matIdx) const;
         Material getMaterial(uint32_t matSetIdx, uint32_t matIdx) const;
         void getUserData(void* data, uint32_t* size, uint32_t* alignment) const;

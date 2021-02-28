@@ -35,6 +35,9 @@
     <ClCompile Include="image_loader.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
+    <ClCompile Include="ext\src\imGui\imgui_tables.cpp">
+      <Filter>imGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="gl3w">
@@ -111,17 +114,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\scale.frag">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\scale.vert">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\drawOptiXResult.frag">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\drawOptiXResult.vert">
-      <Filter>shaders</Filter>
-    </None>
+    <CopyFileToFolders Include="shaders\drawOptiXResult.frag" />
+    <CopyFileToFolders Include="shaders\drawOptiXResult.vert" />
+    <CopyFileToFolders Include="shaders\scale.frag" />
+    <CopyFileToFolders Include="shaders\scale.vert" />
   </ItemGroup>
 </Project>

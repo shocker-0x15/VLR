@@ -689,7 +689,7 @@ namespace VLR {
 
     template <typename RealType>
     void DiscreteDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
-        CUcontext cuContext = context.getCuContext();
+        CUcontext cuContext = context.getCUcontext();
 
         m_numValues = (uint32_t)numValues;
         m_PMF.initialize(cuContext, g_bufferType, m_numValues);
@@ -700,16 +700,16 @@ namespace VLR {
         std::memcpy(PMF, values, sizeof(RealType) * m_numValues);
 
         CompensatedSum<RealType> sum(0);
-        CDF[0] = 0;
         for (int i = 0; i < m_numValues; ++i) {
+            CDF[i] = sum;
             sum += PMF[i];
-            CDF[i + 1] = sum;
         }
         m_integral = sum;
         for (int i = 0; i < m_numValues; ++i) {
             PMF[i] /= m_integral;
-            CDF[i + 1] /= m_integral;
+            CDF[i] /= m_integral;
         }
+        CDF[m_numValues] = 1.0f;
 
         m_CDF.unmap();
         m_PMF.unmap();
@@ -736,7 +736,7 @@ namespace VLR {
 
     template <typename RealType>
     void RegularConstantContinuousDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
-        CUcontext cuContext = context.getCuContext();
+        CUcontext cuContext = context.getCUcontext();
 
         m_numValues = (uint32_t)numValues;
         m_PDF.initialize(cuContext, g_bufferType, m_numValues);
@@ -782,7 +782,7 @@ namespace VLR {
 
     template <typename RealType>
     void RegularConstantContinuousDistribution2DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numD1, size_t numD2) {
-        CUcontext cuContext = context.getCuContext();
+        CUcontext cuContext = context.getCUcontext();
 
         m_1DDists = new RegularConstantContinuousDistribution1DTemplate<RealType>[numD2];
         m_raw1DDists.initialize(cuContext, g_bufferType, numD2);

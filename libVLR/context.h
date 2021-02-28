@@ -186,7 +186,7 @@ namespace VLR {
         void render(const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
         void debugRender(const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
-        CUcontext getCuContext() const {
+        CUcontext getCUcontext() const {
             return m_cuContext;
         }
         optixu::Context getOptiXContext() const {

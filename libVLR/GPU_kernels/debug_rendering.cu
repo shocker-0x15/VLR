@@ -99,27 +99,15 @@ namespace VLR {
         DebugRenderingPayload* payload;
         optixu::getPayloads<DebugPayloadSignature>(&payload);
 
-        //uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
-        //if (launchIndex.x >= (1280 - 32) / 2 &&
-        //    launchIndex.x < (1280 + 32) / 2 &&
-        //    launchIndex.y >= (720 - 32) / 2 &&
-        //    launchIndex.y < (720 + 32) / 2)
-        //    printf("%4ux%4u: %p, %g, %u, %u, %u, %p, %p, %u, %u, %u\n", launchIndex.x, launchIndex.y,
-        //           hp.sbtr,
-        //           hp.sbtr->geomInst.importance, hp.sbtr->geomInst.materialIndex,
-        //           hp.sbtr->geomInst.progSample, hp.sbtr->geomInst.progDecodeHitPoint,
-        //           hp.sbtr->geomInst.asTriMesh.vertexBuffer, hp.sbtr->geomInst.asTriMesh.triangleBuffer,
-        //           hp.sbtr->geomInst.nodeNormal.asUInt, hp.sbtr->geomInst.nodeTangent.asUInt, hp.sbtr->geomInst.nodeAlpha.asUInt);
-        //payload->value = SampledSpectrum::One();
-        //return;
-
         WavelengthSamples &wls = payload->wls;
 
         SurfacePoint surfPt;
         float hypAreaPDF;
         calcSurfacePoint(hp, wls, &surfPt, &hypAreaPDF);
 
-        //if (!surfPt.shadingFrame.x.allFinite() || !surfPt.shadingFrame.y.allFinite() || !surfPt.shadingFrame.z.allFinite())
+        //if (!surfPt.shadingFrame.x.allFinite() ||
+        //    !surfPt.shadingFrame.y.allFinite() ||
+        //    !surfPt.shadingFrame.z.allFinite())
         //    vlrprintf("(%g, %g, %g), (%g, %g, %g), (%g, %g, %g)\n",
         //              surfPt.shadingFrame.x.x, surfPt.shadingFrame.x.y, surfPt.shadingFrame.x.z,
         //              surfPt.shadingFrame.y.x, surfPt.shadingFrame.y.y, surfPt.shadingFrame.y.z,
@@ -147,8 +135,6 @@ namespace VLR {
     CUDA_DEVICE_KERNEL void RT_MS_NAME(debugRenderingMiss)() {
         DebugRenderingPayload* payload;
         optixu::getPayloads<DebugPayloadSignature>(&payload);
-        //payload->value = SampledSpectrum::Zero();
-        //return;
 
         WavelengthSamples &wls = payload->wls;
 
@@ -193,9 +179,6 @@ namespace VLR {
     // Common Ray Generation Program for All Camera Types
     CUDA_DEVICE_KERNEL void RT_RG_NAME(debugRenderingRayGeneration)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
-        //if (launchIndex.x == 0 &&
-        //    launchIndex.y == 0)
-        //    plp.print();
 
         KernelRNG rng = plp.rngBuffer[launchIndex];
 

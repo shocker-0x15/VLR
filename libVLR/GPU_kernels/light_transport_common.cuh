@@ -218,12 +218,14 @@ namespace VLR {
         return *fractionalVisibility > 0;
     }
 
-    CUDA_DEVICE_FUNCTION void selectSurfaceLight(float lightSample, SurfaceLight* light, float* lightProb, float* remapped) {
+    CUDA_DEVICE_FUNCTION void selectSurfaceLight(float uLight, SurfaceLight* light, float* lightProb, float* uPrim) {
+        float uInst;
         float instProb;
-        uint32_t instIndex = plp.instIndices[plp.lightInstDist.sample(lightSample, &instProb, &lightSample)];
+        uint32_t instIndex = plp.instIndices[plp.lightInstDist.sample(uLight, &instProb, &uInst)];
         const Instance &inst = plp.instBuffer[instIndex];
         float geomInstProb;
-        uint32_t geomInstIndex = inst.geomInstIndices[inst.lightGeomInstDistribution.sample(lightSample, &geomInstProb, &lightSample)];
+        uint32_t geomInstIndex = inst.geomInstIndices[inst.lightGeomInstDistribution.sample(uInst, &geomInstProb, uPrim)];
+        //printf("%u, %g, %u, %g\n", instIndex, instProb, geomInstIndex, geomInstProb);
         const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
         *light = SurfaceLight(inst, geomInst);
         *lightProb = instProb * geomInstProb;
@@ -249,9 +251,9 @@ namespace VLR {
         ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
         decodeHitPoint(hp, &surfPt, &hypAreaPDF);
         surfPt.position = transform<TransformKind::ObjectToWorld>(surfPt.position);
-        surfPt.shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.x),
-                                             transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.z));
-        surfPt.geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt.geometricNormal);
+        surfPt.shadingFrame = ReferenceFrame(normalize(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.x)),
+                                             normalize(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.z)));
+        surfPt.geometricNormal = normalize(transform<TransformKind::ObjectToWorld>(surfPt.geometricNormal));
         surfPt.instanceIndex = optixGetInstanceId();
 
         return calcNode(hp.sbtr->geomInst.nodeAlpha, 1.0f, surfPt, wls);
@@ -346,9 +348,9 @@ namespace VLR {
         ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
         decodeHitPoint(hp, surfPt, hypAreaPDF);
         surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);
-        surfPt->shadingFrame = ReferenceFrame(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x),
-                                              transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z));
-        surfPt->geometricNormal = transform<TransformKind::ObjectToWorld>(surfPt->geometricNormal);
+        surfPt->shadingFrame = ReferenceFrame(normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x)),
+                                              normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z)));
+        surfPt->geometricNormal = normalize(transform<TransformKind::ObjectToWorld>(surfPt->geometricNormal));
         surfPt->instanceIndex = optixGetInstanceId();
 
         Normal3D localNormal = calcNode(hp.sbtr->geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);

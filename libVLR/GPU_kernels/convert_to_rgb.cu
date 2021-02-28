@@ -9,6 +9,9 @@ namespace VLR {
                                          uint32_t numAccumFrames) {
         uint2 launchIndex = make_uint2(blockDim.x * blockIdx.x + threadIdx.x,
                                        blockDim.y * blockIdx.y + threadIdx.y);
+        uint2 imageSize = spectrumBuffer.getSize();
+        if (launchIndex.x >= imageSize.x || launchIndex.y >= imageSize.y)
+            return;
         const DiscretizedSpectrum &spectrum = spectrumBuffer[launchIndex].getValue().result;
         float XYZ[3];
         spectrum.toXYZ(XYZ);

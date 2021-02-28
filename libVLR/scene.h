@@ -398,6 +398,12 @@ namespace VLR {
 
         void prepareSetup(size_t* asScratchSize) override;
         void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) override;
+
+        uint32_t getNumInstances() const {
+            return m_instances.size();
+        }
+        void getInstanceIndices(uint32_t* indices) const;
+        void getInstanceImportanceValues(float* importances) const;
     };
 
 
@@ -412,8 +418,19 @@ namespace VLR {
 
         RootNode m_rootNode;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
-        float m_envRotationPhi;
 
+        // EnvLight GeomInst
+        uint32_t m_geomInstIndex;
+        Shared::GeometryInstance m_geomInstance;
+
+        // EnvLight Inst
+        uint32_t m_instIndex;
+        cudau::TypedBuffer<uint32_t> m_geomInstIndices;
+        DiscreteDistribution1D m_lightGeomInstDistribution;
+        Shared::Instance m_instance;
+
+        cudau::TypedBuffer<uint32_t> m_lightInstIndices;
+        DiscreteDistribution1D m_lightInstDist;
         cudau::Buffer m_asScratchMem;
 
     public:

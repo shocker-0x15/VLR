@@ -273,7 +273,7 @@ class HostProgram {
     VLRCpp::CameraRef m_perspectiveCamera;
     VLRCpp::CameraRef m_equirectangularCamera;
     VLRCpp::CameraRef m_camera;
-    std::string m_cameraType;
+    int32_t m_cameraTypeIndex;
 
     VLR::Point3D m_cameraPosition;
     VLR::Quaternion m_cameraOrientation;
@@ -330,10 +330,10 @@ class HostProgram {
     void showCameraWindow() {
         ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-        m_cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)& m_cameraPosition);
-        m_cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)& m_cameraOrientation);
+        m_cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&m_cameraPosition);
+        m_cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)&m_cameraOrientation);
 
-        const char* debugRenderModes[] = {
+        static constexpr const char* debugRenderModes[] = {
             "BaseColor",
             "GeometricNormal",
             "ShadingTangent",
@@ -348,8 +348,8 @@ class HostProgram {
         if (rendererChanged)
             ImGui::GetStyle() = m_enableDebugRendering ? m_guiStyle : m_guiStyleWithGamma;
         m_cameraSettingsChanged |= rendererChanged;
-        m_cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)& m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
-        ImGui::SliderFloat("Brightness", &m_brightnessCoeff, 0.01f, 10.0f, "%.3f", 2.0f);
+        m_cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)&m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
+        ImGui::SliderFloat("Brightness", &m_brightnessCoeff, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
         if (ImGui::InputInt("Viewport", &m_presetViewportIndex)) {
             if (m_presetViewportIndex < 0)
@@ -363,19 +363,19 @@ class HostProgram {
 
         ImGui::Text("Pos. Moving Speed: %g", m_cameraPositionalMovingSpeed);
 
-        const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
-        m_cameraSettingsChanged |= ImGui::Combo("Camera Type", (int32_t*)& m_cameraType, CameraTypeNames, lengthof(CameraTypeNames));
+        static constexpr const char* CameraTypeNames[] = { "Perspective", "Equirectangular" };
+        m_cameraSettingsChanged |= ImGui::Combo("Camera Type", &m_cameraTypeIndex, CameraTypeNames, lengthof(CameraTypeNames));
 
-        if (m_cameraType == "PerspectiveCamera") {
-            m_cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &m_fovYInDeg, 1, 179, "%.3f", 2.0f);
-            m_cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &m_lensRadius, 0.0f, 0.15f, "%.3f", 1.0f);
-            m_cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &m_objPlaneDistance, 0.01f, 20.0f, "%.3f", 2.0f);
+        if (m_cameraTypeIndex == 0) {
+            m_cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &m_fovYInDeg, 1, 179, "%.3f", ImGuiSliderFlags_Logarithmic);
+            m_cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &m_lensRadius, 0.0f, 0.15f, "%.3f", ImGuiSliderFlags_Logarithmic);
+            m_cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &m_objPlaneDistance, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
             m_persSensitivity = m_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * m_lensRadius * m_lensRadius);
 
             m_camera = m_perspectiveCamera;
         }
-        else if (m_cameraType == "EquirectangularCamera") {
+        else if (m_cameraTypeIndex == 1) {
             m_cameraSettingsChanged |= ImGui::SliderFloat("Phi Angle", &m_phiAngle, M_PI / 18, 2 * M_PI);
             m_cameraSettingsChanged |= ImGui::SliderFloat("Theta Angle", &m_thetaAngle, M_PI / 18, 1 * M_PI);
 
@@ -592,9 +592,9 @@ class HostProgram {
                         // TODO: tabでフォーカスを動かしたときも編集を確定させる。
                         //       ImGuiにバグがあるっぽい？
                         bool trChanged = false;
-                        trChanged |= ImGui::InputFloat3("Scale", (float*)& m_nodeScale, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
-                        trChanged |= ImGui::InputFloat3("Rotation", (float*)& m_nodeRotation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
-                        trChanged |= ImGui::InputFloat3("Translation", (float*)& m_nodeTranslation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                        trChanged |= ImGui::InputFloat3("Scale", (float*)&m_nodeScale, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                        trChanged |= ImGui::InputFloat3("Rotation", (float*)&m_nodeRotation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
+                        trChanged |= ImGui::InputFloat3("Translation", (float*)&m_nodeTranslation, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
                         if (trChanged) {
                             Matrix4x4 mat = translate<float>(m_nodeTranslation) *
                                 rotateZ<float>(m_nodeRotation.z * M_PI / 180) *
@@ -619,8 +619,8 @@ class HostProgram {
 
 
     void setViewport(const VLRCpp::CameraRef& camera) {
-        m_cameraType = camera->getType();
-        if (m_cameraType == "PerspectiveCamera") {
+        std::string cameraType = camera->getType();
+        if (cameraType == "PerspectiveCamera") {
             camera->get("position", &m_cameraPosition);
             camera->get("orientation", &m_cameraOrientation);
             camera->get("sensitivity", &m_persSensitivity);
@@ -639,6 +639,7 @@ class HostProgram {
             m_fovYInDeg *= 180 / M_PI;
 
             m_camera = m_perspectiveCamera;
+            m_cameraTypeIndex = 0;
         }
         else {
             camera->get("position", &m_cameraPosition);
@@ -654,6 +655,7 @@ class HostProgram {
             m_equirectangularCamera->set("v angle", m_thetaAngle);
 
             m_camera = m_equirectangularCamera;
+            m_cameraTypeIndex = 1;
         }
 
         m_tempCameraOrientation = m_cameraOrientation;
@@ -924,8 +926,7 @@ public:
         m_environmentRotation = shot.environmentRotation * 180 / M_PI;
         m_environmentRotation = m_environmentRotation - std::floor(m_environmentRotation / 360) * 360;
 
-        //m_enableDebugRendering = false;
-        m_enableDebugRendering = true;
+        m_enableDebugRendering = false;
         m_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
 
 
@@ -1066,7 +1067,7 @@ public:
                 m_sceneChanged = false;
                 showSceneWindow();
 
-                if (m_cameraType == "PerspectiveCamera") {
+                if (m_cameraTypeIndex == 0) {
                     m_perspectiveCamera->set("position", m_cameraPosition);
                     m_perspectiveCamera->set("orientation", m_tempCameraOrientation);
                     if (m_cameraSettingsChanged) {
@@ -1077,7 +1078,7 @@ public:
                         m_perspectiveCamera->set("op distance", m_objPlaneDistance);
                     }
                 }
-                else if (m_cameraType == "EquirectangularCamera") {
+                else if (m_cameraTypeIndex == 1) {
                     m_equirectangularCamera->set("position", m_cameraPosition);
                     m_equirectangularCamera->set("orientation", m_tempCameraOrientation);
                     if (m_cameraSettingsChanged) {
@@ -1089,7 +1090,11 @@ public:
 
                 uint32_t shrinkCoeff = (operatingCamera || m_forceLowResolution) ? 4 : 1;
 
-                bool firstFrame = cameraIsActuallyMoving || (m_operatedCameraOnPrevFrame ^ operatingCamera) || m_outputBufferSizeChanged || m_cameraSettingsChanged || m_sceneChanged;
+                bool firstFrame =
+                    cameraIsActuallyMoving || (m_operatedCameraOnPrevFrame ^ operatingCamera) ||
+                    m_outputBufferSizeChanged ||
+                    m_cameraSettingsChanged ||
+                    m_sceneChanged;
                 if (m_frameIndex == 0)
                     firstFrame = true;
                 if (firstFrame)

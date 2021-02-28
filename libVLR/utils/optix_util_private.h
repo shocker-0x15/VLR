@@ -457,8 +457,8 @@ namespace optixu {
             BufferView triangleBuffer;
             OptixVertexFormat vertexFormat;
             OptixIndicesFormat indexFormat;
-            BufferView materialIndexOffsetBuffer;
-            uint32_t materialIndexOffsetSize;
+            BufferView materialIndexBuffer;
+            uint32_t materialIndexSize;
         };
         struct CurveGeometry {
             CUdeviceptr* vertexBufferArray;
@@ -470,8 +470,8 @@ namespace optixu {
         struct CustomPrimitiveGeometry {
             CUdeviceptr* primitiveAabbBufferArray;
             BufferView* primitiveAabbBuffers;
-            BufferView materialIndexOffsetBuffer;
-            uint32_t materialIndexOffsetSize;
+            BufferView materialIndexBuffer;
+            uint32_t materialIndexSize;
         };
         std::variant<
             TriangleGeometry,
@@ -508,7 +508,7 @@ namespace optixu {
                 geom.triangleBuffer = BufferView();
                 geom.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
                 geom.indexFormat = OPTIX_INDICES_FORMAT_NONE;
-                geom.materialIndexOffsetSize = 0;
+                geom.materialIndexSize = 0;
             }
             else if (geomType == GeometryType::LinearSegments ||
                      geomType == GeometryType::QuadraticBSplines ||
@@ -532,7 +532,7 @@ namespace optixu {
                 geom.primitiveAabbBufferArray[0] = 0;
                 geom.primitiveAabbBuffers = new BufferView[numMotionSteps];
                 geom.primitiveAabbBuffers[0] = BufferView();
-                geom.materialIndexOffsetSize = 0;
+                geom.materialIndexSize = 0;
             }
             else {
                 optixuAssert_ShouldNotBeCalled();

@@ -54,10 +54,11 @@ namespace VLR {
 
         // Next Event Estimation (explicit light sampling)
         if (bsdf.hasNonDelta()) {
+            float uLight = rng.getFloat0cTo1o();
             SurfaceLight light;
             float lightProb;
             float uPrim;
-            selectSurfaceLight(rng.getFloat0cTo1o(), &light, &lightProb, &uPrim);
+            selectSurfaceLight(uLight, &light, &lightProb, &uPrim);
 
             SurfaceLightPosSample lpSample(uPrim, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
             SurfaceLightPosQueryResult lpResult;
