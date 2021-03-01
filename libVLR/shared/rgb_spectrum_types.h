@@ -198,12 +198,16 @@ namespace vlr {
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION constexpr RGBSpectrumTemplate<RealType> min(const RGBSpectrumTemplate<RealType> &value, RealType minValue) {
-        return RGBSpectrumTemplate<RealType>(std::fmin(minValue, value.r), std::fmin(minValue, value.g), std::fmin(minValue, value.b));
+        return RGBSpectrumTemplate<RealType>(std::fmin(minValue, value.r),
+                                             std::fmin(minValue, value.g),
+                                             std::fmin(minValue, value.b));
     }
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION constexpr RGBSpectrumTemplate<RealType> max(const RGBSpectrumTemplate<RealType> &value, RealType maxValue) {
-        return RGBSpectrumTemplate<RealType>(std::fmax(maxValue, value.r), std::fmax(maxValue, value.g), std::fmax(maxValue, value.b));
+        return RGBSpectrumTemplate<RealType>(std::fmax(maxValue, value.r),
+                                             std::fmax(maxValue, value.g),
+                                             std::fmax(maxValue, value.b));
     }
 
     template <typename RealType>

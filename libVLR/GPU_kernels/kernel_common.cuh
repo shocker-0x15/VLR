@@ -75,14 +75,18 @@ namespace vlr {
         Vector3D x, y;
         Normal3D z;
 
-        CUDA_DEVICE_FUNCTION ReferenceFrame() { }
-        CUDA_DEVICE_FUNCTION ReferenceFrame(const Vector3D &t, const Normal3D &n) : x(t), y(cross(n, t)), z(n) { }
-        CUDA_DEVICE_FUNCTION ReferenceFrame(const Vector3D &t, const Vector3D &b, const Normal3D &n) : x(t), y(b), z(n) { }
+        CUDA_DEVICE_FUNCTION ReferenceFrame() {}
+        CUDA_DEVICE_FUNCTION ReferenceFrame(const Vector3D &t, const Normal3D &n) :
+            x(t), y(cross(n, t)), z(n) { }
+        CUDA_DEVICE_FUNCTION ReferenceFrame(const Vector3D &t, const Vector3D &b, const Normal3D &n) :
+            x(t), y(b), z(n) { }
         CUDA_DEVICE_FUNCTION ReferenceFrame(const Normal3D &zz) : z(zz) {
             z.makeCoordinateSystem(&x, &y);
         }
 
-        CUDA_DEVICE_FUNCTION Vector3D toLocal(const Vector3D &v) const { return Vector3D(dot(x, v), dot(y, v), dot(z, v)); }
+        CUDA_DEVICE_FUNCTION Vector3D toLocal(const Vector3D &v) const {
+            return Vector3D(dot(x, v), dot(y, v), dot(z, v));
+        }
         CUDA_DEVICE_FUNCTION Vector3D fromLocal(const Vector3D &v) const {
             // assume orthonormal basis
             return Vector3D(dot(Vector3D(x.x, y.x, z.x), v),
@@ -118,8 +122,12 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION Vector3D toLocal(const Vector3D &vecWorld) const { return shadingFrame.toLocal(vecWorld); }
-        CUDA_DEVICE_FUNCTION Vector3D fromLocal(const Vector3D &vecLocal) const { return shadingFrame.fromLocal(vecLocal); }
+        CUDA_DEVICE_FUNCTION Vector3D toLocal(const Vector3D &vecWorld) const {
+            return shadingFrame.toLocal(vecWorld);
+        }
+        CUDA_DEVICE_FUNCTION Vector3D fromLocal(const Vector3D &vecLocal) const {
+            return shadingFrame.fromLocal(vecLocal);
+        }
         CUDA_DEVICE_FUNCTION float calcCosTerm(const Vector3D &vecWorld) const {
             return isPoint ? 1 : absDot(vecWorld, geometricNormal);
         }
@@ -229,7 +237,8 @@ namespace vlr {
         float uDir[2];
 
         CUDA_DEVICE_FUNCTION BSDFSample() {}
-        CUDA_DEVICE_FUNCTION BSDFSample(float uComp, float uDir0, float uDir1) : uComponent(uComp), uDir{ uDir0, uDir1 } {}
+        CUDA_DEVICE_FUNCTION BSDFSample(float uComp, float uDir0, float uDir1) :
+            uComponent(uComp), uDir{ uDir0, uDir1 } {}
     };
 
     struct BSDFQueryResult {
@@ -245,7 +254,8 @@ namespace vlr {
     struct IDFSample {
         float uDir[2];
 
-        CUDA_DEVICE_FUNCTION IDFSample(float uDir0, float uDir1) : uDir{ uDir0, uDir1 } {}
+        CUDA_DEVICE_FUNCTION IDFSample(float uDir0, float uDir1) :
+            uDir{ uDir0, uDir1 } {}
     };
 
     struct IDFQueryResult {
@@ -261,7 +271,8 @@ namespace vlr {
         float uPos[2];
 
         CUDA_DEVICE_FUNCTION SurfaceLightPosSample() {}
-        CUDA_DEVICE_FUNCTION SurfaceLightPosSample(float uEl, float uPos0, float uPos1) : uElem(uEl), uPos{ uPos0, uPos1 } {}
+        CUDA_DEVICE_FUNCTION SurfaceLightPosSample(float uEl, float uPos0, float uPos1) :
+            uElem(uEl), uPos{ uPos0, uPos1 } {}
     };
 
     struct SurfaceLightPosQueryResult {
@@ -271,7 +282,7 @@ namespace vlr {
         uint32_t materialIndex;
     };
 
-    typedef optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)> ProgSigSurfaceLight_sample;
+    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)>;
 
     class SurfaceLight {
         Instance m_inst;
@@ -285,7 +296,7 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) const {
-            auto sample = (ProgSigSurfaceLight_sample)m_geomInst.progSample;
+            auto sample = static_cast<ProgSigSurfaceLight_sample>(m_geomInst.progSample);
             sample(m_inst, m_geomInst, posSample, lpResult);
         }
     };
@@ -296,7 +307,8 @@ namespace vlr {
         float uPos[2];
 
         CUDA_DEVICE_FUNCTION LensPosSample() {}
-        CUDA_DEVICE_FUNCTION LensPosSample(float uPos0, float uPos1) : uPos{ uPos0, uPos1 } {}
+        CUDA_DEVICE_FUNCTION LensPosSample(float uPos0, float uPos1) :
+            uPos{ uPos0, uPos1 } {}
     };
 
     struct LensPosQueryResult {
@@ -307,18 +319,18 @@ namespace vlr {
 
 
 
-    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupBSDF;
-    typedef optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)> ProgSigSetupEDF;
+    using ProgSigSetupBSDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
+    using ProgSigSetupEDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
 
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigBSDFGetBaseColor;
-    typedef optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)> ProgSigBSDFmatches;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)> ProgSigBSDFSampleInternal;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluateInternal;
-    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)> ProgSigBSDFEvaluatePDFInternal;
-    typedef optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)> ProgSigBSDFWeightInternal;
+    using ProgSigBSDFGetBaseColor = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
+    using ProgSigBSDFmatches = optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)>;
+    using ProgSigBSDFSampleInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)>;
+    using ProgSigBSDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFEvaluatePDFInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFWeightInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)>;
 
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)> ProgSigEDFEvaluateEmittanceInternal;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)> ProgSigEDFEvaluateInternal;
+    using ProgSigEDFEvaluateEmittanceInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
+    using ProgSigEDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)>;
 
 
     
@@ -334,12 +346,12 @@ namespace vlr {
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
         using ProgSigT = optixu::DirectCallableProgramID<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
-        ProgSigT program = (ProgSigT)programID; \
+        auto program = static_cast<ProgSigT>(programID); \
         conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodePlugType)plug.plugType) {
+            switch (static_cast<ShaderNodePlugType>(plug.plugType)) {
                 VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
                 VLR_DEFINE_CASE(float2, ShaderNodePlugType::float2);
                 VLR_DEFINE_CASE(float3, ShaderNodePlugType::float3);
@@ -373,12 +385,12 @@ namespace vlr {
 #define VLR_DEFINE_CASE(ReturnType, EnumName) \
     case EnumName: { \
         using ProgSigT = optixu::DirectCallableProgramID<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
-        ProgSigT program = (ProgSigT)programID; \
+        auto program = static_cast<ProgSigT>(programID); \
         conversionDefined = NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom<ReturnType>(); \
         ret = NodeTypeInfo<SampledSpectrum>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
-            switch ((ShaderNodePlugType)plug.plugType) {
+            switch (static_cast<ShaderNodePlugType>(plug.plugType)) {
                 VLR_DEFINE_CASE(float, ShaderNodePlugType::float1);
                 VLR_DEFINE_CASE(float2, ShaderNodePlugType::float2);
                 VLR_DEFINE_CASE(float3, ShaderNodePlugType::float3);

@@ -55,7 +55,7 @@ namespace vlr {
         vlr::sincos(posPhi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
 
-        Normal3D geometricNormal = -(Vector3D)position;
+        Normal3D geometricNormal = -static_cast<Vector3D>(position);
 
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;

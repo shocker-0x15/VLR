@@ -613,6 +613,9 @@ namespace vlr {
             return *this;
         }
 
+        CUDA_DEVICE_FUNCTION const CompensatedSum<ValueType> &getValue() const {
+            return value;
+        }
         CUDA_DEVICE_FUNCTION CompensatedSum<ValueType> &getValue() {
             return value;
         }

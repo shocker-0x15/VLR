@@ -90,7 +90,7 @@ static void Cpp_CompileTest() {
     // Setup a camera
     CameraRef camera = context->createCamera("Perspective");
     camera->set("position", Point3D(0, 1.5f, 6.0f));
-    camera->set("aspect", (float)renderTargetSizeX / renderTargetSizeY);
+    camera->set("aspect", static_cast<float>(renderTargetSizeX) / renderTargetSizeY);
     camera->set("sensitivity", 1.0f);
     camera->set("fovy", 40 * M_PI / 180);
     camera->set("lens radius", 0.0f);

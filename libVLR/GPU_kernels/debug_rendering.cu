@@ -118,9 +118,9 @@ namespace vlr {
             BSDF bsdf(matDesc, surfPt, wls);
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
-            auto progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
+            auto progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
 
-            payload->value = progGetBaseColor((const uint32_t*)&bsdf);
+            payload->value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf));
         }
         else {
             payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);

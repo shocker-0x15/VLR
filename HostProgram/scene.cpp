@@ -2233,7 +2233,7 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 
 void createScene(const vlr::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
-    //createMaterialTestScene(context, shot);
+    createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
@@ -2241,7 +2241,7 @@ void createScene(const vlr::ContextRef &context, Shot* shot) {
     //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
-    createRungholtScene(context, shot);
+    //createRungholtScene(context, shot);
     //createPowerplantScene(context, shot);
     //createAmazonBistroExteriorScene(context, shot);
     //createAmazonBistroInteriorScene(context, shot);

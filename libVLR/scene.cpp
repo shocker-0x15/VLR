@@ -228,7 +228,7 @@ namespace vlr {
         CompensatedSum<float> sumImportances(0.0f);
         {
             matGroup.indices = std::move(indices);
-            uint32_t numTriangles = (uint32_t)matGroup.indices.size() / 3;
+            uint32_t numTriangles = static_cast<uint32_t>(matGroup.indices.size()) / 3;
 
             matGroup.optixIndexBuffer.initialize(cuContext, g_bufferType, numTriangles);
 
@@ -407,7 +407,7 @@ namespace vlr {
         // JP: 自分自身のTransformを持ったSHTransformを生成。
         // EN: Create a SHTransform having Transform of this node.
         if (m_localToWorld->isStatic()) {
-            auto tr = (const StaticTransform*)m_localToWorld;
+            auto tr = dynamic_cast<const StaticTransform*>(m_localToWorld);
             m_shTransforms[nullptr] = new SHTransform(name, m_context, *tr, nullptr);
         }
         else {
@@ -442,7 +442,7 @@ namespace vlr {
         //     子のSHTransformをキーとして辞書に保存する。
         for (auto it = childDelta.cbegin(); it != childDelta.cend(); ++it) {
             if (m_localToWorld->isStatic()) {
-                StaticTransform* tr = (StaticTransform*)m_localToWorld;
+                auto tr = dynamic_cast<const StaticTransform*>(m_localToWorld);
                 SHTransform* shtr = new SHTransform(m_name, m_context, *tr, *it);
                 m_shTransforms[*it] = shtr;
                 if (delta)
@@ -514,7 +514,7 @@ namespace vlr {
         // EN: updpate SHTransform under control.
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             if (m_localToWorld->isStatic()) {
-                auto tr = (StaticTransform*)m_localToWorld;
+                auto tr = dynamic_cast<const StaticTransform*>(m_localToWorld);
                 SHTransform* shtr = it->second;
                 shtr->setTransform(*tr);
             }
@@ -561,7 +561,7 @@ namespace vlr {
     }
 
     uint32_t ParentNode::getNumChildren() const {
-        return (uint32_t)m_childToSerialIDMap.size();
+        return static_cast<uint32_t>(m_childToSerialIDMap.size());
     }
 
     void ParentNode::getChildren(Node** children) const {

@@ -288,19 +288,24 @@ namespace vlr {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         const uint32_t NumSpectrumGridCells = 168;
         const uint32_t NumSpectrumDataPoints = 186;
-        m_optix.UpsampledSpectrum_spectrum_grid.initialize(m_cuContext, g_bufferType,
-                                                           UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells);
-        m_optix.UpsampledSpectrum_spectrum_data_points.initialize(m_cuContext, g_bufferType,
-                                                                  UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints);
+        m_optix.UpsampledSpectrum_spectrum_grid.initialize(
+            m_cuContext, g_bufferType,
+            UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells);
+        m_optix.UpsampledSpectrum_spectrum_data_points.initialize(
+            m_cuContext, g_bufferType,
+            UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints);
         m_optix.launchParams.UpsampledSpectrum_spectrum_grid = m_optix.UpsampledSpectrum_spectrum_grid.getDevicePointer();
         m_optix.launchParams.UpsampledSpectrum_spectrum_data_points = m_optix.UpsampledSpectrum_spectrum_data_points.getDevicePointer();
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        m_optix.UpsampledSpectrum_maxBrightnesses.initialize(m_cuContext, g_bufferType,
-                                                             UpsampledSpectrum::maxBrightnesses, UpsampledSpectrum::kTableResolution);
-        m_optix.UpsampledSpectrum_coefficients_sRGB_D65.initialize(m_cuContext, g_bufferType,
-                                                                   UpsampledSpectrum::coefficients_sRGB_D65, 3 * pow3(UpsampledSpectrum::kTableResolution));
-        m_optix.UpsampledSpectrum_coefficients_sRGB_E.initialize(m_cuContext, g_bufferType,
-                                                                 UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optix.UpsampledSpectrum_maxBrightnesses.initialize(
+            m_cuContext, g_bufferType,
+            UpsampledSpectrum::maxBrightnesses, UpsampledSpectrum::kTableResolution);
+        m_optix.UpsampledSpectrum_coefficients_sRGB_D65.initialize(
+            m_cuContext, g_bufferType,
+            UpsampledSpectrum::coefficients_sRGB_D65, 3 * pow3(UpsampledSpectrum::kTableResolution));
+        m_optix.UpsampledSpectrum_coefficients_sRGB_E.initialize(
+            m_cuContext, g_bufferType,
+            UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution));
         m_optix.launchParams.UpsampledSpectrum_maxBrightnesses = m_optix.UpsampledSpectrum_maxBrightnesses.getDevicePointer();
         m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_D65 = m_optix.UpsampledSpectrum_coefficients_sRGB_D65.getDevicePointer();
         m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_E = m_optix.UpsampledSpectrum_coefficients_sRGB_E.getDevicePointer();
@@ -691,7 +696,7 @@ namespace vlr {
     void DiscreteDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
         CUcontext cuContext = context.getCUcontext();
 
-        m_numValues = (uint32_t)numValues;
+        m_numValues = static_cast<uint32_t>(numValues);
         m_PMF.initialize(cuContext, g_bufferType, m_numValues);
         m_CDF.initialize(cuContext, g_bufferType, m_numValues + 1);
 
@@ -738,7 +743,7 @@ namespace vlr {
     void RegularConstantContinuousDistribution1DTemplate<RealType>::initialize(Context &context, const RealType* values, size_t numValues) {
         CUcontext cuContext = context.getCUcontext();
 
-        m_numValues = (uint32_t)numValues;
+        m_numValues = static_cast<uint32_t>(numValues);
         m_PDF.initialize(cuContext, g_bufferType, m_numValues);
         m_CDF.initialize(cuContext, g_bufferType, m_numValues + 1);
 

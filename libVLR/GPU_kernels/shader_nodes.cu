@@ -2,7 +2,7 @@
 
 namespace vlr {
     template <typename T>
-    CUDA_DEVICE_FUNCTION T* getData(uint32_t nodeDescIndex) {
+    CUDA_DEVICE_FUNCTION const T* getData(uint32_t nodeDescIndex) {
         constexpr uint32_t sizeOfNodeInDW = sizeof(T) / 4;
         if constexpr (sizeOfNodeInDW <= SmallNodeDescriptor::NumDWSlots())
             return plp.smallNodeDescriptorBuffer[nodeDescIndex].getData<T>();

@@ -77,12 +77,14 @@ namespace vlr {
             return Vector3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         CUDA_DEVICE_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
-            *theta = std::acos(clamp(z, (RealType)-1, (RealType)1));
-            *phi = std::fmod((RealType)(std::atan2(y, x) + 2 * VLR_M_PI), (RealType)(2 * VLR_M_PI));
+            *theta = std::acos(clamp(z, static_cast<RealType>(-1), static_cast<RealType>(1)));
+            *phi = std::fmod(static_cast<RealType>(std::atan2(y, x) + 2 * VLR_M_PI),
+                             static_cast<RealType>(2 * VLR_M_PI));
         }
         CUDA_DEVICE_FUNCTION void toPolarYUp(RealType* theta, RealType* phi) const {
-            *theta = std::acos(clamp(y, (RealType)-1, (RealType)1));
-            *phi = std::fmod((RealType)(std::atan2(-x, z) + 2 * VLR_M_PI), (RealType)(2 * VLR_M_PI));
+            *theta = std::acos(clamp(y, static_cast<RealType>(-1), static_cast<RealType>(1)));
+            *phi = std::fmod(static_cast<RealType>(std::atan2(-x, z) + 2 * VLR_M_PI),
+                             static_cast<RealType>(2 * VLR_M_PI));
         }
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { using std::fmax; return fmax(x, fmax(y, z)); }
@@ -259,7 +261,7 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION RealType length() const { return std::sqrt(x * x + y * y + z * z); }
         CUDA_DEVICE_FUNCTION RealType sqLength() const { return x * x + y * y + z * z; }
         CUDA_DEVICE_FUNCTION Normal3DTemplate& normalize() {
-            RealType rcpLength = RealType(1.0) / std::sqrt(x * x + y * y + z * z);
+            RealType rcpLength = static_cast<RealType>(1.0) / std::sqrt(x * x + y * y + z * z);
             x *= rcpLength;
             y *= rcpLength;
             z *= rcpLength;
@@ -290,12 +292,14 @@ namespace vlr {
             return Normal3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         CUDA_DEVICE_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
-            *theta = std::acos(clamp(z, (RealType)-1, (RealType)1));
-            *phi = std::fmod((RealType)(std::atan2(y, x) + 2 * VLR_M_PI), (RealType)(2 * VLR_M_PI));
+            *theta = std::acos(clamp(z, static_cast<RealType>(-1), static_cast<RealType>(1)));
+            *phi = std::fmod(static_cast<RealType>(std::atan2(y, x) + 2 * VLR_M_PI),
+                             static_cast<RealType>(2 * VLR_M_PI));
         }
         CUDA_DEVICE_FUNCTION void toPolarYUp(RealType* theta, RealType* phi) const {
-            *theta = std::acos(clamp(y, (RealType)-1, (RealType)1));
-            *phi = std::fmod((RealType)(std::atan2(-x, z) + 2 * VLR_M_PI), (RealType)(2 * VLR_M_PI));
+            *theta = std::acos(clamp(y, static_cast<RealType>(-1), static_cast<RealType>(1)));
+            *phi = std::fmod(static_cast<RealType>(std::atan2(-x, z) + 2 * VLR_M_PI),
+                             static_cast<RealType>(2 * VLR_M_PI));
         }
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { using std::fmax; return fmax(x, fmax(y, z)); }
@@ -543,7 +547,7 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION constexpr BoundingBox3DTemplate(const Point3DTemplate<RealType> &pmin, const Point3DTemplate<RealType> &pmax) : minP(pmin), maxP(pmax) { }
 
         CUDA_DEVICE_FUNCTION Point3DTemplate<RealType> centroid() const {
-            return (minP + maxP) * (RealType)0.5;
+            return (minP + maxP) * static_cast<RealType>(0.5);
         }
 
         CUDA_DEVICE_FUNCTION RealType surfaceArea() const {
@@ -565,7 +569,7 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION RealType centerOfAxis(Axis axis) const {
-            return (minP[axis] + maxP[axis]) * (RealType)0.5;
+            return (minP[axis] + maxP[axis]) * static_cast<RealType>(0.5);
         }
 
         CUDA_DEVICE_FUNCTION RealType width(Axis axis) const {
@@ -1330,7 +1334,7 @@ namespace vlr {
             RealType trace = m[0][0] + m[1][1] + m[2][2];
             if (trace > 0) {
                 RealType s = std::sqrt(trace + 1);
-                v = ((RealType)0.5 / s) * Vector3DTemplate<RealType>(m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0]);
+                v = (static_cast<RealType>(0.5) / s) * Vector3DTemplate<RealType>(m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0]);
                 w = s / 2;
             }
             else {
@@ -1346,7 +1350,7 @@ namespace vlr {
                 RealType s = std::sqrt((m[i][i] - (m[j][j] + m[k][k])) + 1);
                 q[i] = s * 0;
                 if (s != 0)
-                    s = (RealType)0.5 / s;
+                    s = static_cast<RealType>(0.5) / s;
                 w = (m[j][k] - m[k][j]) * s;
                 q[j] = (m[i][j] + m[j][i]) * s;
                 q[k] = (m[i][k] + m[k][i]) * s;
@@ -1420,10 +1424,10 @@ namespace vlr {
     template <typename RealType>
     CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> Slerp(RealType t, const QuaternionTemplate<RealType> &q0, const QuaternionTemplate<RealType> &q1) {
         RealType cosTheta = dot(q0, q1);
-        if (cosTheta > (RealType)0.9995)
+        if (cosTheta > static_cast<RealType>(0.9995))
             return normalize((1 - t) * q0 + t * q1);
         else {
-            RealType theta = std::acos(clamp(cosTheta, (RealType)-1, (RealType)1));
+            RealType theta = std::acos(clamp(cosTheta, static_cast<RealType>(-1), static_cast<RealType>(1)));
             RealType thetap = theta * t;
             QuaternionTemplate<RealType> qPerp = normalize(q1 - q0 * cosTheta);
             RealType sinThetaP, cosThetaP;
@@ -1448,7 +1452,7 @@ namespace vlr {
         Matrix4x4Template<RealType> curR = matRS;
         do {
             Matrix4x4Template<RealType> itR = invert(transpose(curR));
-            Matrix4x4Template<RealType> nextR = (RealType)0.5 * (curR + itR);
+            Matrix4x4Template<RealType> nextR = static_cast<RealType>(0.5) * (curR + itR);
 
             norm = 0;
             for (int i = 0; i < 3; ++i) {
@@ -1457,7 +1461,7 @@ namespace vlr {
                 norm = std::fmax(norm, n);
             }
             curR = nextR;
-        } while (++count < 100 && norm > 0.0001);
+        } while (++count < 100 && norm > static_cast<RealType>(0.0001));
         *R = QuaternionTemplate<RealType>(curR);
 
         *S = invert(curR) * matRS;

@@ -1,7 +1,7 @@
 ﻿#include "image.h"
 
 namespace vlr {
-    const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats] = {
+    const size_t sizesOfDataFormats[static_cast<uint32_t>(DataFormat::NumFormats)] = {
     sizeof(RGB8x3),
     sizeof(RGB_8x4),
     sizeof(RGBA8x4),
@@ -417,14 +417,14 @@ namespace vlr {
     template <bool enableDegamma>
     struct sRGB_D65_ColorSpaceFunc {
         static float degamma(float v) {
-            if /*constexpr*/ (enableDegamma)
+            if constexpr (enableDegamma)
                 return sRGB_degamma(v);
             else
                 return v;
         }
         static uint8_t degamma(uint8_t v) {
-            if /*constexpr*/ (enableDegamma)
-                return (uint8_t)std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f));
+            if constexpr (enableDegamma)
+                return static_cast<uint8_t>(std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f)));
             else
                 return v;
         }
@@ -437,14 +437,14 @@ namespace vlr {
     template <bool enableDegamma>
     struct sRGB_E_ColorSpaceFunc {
         static float degamma(float v) {
-            if /*constexpr*/ (enableDegamma)
+            if constexpr (enableDegamma)
                 return sRGB_degamma(v);
             else
                 return v;
         }
         static uint8_t degamma(uint8_t v) {
-            if /*constexpr*/ (enableDegamma)
-                return (uint8_t)std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f));
+            if constexpr (enableDegamma)
+                return static_cast<uint8_t>(std::min<uint32_t>(255, 256 * sRGB_degamma(v / 255.0f)));
             else
                 return v;
         }
@@ -480,9 +480,9 @@ namespace vlr {
 
     template <typename ColorSpaceFunc>
     void perPixelFunc(const RGBA16Fx4 &srcData, RGBA16Fx4 &dstData) {
-        dstData.r = (half)ColorSpaceFunc::degamma((float)srcData.r);
-        dstData.g = (half)ColorSpaceFunc::degamma((float)srcData.g);
-        dstData.b = (half)ColorSpaceFunc::degamma((float)srcData.b);
+        dstData.r = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.r));
+        dstData.g = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.g));
+        dstData.b = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.b));
         dstData.a = srcData.a;
     }
 
@@ -555,12 +555,12 @@ namespace vlr {
         float uv[2];
         UpsampledSpectrum::xy_to_uv(xy, uv);
 
-        dstData.u = (half)uv[0];
-        dstData.v = (half)uv[1];
+        dstData.u = static_cast<half>(uv[0]);
+        dstData.v = static_cast<half>(uv[1]);
         // JP: よくあるテクスチャーの値だとInfになってしまうため
         //     本来は割るべきところを割らないままにしておく。
         // EN: 
-        dstData.s = (half)(b/* / UpsampledSpectrum::EqualEnergyReflectance()*/);
+        dstData.s = static_cast<half>(b/* / UpsampledSpectrum::EqualEnergyReflectance()*/);
     }
 
     template <typename ColorSpaceFunc>
@@ -574,7 +574,7 @@ namespace vlr {
     void perPixelFunc(const RGB8x3 &srcData, uvsA16Fx4 &dstData) {
         float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
         perPixelFunc<ColorSpaceFunc>(RGB, dstData);
-        dstData.a = (half)1.0f;
+        dstData.a = static_cast<half>(1.0f);
     }
 
     template <typename ColorSpaceFunc>
@@ -588,7 +588,7 @@ namespace vlr {
     void perPixelFunc(const RGB_8x4 &srcData, uvsA16Fx4 &dstData) {
         float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
         perPixelFunc<ColorSpaceFunc>(RGB, dstData);
-        dstData.a = (half)1.0f;
+        dstData.a = static_cast<half>(1.0f);
     }
 
     template <typename ColorSpaceFunc>
@@ -602,7 +602,7 @@ namespace vlr {
     void perPixelFunc(const RGBA8x4 &srcData, uvsA16Fx4 &dstData) {
         float RGB[] = { srcData.r / 255.0f, srcData.g / 255.0f, srcData.b / 255.0f };
         perPixelFunc<ColorSpaceFunc>(RGB, dstData);
-        dstData.a = (half)(srcData.a / 255.0f);
+        dstData.a = static_cast<half>(srcData.a / 255.0f);
     }
 
     template <typename ColorSpaceFunc>
@@ -617,13 +617,13 @@ namespace vlr {
         if /* constexpr */ (std::is_same<SrcType, DstType>::value &&
             (std::is_same<ColorSpaceFunc, sRGB_D65_ColorSpaceFunc<false>>::value ||
              std::is_same<ColorSpaceFunc, sRGB_E_ColorSpaceFunc<false>>::value)) {
-            auto srcHead = (const SrcType*)srcData;
-            auto dstHead = (SrcType*)dstData;
+            auto srcHead = reinterpret_cast<const SrcType*>(srcData);
+            auto dstHead = reinterpret_cast<SrcType*>(dstData);
             std::copy_n(srcHead, width * height, dstHead);
         }
         else {
-            auto srcHead = (const SrcType*)srcData;
-            auto dstHead = (DstType*)dstData;
+            auto srcHead = reinterpret_cast<const SrcType*>(srcData);
+            auto dstHead = reinterpret_cast<DstType*>(dstData);
             for (int y = 0; y < height; ++y) {
                 auto srcLineHead = srcHead + width * y;
                 auto dstLineHead = dstHead + width * y;
@@ -820,14 +820,14 @@ namespace vlr {
         for (int y = 0; y < height; ++y) {
             float top = deltaOrgY * y;
             float bottom = deltaOrgY * (y + 1);
-            uint32_t topPix = (uint32_t)top;
-            uint32_t bottomPix = (uint32_t)ceilf(bottom) - 1;
+            uint32_t topPix = static_cast<uint32_t>(top);
+            uint32_t bottomPix = static_cast<uint32_t>(ceilf(bottom)) - 1;
 
             for (int x = 0; x < width; ++x) {
                 float left = deltaOrgX * x;
                 float right = deltaOrgX * (x + 1);
-                uint32_t leftPix = (uint32_t)left;
-                uint32_t rightPix = (uint32_t)ceilf(right) - 1;
+                uint32_t leftPix = static_cast<uint32_t>(left);
+                uint32_t rightPix = static_cast<uint32_t>(ceilf(right)) - 1;
 
                 CompensatedSum<float> sumWeight(0);
                 //float area = (bottom - top) * (right - left);
@@ -975,7 +975,7 @@ namespace vlr {
                     if (bottomPix > topPix && rightPix > leftPix)
                         sumWeight += (bottomPix - topPix - 1) * (rightPix - leftPix - 1);
 
-                    *(uvsA16Fx4*)&data[(y * width + x) * stride] = uvsA16Fx4{ half(sum_u / sumWeight), half(sum_v / sumWeight), half(sum_s / sumWeight), half(sumA / sumWeight) };
+                    *reinterpret_cast<uvsA16Fx4*>(&data[(y * width + x) * stride]) = uvsA16Fx4{ half(sum_u / sumWeight), half(sum_v / sumWeight), half(sum_s / sumWeight), half(sumA / sumWeight) };
                     break;
                 }
                 default:

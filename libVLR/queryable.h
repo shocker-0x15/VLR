@@ -134,7 +134,7 @@ namespace vlr {
 
         uint32_t getNumParameters() const {
             const auto &paramInfos = getParamInfos();
-            return (uint32_t)paramInfos.size();
+            return static_cast<uint32_t>(paramInfos.size());
         }
         const ParameterInfo* getParameterInfo(uint32_t index) const {
             const auto &paramInfos = getParamInfos();

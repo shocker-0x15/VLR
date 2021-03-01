@@ -165,7 +165,7 @@ namespace vlr {
     GeometryShaderNode::~GeometryShaderNode() {
     }
 
-    void GeometryShaderNode::setupNodeDescriptor() const {
+    void GeometryShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::GeometryShaderNode>();
 
         updateNodeDescriptor();
@@ -216,7 +216,7 @@ namespace vlr {
     TangentShaderNode::~TangentShaderNode() {
     }
 
-    void TangentShaderNode::setupNodeDescriptor() const {
+    void TangentShaderNode::setupNodeDescriptor() {
         auto& nodeData = *getData<shared::TangentShaderNode>();
         nodeData.tangentType = m_immTangentType;
 
@@ -298,7 +298,7 @@ namespace vlr {
     Float2ShaderNode::~Float2ShaderNode() {
     }
 
-    void Float2ShaderNode::setupNodeDescriptor() const {
+    void Float2ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -439,7 +439,7 @@ namespace vlr {
     Float3ShaderNode::~Float3ShaderNode() {
     }
 
-    void Float3ShaderNode::setupNodeDescriptor() const {
+    void Float3ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -605,7 +605,7 @@ namespace vlr {
     Float4ShaderNode::~Float4ShaderNode() {
     }
 
-    void Float4ShaderNode::setupNodeDescriptor() const {
+    void Float4ShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
@@ -789,7 +789,7 @@ namespace vlr {
     ScaleAndOffsetFloatShaderNode::~ScaleAndOffsetFloatShaderNode() {
     }
 
-    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
+    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::ScaleAndOffsetFloatShaderNode>();
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
@@ -937,7 +937,7 @@ namespace vlr {
     TripletSpectrumShaderNode::~TripletSpectrumShaderNode() {
     }
 
-    void TripletSpectrumShaderNode::setupNodeDescriptor() const {
+    void TripletSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
@@ -1074,7 +1074,7 @@ namespace vlr {
             delete[] m_values;
     }
 
-    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -1247,7 +1247,7 @@ namespace vlr {
         }
     }
 
-    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
+    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
@@ -1386,7 +1386,7 @@ namespace vlr {
     Float3ToSpectrumShaderNode::~Float3ToSpectrumShaderNode() {
     }
 
-    void Float3ToSpectrumShaderNode::setupNodeDescriptor() const {
+    void Float3ToSpectrumShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::Float3ToSpectrumShaderNode>();
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
@@ -1550,7 +1550,7 @@ namespace vlr {
     ScaleAndOffsetUVTextureMap2DShaderNode::~ScaleAndOffsetUVTextureMap2DShaderNode() {
     }
 
-    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
+    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() {
         auto &nodeData = *getData<shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];

@@ -52,7 +52,7 @@ namespace vlr {
     class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
-            uint32_t callablePrograms[nextPowerOf2((uint32_t)ShaderNodePlugType::NumTypes)];
+            uint32_t callablePrograms[nextPowerOf2(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
             uint32_t nodeProcedureSetIndex;
 
             OptiXProgramSet() {
@@ -80,7 +80,19 @@ namespace vlr {
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
         template <typename T>
-        T* getData() const {
+        T* getData() {
+            if (m_nodeSizeClass == 0)
+                return smallNodeDesc.getData<T>();
+            else if (m_nodeSizeClass == 1)
+                return mediumNodeDesc.getData<T>();
+            else if (m_nodeSizeClass == 2)
+                return largeNodeDesc.getData<T>();
+            else
+                VLRAssert_ShouldNotBeCalled();
+            return nullptr;
+        }
+        template <typename T>
+        const T* getData() const {
             if (m_nodeSizeClass == 0)
                 return smallNodeDesc.getData<T>();
             else if (m_nodeSizeClass == 1)
@@ -121,7 +133,7 @@ namespace vlr {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::map<uint32_t, GeometryShaderNode*> s_instances;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -158,7 +170,7 @@ namespace vlr {
 
         TangentType m_immTangentType;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -194,7 +206,7 @@ namespace vlr {
         float m_imm0;
         float m_imm1;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -236,7 +248,7 @@ namespace vlr {
         float m_imm1;
         float m_imm2;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -282,7 +294,7 @@ namespace vlr {
         float m_imm2;
         float m_imm3;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -327,7 +339,7 @@ namespace vlr {
         float m_immScale;
         float m_immOffset;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -364,7 +376,7 @@ namespace vlr {
         ColorSpace m_colorSpace;
         float m_immE0, m_immE1, m_immE2;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -403,7 +415,7 @@ namespace vlr {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -442,7 +454,7 @@ namespace vlr {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -480,7 +492,7 @@ namespace vlr {
         SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -518,7 +530,7 @@ namespace vlr {
         float m_offset[2];
         float m_scale[2];
 
-        void setupNodeDescriptor() const;
+        void setupNodeDescriptor();
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

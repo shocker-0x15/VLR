@@ -14,34 +14,34 @@ namespace vlr {
         ProgSigBSDFEvaluatePDFInternal progEvaluatePDFInternal;
 
         CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
-            return progMatches((const uint32_t*)this, dirType);
+            return progMatches(reinterpret_cast<const uint32_t*>(this), dirType);
         }
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
-            return progSampleInternal((const uint32_t*)this, query, uComponent, uDir, result);
+            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uComponent, uDir, result);
         }
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateInternal((const uint32_t*)this, query, dirLocal);
+            return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluatePDFInternal((const uint32_t*)this, query, dirLocal);
+            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
 
     public:
         CUDA_DEVICE_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-            ProgSigSetupBSDF setupBSDF = (ProgSigSetupBSDF)matDesc.progSetupBSDF;
-            setupBSDF(matDesc.data, surfPt, wls, (uint32_t*)this);
+            auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
+            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
-            //progGetBaseColor = (ProgSigBSDFGetBaseColor)procSet.progGetBaseColor;
-            progMatches = (ProgSigBSDFmatches)procSet.progMatches;
-            progSampleInternal = (ProgSigBSDFSampleInternal)procSet.progSampleInternal;
-            progEvaluateInternal = (ProgSigBSDFEvaluateInternal)procSet.progEvaluateInternal;
-            progEvaluatePDFInternal = (ProgSigBSDFEvaluatePDFInternal)procSet.progEvaluatePDFInternal;
+            //progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+            progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+            progSampleInternal = static_cast<ProgSigBSDFSampleInternal>(procSet.progSampleInternal);
+            progEvaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
+            progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
         }
 
         //CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() {
-        //    return progGetBaseColor((const uint32_t*)this);
+        //    return progGetBaseColor(reinterpret_cast<const uint32_t*>(this));
         //}
 
         CUDA_DEVICE_FUNCTION bool hasNonDelta() {
@@ -88,21 +88,21 @@ namespace vlr {
         ProgSigEDFEvaluateInternal progEvaluateInternal;
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
-            return progEvaluateEmittanceInternal((const uint32_t*)this);
+            return progEvaluateEmittanceInternal(reinterpret_cast<const uint32_t*>(this));
         }
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateInternal((const uint32_t*)this, query, dirLocal);
+            return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
 
     public:
         CUDA_DEVICE_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-            ProgSigSetupEDF setupEDF = (ProgSigSetupEDF)matDesc.progSetupEDF;
-            setupEDF(matDesc.data, surfPt, wls, (uint32_t*)this);
+            auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
+            setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
 
             const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
-            progEvaluateEmittanceInternal = (ProgSigEDFEvaluateEmittanceInternal)procSet.progEvaluateEmittanceInternal;
-            progEvaluateInternal = (ProgSigEDFEvaluateInternal)procSet.progEvaluateInternal;
+            progEvaluateEmittanceInternal = static_cast<ProgSigEDFEvaluateEmittanceInternal>(procSet.progEvaluateEmittanceInternal);
+            progEvaluateInternal = static_cast<ProgSigEDFEvaluateInternal>(procSet.progEvaluateInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() {
@@ -146,12 +146,12 @@ namespace vlr {
 
 
 
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)> ProgSigSampleLensPosition;
-    typedef optixu::DirectCallableProgramID<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)> ProgSigSampleIDF;
+    using ProgSigSampleLensPosition = optixu::DirectCallableProgramID<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)>;
+    using ProgSigSampleIDF = optixu::DirectCallableProgramID<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)>;
 
-    typedef optixu::DirectCallableProgramID<void(const HitPointParameter &, SurfacePoint*, float*)> ProgSigDecodeHitPoint;
-    typedef optixu::DirectCallableProgramID<float(const TexCoord2D &)> ProgSigFetchAlpha;
-    typedef optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)> ProgSigFetchNormal;
+    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<void(const HitPointParameter &, SurfacePoint*, float*)>;
+    using ProgSigFetchAlpha = optixu::DirectCallableProgramID<float(const TexCoord2D &)>;
+    using ProgSigFetchNormal = optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)>;
 
 
 
@@ -163,9 +163,9 @@ namespace vlr {
         constexpr float kIntScale = 256.0f;
 
         int32_t offsetInInt[] = {
-            (int32_t)(kIntScale * geometricNormal.x),
-            (int32_t)(kIntScale * geometricNormal.y),
-            (int32_t)(kIntScale * geometricNormal.z)
+            static_cast<int32_t>(kIntScale * geometricNormal.x),
+            static_cast<int32_t>(kIntScale * geometricNormal.y),
+            static_cast<int32_t>(kIntScale * geometricNormal.z)
         };
 
         // JP: 数学的な衝突点の座標と、実際の座標の誤差は原点からの距離に比例する。

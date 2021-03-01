@@ -38,17 +38,17 @@ namespace vlr {
     template <typename RealType>
     CUDA_DEVICE_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
-        if (value <= (RealType)0.0031308)
-            return (RealType)12.92 * value;
-        return (RealType)1.055 * std::pow(value, (RealType)(1.0 / 2.4)) - (RealType)0.055;
+        if (value <= static_cast<RealType>(0.0031308))
+            return static_cast<RealType>(12.92) * value;
+        return static_cast<RealType>(1.055) * std::pow(value, static_cast<RealType>(1.0 / 2.4)) - static_cast<RealType>(0.055);
     }
 
     template <typename RealType>
     CUDA_DEVICE_FUNCTION constexpr RealType sRGB_degamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
-        if (value <= (RealType)0.04045)
-            return value / (RealType)12.92;
-        return std::pow((RealType)(value + 0.055) / (RealType)1.055, (RealType)2.4);
+        if (value <= static_cast<RealType>(0.04045))
+            return value / static_cast<RealType>(12.92);
+        return std::pow(static_cast<RealType>(value + static_cast<RealType>(0.055)) / static_cast<RealType>(1.055), static_cast<RealType>(2.4));
     }
 
     template <typename RealType>

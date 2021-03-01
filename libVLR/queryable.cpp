@@ -37,71 +37,71 @@ namespace vlr {
     static const std::map<std::string, std::vector<std::pair<const char*, uint32_t>>> s_enumTables = {
         {
             EnumSpectrumType, {
-                {"Reflectance", (uint32_t)SpectrumType::Reflectance},
-                {"Transmittance", (uint32_t)SpectrumType::Transmittance},
-                {"Light Source", (uint32_t)SpectrumType::LightSource},
-                {"NA", (uint32_t)SpectrumType::NA},
+                {"Reflectance", static_cast<uint32_t>(SpectrumType::Reflectance)},
+                {"Transmittance", static_cast<uint32_t>(SpectrumType::Transmittance)},
+                {"Light Source", static_cast<uint32_t>(SpectrumType::LightSource)},
+                {"NA", static_cast<uint32_t>(SpectrumType::NA)},
             }
         },
         {
             EnumColorSpace, {
-                {"Rec709(D65) sRGB Gamma", (uint32_t)ColorSpace::Rec709_D65_sRGBGamma},
-                {"Rec709(D65)", (uint32_t)ColorSpace::Rec709_D65},
-                {"XYZ", (uint32_t)ColorSpace::XYZ},
-                {"xyY", (uint32_t)ColorSpace::xyY},
+                {"Rec709(D65) sRGB Gamma", static_cast<uint32_t>(ColorSpace::Rec709_D65_sRGBGamma)},
+                {"Rec709(D65)", static_cast<uint32_t>(ColorSpace::Rec709_D65)},
+                {"XYZ", static_cast<uint32_t>(ColorSpace::XYZ)},
+                {"xyY", static_cast<uint32_t>(ColorSpace::xyY)},
             }
         },
         {
             EnumDataFormat, {
-                {"RGB8x3", (uint32_t)DataFormat::RGB8x3},
-                {"RGB_8x4", (uint32_t)DataFormat::RGB_8x4},
-                {"RGBA8x4", (uint32_t)DataFormat::RGBA8x4},
-                {"RGBA16Fx4", (uint32_t)DataFormat::RGBA16Fx4},
-                {"RGBA32Fx4", (uint32_t)DataFormat::RGBA32Fx4},
-                {"RG32Fx2", (uint32_t)DataFormat::RG32Fx2},
-                {"Gray32F", (uint32_t)DataFormat::Gray32F},
-                {"Gray8", (uint32_t)DataFormat::Gray8},
-                {"GrayA8x2", (uint32_t)DataFormat::GrayA8x2},
-                {"BC1", (uint32_t)DataFormat::BC1},
-                {"BC2", (uint32_t)DataFormat::BC2},
-                {"BC3", (uint32_t)DataFormat::BC3},
-                {"BC4", (uint32_t)DataFormat::BC4},
-                {"BC4_Signed", (uint32_t)DataFormat::BC4_Signed},
-                {"BC5", (uint32_t)DataFormat::BC5},
-                {"BC5_Signed", (uint32_t)DataFormat::BC5_Signed},
-                {"BC6H", (uint32_t)DataFormat::BC6H},
-                {"BC6H_Signed", (uint32_t)DataFormat::BC6H_Signed},
-                {"BC7", (uint32_t)DataFormat::BC7},
+                {"RGB8x3", static_cast<uint32_t>(DataFormat::RGB8x3)},
+                {"RGB_8x4", static_cast<uint32_t>(DataFormat::RGB_8x4)},
+                {"RGBA8x4", static_cast<uint32_t>(DataFormat::RGBA8x4)},
+                {"RGBA16Fx4", static_cast<uint32_t>(DataFormat::RGBA16Fx4)},
+                {"RGBA32Fx4", static_cast<uint32_t>(DataFormat::RGBA32Fx4)},
+                {"RG32Fx2", static_cast<uint32_t>(DataFormat::RG32Fx2)},
+                {"Gray32F", static_cast<uint32_t>(DataFormat::Gray32F)},
+                {"Gray8", static_cast<uint32_t>(DataFormat::Gray8)},
+                {"GrayA8x2", static_cast<uint32_t>(DataFormat::GrayA8x2)},
+                {"BC1", static_cast<uint32_t>(DataFormat::BC1)},
+                {"BC2", static_cast<uint32_t>(DataFormat::BC2)},
+                {"BC3", static_cast<uint32_t>(DataFormat::BC3)},
+                {"BC4", static_cast<uint32_t>(DataFormat::BC4)},
+                {"BC4_Signed", static_cast<uint32_t>(DataFormat::BC4_Signed)},
+                {"BC5", static_cast<uint32_t>(DataFormat::BC5)},
+                {"BC5_Signed", static_cast<uint32_t>(DataFormat::BC5_Signed)},
+                {"BC6H", static_cast<uint32_t>(DataFormat::BC6H)},
+                {"BC6H_Signed", static_cast<uint32_t>(DataFormat::BC6H_Signed)},
+                {"BC7", static_cast<uint32_t>(DataFormat::BC7)},
             }
         },
         {
             EnumBumpType, {
-                {"Normal Map (DirectX)", (uint32_t)BumpType::NormalMap_DirectX},
-                {"Normal Map (OpenGL)", (uint32_t)BumpType::NormalMap_OpenGL},
-                {"Height Map", (uint32_t)BumpType::HeightMap},
+                {"Normal Map (DirectX)", static_cast<uint32_t>(BumpType::NormalMap_DirectX)},
+                {"Normal Map (OpenGL)", static_cast<uint32_t>(BumpType::NormalMap_OpenGL)},
+                {"Height Map", static_cast<uint32_t>(BumpType::HeightMap)},
             }
         },
         {
             EnumTextureFilter, {
-                {"Nearest", (uint32_t)TextureFilter::Nearest},
-                {"Linear", (uint32_t)TextureFilter::Linear},
-                {"None", (uint32_t)TextureFilter::None},
+                {"Nearest", static_cast<uint32_t>(TextureFilter::Nearest)},
+                {"Linear", static_cast<uint32_t>(TextureFilter::Linear)},
+                {"None", static_cast<uint32_t>(TextureFilter::None)},
             }
         },
         {
             EnumTextureWrapMode, {
-                {"Repeat", (uint32_t)TextureWrapMode::Repeat},
-                {"Clamp to Edge", (uint32_t)TextureWrapMode::ClampToEdge},
-                {"Mirror", (uint32_t)TextureWrapMode::Mirror},
-                {"Clamp to Border", (uint32_t)TextureWrapMode::ClampToBorder},
+                {"Repeat", static_cast<uint32_t>(TextureWrapMode::Repeat)},
+                {"Clamp to Edge", static_cast<uint32_t>(TextureWrapMode::ClampToEdge)},
+                {"Mirror", static_cast<uint32_t>(TextureWrapMode::Mirror)},
+                {"Clamp to Border", static_cast<uint32_t>(TextureWrapMode::ClampToBorder)},
             }
         },
         {
             EnumTangentType, {
-                {"TC0 Direction", (uint32_t)TangentType::TC0Direction},
-                {"Radial X", (uint32_t)TangentType::RadialX},
-                {"Radial Y", (uint32_t)TangentType::RadialY},
-                {"Radial Z", (uint32_t)TangentType::RadialZ},
+                {"TC0 Direction", static_cast<uint32_t>(TangentType::TC0Direction)},
+                {"Radial X", static_cast<uint32_t>(TangentType::RadialX)},
+                {"Radial Y", static_cast<uint32_t>(TangentType::RadialY)},
+                {"Radial Z", static_cast<uint32_t>(TangentType::RadialZ)},
             }
         },
     };
@@ -134,7 +134,7 @@ namespace vlr {
             return 0;
 
         const auto &table = s_enumTables.at(typeName);
-        return (uint32_t)table.size();
+        return static_cast<uint32_t>(table.size());
     }
     
     const char* getEnumMemberAt(const char* typeName, uint32_t index) {
@@ -154,7 +154,7 @@ namespace vlr {
     template <typename EnumType>
     EnumType getEnumValueFromMember(const char* member) {
         VLRAssert_ShouldNotBeCalled();
-        return (EnumType)0xFFFFFFFF;
+        return static_cast<EnumType>(0xFFFFFFFF);
     }
     template <typename EnumType>
     const char* getEnumMemberFromValue(EnumType value) {
@@ -169,13 +169,13 @@ namespace vlr {
             initializeEnumTables(); \
  \
         if (s_enumNameToIntTables.count(Enum ## EnumType) == 0) \
-            return (EnumType)0xFFFFFFFF; \
+            return static_cast<EnumType>(0xFFFFFFFF); \
  \
         const auto& table = s_enumNameToIntTables.at(Enum ## EnumType); \
         if (table.count(member) == 0) \
-            return (EnumType)0xFFFFFFFF; \
+            return static_cast<EnumType>(0xFFFFFFFF); \
  \
-        return (EnumType)table.at(member); \
+        return static_cast<EnumType>(table.at(member)); \
     } \
     template EnumType getEnumValueFromMember<EnumType>(const char* member)
 
@@ -189,10 +189,10 @@ namespace vlr {
             return nullptr; \
  \
         const auto& table = s_enumIntToNameTables.at(Enum ## EnumType); \
-        if (table.count((uint32_t)value) == 0) \
+        if (table.count(static_cast<uint32_t>(value)) == 0) \
             return nullptr; \
  \
-        return table.at((uint32_t)value).c_str(); \
+        return table.at(static_cast<uint32_t>(value)).c_str(); \
     } \
     template const char* getEnumMemberFromValue<EnumType>(EnumType value)
 

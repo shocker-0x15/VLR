@@ -12,8 +12,8 @@ namespace vlr {
         u = vlr::clamp<RealType>(u, 0.0f, GridWidth());
         v = vlr::clamp<RealType>(v, 0.0f, GridHeight());
 
-        int32_t ui = (int32_t)u;
-        int32_t vi = (int32_t)v;
+        int32_t ui = static_cast<int32_t>(u);
+        int32_t vi = static_cast<int32_t>(v);
         VLRAssert(ui < GridWidth() && vi < GridHeight(), "out of grid: %d, %d", ui, vi);
 
         const int32_t cellIdx = ui + GridWidth() * vi;
@@ -30,12 +30,12 @@ namespace vlr {
             RealType s = u - ui;
             RealType t = v - vi;
             VLRAssert(s >= 0 && s <= 1 && t >= 0 && t <= 1, "invalid coordinate.");
-            m_adjIndices = (((uint32_t)indices[3] << 24) |
-                            ((uint32_t)indices[2] << 16) |
-                            ((uint32_t)indices[1] << 8) |
-                            ((uint32_t)indices[0] << 0));
-            m_s = (uint16_t)std::fmax(s * (UINT16_MAX - 1), (RealType)0);
-            m_t = (uint16_t)std::fmax(t * (UINT16_MAX - 1), (RealType)0);
+            m_adjIndices = ((static_cast<uint32_t>(indices[3]) << 24) |
+                            (static_cast<uint32_t>(indices[2]) << 16) |
+                            (static_cast<uint32_t>(indices[1]) << 8) |
+                            (static_cast<uint32_t>(indices[0]) << 0));
+            m_s = static_cast<uint16_t>(std::fmax(s * (UINT16_MAX - 1), static_cast<RealType>(0)));
+            m_t = static_cast<uint16_t>(std::fmax(t * (UINT16_MAX - 1), static_cast<RealType>(0)));
         }
         else {
             // need to go through triangulation :(
@@ -60,19 +60,21 @@ namespace vlr {
                 float b2 = 1.0f - b0 - b1;
                 // outside spectral locus (quantized version at least) or outside grid
                 //if (b0 < 0.0 || b1 < 0.0 || b2 < 0.0) {
-                if (b0 < -1e-6 || b1 < -1e-6 || b2 < -1e-6) {
+                if (b0 < static_cast<RealType>(-1e-6) ||
+                    b1 < static_cast<RealType>(-1e-6) ||
+                    b2 < static_cast<RealType>(-1e-6)) {
                     uu = -vv;
                     e0x = e1x;
                     e0y = e1y;
                     continue;
                 }
 
-                m_adjIndices = (((uint32_t)UINT8_MAX << 24) |
-                                ((uint32_t)indices[0] << 16) |
-                                ((uint32_t)indices[i] << 8) |
-                                ((uint32_t)idx << 0));
-                m_s = (uint16_t)std::fmax(b0 * (UINT16_MAX - 1), (RealType)0);
-                m_t = (uint16_t)std::fmax(b1 * (UINT16_MAX - 1), (RealType)0);
+                m_adjIndices = ((static_cast<uint32_t>(UINT8_MAX) << 24) |
+                                (static_cast<uint32_t>(indices[0]) << 16) |
+                                (static_cast<uint32_t>(indices[i]) << 8) |
+                                (static_cast<uint32_t>(idx) << 0));
+                m_s = static_cast<uint16_t>(std::fmax(b0 * (UINT16_MAX - 1), static_cast<RealType>(0)));
+                m_t = static_cast<uint16_t>(std::fmax(b1 * (UINT16_MAX - 1), static_cast<RealType>(0)));
                 break;
             }
         }
@@ -189,8 +191,8 @@ namespace vlr {
             xy[1] = e1;
             brightness = e2 / e1;
             if (e2 == 0) {
-                xy[0] = (RealType)0.3333;
-                xy[1] = (RealType)0.3333;
+                xy[0] = static_cast<RealType>(0.3333);
+                xy[1] = static_cast<RealType>(0.3333);
                 brightness = 0;
             }
             break;
@@ -277,8 +279,8 @@ namespace vlr {
         adjIndices[2] = (m_adjIndices >> 16) & 0xFF;
         adjIndices[3] = (m_adjIndices >> 24) & 0xFF;
 
-        float sf = (float)m_s / (UINT16_MAX - 1);
-        float tf = (float)m_t / (UINT16_MAX - 1);
+        float sf = static_cast<float>(m_s) / (UINT16_MAX - 1);
+        float tf = static_cast<float>(m_t) / (UINT16_MAX - 1);
 
         int numAdjacents;
         float weights[4];
@@ -320,7 +322,7 @@ namespace vlr {
                 return a * b + c;
             };
             RealType x = fmad(fmad(m_c[0], wls[i], m_c[1]), wls[i], m_c[2]);
-            ret[i] = fmad((RealType)0.5 * x, 1 / std::sqrt(fmad(x, x, 1)), (RealType)0.5);
+            ret[i] = fmad(static_cast<RealType>(0.5) * x, 1 / std::sqrt(fmad(x, x, 1)), (RealType)0.5);
         }
 
         return ret;
@@ -389,7 +391,7 @@ namespace vlr {
                 ret[i] = m_values[m_numSamples - 1];
                 continue;
             }
-            int32_t bin = int32_t(binF);
+            int32_t bin = static_cast<int32_t>(binF);
             VLRAssert(bin >= 0 && bin < m_numSamples - 1, "invalid bin index.");
             RealType t = binF - bin;
             ret[i] = (1 - t) * m_values[bin] + t * m_values[bin + 1];
@@ -443,7 +445,7 @@ namespace vlr {
                 ++baseIdx;
             }
             else {
-                uint32_t idx = std::min(uint32_t((curWL - m_minLambda) / binWidth), m_numSamples - 1);
+                uint32_t idx = std::min(static_cast<uint32_t>((curWL - m_minLambda) / binWidth), m_numSamples - 1);
                 RealType baseWL = m_minLambda + idx * binWidth;
                 RealType t = (curWL - baseWL) / binWidth;
                 value = (1 - t) * m_values[idx] + t * m_values[idx + 1];
@@ -547,7 +549,7 @@ namespace vlr {
                 ++baseIdx;
             }
             else {
-                const RealType* lb = std::lower_bound(m_lambdas + std::max((int32_t)baseIdx - 1, 0), m_lambdas + m_numSamples, curWL);
+                const RealType* lb = std::lower_bound(m_lambdas + std::max(static_cast<int32_t>(baseIdx) - 1, 0), m_lambdas + m_numSamples, curWL);
                 uint32_t idx = std::max(int32_t(std::distance<const RealType*>(m_lambdas, lb)) - 1, 0);
                 RealType t = (curWL - m_lambdas[idx]) / (m_lambdas[idx + 1] - m_lambdas[idx]);
                 value = (1 - t) * m_values[idx] + t * m_values[idx + 1];

@@ -17,7 +17,7 @@ namespace vlr {
             // Calculate output function (XSH RR), uses old state for max ILP
             uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
             uint32_t rot = oldstate >> 59u;
-            return (xorshifted >> rot) | (xorshifted << ((-(int32_t)rot) & 31));
+            return (xorshifted >> rot) | (xorshifted << ((-static_cast<int32_t>(rot)) & 31));
         }
 
         CUDA_DEVICE_FUNCTION float getFloat0cTo1o() {
@@ -44,7 +44,7 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION float getFloat0cTo1o() {
             uint32_t fractionBits = ((*this)() >> 9) | 0x3f800000;
-            return *(float*)&fractionBits - 1.0f;
+            return *reinterpret_cast<float*>(&fractionBits) - 1.0f;
         }
     };
 

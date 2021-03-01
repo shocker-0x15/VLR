@@ -15,7 +15,7 @@ namespace vlr {
     struct uvsA8x4 { uint8_t u, v, s, a; };
     struct uvsA16Fx4 { half u, v, s, a; };
 
-    extern const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats];
+    extern const size_t sizesOfDataFormats[static_cast<uint32_t>(DataFormat::NumFormats)];
 
     uint32_t getComponentStartIndex(DataFormat dataFormat, BumpType bumpType, ShaderNodePlugType ptype, uint32_t index);
 
@@ -53,7 +53,7 @@ namespace vlr {
             return m_height;
         }
         uint32_t getStride() const {
-            return (uint32_t)sizesOfDataFormats[(uint32_t)m_dataFormat];
+            return static_cast<uint32_t>(sizesOfDataFormats[static_cast<uint32_t>(m_dataFormat)]);
         }
         DataFormat getDataFormat() const {
             return m_dataFormat;
@@ -105,7 +105,7 @@ namespace vlr {
 
         template <typename PixelType>
         PixelType get(uint32_t x, uint32_t y) const {
-            return *(PixelType*)(m_data.data() + (y * getWidth() + x) * getStride());
+            return *reinterpret_cast<const PixelType*>(m_data.data() + (y * getWidth() + x) * getStride());
         }
 
         Image2D* createShrinkedImage2D(uint32_t width, uint32_t height) const override;
