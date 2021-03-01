@@ -3,7 +3,7 @@
 #include "common_internal.h"
 #include "../include/VLR/basic_types.h"
 
-namespace VLR {
+namespace vlr {
     //template struct VLR_API Vector3DTemplate<float>;
     //template struct VLR_API Vector4DTemplate<float>;
     //template struct VLR_API Normal3DTemplate<float>;

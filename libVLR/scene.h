@@ -2,7 +2,7 @@
 
 #include "materials.h"
 
-namespace VLR {
+namespace vlr {
     class Transform : public TypeAwareClass {
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -90,7 +90,7 @@ namespace VLR {
     struct SHGeometryInstance {
         uint32_t geomInstIndex;
         optixu::GeometryInstance optixGeomInst;
-        Shared::GeometryInstance data;
+        shared::GeometryInstance data;
     };
 
     class SHTransform {
@@ -158,7 +158,7 @@ namespace VLR {
         virtual void prepareSetup(size_t* asScratchSize) {
             *asScratchSize = 0;
         }
-        virtual void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+        virtual void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
         }
     };
 
@@ -194,7 +194,7 @@ namespace VLR {
 
         struct MaterialGroup {
             std::vector<uint32_t> indices;
-            cudau::TypedBuffer<Shared::Triangle> optixIndexBuffer;
+            cudau::TypedBuffer<shared::Triangle> optixIndexBuffer;
             DiscreteDistribution1D primDist;
             const SurfaceMaterial* material;
             ShaderNodePlug nodeNormal;
@@ -340,7 +340,7 @@ namespace VLR {
         Node* getChildAt(uint32_t index) const;
 
         void prepareSetup(size_t* asScratchSize) override;
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) override;
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) override;
     };
 
 
@@ -375,7 +375,7 @@ namespace VLR {
             uint32_t instIndex;
             cudau::TypedBuffer<uint32_t> geomInstIndices;
             DiscreteDistribution1D lightGeomInstDistribution;
-            Shared::Instance data;
+            shared::Instance data;
         };
         optixu::InstanceAccelerationStructure m_optixIas;
         cudau::Buffer m_optixIasMem;
@@ -397,7 +397,7 @@ namespace VLR {
         void geometryUpdateEvent(const SHTransform* childTransform) override;
 
         void prepareSetup(size_t* asScratchSize) override;
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) override;
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) override;
 
         uint32_t getNumInstances() const {
             return m_instances.size();
@@ -421,13 +421,13 @@ namespace VLR {
 
         // EnvLight GeomInst
         uint32_t m_geomInstIndex;
-        Shared::GeometryInstance m_geomInstance;
+        shared::GeometryInstance m_geomInstance;
 
         // EnvLight Inst
         uint32_t m_instIndex;
         cudau::TypedBuffer<uint32_t> m_geomInstIndices;
         DiscreteDistribution1D m_lightGeomInstDistribution;
-        Shared::Instance m_instance;
+        shared::Instance m_instance;
 
         cudau::TypedBuffer<uint32_t> m_lightInstIndices;
         DiscreteDistribution1D m_lightInstDist;
@@ -473,7 +473,7 @@ namespace VLR {
         void setEnvironmentRotation(float rotationPhi);
 
         void prepareSetup(size_t* asScratchSize);
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams);
+        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams);
     };
 
 
@@ -499,7 +499,7 @@ namespace VLR {
             Queryable(context) {}
         virtual ~Camera() {}
 
-        virtual void setup(Shared::PipelineLaunchParameters* launchParams) const = 0;
+        virtual void setup(shared::PipelineLaunchParameters* launchParams) const = 0;
     };
 
 
@@ -509,7 +509,7 @@ namespace VLR {
 
         static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
-        Shared::PerspectiveCamera m_data;
+        shared::PerspectiveCamera m_data;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -527,7 +527,7 @@ namespace VLR {
         bool set(const char* paramName, const Quaternion &value) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void setup(Shared::PipelineLaunchParameters* launchParams) const override;
+        void setup(shared::PipelineLaunchParameters* launchParams) const override;
     };
 
 
@@ -537,7 +537,7 @@ namespace VLR {
 
         static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
-        Shared::EquirectangularCamera m_data;
+        shared::EquirectangularCamera m_data;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -555,6 +555,6 @@ namespace VLR {
         bool set(const char* paramName, const Quaternion& value) override;
         bool set(const char* paramName, const float* values, uint32_t length) override;
 
-        void setup(Shared::PipelineLaunchParameters* launchParams) const override;
+        void setup(shared::PipelineLaunchParameters* launchParams) const override;
     };
 }

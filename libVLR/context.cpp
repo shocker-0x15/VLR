@@ -4,7 +4,7 @@
 
 #include "scene.h"
 
-namespace VLR {
+namespace vlr {
     cudau::BufferType g_bufferType = cudau::BufferType::Device;
 
     std::string readTxtFile(const std::filesystem::path& filepath) {
@@ -133,7 +133,7 @@ namespace VLR {
         m_optix.pipeline = m_optix.context.createPipeline();
         m_optix.pipeline.setPipelineOptions(
             2, 2,
-            "plp", sizeof(Shared::PipelineLaunchParameters),
+            "plp", sizeof(shared::PipelineLaunchParameters),
             false,
             OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
             VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
@@ -141,7 +141,7 @@ namespace VLR {
                              OPTIX_EXCEPTION_FLAG_DEBUG,
                              OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
             OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
-        m_optix.pipeline.setNumMissRayTypes(Shared::RayType::NumTypes);
+        m_optix.pipeline.setNumMissRayTypes(shared::RayType::NumTypes);
         m_optix.pipeline.setNumCallablePrograms(512);
 
         const std::filesystem::path exeDir = getExecutableDirectory();
@@ -224,7 +224,7 @@ namespace VLR {
             m_optix.dcNullBSDF_weightInternal = createDirectCallableProgram(
                 m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_weightInternal"));
 
-            Shared::BSDFProcedureSet bsdfProcSet;
+            shared::BSDFProcedureSet bsdfProcSet;
             {
                 bsdfProcSet.progGetBaseColor = m_optix.dcNullBSDF_getBaseColor;
                 bsdfProcSet.progMatches = m_optix.dcNullBSDF_matches;
@@ -244,7 +244,7 @@ namespace VLR {
             m_optix.dcNullEDF_evaluateInternal = createDirectCallableProgram(
                 m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"));
 
-            Shared::EDFProcedureSet edfProcSet;
+            shared::EDFProcedureSet edfProcSet;
             {
                 edfProcSet.progEvaluateEmittanceInternal = m_optix.dcNullEDF_evaluateEmittanceInternal;
                 edfProcSet.progEvaluateInternal = m_optix.dcNullEDF_evaluateInternal;
@@ -255,19 +255,19 @@ namespace VLR {
         }
 
         m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
-        m_optix.pipeline.setMissProgram(Shared::RayType::Closest, m_optix.pathTracingMiss);
-        m_optix.pipeline.setMissProgram(Shared::RayType::Shadow, m_optix.pathTracingShadowMiss);
-        m_optix.pipeline.setMissProgram(Shared::RayType::DebugPrimary, m_optix.debugRenderingMiss);
+        m_optix.pipeline.setMissProgram(shared::RayType::Closest, m_optix.pathTracingMiss);
+        m_optix.pipeline.setMissProgram(shared::RayType::Shadow, m_optix.pathTracingShadowMiss);
+        m_optix.pipeline.setMissProgram(shared::RayType::DebugPrimary, m_optix.debugRenderingMiss);
 
         m_optix.materialDefault = m_optix.context.createMaterial();
-        m_optix.materialDefault.setHitGroup(Shared::RayType::Closest, m_optix.pathTracingHitGroupDefault);
-        m_optix.materialDefault.setHitGroup(Shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowDefault);
-        m_optix.materialDefault.setHitGroup(Shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupDefault);
+        m_optix.materialDefault.setHitGroup(shared::RayType::Closest, m_optix.pathTracingHitGroupDefault);
+        m_optix.materialDefault.setHitGroup(shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowDefault);
+        m_optix.materialDefault.setHitGroup(shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupDefault);
 
         m_optix.materialWithAlpha = m_optix.context.createMaterial();
-        m_optix.materialWithAlpha.setHitGroup(Shared::RayType::Closest, m_optix.pathTracingHitGroupWithAlpha);
-        m_optix.materialWithAlpha.setHitGroup(Shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowWithAlpha);
-        m_optix.materialWithAlpha.setHitGroup(Shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupWithAlpha);
+        m_optix.materialWithAlpha.setHitGroup(shared::RayType::Closest, m_optix.pathTracingHitGroupWithAlpha);
+        m_optix.materialWithAlpha.setHitGroup(shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowWithAlpha);
+        m_optix.materialWithAlpha.setHitGroup(shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupWithAlpha);
 
 
 
@@ -306,7 +306,7 @@ namespace VLR {
         m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_E = m_optix.UpsampledSpectrum_coefficients_sRGB_E.getDevicePointer();
 #endif
 
-        CUDADRV_CHECK(cuMemAlloc(&m_optix.launchParamsOnDevice, sizeof(Shared::PipelineLaunchParameters)));
+        CUDADRV_CHECK(cuMemAlloc(&m_optix.launchParamsOnDevice, sizeof(shared::PipelineLaunchParameters)));
 
 
 
@@ -537,7 +537,7 @@ namespace VLR {
         ++m_numAccumFrames;
         *numAccumFrames = m_numAccumFrames;
         m_optix.launchParams.numAccumFrames = m_numAccumFrames;
-        m_optix.launchParams.debugRenderingAttribute = static_cast<Shared::DebugRenderingAttribute>(renderMode);
+        m_optix.launchParams.debugRenderingAttribute = static_cast<shared::DebugRenderingAttribute>(renderMode);
 
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
@@ -584,7 +584,7 @@ namespace VLR {
     void Context::releaseNodeProcedureSet(uint32_t index) {
         m_optix.nodeProcedureSetBuffer.release(index);
     }
-    void Context::updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet) {
+    void Context::updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet) {
         m_optix.nodeProcedureSetBuffer.update(index, procSet);
     }
 
@@ -596,7 +596,7 @@ namespace VLR {
     void Context::releaseSmallNodeDescriptor(uint32_t index) {
         m_optix.smallNodeDescriptorBuffer.release(index);
     }
-    void Context::updateSmallNodeDescriptor(uint32_t index, const Shared::SmallNodeDescriptor &nodeDesc) {
+    void Context::updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc) {
         m_optix.smallNodeDescriptorBuffer.update(index, nodeDesc);
     }
 
@@ -608,7 +608,7 @@ namespace VLR {
     void Context::releaseMediumNodeDescriptor(uint32_t index) {
         m_optix.mediumNodeDescriptorBuffer.release(index);
     }
-    void Context::updateMediumNodeDescriptor(uint32_t index, const Shared::MediumNodeDescriptor &nodeDesc) {
+    void Context::updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc) {
         m_optix.mediumNodeDescriptorBuffer.update(index, nodeDesc);
     }
 
@@ -620,7 +620,7 @@ namespace VLR {
     void Context::releaseLargeNodeDescriptor(uint32_t index) {
         m_optix.largeNodeDescriptorBuffer.release(index);
     }
-    void Context::updateLargeNodeDescriptor(uint32_t index, const Shared::LargeNodeDescriptor &nodeDesc) {
+    void Context::updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc) {
         m_optix.largeNodeDescriptorBuffer.update(index, nodeDesc);
     }
 
@@ -632,7 +632,7 @@ namespace VLR {
     void Context::releaseBSDFProcedureSet(uint32_t index) {
         m_optix.bsdfProcedureSetBuffer.release(index);
     }
-    void Context::updateBSDFProcedureSet(uint32_t index, const Shared::BSDFProcedureSet &procSet) {
+    void Context::updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet) {
         m_optix.bsdfProcedureSetBuffer.update(index, procSet);
     }
 
@@ -644,7 +644,7 @@ namespace VLR {
     void Context::releaseEDFProcedureSet(uint32_t index) {
         m_optix.edfProcedureSetBuffer.release(index);
     }
-    void Context::updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet) {
+    void Context::updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet) {
         m_optix.edfProcedureSetBuffer.update(index, procSet);
     }
 
@@ -656,7 +656,7 @@ namespace VLR {
     void Context::releaseSurfaceMaterialDescriptor(uint32_t index) {
         m_optix.surfaceMaterialDescriptorBuffer.release(index);
     }
-    void Context::updateSurfaceMaterialDescriptor(uint32_t index, const Shared::SurfaceMaterialDescriptor &matDesc) {
+    void Context::updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc) {
         m_optix.surfaceMaterialDescriptorBuffer.update(index, matDesc);
     }
 
@@ -668,7 +668,7 @@ namespace VLR {
     void Context::releaseGeometryInstance(uint32_t index) {
         m_optix.geomInstBuffer.release(index);
     }
-    void Context::updateGeometryInstance(uint32_t index, const Shared::GeometryInstance &geomInst) {
+    void Context::updateGeometryInstance(uint32_t index, const shared::GeometryInstance &geomInst) {
         m_optix.geomInstBuffer.update(index, geomInst);
     }
 
@@ -680,7 +680,7 @@ namespace VLR {
     void Context::releaseInstance(uint32_t index) {
         m_optix.instBuffer.release(index);
     }
-    void Context::updateInstance(uint32_t index, const Shared::Instance &inst) {
+    void Context::updateInstance(uint32_t index, const shared::Instance &inst) {
         m_optix.instBuffer.update(index, inst);
     }
 
@@ -724,9 +724,9 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void DiscreteDistribution1DTemplate<RealType>::getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
+    void DiscreteDistribution1DTemplate<RealType>::getInternalType(shared::DiscreteDistribution1DTemplate<RealType>* instance) const {
         if (m_PMF.isInitialized() && m_CDF.isInitialized())
-            new (instance) Shared::DiscreteDistribution1DTemplate<RealType>(
+            new (instance) shared::DiscreteDistribution1DTemplate<RealType>(
                 m_PMF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
 
@@ -771,8 +771,8 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
-        new (instance) Shared::RegularConstantContinuousDistribution1DTemplate<RealType>(
+    void RegularConstantContinuousDistribution1DTemplate<RealType>::getInternalType(shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const {
+        new (instance) shared::RegularConstantContinuousDistribution1DTemplate<RealType>(
             m_PDF.getDevicePointer(), m_CDF.getDevicePointer(), m_integral, m_numValues);
     }
 
@@ -787,7 +787,7 @@ namespace VLR {
         m_1DDists = new RegularConstantContinuousDistribution1DTemplate<RealType>[numD2];
         m_raw1DDists.initialize(cuContext, g_bufferType, numD2);
 
-        Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* rawDists = m_raw1DDists.map();
+        shared::RegularConstantContinuousDistribution1DTemplate<RealType>* rawDists = m_raw1DDists.map();
 
         // JP: まず各行に関するDistribution1Dを作成する。
         // EN: First, create Distribution1D's for every rows.
@@ -825,10 +825,10 @@ namespace VLR {
     }
 
     template <typename RealType>
-    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
-        Shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
+    void RegularConstantContinuousDistribution2DTemplate<RealType>::getInternalType(shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const {
+        shared::RegularConstantContinuousDistribution1DTemplate<RealType> top1DDist;
         m_top1DDist.getInternalType(&top1DDist);
-        new (instance) Shared::RegularConstantContinuousDistribution2DTemplate<RealType>(
+        new (instance) shared::RegularConstantContinuousDistribution2DTemplate<RealType>(
             m_raw1DDists.getDevicePointer(), top1DDist);
     }
 

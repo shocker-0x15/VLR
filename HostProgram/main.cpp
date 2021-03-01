@@ -125,9 +125,8 @@ RGB max(const RGB &v, float maxValue) {
     return RGB(std::fmax(v.r, maxValue), std::fmax(v.g, maxValue), std::fmax(v.b, maxValue));
 }
 
-static void saveOutputBufferAsImageFile(const VLRCpp::ContextRef &context, const std::string &filename, float brightnessCoeff, bool debugRendering) {
-    //using namespace VLR;
-    //using namespace VLRCpp;
+static void saveOutputBufferAsImageFile(const vlr::ContextRef &context, const std::string &filename, float brightnessCoeff, bool debugRendering) {
+    //using namespace vlr;
 
     //CUarray outputBuffer;
     //uint32_t width, height;
@@ -183,7 +182,7 @@ static void glfw_error_callback(int32_t error, const char* description) {
 
 
 class HostProgram {
-    VLRCpp::ContextRef m_context;
+    vlr::ContextRef m_context;
 
     GLFWwindow* m_window;
     float m_UIScaling;
@@ -270,14 +269,14 @@ class HostProgram {
     uint32_t m_renderTargetSizeY;
     float m_brightnessCoeff;
 
-    VLRCpp::CameraRef m_perspectiveCamera;
-    VLRCpp::CameraRef m_equirectangularCamera;
-    VLRCpp::CameraRef m_camera;
+    vlr::CameraRef m_perspectiveCamera;
+    vlr::CameraRef m_equirectangularCamera;
+    vlr::CameraRef m_camera;
     int32_t m_cameraTypeIndex;
 
-    VLR::Point3D m_cameraPosition;
-    VLR::Quaternion m_cameraOrientation;
-    VLR::Quaternion m_tempCameraOrientation;
+    vlr::Point3D m_cameraPosition;
+    vlr::Quaternion m_cameraOrientation;
+    vlr::Quaternion m_tempCameraOrientation;
     float m_cameraPositionalMovingSpeed;
     float m_cameraDirectionalMovingSpeed;
     float m_cameraTiltSpeed;
@@ -390,8 +389,7 @@ class HostProgram {
     }
 
     void showSceneWindow() {
-        using namespace VLR;
-        using namespace VLRCpp;
+        using namespace vlr;
 
         ImGui::Begin("Scene");
 
@@ -618,7 +616,7 @@ class HostProgram {
 
 
 
-    void setViewport(const VLRCpp::CameraRef& camera) {
+    void setViewport(const vlr::CameraRef& camera) {
         std::string cameraType = camera->getType();
         if (cameraType == "PerspectiveCamera") {
             camera->get("position", &m_cameraPosition);
@@ -741,7 +739,7 @@ public:
         }
     }
 
-    void initialize(const VLRCpp::ContextRef& context, GLFWmonitor* monitor, uint32_t initWindowSizeX, uint32_t initWindowSizeY) {
+    void initialize(const vlr::ContextRef& context, GLFWmonitor* monitor, uint32_t initWindowSizeX, uint32_t initWindowSizeY) {
         m_context = context;
 
         m_frameIndex = 0;
@@ -937,8 +935,7 @@ public:
     }
 
     void run() {
-        using namespace VLRCpp;
-        using namespace VLR;
+        using namespace vlr;
 
         StopWatch sw;
 
@@ -1187,8 +1184,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     swGlobal.start();
 
-    using namespace VLRCpp;
-    using namespace VLR;
+    using namespace vlr;
 
     bool enableLogging = false;
     bool enableGUI = true;
@@ -1227,7 +1223,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
     CUDADRV_CHECK(cuCtxSetCurrent(cuContext));
     CUDADRV_CHECK(cuStreamCreate(&cuStream, 0));
 
-    VLRCpp::ContextRef context = VLRCpp::Context::create(cuContext, enableLogging, maxCallableDepth);
+    vlr::ContextRef context = vlr::Context::create(cuContext, enableLogging, maxCallableDepth);
 
     context->enableAllExceptions();
 

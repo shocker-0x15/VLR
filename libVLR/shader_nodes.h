@@ -2,7 +2,7 @@
 
 #include "image.h"
 
-namespace VLR {
+namespace vlr {
     class ShaderNode;
 
     struct ShaderNodePlug {
@@ -44,7 +44,7 @@ namespace VLR {
             return ret;
         }
 
-        Shared::ShaderNodePlug getSharedType() const;
+        shared::ShaderNodePlug getSharedType() const;
     };
 
 
@@ -65,9 +65,9 @@ namespace VLR {
     protected:
         uint32_t m_nodeIndex;
         union {
-            Shared::SmallNodeDescriptor smallNodeDesc;
-            Shared::MediumNodeDescriptor mediumNodeDesc;
-            Shared::LargeNodeDescriptor largeNodeDesc;
+            shared::SmallNodeDescriptor smallNodeDesc;
+            shared::MediumNodeDescriptor mediumNodeDesc;
+            shared::LargeNodeDescriptor largeNodeDesc;
         };
         int32_t m_nodeSizeClass;
 

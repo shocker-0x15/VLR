@@ -2,8 +2,8 @@
 
 #include "../shared/shared.h"
 
-namespace VLR {
-    using namespace Shared;
+namespace vlr {
+    using namespace shared;
 
 
 

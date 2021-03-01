@@ -2,7 +2,7 @@
 
 #include "context.h"
 
-namespace VLR {
+namespace vlr {
     bool testParamName(const std::string &paramNameA, const std::string &paramNameB);
 
 

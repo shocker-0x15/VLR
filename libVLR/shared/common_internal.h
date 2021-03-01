@@ -113,7 +113,7 @@ inline void* VLR_memalign(size_t size, size_t alignment) {
 // JP: よく使用される基礎的な関数の定義。
 // EN: define fundamental functions often used.
 
-namespace VLR {
+namespace vlr {
     template <typename T, size_t size>
     CUDA_DEVICE_FUNCTION constexpr size_t lengthof(const T(&array)[size]) {
         return size;
@@ -304,7 +304,7 @@ namespace VLR {
 
 // filesystem
 #if defined(VLR_Host)
-namespace VLR {
+namespace vlr {
     std::filesystem::path getExecutableDirectory();
 }
 #endif

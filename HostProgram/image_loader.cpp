@@ -11,12 +11,11 @@
 
 
 
-static std::map<std::tuple<std::string, std::string, std::string>, VLRCpp::Image2DRef> s_image2DCache;
+static std::map<std::tuple<std::string, std::string, std::string>, vlr::Image2DRef> s_image2DCache;
 
 // TODO: Should colorSpace be determined from the read image?
-VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, const std::string &spectrumType, const std::string &colorSpace) {
-    using namespace VLRCpp;
-    using namespace VLR;
+vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &filepath, const std::string &spectrumType, const std::string &colorSpace) {
+    using namespace vlr;
 
     Image2DRef ret;
 

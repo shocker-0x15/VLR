@@ -1,6 +1,6 @@
 ﻿#include "light_transport_common.cuh"
 
-namespace VLR {
+namespace vlr {
     // Common Closest Hit Program for All Primitive Types and Materials
     CUDA_DEVICE_KERNEL void RT_CH_NAME(pathTracingIteration)() {
         const auto hp = HitPointParameter::get();
@@ -84,7 +84,7 @@ namespace VLR {
                 float bsdfPDF = bsdf.evaluatePDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
 
                 float MISWeight = 1.0f;
-                if (!lpResult.posType.isDelta() && !VLR::isinf(lightPDF))
+                if (!lpResult.posType.isDelta() && !vlr::isinf(lightPDF))
                     MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
@@ -134,7 +134,7 @@ namespace VLR {
         direction.toPolarYUp(&theta, &phi);
 
         float sinPhi, cosPhi;
-        VLR::sincos(phi, &sinPhi, &cosPhi);
+        vlr::sincos(phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
@@ -154,7 +154,7 @@ namespace VLR {
         phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
-        VLRAssert(VLR::isfinite(phi) && VLR::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
+        VLRAssert(vlr::isfinite(phi) && vlr::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
         float uvPDF = geomInst.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
         float hypAreaPDF = uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
 

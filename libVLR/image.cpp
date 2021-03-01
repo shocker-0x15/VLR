@@ -1,6 +1,6 @@
 ﻿#include "image.h"
 
-namespace VLR {
+namespace vlr {
     const size_t sizesOfDataFormats[(uint32_t)DataFormat::NumFormats] = {
     sizeof(RGB8x3),
     sizeof(RGB_8x4),

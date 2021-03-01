@@ -1,16 +1,16 @@
 ﻿#include "shader_nodes.h"
 
-namespace VLR {
-    Shared::ShaderNodePlug ShaderNodePlug::getSharedType() const {
+namespace vlr {
+    shared::ShaderNodePlug ShaderNodePlug::getSharedType() const {
         if (node) {
-            Shared::ShaderNodePlug ret;
+            shared::ShaderNodePlug ret;
             ret.nodeType = node->getProcedureSetIndex();
             ret.plugType = info.outputType;
             ret.nodeDescIndex = node->getShaderNodeIndex();
             ret.option = info.option;
             return ret;
         }
-        return Shared::ShaderNodePlug::Invalid();
+        return shared::ShaderNodePlug::Invalid();
     }
 
 
@@ -19,7 +19,7 @@ namespace VLR {
 
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
-        Shared::NodeProcedureSet nodeProcSet;
+        shared::NodeProcedureSet nodeProcSet;
         for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
             nodeProcSet.progs[i] = 0xFFFFFFFF;
         for (int i = 0; i < numPairs; ++i) {
@@ -99,15 +99,15 @@ namespace VLR {
 
     ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {
         size_t sizeOfNodeInDW = sizeOfNode / 4;
-        if (sizeOfNodeInDW <= Shared::SmallNodeDescriptor::NumDWSlots()) {
+        if (sizeOfNodeInDW <= shared::SmallNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 0;
             m_nodeIndex = m_context.allocateSmallNodeDescriptor();
         }
-        else if (sizeOfNodeInDW <= Shared::MediumNodeDescriptor::NumDWSlots()) {
+        else if (sizeOfNodeInDW <= shared::MediumNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 1;
             m_nodeIndex = m_context.allocateMediumNodeDescriptor();
         }
-        else if (sizeOfNodeInDW <= Shared::LargeNodeDescriptor::NumDWSlots()) {
+        else if (sizeOfNodeInDW <= shared::LargeNodeDescriptor::NumDWSlots()) {
             m_nodeSizeClass = 2;
             m_nodeIndex = m_context.allocateLargeNodeDescriptor();
         }
@@ -158,7 +158,7 @@ namespace VLR {
     }
 
     GeometryShaderNode::GeometryShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::GeometryShaderNode)) {
+        ShaderNode(context, sizeof(shared::GeometryShaderNode)) {
         setupNodeDescriptor();
     }
 
@@ -166,7 +166,7 @@ namespace VLR {
     }
 
     void GeometryShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::GeometryShaderNode>();
+        auto &nodeData = *getData<shared::GeometryShaderNode>();
 
         updateNodeDescriptor();
     }
@@ -209,7 +209,7 @@ namespace VLR {
     }
 
     TangentShaderNode::TangentShaderNode(Context& context) :
-        ShaderNode(context, sizeof(Shared::TangentShaderNode)), m_immTangentType(TangentType::TC0Direction) {
+        ShaderNode(context, sizeof(shared::TangentShaderNode)), m_immTangentType(TangentType::TC0Direction) {
         setupNodeDescriptor();
     }
 
@@ -217,7 +217,7 @@ namespace VLR {
     }
 
     void TangentShaderNode::setupNodeDescriptor() const {
-        auto& nodeData = *getData<Shared::TangentShaderNode>();
+        auto& nodeData = *getData<shared::TangentShaderNode>();
         nodeData.tangentType = m_immTangentType;
 
         updateNodeDescriptor();
@@ -290,7 +290,7 @@ namespace VLR {
     }
 
     Float2ShaderNode::Float2ShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Float2ShaderNode)),
+        ShaderNode(context, sizeof(shared::Float2ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f) {
         setupNodeDescriptor();
     }
@@ -299,7 +299,7 @@ namespace VLR {
     }
 
     void Float2ShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::Float2ShaderNode>();
+        auto &nodeData = *getData<shared::Float2ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.imm0 = m_imm0;
@@ -374,13 +374,13 @@ namespace VLR {
 
     bool Float2ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "0")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
         else if (testParamName(paramName, "1")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node1 = plug;
@@ -431,7 +431,7 @@ namespace VLR {
     }
 
     Float3ShaderNode::Float3ShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Float3ShaderNode)),
+        ShaderNode(context, sizeof(shared::Float3ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f) {
         setupNodeDescriptor();
     }
@@ -440,7 +440,7 @@ namespace VLR {
     }
 
     void Float3ShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::Float3ShaderNode>();
+        auto &nodeData = *getData<shared::Float3ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -532,19 +532,19 @@ namespace VLR {
 
     bool Float3ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "0")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
         else if (testParamName(paramName, "1")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node1 = plug;
         }
         else if (testParamName(paramName, "2")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node2 = plug;
@@ -597,7 +597,7 @@ namespace VLR {
     }
 
     Float4ShaderNode::Float4ShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Float4ShaderNode)),
+        ShaderNode(context, sizeof(shared::Float4ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f), m_imm3(0.0f) {
         setupNodeDescriptor();
     }
@@ -606,7 +606,7 @@ namespace VLR {
     }
 
     void Float4ShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::Float4ShaderNode>();
+        auto &nodeData = *getData<shared::Float4ShaderNode>();
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -715,25 +715,25 @@ namespace VLR {
 
     bool Float4ShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "0")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node0 = plug;
         }
         else if (testParamName(paramName, "1")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node1 = plug;
         }
         else if (testParamName(paramName, "2")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node2 = plug;
         }
         else if (testParamName(paramName, "3")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node3 = plug;
@@ -782,7 +782,7 @@ namespace VLR {
     }
 
     ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::ScaleAndOffsetFloatShaderNode)), m_immScale(1.0f), m_immOffset(0.0f) {
+        ShaderNode(context, sizeof(shared::ScaleAndOffsetFloatShaderNode)), m_immScale(1.0f), m_immOffset(0.0f) {
         setupNodeDescriptor();
     }
 
@@ -790,7 +790,7 @@ namespace VLR {
     }
 
     void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::ScaleAndOffsetFloatShaderNode>();
+        auto &nodeData = *getData<shared::ScaleAndOffsetFloatShaderNode>();
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
         nodeData.nodeOffset = m_nodeOffset.getSharedType();
@@ -869,19 +869,19 @@ namespace VLR {
 
     bool ScaleAndOffsetFloatShaderNode::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "value")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeValue = plug;
         }
         else if (testParamName(paramName, "scale")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeScale = plug;
         }
         else if (testParamName(paramName, "offset")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeOffset = plug;
@@ -929,7 +929,7 @@ namespace VLR {
     }
 
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::TripletSpectrumShaderNode)), m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
+        ShaderNode(context, sizeof(shared::TripletSpectrumShaderNode)), m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
         setupNodeDescriptor();
     }
@@ -938,7 +938,7 @@ namespace VLR {
     }
 
     void TripletSpectrumShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::TripletSpectrumShaderNode>();
+        auto &nodeData = *getData<shared::TripletSpectrumShaderNode>();
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
 
         updateNodeDescriptor();
@@ -1062,7 +1062,7 @@ namespace VLR {
     }
 
     RegularSampledSpectrumShaderNode::RegularSampledSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::RegularSampledSpectrumShaderNode)),
+        ShaderNode(context, sizeof(shared::RegularSampledSpectrumShaderNode)),
         m_spectrumType(SpectrumType::NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
         m_values = new float[2];
         m_values[0] = m_values[1] = 1.0f;
@@ -1075,7 +1075,7 @@ namespace VLR {
     }
 
     void RegularSampledSpectrumShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::RegularSampledSpectrumShaderNode>();
+        auto &nodeData = *getData<shared::RegularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         nodeData.minLambda = m_minLambda;
@@ -1230,7 +1230,7 @@ namespace VLR {
     }
 
     IrregularSampledSpectrumShaderNode::IrregularSampledSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::IrregularSampledSpectrumShaderNode)),
+        ShaderNode(context, sizeof(shared::IrregularSampledSpectrumShaderNode)),
         m_spectrumType(SpectrumType::NA), m_lambdas(nullptr), m_values(nullptr), m_numSamples(2) {
         m_lambdas = new float[2];
         m_values = new float[2];
@@ -1248,7 +1248,7 @@ namespace VLR {
     }
 
     void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::IrregularSampledSpectrumShaderNode>();
+        auto &nodeData = *getData<shared::IrregularSampledSpectrumShaderNode>();
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         std::copy_n(m_lambdas, m_numSamples, nodeData.lambdas);
@@ -1379,7 +1379,7 @@ namespace VLR {
     }
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
+        ShaderNode(context, sizeof(shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
         setupNodeDescriptor();
     }
 
@@ -1387,7 +1387,7 @@ namespace VLR {
     }
 
     void Float3ToSpectrumShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::Float3ToSpectrumShaderNode>();
+        auto &nodeData = *getData<shared::Float3ToSpectrumShaderNode>();
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
         nodeData.immFloat3[1] = m_immFloat3[1];
@@ -1495,7 +1495,7 @@ namespace VLR {
 
     bool Float3ToSpectrumShaderNode::set(const char* paramName, const ShaderNodePlug &plug) {
         if (testParamName(paramName, "value")) {
-            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeFloat3 = plug;
@@ -1543,7 +1543,7 @@ namespace VLR {
     }
 
     ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::ScaleAndOffsetUVTextureMap2DShaderNode)), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
+        ShaderNode(context, sizeof(shared::ScaleAndOffsetUVTextureMap2DShaderNode)), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
         setupNodeDescriptor();
     }
 
@@ -1551,7 +1551,7 @@ namespace VLR {
     }
 
     void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() const {
-        auto &nodeData = *getData<Shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
+        auto &nodeData = *getData<shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
@@ -1665,7 +1665,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
+        ShaderNode(context, sizeof(shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
         m_bumpType(BumpType::NormalMap_DirectX), m_bumpCoeff(1.0f),
         m_xyFilter(TextureFilter::Linear),
         m_wrapU(TextureWrapMode::Repeat), m_wrapV(TextureWrapMode::Repeat) {
@@ -1680,7 +1680,7 @@ namespace VLR {
     }
 
     Image2DTextureShaderNode::~Image2DTextureShaderNode() {
-        auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
+        auto &nodeData = *getData<shared::Image2DTextureShaderNode>();
         if (nodeData.texture)
             cuTexObjectDestroy(nodeData.texture);
     }
@@ -1694,7 +1694,7 @@ namespace VLR {
                                      cudau::TextureReadMode::NormalizedFloat_sRGB :
                                      cudau::TextureReadMode::NormalizedFloat);
 
-        auto &nodeData = *getData<Shared::Image2DTextureShaderNode>();
+        auto &nodeData = *getData<shared::Image2DTextureShaderNode>();
         if (nodeData.texture)
             CUDADRV_CHECK(cuTexObjectDestroy(nodeData.texture));
         nodeData.texture = m_textureSampler.createTextureObject(m_image->getOptiXObject());
@@ -1709,7 +1709,7 @@ namespace VLR {
         nodeData.bumpType = static_cast<unsigned int>(m_bumpType);
         const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
         float coeff = std::round(m_bumpCoeff * (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1))) - 1;
-        nodeData.bumpCoeff = VLR::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
+        nodeData.bumpCoeff = vlr::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
 
         updateNodeDescriptor();
@@ -1833,7 +1833,7 @@ namespace VLR {
                 return false;
 
             const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
-            m_bumpCoeff = VLR::clamp(values[0], minCoeff, 2.0f);
+            m_bumpCoeff = vlr::clamp(values[0], minCoeff, 2.0f);
         }
         else {
             return false;
@@ -1857,7 +1857,7 @@ namespace VLR {
 
     bool Image2DTextureShaderNode::set(const char* paramName, const ShaderNodePlug &plug) {
         if (testParamName(paramName, "texcoord")) {
-            if (!Shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<Point3D>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeTexCoord = plug;
@@ -1913,7 +1913,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context, sizeof(Shared::EnvironmentTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
+        ShaderNode(context, sizeof(shared::EnvironmentTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
         m_xyFilter(TextureFilter::Linear) {
         m_textureSampler.setXyFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter));
         m_textureSampler.setMipMapFilterMode(cudau::TextureFilterMode::Point);
@@ -1926,7 +1926,7 @@ namespace VLR {
     }
 
     EnvironmentTextureShaderNode::~EnvironmentTextureShaderNode() {
-        auto &nodeData = *getData<Shared::EnvironmentTextureShaderNode>();
+        auto &nodeData = *getData<shared::EnvironmentTextureShaderNode>();
         if (nodeData.texture)
             cuTexObjectDestroy(nodeData.texture);
     }
@@ -1935,7 +1935,7 @@ namespace VLR {
         m_textureSampler.setXyFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter));
         m_textureSampler.setMipMapFilterMode(cudau::TextureFilterMode::Point);
 
-        auto &nodeData = *getData<Shared::EnvironmentTextureShaderNode>();
+        auto &nodeData = *getData<shared::EnvironmentTextureShaderNode>();
         if (nodeData.texture)
             CUDADRV_CHECK(cuTexObjectDestroy(nodeData.texture));
         nodeData.texture = m_textureSampler.createTextureObject(m_image->getOptiXObject());

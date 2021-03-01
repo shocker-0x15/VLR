@@ -2,7 +2,7 @@
 
 #include "spectrum_base.h"
 
-namespace VLR {
+namespace vlr {
     template <typename RealType>
     struct RGBWavelengthSamplesTemplate {
         struct {
@@ -33,7 +33,7 @@ namespace VLR {
             VLRAssert(offset >= 0 && offset < 1, "\"offset\" must be in range [0, 1).");
             VLRAssert(uLambda >= 0 && uLambda < 1, "\"uLambda\" must be in range [0, 1).");
             RGBWavelengthSamplesTemplate wls;
-            wls._selectedLambdaIndex = VLR::min<uint16_t>(3 * uLambda, 3 - 1);
+            wls._selectedLambdaIndex = vlr::min<uint16_t>(3 * uLambda, 3 - 1);
             wls._singleIsSelected = false;
             *PDF = 1;
             return wls;
@@ -141,11 +141,11 @@ namespace VLR {
             return r != 0.0f || g != 0.0f || b != 0.0f;
         }
         CUDA_DEVICE_FUNCTION bool hasNaN() const {
-            using VLR::isnan;
+            using vlr::isnan;
             return isnan(r) || isnan(g) || isnan(b);
         }
         CUDA_DEVICE_FUNCTION bool hasInf() const {
-            using VLR::isinf;
+            using vlr::isinf;
             return isinf(r) || isinf(g) || isinf(b);
         }
         CUDA_DEVICE_FUNCTION bool allFinite() const {

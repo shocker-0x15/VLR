@@ -4,9 +4,6 @@
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="materials.cpp" />
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="VLR.cpp">
-      <Filter>API</Filter>
-    </ClCompile>
     <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp">
       <Filter>Shared</Filter>
@@ -27,6 +24,9 @@
     <ClCompile Include="ext\gl3w.c">
       <Filter>ext\gl3w</Filter>
     </ClCompile>
+    <ClCompile Include="vlr.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPU_kernels\kernel_common.cuh">
@@ -41,13 +41,7 @@
     <ClInclude Include="ext\include\half.hpp">
       <Filter>ext</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\VLR.h">
-      <Filter>API</Filter>
-    </ClInclude>
     <ClInclude Include="shader_nodes.h" />
-    <ClInclude Include="include\VLR\VLRCpp.h">
-      <Filter>API</Filter>
-    </ClInclude>
     <ClInclude Include="include\VLR\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
@@ -101,6 +95,12 @@
     </ClInclude>
     <ClInclude Include="ext\include\KHR\khrplatform.h">
       <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\vlr.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="include\VLR\vlrcpp.h">
+      <Filter>API</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

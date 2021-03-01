@@ -145,7 +145,7 @@
     <ClCompile Include="shader_nodes.cpp" />
     <ClCompile Include="utils\cuda_util.cpp" />
     <ClCompile Include="utils\optix_util.cpp" />
-    <ClCompile Include="VLR.cpp" />
+    <ClCompile Include="vlr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="context.h" />
@@ -158,8 +158,8 @@
     <ClInclude Include="image.h" />
     <ClInclude Include="include\VLR\basic_types.h" />
     <ClInclude Include="include\VLR\common.h" />
-    <ClInclude Include="include\VLR\VLR.h" />
-    <ClInclude Include="include\VLR\VLRCpp.h" />
+    <ClInclude Include="include\VLR\vlr.h" />
+    <ClInclude Include="include\VLR\vlrcpp.h" />
     <ClInclude Include="include\VLR\public_types.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="queryable.h" />

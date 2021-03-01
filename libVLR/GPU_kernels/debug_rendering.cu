@@ -1,6 +1,6 @@
 ﻿#include "light_transport_common.cuh"
 
-namespace VLR {
+namespace vlr {
     struct DebugRenderingPayload {
         KernelRNG rng;
         WavelengthSamples wls;
@@ -146,7 +146,7 @@ namespace VLR {
         direction.toPolarYUp(&theta, &phi);
 
         float sinPhi, cosPhi;
-        VLR::sincos(phi, &sinPhi, &cosPhi);
+        vlr::sincos(phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;

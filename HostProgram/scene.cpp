@@ -2,9 +2,8 @@
 
 #include "image_loader.h"
 
-SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-    using namespace VLRCpp;
-    using namespace VLR;
+SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+    using namespace vlr;
 
     aiReturn ret;
     (void)ret;
@@ -74,11 +73,10 @@ MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh) {
     return MeshAttributeTuple(true);
 }
 
-void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
+void recursiveConstruct(const vlr::ContextRef &context, const aiScene* objSrc, const aiNode* nodeSrc,
                         const std::vector<SurfaceMaterialAttributeTuple> &matAttrTuples, const PerMeshFunction &meshFunc,
-                        VLRCpp::InternalNodeRef* nodeOut) {
-    using namespace VLRCpp;
-    using namespace VLR;
+                        vlr::InternalNodeRef* nodeOut) {
+    using namespace vlr;
 
     if (nodeSrc->mNumMeshes == 0 && nodeSrc->mNumChildren == 0) {
         nodeOut = nullptr;
@@ -160,10 +158,9 @@ void recursiveConstruct(const VLRCpp::ContextRef &context, const aiScene* objSrc
     }
 }
 
-void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
+void construct(const vlr::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, vlr::InternalNodeRef* nodeOut,
                CreateMaterialFunction matFunc, PerMeshFunction meshFunc) {
-    using namespace VLRCpp;
-    using namespace VLR;
+    using namespace vlr;
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filePath, 
@@ -194,7 +191,7 @@ void construct(const VLRCpp::ContextRef &context, const std::string &filePath, b
 
 
 
-void printParameterInfos(const VLRCpp::QueryableRef& connectable) {
+void printParameterInfos(const vlr::QueryableRef& connectable) {
     uint32_t numParams = connectable->getNumParameters();
     for (int i = 0; i < numParams; ++i) {
         auto paramInfo = connectable->getParameterInfo(i);
@@ -206,9 +203,8 @@ void printParameterInfos(const VLRCpp::QueryableRef& connectable) {
 
 #define ASSETS_DIR "resources/assets/"
 
-void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
@@ -357,9 +353,8 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     InternalNodeRef sphereNode;
-    construct(context, "resources/sphere/sphere.obj", false, false, &sphereNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/sphere/sphere.obj", false, false, &sphereNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         //auto matA = context->createSurfaceMaterial("SpecularReflection");
         //matA->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 0.999f, 0.999f, 0.999f });
@@ -434,17 +429,15 @@ void createCornellBoxScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createMaterialTestScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
@@ -497,9 +490,8 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     construct(context, "resources/material_test/mitsuba_knob.obj", false, false, &modelNode, 
-              [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+              [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -610,17 +602,15 @@ void createMaterialTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createAnisotropyScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
@@ -673,9 +663,8 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     construct(context, ASSETS_DIR"rounded_box/rounded_box_0.fbx", false, true, &modelNode, 
-              [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+              [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -760,18 +749,17 @@ void createAnisotropyScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createWhiteFurnaceTestScene(const vlr::ContextRef& context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
     construct(context, "resources/material_test/mitsuba_knob.obj", false, false, &modelNode,
-              [](const VLRCpp::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
-                  using namespace VLRCpp;
-                  using namespace VLR;
+              [](const vlr::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
+                  using namespace vlr;
+                  using namespace vlr;
 
                   aiReturn ret;
                   (void)ret;
@@ -849,9 +837,8 @@ void createWhiteFurnaceTestScene(const VLRCpp::ContextRef& context, Shot* shot) 
     }
 }
 
-void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createColorCheckerScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
@@ -1011,17 +998,15 @@ void createColorCheckerScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createColorInterpolationTestScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
@@ -1149,17 +1134,15 @@ void createColorInterpolationTestScene(const VLRCpp::ContextRef &context, Shot* 
     }
 }
 
-void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createSubstanceManScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/material_test/paper.obj", false, true, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         float offset[2] = { 0, 0 };
         float scale[2] = { 10, 20 };
@@ -1211,9 +1194,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, ASSETS_DIR"spman2/spman2.obj", false, true, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, ASSETS_DIR"spman2/spman2.obj", false, true, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1285,9 +1267,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    construct(context, "resources/sphere/sphere.obj", false, false, &modelNode, [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    construct(context, "resources/sphere/sphere.obj", false, false, &modelNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         SurfaceMaterialRef mat = context->createSurfaceMaterial("SpecularReflection");
         mat->set("coeff", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.999f, 0.999f, 0.999f });
@@ -1360,9 +1341,8 @@ void createSubstanceManScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createGalleryScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
@@ -1396,9 +1376,8 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
 
-    const auto gelleryMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto gelleryMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1449,9 +1428,8 @@ void createGalleryScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createHairballScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
@@ -1486,9 +1464,8 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
 
 
     construct(context, ASSETS_DIR"hairball/hairball.obj", true, false, &modelNode,
-              [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+              [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1538,17 +1515,15 @@ void createHairballScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createRungholtScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    const auto rungholtMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto rungholtMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1666,17 +1641,15 @@ void createRungholtScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createPowerplantScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    const auto powerplantMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto powerplantMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1737,17 +1710,15 @@ void createPowerplantScene(const VLRCpp::ContextRef &context, Shot* shot) {
     }
 }
 
-void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createAmazonBistroExteriorScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    const auto bistroMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto bistroMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1849,9 +1820,8 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    const auto grayMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto grayMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -1945,17 +1915,15 @@ void createAmazonBistroExteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     }
 }
 
-void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createAmazonBistroInteriorScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    const auto bistroMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto bistroMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -2057,9 +2025,8 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    const auto grayMaterialFunc = [](const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto grayMaterialFunc = [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -2141,17 +2108,15 @@ void createAmazonBistroInteriorScene(const VLRCpp::ContextRef &context, Shot* sh
     }
 }
 
-void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
-    using namespace VLRCpp;
-    using namespace VLR;
+void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
+    using namespace vlr;
 
     shot->scene = context->createScene();
 
     InternalNodeRef modelNode;
 
-    const auto sanMiguelMaterialFunc = [](const VLRCpp::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
-        using namespace VLRCpp;
-        using namespace VLR;
+    const auto sanMiguelMaterialFunc = [](const vlr::ContextRef& context, const aiMaterial* aiMat, const std::string& pathPrefix) {
+        using namespace vlr;
 
         aiReturn ret;
         (void)ret;
@@ -2266,7 +2231,7 @@ void createSanMiguelScene(const VLRCpp::ContextRef& context, Shot* shot) {
     }
 }
 
-void createScene(const VLRCpp::ContextRef &context, Shot* shot) {
+void createScene(const vlr::ContextRef &context, Shot* shot) {
     //createCornellBoxScene(context, shot);
     //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);

@@ -2,7 +2,7 @@
 
 #include "shared/common_internal.h"
 
-namespace VLR {
+namespace vlr {
     class SlotFinder {
         uint32_t m_numLayers;
         uint32_t m_numLowestFlagBins;

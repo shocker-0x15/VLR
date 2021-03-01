@@ -2,7 +2,7 @@
 
 #include "spectrum_base.h"
 
-namespace VLR {
+namespace vlr {
     template <typename RealType, uint32_t NumSpectralSamples>
     struct WavelengthSamplesTemplate {
         RealType lambdas[NumSpectralSamples];
@@ -58,7 +58,7 @@ namespace VLR {
             WavelengthSamplesTemplate wls;
             for (int i = 0; i < NumSpectralSamples; ++i)
                 wls.lambdas[i] = WavelengthLowBound + (WavelengthHighBound - WavelengthLowBound) * (i + offset) / NumSpectralSamples;
-            wls._selectedLambdaIndex = VLR::min<uint16_t>(NumSpectralSamples * uLambda, NumSpectralSamples - 1);
+            wls._selectedLambdaIndex = vlr::min<uint16_t>(NumSpectralSamples * uLambda, NumSpectralSamples - 1);
             wls._singleIsSelected = false;
             *PDF = NumSpectralSamples / (WavelengthHighBound - WavelengthLowBound);
             return wls;
@@ -218,13 +218,13 @@ namespace VLR {
         }
         CUDA_DEVICE_FUNCTION bool hasNaN() const {
             for (int i = 0; i < NumSpectralSamples; ++i)
-                if (VLR::isnan(values[i]))
+                if (vlr::isnan(values[i]))
                     return true;
             return false;
         }
         CUDA_DEVICE_FUNCTION bool hasInf() const {
             for (int i = 0; i < NumSpectralSamples; ++i)
-                if (VLR::isinf(values[i]))
+                if (vlr::isinf(values[i]))
                     return true;
             return false;
         }
@@ -541,13 +541,13 @@ namespace VLR {
         }
         CUDA_DEVICE_FUNCTION bool hasNaN() const {
             for (int i = 0; i < NumStrataForStorage; ++i)
-                if (VLR::isnan(values[i]))
+                if (vlr::isnan(values[i]))
                     return true;
             return false;
         }
         CUDA_DEVICE_FUNCTION bool hasInf() const {
             for (int i = 0; i < NumStrataForStorage; ++i)
-                if (VLR::isinf(values[i]))
+                if (vlr::isinf(values[i]))
                     return true;
             return false;
         }
@@ -606,7 +606,7 @@ namespace VLR {
             const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
             ValueType addend(0.0);
             for (int i = 0; i < N; ++i) {
-                uint32_t sBin = VLR::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                uint32_t sBin = vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
                 addend[sBin] += val[i] * recBinWidth;
             }
             value += addend;

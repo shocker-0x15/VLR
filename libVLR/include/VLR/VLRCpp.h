@@ -11,7 +11,7 @@
 #include "VLR.h"
 #include "basic_types.h"
 
-namespace VLRCpp {
+namespace vlr {
     class Context;
     using ContextRef = std::shared_ptr<Context>;
     using ContextConstRef = std::shared_ptr<const Context>;
@@ -118,36 +118,36 @@ namespace VLRCpp {
             VLRResult err = errorCheck(vlrQueryableGetEnumValue(getRaw<VLRQueryable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
-        inline bool get(const char* paramName, VLR::Point3D* value) const {
+        inline bool get(const char* paramName, vlr::Point3D* value) const {
             VLRPoint3D cValue;
             VLRResult err = errorCheck(vlrQueryableGetPoint3D(getRaw<VLRQueryable>(), paramName, &cValue));
             if (err != VLRResult_NoError)
                 return false;
-            *value = VLR::Point3D(cValue.x, cValue.y, cValue.z);
+            *value = vlr::Point3D(cValue.x, cValue.y, cValue.z);
             return true;
         }
-        inline bool get(const char* paramName, VLR::Vector3D* value) const {
+        inline bool get(const char* paramName, vlr::Vector3D* value) const {
             VLRVector3D cValue;
             VLRResult err = errorCheck(vlrQueryableGetVector3D(getRaw<VLRQueryable>(), paramName, &cValue));
             if (err != VLRResult_NoError)
                 return false;
-            *value = VLR::Vector3D(cValue.x, cValue.y, cValue.z);
+            *value = vlr::Vector3D(cValue.x, cValue.y, cValue.z);
             return true;
         }
-        inline bool get(const char* paramName, VLR::Normal3D* value) const {
+        inline bool get(const char* paramName, vlr::Normal3D* value) const {
             VLRNormal3D cValue;
             VLRResult err = errorCheck(vlrQueryableGetNormal3D(getRaw<VLRQueryable>(), paramName, &cValue));
             if (err != VLRResult_NoError)
                 return false;
-            *value = VLR::Normal3D(cValue.x, cValue.y, cValue.z);
+            *value = vlr::Normal3D(cValue.x, cValue.y, cValue.z);
             return true;
         }
-        inline bool get(const char* paramName, VLR::Quaternion* value) const {
+        inline bool get(const char* paramName, vlr::Quaternion* value) const {
             VLRQuaternion cValue;
             VLRResult err = errorCheck(vlrQueryableGetQuaternion(getRaw<VLRQueryable>(), paramName, &cValue));
             if (err != VLRResult_NoError)
                 return false;
-            *value = VLR::Quaternion(cValue.x, cValue.y, cValue.z, cValue.w);
+            *value = vlr::Quaternion(cValue.x, cValue.y, cValue.z, cValue.w);
             return true;
         }
         inline bool get(const char* paramName, float* value) const {
@@ -174,19 +174,19 @@ namespace VLRCpp {
             VLRResult err = errorCheck(vlrQueryableSetEnumValue(getRaw<VLRQueryable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, const VLR::Point3D& value) const {
+        inline bool set(const char* paramName, const vlr::Point3D& value) const {
             VLRResult err = errorCheck(vlrQueryableSetPoint3D(getRaw<VLRQueryable>(), paramName, (VLRPoint3D*)&value));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, const VLR::Vector3D& value) const {
+        inline bool set(const char* paramName, const vlr::Vector3D& value) const {
             VLRResult err = errorCheck(vlrQueryableSetVector3D(getRaw<VLRQueryable>(), paramName, (VLRVector3D*)&value));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, const VLR::Normal3D& value) const {
+        inline bool set(const char* paramName, const vlr::Normal3D& value) const {
             VLRResult err = errorCheck(vlrQueryableSetNormal3D(getRaw<VLRQueryable>(), paramName, (VLRNormal3D*)&value));
             return err == VLRResult_NoError;
         }
-        inline bool set(const char* paramName, const VLR::Quaternion& value) const {
+        inline bool set(const char* paramName, const vlr::Quaternion& value) const {
             VLRResult err = errorCheck(vlrQueryableSetQuaternion(getRaw<VLRQueryable>(), paramName, (VLRQuaternion*)&value));
             return err == VLRResult_NoError;
         }
@@ -390,7 +390,7 @@ namespace VLRCpp {
         StaticTransformHolder(const ContextConstRef &context, const float mat[16]) : TransformHolder(context) {
             errorCheck(vlrStaticTransformCreate(getRawContext(m_context), (VLRStaticTransform*)&m_raw, mat));
         }
-        StaticTransformHolder(const ContextConstRef &context, const VLR::Matrix4x4 &mat) : TransformHolder(context) {
+        StaticTransformHolder(const ContextConstRef &context, const vlr::Matrix4x4 &mat) : TransformHolder(context) {
             float matArray[16];
             mat.getArray(matArray);
             errorCheck(vlrStaticTransformCreate(getRawContext(m_context), (VLRStaticTransform*)&m_raw, matArray));
@@ -402,11 +402,11 @@ namespace VLRCpp {
         void getArrays(float mat[16], float invMat[16]) const {
             errorCheck(vlrStaticTransformGetArrays(getRaw<VLRStaticTransform>(), mat, invMat));
         }
-        void getMatrices(VLR::Matrix4x4* mat, VLR::Matrix4x4* invMat) const {
+        void getMatrices(vlr::Matrix4x4* mat, vlr::Matrix4x4* invMat) const {
             float aMat[16], aInvMat[16];
             getArrays(aMat, aInvMat);
-            *mat = VLR::Matrix4x4(aMat);
-            *invMat = VLR::Matrix4x4(aInvMat);
+            *mat = vlr::Matrix4x4(aMat);
+            *invMat = vlr::Matrix4x4(aInvMat);
         }
     };
 
@@ -450,7 +450,7 @@ namespace VLRCpp {
             errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRawContext(m_context), getRaw<VLRTriangleMeshSurfaceNode>()));
         }
 
-        void setVertices(VLR::Vertex* vertices, uint32_t numVertices) {
+        void setVertices(vlr::Vertex* vertices, uint32_t numVertices) {
             errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(getRaw<VLRTriangleMeshSurfaceNode>(), (VLRVertex*)vertices, numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
@@ -638,7 +638,7 @@ namespace VLRCpp {
 
         void initialize(CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
             errorCheck(vlrCreateContext(&m_rawContext, cuContext, logging, maxCallableDepth));
-            m_identityTransform = std::make_shared<StaticTransformHolder>(shared_from_this(), VLR::Matrix4x4::Identity());
+            m_identityTransform = std::make_shared<StaticTransformHolder>(shared_from_this(), vlr::Matrix4x4::Identity());
         }
 
     public:
@@ -741,7 +741,7 @@ namespace VLRCpp {
             return std::make_shared<StaticTransformHolder>(shared_from_this(), mat);
         }
 
-        StaticTransformRef createStaticTransform(const VLR::Matrix4x4 &mat) const {
+        StaticTransformRef createStaticTransform(const vlr::Matrix4x4 &mat) const {
             return std::make_shared<StaticTransformHolder>(shared_from_this(), mat);
         }
 

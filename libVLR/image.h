@@ -2,7 +2,7 @@
 
 #include "queryable.h"
 
-namespace VLR {
+namespace vlr {
     struct RGB8x3 { uint8_t r, g, b; };
     struct RGB_8x4 { uint8_t r, g, b, dummy; };
     struct RGBA8x4 { uint8_t r, g, b, a; };

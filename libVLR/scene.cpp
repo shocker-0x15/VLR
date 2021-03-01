@@ -1,6 +1,6 @@
 ﻿#include "scene.h"
 
-namespace VLR {
+namespace vlr {
     // ----------------------------------------------------------------
     // Shallow Hierarchy
 
@@ -241,7 +241,7 @@ namespace VLR {
                     uint32_t i1 = matGroup.indices[3 * i + 1];
                     uint32_t i2 = matGroup.indices[3 * i + 2];
 
-                    dstTriangles[i] = Shared::Triangle{ i0, i1, i2 };
+                    dstTriangles[i] = shared::Triangle{ i0, i1, i2 };
 
                     const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
                     areas[i] = std::fmax(0.0f, 0.5f * cross(v[1].position - v[0].position,
@@ -261,21 +261,21 @@ namespace VLR {
 
         matGroup.material = material;
         if (nodeNormal.node) {
-            if (Shared::NodeTypeInfo<Normal3D>::ConversionIsDefinedFrom(nodeNormal.getType()))
+            if (shared::NodeTypeInfo<Normal3D>::ConversionIsDefinedFrom(nodeNormal.getType()))
                 plugNormal = nodeNormal;
             else
                 vlrprintf("%s: Invalid plug type for normal is passed.\n", m_name.c_str());
         }
         matGroup.nodeNormal = plugNormal;
         if (nodeTangent.node) {
-            if (Shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(nodeTangent.getType()))
+            if (shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(nodeTangent.getType()))
                 plugTangent = nodeTangent;
             else
                 vlrprintf("%s: Invalid plug type for tangent is passed.\n", m_name.c_str());
         }
         matGroup.nodeTangent = plugTangent;
         if (nodeAlpha.node) {
-            if (Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(nodeAlpha.getType()))
+            if (shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(nodeAlpha.getType()))
                 plugAlpha = nodeAlpha;
             else
                 vlrprintf("%s: Invalid plug type for alpha is passed.\n", m_name.c_str());
@@ -418,7 +418,7 @@ namespace VLR {
         optixu::GeometryAccelerationStructure optixGas = optixScene.createGeometryAccelerationStructure();
         optixGas.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false, false);
         optixGas.setNumMaterialSets(1);
-        optixGas.setNumRayTypes(0, Shared::RayType::NumTypes);
+        optixGas.setNumRayTypes(0, shared::RayType::NumTypes);
         m_shGeomGroup = new SHGeometryGroup(optixGas);
         m_shTransforms.at(nullptr)->setChild(m_shGeomGroup);
     }
@@ -591,7 +591,7 @@ namespace VLR {
         }
     }
 
-    void ParentNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+    void ParentNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
         for (auto it = m_childToSerialIDMap.cbegin(); it != m_childToSerialIDMap.cend(); ++it)
             it->first->setup(cuStream, asScratchMem, launchParams);
         m_shGeomGroup->setup(cuStream, asScratchMem);
@@ -740,8 +740,8 @@ namespace VLR {
             inst.instIndex = m_context.allocateInstance();
             inst.optixInst = optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
-            inst.data.transform = Shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
-            inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+            inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
+            inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
             m_context.updateInstance(inst.instIndex, inst.data);
         }
@@ -792,9 +792,9 @@ namespace VLR {
             inst.optixInst = optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
             inst.optixInst.setTransform(tMat);
-            inst.data.transform = Shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
+            inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
             inst.data.geomInstIndices = nullptr;
-            inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+            inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
             inst.data.importance = 0.0f;
             m_context.updateInstance(inst.instIndex, inst.data);
         }
@@ -931,7 +931,7 @@ namespace VLR {
                 inst.lightGeomInstDistribution.finalize(m_context);
 
                 inst.data.geomInstIndices = nullptr;
-                inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+                inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
                 inst.data.importance = 0.0f;
                 m_context.updateInstance(inst.instIndex, inst.data);
             }
@@ -943,7 +943,7 @@ namespace VLR {
             inst.lightGeomInstDistribution.finalize(m_context);
 
             inst.data.importance = 0.0f;
-            inst.data.lightGeomInstDistribution = Shared::DiscreteDistribution1D();
+            inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
             m_context.updateInstance(inst.instIndex, inst.data);
         }
@@ -998,7 +998,7 @@ namespace VLR {
         *asScratchSize = std::max(std::max(asSizes.tempSizeInBytes, asSizes.tempUpdateSizeInBytes), *asScratchSize);
     }
 
-    void RootNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+    void RootNode::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
         ParentNode::setup(cuStream, asScratchMem, launchParams);
 
         launchParams->topGroup = m_optixIas.rebuild(cuStream, m_optixInstanceBuffer, m_optixIasMem, asScratchMem);
@@ -1051,9 +1051,9 @@ namespace VLR {
         m_geomInstIndex = m_context.allocateGeometryInstance();
         m_geomInstance.progSample = progSet.dcSampleInfiniteSphere;
         m_geomInstance.progDecodeHitPoint = 0xFFFFFFFF;
-        m_geomInstance.nodeNormal = Shared::ShaderNodePlug::Invalid();
-        m_geomInstance.nodeTangent = Shared::ShaderNodePlug::Invalid();
-        m_geomInstance.nodeAlpha = Shared::ShaderNodePlug::Invalid();
+        m_geomInstance.nodeNormal = shared::ShaderNodePlug::Invalid();
+        m_geomInstance.nodeTangent = shared::ShaderNodePlug::Invalid();
+        m_geomInstance.nodeAlpha = shared::ShaderNodePlug::Invalid();
         m_geomInstance.materialIndex = 0;
         m_geomInstance.importance = 0.0f;
         m_context.updateGeometryInstance(m_geomInstIndex, m_geomInstance);
@@ -1096,7 +1096,7 @@ namespace VLR {
         m_rootNode.prepareSetup(asScratchSize);
     }
 
-    void Scene::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, Shared::PipelineLaunchParameters* launchParams) {
+    void Scene::setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
         CUcontext cuContext = m_context.getCUcontext();
 
         m_rootNode.setup(cuStream, asScratchMem, launchParams);
@@ -1329,7 +1329,7 @@ namespace VLR {
             if (length != 1)
                 return false;
 
-            m_data.fovY = VLR::clamp<float>(values[0], 0.0001f, M_PI * 0.999f);
+            m_data.fovY = vlr::clamp<float>(values[0], 0.0001f, M_PI * 0.999f);
         }
         else if (testParamName(paramName, "lens radius")) {
             if (length != 1)
@@ -1351,7 +1351,7 @@ namespace VLR {
         return true;
     }
 
-    void PerspectiveCamera::setup(Shared::PipelineLaunchParameters* launchParams) const {
+    void PerspectiveCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->perspectiveCamera = m_data;
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
@@ -1492,13 +1492,13 @@ namespace VLR {
             if (length != 1)
                 return false;
 
-            m_data.phiAngle = VLR::clamp<float>(values[0], 0.01f, 2 * M_PI);
+            m_data.phiAngle = vlr::clamp<float>(values[0], 0.01f, 2 * M_PI);
         }
         else if (testParamName(paramName, "v angle")) {
             if (length != 1)
                 return false;
 
-            m_data.thetaAngle = VLR::clamp<float>(values[0], 0.01f, M_PI);
+            m_data.thetaAngle = vlr::clamp<float>(values[0], 0.01f, M_PI);
         }
         else {
             return false;
@@ -1507,7 +1507,7 @@ namespace VLR {
         return true;
     }
 
-    void EquirectangularCamera::setup(Shared::PipelineLaunchParameters* launchParams) const {
+    void EquirectangularCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->equirectangularCamera = m_data;
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;

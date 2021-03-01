@@ -1,6 +1,6 @@
 ﻿#include "kernel_common.cuh"
 
-namespace VLR {
+namespace vlr {
     template <typename T>
     CUDA_DEVICE_FUNCTION T* getData(uint32_t nodeDescIndex) {
         constexpr uint32_t sizeOfNodeInDW = sizeof(T) / 4;

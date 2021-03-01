@@ -1,6 +1,6 @@
 ﻿#include "kernel_common.cuh"
 
-namespace VLR {
+namespace vlr {
     // ----------------------------------------------------------------
     // PerspectiveCamera
 

@@ -2,7 +2,7 @@
 
 #include "shader_nodes.h"
 
-namespace VLR {
+namespace vlr {
     struct ImmediateSpectrum {
         ColorSpace colorSpace;
         float e0;
@@ -37,7 +37,7 @@ namespace VLR {
             return ret;
         }
         TripletSpectrum createTripletSpectrum(SpectrumType spectrumType) const {
-            return VLR::createTripletSpectrum(spectrumType, colorSpace, e0, e1, e2);
+            return vlr::createTripletSpectrum(spectrumType, colorSpace, e0, e1, e2);
         }
     };
 
@@ -70,7 +70,7 @@ namespace VLR {
         static optixu::Module s_optixModule;
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
-        static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc);
+        static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc);
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

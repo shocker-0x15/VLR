@@ -2,22 +2,22 @@
 
 #include "common.h"
 
-#include <VLR/VLRCpp.h>
+#include <VLR/vlrcpp.h>
 
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
 struct SurfaceMaterialAttributeTuple {
-    VLRCpp::SurfaceMaterialRef material;
-    VLRCpp::ShaderNodePlug nodeNormal;
-    VLRCpp::ShaderNodePlug nodeTangent;
-    VLRCpp::ShaderNodePlug nodeAlpha;
+    vlr::SurfaceMaterialRef material;
+    vlr::ShaderNodePlug nodeNormal;
+    vlr::ShaderNodePlug nodeTangent;
+    vlr::ShaderNodePlug nodeAlpha;
 
-    SurfaceMaterialAttributeTuple(const VLRCpp::SurfaceMaterialRef &_material,
-                                  const VLRCpp::ShaderNodePlug &_nodeNormal,
-                                  const VLRCpp::ShaderNodePlug &_nodeTangent,
-                                  const VLRCpp::ShaderNodePlug &_nodeAlpha) :
+    SurfaceMaterialAttributeTuple(const vlr::SurfaceMaterialRef &_material,
+                                  const vlr::ShaderNodePlug &_nodeNormal,
+                                  const vlr::ShaderNodePlug &_nodeTangent,
+                                  const vlr::ShaderNodePlug &_nodeAlpha) :
         material(_material), nodeNormal(_nodeNormal), nodeTangent(_nodeTangent), nodeAlpha(_nodeAlpha) {}
 };
 
@@ -27,20 +27,20 @@ struct MeshAttributeTuple {
     MeshAttributeTuple(bool _visible) : visible(_visible) {}
 };
 
-typedef SurfaceMaterialAttributeTuple(*CreateMaterialFunction)(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &);
+typedef SurfaceMaterialAttributeTuple(*CreateMaterialFunction)(const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &);
 typedef MeshAttributeTuple(*PerMeshFunction)(const aiMesh* mesh);
 
-SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const VLRCpp::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix);
+SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix);
 
 MeshAttributeTuple perMeshDefaultFunction(const aiMesh* mesh);
 
-static void construct(const VLRCpp::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, VLRCpp::InternalNodeRef* nodeOut,
+static void construct(const vlr::ContextRef &context, const std::string &filePath, bool flipWinding, bool flipV, vlr::InternalNodeRef* nodeOut,
                       CreateMaterialFunction matFunc = createMaterialDefaultFunction, PerMeshFunction meshFunc = perMeshDefaultFunction);
 
 
 
 struct Shot {
-    VLRCpp::SceneRef scene;
+    vlr::SceneRef scene;
 
     uint32_t renderTargetSizeX;
     uint32_t renderTargetSizeY;
@@ -48,7 +48,7 @@ struct Shot {
     float brightnessCoeff;
     float environmentRotation;
 
-    std::vector<VLRCpp::CameraRef> viewpoints;
+    std::vector<vlr::CameraRef> viewpoints;
 };
 
-void createScene(const VLRCpp::ContextRef &context, Shot* shot);
+void createScene(const vlr::ContextRef &context, Shot* shot);

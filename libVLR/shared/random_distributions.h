@@ -2,7 +2,7 @@
 
 #include "../shared/basic_types_internal.h"
 
-namespace VLR {
+namespace vlr {
     class PCG32RNG {
         uint64_t m_state;
 

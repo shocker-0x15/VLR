@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-namespace VLR {
+namespace vlr {
     template <typename RealType>
     struct Vector3DTemplate {
         RealType x, y, z;
@@ -65,15 +65,15 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION static Vector3DTemplate fromPolarZUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            VLR::sincos(phi, &sinPhi, &cosPhi);
-            VLR::sincos(theta, &sinTheta, &cosTheta);
+            vlr::sincos(phi, &sinPhi, &cosPhi);
+            vlr::sincos(theta, &sinTheta, &cosTheta);
             return Vector3DTemplate(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
         }
         CUDA_DEVICE_FUNCTION static Vector3DTemplate fromPolarYUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            VLR::sincos(phi, &sinPhi, &cosPhi);
-            VLR::sincos(theta, &sinTheta, &cosTheta);
+            vlr::sincos(phi, &sinPhi, &cosPhi);
+            vlr::sincos(theta, &sinTheta, &cosTheta);
             return Vector3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         CUDA_DEVICE_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
@@ -278,15 +278,15 @@ namespace VLR {
         CUDA_DEVICE_FUNCTION static Normal3DTemplate fromPolarZUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            VLR::sincos(phi, &sinPhi, &cosPhi);
-            VLR::sincos(theta, &sinTheta, &cosTheta);
+            vlr::sincos(phi, &sinPhi, &cosPhi);
+            vlr::sincos(theta, &sinTheta, &cosTheta);
             return Normal3DTemplate(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
         }
         CUDA_DEVICE_FUNCTION static Normal3DTemplate fromPolarYUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            VLR::sincos(phi, &sinPhi, &cosPhi);
-            VLR::sincos(theta, &sinTheta, &cosTheta);
+            vlr::sincos(phi, &sinPhi, &cosPhi);
+            vlr::sincos(theta, &sinTheta, &cosTheta);
             return Normal3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         CUDA_DEVICE_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
@@ -878,7 +878,7 @@ namespace VLR {
         Matrix3x3Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
         RealType s, c;
-        VLR::sincos(angle, &s, &c);
+        vlr::sincos(angle, &s, &c);
         RealType oneMinusC = 1 - c;
 
         matrix.m00 = nAxis.x * nAxis.x * oneMinusC + c;
@@ -1260,7 +1260,7 @@ namespace VLR {
         Matrix4x4Template<RealType> matrix;
         Vector3DTemplate<RealType> nAxis = normalize(axis);
         RealType s, c;
-        VLR::sincos(angle, &s, &c);
+        vlr::sincos(angle, &s, &c);
         RealType oneMinusC = 1 - c;
 
         matrix.m00 = nAxis.x * nAxis.x * oneMinusC + c;
@@ -1403,7 +1403,7 @@ namespace VLR {
     template <typename RealType>
     CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> qRotate(RealType angle, const Vector3DTemplate<RealType> &axis) {
         RealType s, c;
-        VLR::sincos(angle / 2, &s, &c);
+        vlr::sincos(angle / 2, &s, &c);
         return QuaternionTemplate<RealType>(s * normalize(axis), c);
     }
     template <typename RealType>
@@ -1427,7 +1427,7 @@ namespace VLR {
             RealType thetap = theta * t;
             QuaternionTemplate<RealType> qPerp = normalize(q1 - q0 * cosTheta);
             RealType sinThetaP, cosThetaP;
-            VLR::sincos(thetap, &sinThetaP, &cosThetaP);
+            vlr::sincos(thetap, &sinThetaP, &cosThetaP);
             return q0 * cosThetaP + qPerp * sinThetaP;
         }
     }

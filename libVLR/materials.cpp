@@ -1,6 +1,6 @@
 ﻿#include "materials.h"
 
-namespace VLR {
+namespace vlr {
     optixu::Module SurfaceMaterial::s_optixModule;
 
     // static
@@ -22,7 +22,7 @@ namespace VLR {
             programSet->dcBSDFWeightInternal = context.createDirectCallableProgram(
                 s_optixModule, identifiers[6]);
 
-            Shared::BSDFProcedureSet bsdfProcSet;
+            shared::BSDFProcedureSet bsdfProcSet;
             {
                 bsdfProcSet.progGetBaseColor = programSet->dcBSDFGetBaseColor;
                 bsdfProcSet.progMatches = programSet->dcBSDFmatches;
@@ -44,7 +44,7 @@ namespace VLR {
             programSet->dcEDFEvaluateInternal = context.createDirectCallableProgram(
                 s_optixModule, identifiers[9]);
 
-            Shared::EDFProcedureSet edfProcSet;
+            shared::EDFProcedureSet edfProcSet;
             {
                 edfProcSet.progEvaluateEmittanceInternal = programSet->dcEDFEvaluateEmittanceInternal;
                 edfProcSet.progEvaluateInternal = programSet->dcEDFEvaluateInternal;
@@ -90,7 +90,7 @@ namespace VLR {
     }
 
     // static
-    void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, Shared::SurfaceMaterialDescriptor* matDesc) {
+    void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc) {
         if (progSet.dcSetupBSDF) {
             matDesc->progSetupBSDF = progSet.dcSetupBSDF;
             matDesc->bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
@@ -212,9 +212,9 @@ namespace VLR {
     void MatteSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::MatteSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::MatteSurfaceMaterial>();
         mat.nodeAlbedo = m_nodeAlbedo.getSharedType();
         mat.immAlbedo = m_immAlbedo.createTripletSpectrum(SpectrumType::Reflectance);
 
@@ -263,7 +263,7 @@ namespace VLR {
 
     bool MatteSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "albedo")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeAlbedo = plug;
@@ -334,9 +334,9 @@ namespace VLR {
     void SpecularReflectionSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::SpecularReflectionSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::SpecularReflectionSurfaceMaterial>();
         mat.nodeCoeffR = m_nodeCoeff.getSharedType();
         mat.nodeEta = m_nodeEta.getSharedType();
         mat.node_k = m_node_k.getSharedType();
@@ -407,19 +407,19 @@ namespace VLR {
 
     bool SpecularReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "coeff")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeCoeff = plug;
         }
         else if (testParamName(paramName, "eta")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEta = plug;
         }
         else if (testParamName(paramName, "k")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node_k = plug;
@@ -490,9 +490,9 @@ namespace VLR {
     void SpecularScatteringSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::SpecularScatteringSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::SpecularScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeEtaExt = m_nodeEtaExt.getSharedType();
         mat.nodeEtaInt = m_nodeEtaInt.getSharedType();
@@ -563,19 +563,19 @@ namespace VLR {
 
     bool SpecularScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "coeff")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeCoeff = plug;
         }
         else if (testParamName(paramName, "eta ext")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEtaExt = plug;
         }
         else if (testParamName(paramName, "eta int")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEtaInt = plug;
@@ -649,9 +649,9 @@ namespace VLR {
     void MicrofacetReflectionSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::MicrofacetReflectionSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::MicrofacetReflectionSurfaceMaterial>();
         mat.nodeEta = m_nodeEta.getSharedType();
         mat.node_k = m_node_k.getSharedType();
         mat.nodeRoughnessAnisotropyRotation = m_nodeRoughnessAnisotropyRotation.getSharedType();
@@ -774,19 +774,19 @@ namespace VLR {
 
     bool MicrofacetReflectionSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "eta")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEta = plug;
         }
         else if (testParamName(paramName, "k")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_node_k = plug;
         }
         else if (testParamName(paramName, "roughness/anisotropy/rotation")) {
-            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeRoughnessAnisotropyRotation = plug;
@@ -862,9 +862,9 @@ namespace VLR {
     void MicrofacetScatteringSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::MicrofacetScatteringSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::MicrofacetScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeEtaExt = m_nodeEtaExt.getSharedType();
         mat.nodeEtaInt = m_nodeEtaInt.getSharedType();
@@ -998,25 +998,25 @@ namespace VLR {
 
     bool MicrofacetScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "coeff")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeCoeff = plug;
         }
         else if (testParamName(paramName, "eta ext")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEtaExt = plug;
         }
         else if (testParamName(paramName, "eta int")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEtaInt = plug;
         }
         else if (testParamName(paramName, "roughness/anisotropy/rotation")) {
-            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeRoughnessAnisotropyRotation = plug;
@@ -1084,9 +1084,9 @@ namespace VLR {
     void LambertianScatteringSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::LambertianScatteringSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::LambertianScatteringSurfaceMaterial>();
         mat.nodeCoeff = m_nodeCoeff.getSharedType();
         mat.nodeF0 = m_nodeF0.getSharedType();
         mat.immCoeff = m_immCoeff.createTripletSpectrum(SpectrumType::Reflectance);
@@ -1172,13 +1172,13 @@ namespace VLR {
 
     bool LambertianScatteringSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "coeff")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeCoeff = plug;
         }
         else if (testParamName(paramName, "f0")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeF0 = plug;
@@ -1249,9 +1249,9 @@ namespace VLR {
     void UE4SurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::UE4SurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::UE4SurfaceMaterial>();
         mat.nodeBaseColor = m_nodeBaseColor.getSharedType();
         mat.nodeOcclusionRoughnessMetallic = m_nodeOcclusionRoughnessMetallic.getSharedType();
         mat.immBaseColor = m_immBaseColor.createTripletSpectrum(SpectrumType::Reflectance);
@@ -1363,13 +1363,13 @@ namespace VLR {
 
     bool UE4SurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "base color")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeBaseColor = plug;
         }
         else if (testParamName(paramName, "occlusion/roughness/metallic")) {
-            if (!Shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float3>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeOcclusionRoughnessMetallic = plug;
@@ -1440,9 +1440,9 @@ namespace VLR {
     void OldStyleSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::OldStyleSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::OldStyleSurfaceMaterial>();
         mat.nodeDiffuseColor = m_nodeDiffuseColor.getSharedType();
         mat.nodeSpecularColor = m_nodeSpecularColor.getSharedType();
         mat.nodeGlossiness = m_nodeGlossiness.getSharedType();
@@ -1539,19 +1539,19 @@ namespace VLR {
 
     bool OldStyleSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "diffuse")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeDiffuseColor = plug;
         }
         else if (testParamName(paramName, "specular")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeSpecularColor = plug;
         }
         else if (testParamName(paramName, "glossiness")) {
-            if (!Shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<float>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeGlossiness = plug;
@@ -1618,9 +1618,9 @@ namespace VLR {
     void DiffuseEmitterSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::DiffuseEmitterSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::DiffuseEmitterSurfaceMaterial>();
         mat.nodeEmittance = m_nodeEmittance.getSharedType();
         mat.immEmittance = m_immEmittance.createTripletSpectrum(SpectrumType::LightSource);
         mat.immScale = m_immScale;
@@ -1702,7 +1702,7 @@ namespace VLR {
 
     bool DiffuseEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "emittance")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEmittance = plug;
@@ -1772,9 +1772,9 @@ namespace VLR {
     void MultiSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::MultiSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::MultiSurfaceMaterial>();
 
         mat.numSubMaterials = 0;
         std::fill_n(mat.subMatIndices, lengthof(mat.subMatIndices), 0xFFFFFFFF);
@@ -1895,9 +1895,9 @@ namespace VLR {
     void EnvironmentEmitterSurfaceMaterial::setupMaterialDescriptor() const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
-        Shared::SurfaceMaterialDescriptor matDesc;
+        shared::SurfaceMaterialDescriptor matDesc;
         setupMaterialDescriptorHead(m_context, progSet, &matDesc);
-        auto &mat = *matDesc.getData<Shared::EnvironmentEmitterSurfaceMaterial>();
+        auto &mat = *matDesc.getData<shared::EnvironmentEmitterSurfaceMaterial>();
         mat.nodeEmittance = m_nodeEmittance.getSharedType();
         mat.immEmittance = m_immEmittance.createTripletSpectrum(SpectrumType::LightSource);
         mat.immScale = m_immScale;
@@ -1981,7 +1981,7 @@ namespace VLR {
 
     bool EnvironmentEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
         if (testParamName(paramName, "emittance")) {
-            if (!Shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
                 return false;
 
             m_nodeEmittance = plug;

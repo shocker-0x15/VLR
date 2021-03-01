@@ -1,6 +1,6 @@
 ﻿#include "kernel_common.cuh"
 
-namespace VLR {
+namespace vlr {
     // Intersection Program for Infinite Sphere
     CUDA_DEVICE_KERNEL void RT_IS_NAME(intersectInfiniteSphere)(int32_t primIdx) {
         Vector3D direction = asVector3D(optixGetObjectRayDirection());
@@ -16,7 +16,7 @@ namespace VLR {
         const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         Vector3D direction = Vector3D::fromPolarYUp(param.phi, param.theta);
         float sinPhi, cosPhi;
-        VLR::sincos(param.phi, &sinPhi, &cosPhi);
+        vlr::sincos(param.phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = Vector3D(-cosPhi, 0.0f, -sinPhi);
 
         surfPt->position = Point3D(direction.x, direction.y, direction.z);
@@ -52,7 +52,7 @@ namespace VLR {
         Point3D position = Point3D(direction.x, direction.y, direction.z);
 
         float sinPhi, cosPhi;
-        VLR::sincos(posPhi, &sinPhi, &cosPhi);
+        vlr::sincos(posPhi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         Normal3D geometricNormal = -(Vector3D)position;

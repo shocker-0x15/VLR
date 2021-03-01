@@ -1,6 +1,6 @@
 ﻿#include "slot_finder.h"
 
-namespace VLR {
+namespace vlr {
     void SlotFinder::initialize(uint32_t numSlots) {
         m_numLayers = 1;
         m_numLowestFlagBins = nextMultiplierForPowOf2(numSlots, 32);

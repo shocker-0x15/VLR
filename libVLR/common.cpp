@@ -24,7 +24,7 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...) {
     printf("%s", str);
 }
 
-namespace VLR {
+namespace vlr {
     // TODO: Make this function thread-safe.
     std::filesystem::path getExecutableDirectory() {
         static std::filesystem::path ret;

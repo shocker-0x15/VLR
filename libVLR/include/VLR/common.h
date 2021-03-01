@@ -93,7 +93,7 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 #   define HOST_STATIC_CONSTEXPR
 #endif
 
-namespace VLR {
+namespace vlr {
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T min(const T a, const T b) {
         return a < b ? a : b;
@@ -104,7 +104,7 @@ namespace VLR {
     }
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T clamp(const T v, const T minv, const T maxv) {
-        return VLR::min(VLR::max(v, minv), maxv);
+        return vlr::min(vlr::max(v, minv), maxv);
     }
 
     CUDA_DEVICE_FUNCTION bool isinf(float x) {

@@ -1,5 +1,5 @@
 #include "common.h"
-#include <VLR/VLRCpp.h>
+#include <VLR/vlrcpp.h>
 
 // Just for compile test for C++ language.
 
@@ -15,7 +15,7 @@
         } \
     } while (0)
 
-static VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef& context, const std::string& filepath, const std::string& spectrumType, const std::string& colorSpace) {
+static vlr::Image2DRef loadImage2D(const vlr::ContextRef& context, const std::string& filepath, const std::string& spectrumType, const std::string& colorSpace) {
     return nullptr;
 }
 
@@ -26,8 +26,7 @@ static void Cpp_CompileTest() {
     bool firstFrame = true;
     uint32_t numAccumFrames;
 
-    using namespace VLR;
-    using namespace VLRCpp;
+    using namespace vlr;
 
     CUcontext cuContext;
     int32_t cuDeviceCount;

@@ -5,7 +5,7 @@
 
 #include "slot_finder.h"
 
-namespace VLR {
+namespace vlr {
     extern cudau::BufferType g_bufferType;
 
     std::string readTxtFile(const std::filesystem::path& filepath);
@@ -85,16 +85,16 @@ namespace VLR {
         CUcontext m_cuContext;
 
         struct {
-            SlotBuffer<Shared::NodeProcedureSet> nodeProcedureSetBuffer;
+            SlotBuffer<shared::NodeProcedureSet> nodeProcedureSetBuffer;
 
-            SlotBuffer<Shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
-            SlotBuffer<Shared::MediumNodeDescriptor> mediumNodeDescriptorBuffer;
-            SlotBuffer<Shared::LargeNodeDescriptor> largeNodeDescriptorBuffer;
+            SlotBuffer<shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
+            SlotBuffer<shared::MediumNodeDescriptor> mediumNodeDescriptorBuffer;
+            SlotBuffer<shared::LargeNodeDescriptor> largeNodeDescriptorBuffer;
 
-            SlotBuffer<Shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
-            SlotBuffer<Shared::EDFProcedureSet> edfProcedureSetBuffer;
+            SlotBuffer<shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
+            SlotBuffer<shared::EDFProcedureSet> edfProcedureSetBuffer;
 
-            SlotBuffer<Shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
+            SlotBuffer<shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
 
             optixu::Context context;
 
@@ -135,10 +135,10 @@ namespace VLR {
             optixu::Material materialWithAlpha;
 
             optixu::Scene scene;
-            SlotBuffer<Shared::GeometryInstance> geomInstBuffer;
-            SlotBuffer<Shared::Instance> instBuffer;
+            SlotBuffer<shared::GeometryInstance> geomInstBuffer;
+            SlotBuffer<shared::Instance> instBuffer;
 
-            Shared::PipelineLaunchParameters launchParams;
+            shared::PipelineLaunchParameters launchParams;
             CUdeviceptr launchParamsOnDevice;
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
@@ -153,7 +153,7 @@ namespace VLR {
             optixu::HostBlockBuffer2D<SpectrumStorage, 0> rawOutputBuffer;
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
-            optixu::HostBlockBuffer2D<Shared::KernelRNG, 2> rngBuffer;
+            optixu::HostBlockBuffer2D<shared::KernelRNG, 2> rngBuffer;
 
             cudau::Buffer shaderBindingTable;
             cudau::Buffer hitGroupShaderBindingTable;
@@ -212,27 +212,27 @@ namespace VLR {
 
         uint32_t allocateNodeProcedureSet();
         void releaseNodeProcedureSet(uint32_t index);
-        void updateNodeProcedureSet(uint32_t index, const Shared::NodeProcedureSet &procSet);
+        void updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet);
 
         uint32_t allocateSmallNodeDescriptor();
         void releaseSmallNodeDescriptor(uint32_t index);
-        void updateSmallNodeDescriptor(uint32_t index, const Shared::SmallNodeDescriptor &nodeDesc);
+        void updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc);
 
         uint32_t allocateMediumNodeDescriptor();
         void releaseMediumNodeDescriptor(uint32_t index);
-        void updateMediumNodeDescriptor(uint32_t index, const Shared::MediumNodeDescriptor &nodeDesc);
+        void updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc);
 
         uint32_t allocateLargeNodeDescriptor();
         void releaseLargeNodeDescriptor(uint32_t index);
-        void updateLargeNodeDescriptor(uint32_t index, const Shared::LargeNodeDescriptor &nodeDesc);
+        void updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc);
 
         uint32_t allocateBSDFProcedureSet();
         void releaseBSDFProcedureSet(uint32_t index);
-        void updateBSDFProcedureSet(uint32_t index, const Shared::BSDFProcedureSet &procSet);
+        void updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet);
 
         uint32_t allocateEDFProcedureSet();
         void releaseEDFProcedureSet(uint32_t index);
-        void updateEDFProcedureSet(uint32_t index, const Shared::EDFProcedureSet &procSet);
+        void updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet);
 
         uint32_t getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optix.dcNullBSDF_setupBSDF;
@@ -245,15 +245,15 @@ namespace VLR {
 
         uint32_t allocateSurfaceMaterialDescriptor();
         void releaseSurfaceMaterialDescriptor(uint32_t index);
-        void updateSurfaceMaterialDescriptor(uint32_t index, const Shared::SurfaceMaterialDescriptor &matDesc);
+        void updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc);
 
         uint32_t allocateGeometryInstance();
         void releaseGeometryInstance(uint32_t index);
-        void updateGeometryInstance(uint32_t index, const Shared::GeometryInstance &geomInst);
+        void updateGeometryInstance(uint32_t index, const shared::GeometryInstance &geomInst);
 
         uint32_t allocateInstance();
         void releaseInstance(uint32_t index);
-        void updateInstance(uint32_t index, const Shared::Instance &inst);
+        void updateInstance(uint32_t index, const shared::Instance &inst);
     };
 
 
@@ -343,7 +343,7 @@ namespace VLR {
             return *this;
         }
 
-        void getInternalType(Shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
+        void getInternalType(shared::DiscreteDistribution1DTemplate<RealType>* instance) const;
     };
 
     using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
@@ -372,7 +372,7 @@ namespace VLR {
         RealType getIntegral() const { return m_integral; }
         uint32_t getNumValues() const { return m_numValues; }
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
+        void getInternalType(shared::RegularConstantContinuousDistribution1DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
@@ -381,7 +381,7 @@ namespace VLR {
 
     template <typename RealType>
     class RegularConstantContinuousDistribution2DTemplate {
-        cudau::TypedBuffer<Shared::RegularConstantContinuousDistribution1DTemplate<RealType>> m_raw1DDists;
+        cudau::TypedBuffer<shared::RegularConstantContinuousDistribution1DTemplate<RealType>> m_raw1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType>* m_1DDists;
         RegularConstantContinuousDistribution1DTemplate<RealType> m_top1DDist;
 
@@ -400,7 +400,7 @@ namespace VLR {
 
         bool isInitialized() const { return m_1DDists != nullptr; }
 
-        void getInternalType(Shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
+        void getInternalType(shared::RegularConstantContinuousDistribution2DTemplate<RealType>* instance) const;
     };
 
     using RegularConstantContinuousDistribution2D = RegularConstantContinuousDistribution2DTemplate<float>;

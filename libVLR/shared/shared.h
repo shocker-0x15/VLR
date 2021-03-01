@@ -8,7 +8,7 @@
 #endif
 #include "random_distributions.h"
 
-namespace VLR {
+namespace vlr {
 #if defined(VLR_Host)
     using half_float::half;
 #else
@@ -174,7 +174,7 @@ namespace VLR {
 
 
 
-    namespace Shared {
+    namespace shared {
         template <typename RealType>
         class DiscreteDistribution1DTemplate {
             const RealType* m_PMF;
@@ -259,7 +259,7 @@ namespace VLR {
             }
             CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType smp) const {
                 VLRAssert(smp >= 0 && smp < 1.0, "\"smp\": %g is out of range [0, 1).", smp);
-                int32_t idx = VLR::min<int32_t>(m_numValues - 1, smp * m_numValues);
+                int32_t idx = vlr::min<int32_t>(m_numValues - 1, smp * m_numValues);
                 return m_PDF[idx];
             }
             CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
@@ -286,12 +286,12 @@ namespace VLR {
             CUDA_DEVICE_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
                 *d1 = m_top1DDist.sample(u1, &topPDF);
-                uint32_t idx1D = VLR::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
+                uint32_t idx1D = vlr::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
                 *d0 = m_1DDists[idx1D].sample(u0, probDensity);
                 *probDensity *= topPDF;
             }
             CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
-                uint32_t idx1D = VLR::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
+                uint32_t idx1D = vlr::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
                 return m_top1DDist.evaluatePDF(d1) * m_1DDists[idx1D].evaluatePDF(d0);
             }
         };

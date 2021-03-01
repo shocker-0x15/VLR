@@ -1,8 +1,8 @@
 ﻿#define RT_PIPELINE_LAUNCH_PARAMETERS __constant__
 #include "../shared/shared.h"
 
-namespace VLR {
-    using namespace Shared;
+namespace vlr {
+    using namespace shared;
 
     CUDA_DEVICE_KERNEL void convertToRGB(const optixu::BlockBuffer2D<SpectrumStorage, 0> spectrumBuffer,
                                          optixu::NativeBlockBuffer2D<float4> rgbBuffer,

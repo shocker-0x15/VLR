@@ -1,6 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include <VLR/VLRCpp.h>
+#include <VLR/vlrcpp.h>
 
-VLRCpp::Image2DRef loadImage2D(const VLRCpp::ContextRef &context, const std::string &filepath, const std::string &spectrumType, const std::string &colorSpace);
+vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &filepath, const std::string &spectrumType, const std::string &colorSpace);

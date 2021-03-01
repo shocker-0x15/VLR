@@ -2,7 +2,7 @@
 
 #include "common_internal.h"
 
-namespace VLR {
+namespace vlr {
     static constexpr float WavelengthLowBound = 360.0f;
     static constexpr float WavelengthHighBound = 830.0f;
     static constexpr uint32_t NumCMFSamples = 471;

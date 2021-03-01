@@ -1,6 +1,6 @@
 ﻿#include "spectrum_types.h"
 
-namespace VLR {
+namespace vlr {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
     CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
@@ -9,8 +9,8 @@ namespace VLR {
         const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
-        u = VLR::clamp<RealType>(u, 0.0f, GridWidth());
-        v = VLR::clamp<RealType>(v, 0.0f, GridHeight());
+        u = vlr::clamp<RealType>(u, 0.0f, GridWidth());
+        v = vlr::clamp<RealType>(v, 0.0f, GridHeight());
 
         int32_t ui = (int32_t)u;
         int32_t vi = (int32_t)v;
@@ -205,7 +205,7 @@ namespace VLR {
         m_scale = brightness / EqualEnergyReflectance();
         RealType uv[2];
         xy_to_uv(xy, uv);
-        VLRAssert(VLR::isfinite(uv[0]) && VLR::isfinite(uv[1]) && VLR::isfinite(m_scale), "Invalid value.");
+        VLRAssert(vlr::isfinite(uv[0]) && vlr::isfinite(uv[1]) && vlr::isfinite(m_scale), "Invalid value.");
 
         computeAdjacents(uv[0], uv[1]);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
@@ -302,8 +302,8 @@ namespace VLR {
             RealType p = (lambda - MinWavelength()) / (MaxWavelength() - MinWavelength());
             p = clamp<RealType>(p, 0.0, 1.0);
             RealType sBinF = p * (NumWavelengthSamples() - 1);
-            uint32_t sBin = VLR::min<uint32_t>(sBinF, NumWavelengthSamples() - 1);
-            uint32_t sBinNext = VLR::min<uint32_t>(sBin + 1, NumWavelengthSamples() - 1);
+            uint32_t sBin = vlr::min<uint32_t>(sBinF, NumWavelengthSamples() - 1);
+            uint32_t sBinNext = vlr::min<uint32_t>(sBin + 1, NumWavelengthSamples() - 1);
             RealType t = sBinF - sBin;
             for (int j = 0; j < numAdjacents; ++j) {
                 const float* spectrum = spectrum_data_points[adjIndices[j]].spectrum;
@@ -404,7 +404,7 @@ namespace VLR {
         const RealType binWidth = (m_maxLambda - m_minLambda) / (m_numSamples - 1);
         uint32_t curCMFIdx = 0;
         uint32_t baseIdx = 0;
-        RealType curWL = VLR::min<RealType>(WavelengthLowBound, m_minLambda);
+        RealType curWL = vlr::min<RealType>(WavelengthLowBound, m_minLambda);
         RealType prev_xbarVal = 0, prev_ybarVal = 0, prev_zbarVal = 0;
         RealType prevValue = 0;
         RealType halfWidth = 0;
@@ -423,7 +423,7 @@ namespace VLR {
                 ++curCMFIdx;
             }
             else {
-                uint32_t idx = VLR::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
+                uint32_t idx = vlr::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
                 RealType CMFBaseWL = WavelengthLowBound + idx * CMFBinWidth;
                 RealType t = (curWL - CMFBaseWL) / CMFBinWidth;
                 xbarValue = (1 - t) * xbarReferenceValues[idx] + t * xbarReferenceValues[idx + 1];
