@@ -338,8 +338,8 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-        CUDA_DEVICE_FUNCTION static constexpr RealType MinWavelength() { return 360.0; }
-        CUDA_DEVICE_FUNCTION static constexpr RealType MaxWavelength() { return 830.0; }
+        CUDA_DEVICE_FUNCTION static constexpr RealType MinWavelength() { return static_cast<RealType>(360.0); }
+        CUDA_DEVICE_FUNCTION static constexpr RealType MaxWavelength() { return static_cast<RealType>(830.0); }
         CUDA_DEVICE_FUNCTION static constexpr uint32_t NumWavelengthSamples() { return 95; }
         CUDA_DEVICE_FUNCTION static constexpr uint32_t GridWidth() { return 12; }
         CUDA_DEVICE_FUNCTION static constexpr uint32_t GridHeight() { return 14; }
@@ -369,16 +369,30 @@ namespace vlr {
         // This is 1 over the integral over either CMF.
         // Spectra can be mapped so that xyz=(1,1,1) is converted to constant 1 by
         // dividing by this value. This is important for valid reflectances.
-        CUDA_DEVICE_FUNCTION static constexpr RealType EqualEnergyReflectance() { return 0.009355121400914532; }
+        CUDA_DEVICE_FUNCTION static constexpr RealType EqualEnergyReflectance() {
+            return static_cast<RealType>(0.009355121400914532);
+        }
 
         CUDA_DEVICE_FUNCTION static constexpr void xy_to_uv(const RealType xy[2], RealType uv[2]) {
-            uv[0] = 16.730260708356887 * xy[0] + 7.7801960340706 * xy[1] - 2.170152247475828;
-            uv[1] = -7.530081094743006 * xy[0] + 16.192422314095225 * xy[1] + 1.1125529268825947;
+            uv[0] =
+                static_cast<RealType>(16.730260708356887) * xy[0]
+                + static_cast<RealType>(7.7801960340706) * xy[1]
+                - static_cast<RealType>(2.170152247475828);
+            uv[1] =
+                static_cast<RealType>(-7.530081094743006) * xy[0]
+                + static_cast<RealType>(16.192422314095225) * xy[1]
+                + static_cast<RealType>(1.1125529268825947);
         }
 
         CUDA_DEVICE_FUNCTION static constexpr void uv_to_xy(const RealType uv[2], RealType xy[2]) {
-            xy[0] = 0.0491440520940413 * uv[0] - 0.02361291916573777 * uv[1] + 0.13292069743203658;
-            xy[1] = 0.022853819546830627 * uv[0] + 0.05077639329371236 * uv[1] - 0.006895157122499944;
+            xy[0] =
+                static_cast<RealType>(0.0491440520940413) * uv[0]
+                - static_cast<RealType>(0.02361291916573777) * uv[1]
+                + static_cast<RealType>(0.13292069743203658);
+            xy[1] =
+                static_cast<RealType>(0.022853819546830627) * uv[0]
+                + static_cast<RealType>(0.05077639329371236) * uv[1]
+                - static_cast<RealType>(0.006895157122499944);
         }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
         static const uint32_t kTableResolution = 64;

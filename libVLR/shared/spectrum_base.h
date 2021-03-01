@@ -219,7 +219,7 @@ namespace vlr {
     CUDA_DEVICE_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
         RealType b = xyz[0] + xyz[1] + xyz[2];
         if (b == 0) {
-            xyY[0] = xyY[1] = (RealType)(1.0 / 3.0);
+            xyY[0] = xyY[1] = static_cast<RealType>(1.0 / 3.0);
             xyY[2] = 0;
             return;
         }
