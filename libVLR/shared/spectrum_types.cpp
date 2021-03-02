@@ -3,7 +3,8 @@
 namespace vlr {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
-    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::computeAdjacents(RealType u, RealType v) {
+    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
+        computeAdjacents(RealType u, RealType v) {
 #   if defined(VLR_Device)
         const auto spectrum_grid = plp.UpsampledSpectrum_spectrum_grid;
         const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
@@ -82,7 +83,8 @@ namespace vlr {
     }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
-    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table) {
+    CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
+        interpolateCoefficients(RealType e0, RealType e1, RealType e2, const PolynomialCoefficients* table) {
         RealType maxValue = std::fmax(e0, std::fmax(e1, e2));
         uint32_t maxComp = 0;
         if (e1 > e0 && e1 > e2)
@@ -146,7 +148,8 @@ namespace vlr {
 #endif
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
+    CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
+        UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RealType xy[2];
         RealType brightness;
@@ -267,7 +270,9 @@ namespace vlr {
     }
 
     template <typename RealType, uint32_t NumSpectralSamples>
-    CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
+    CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples>
+        UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
+        evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
 #   if defined(VLR_Device)
         const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;

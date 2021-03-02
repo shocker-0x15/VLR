@@ -161,6 +161,7 @@ namespace vlr {
 
         CUmodule m_cudaPostProcessModule;
         cudau::Kernel m_cudaPostProcessConvertToRGB;
+        CUdeviceptr m_cudaPostProcessModuleLaunchParamsPtr;
 
         uint32_t m_width;
         uint32_t m_height;

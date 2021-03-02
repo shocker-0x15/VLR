@@ -42,8 +42,8 @@ namespace vlr {
             break;
         case DebugRenderingAttribute::TextureCoordinates:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                          surfPt.texCoord.u - std::floor(surfPt.texCoord.u),
-                                          surfPt.texCoord.v - std::floor(surfPt.texCoord.v),
+                                          surfPt.texCoord.u - vlr::floor(surfPt.texCoord.u),
+                                          surfPt.texCoord.v - vlr::floor(surfPt.texCoord.v),
                                           0.0f);
             break;
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
@@ -163,7 +163,7 @@ namespace vlr {
         surfPt.u = phi;
         surfPt.v = theta;
         phi += inst.rotationPhi;
-        phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        phi = phi - vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {

@@ -46,7 +46,7 @@ namespace vlr {
         float theta = VLR_M_PI * v;
 
         float posPhi = phi - inst.rotationPhi;
-        posPhi = posPhi - std::floor(posPhi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        posPhi = posPhi - vlr::floor(posPhi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
 
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);

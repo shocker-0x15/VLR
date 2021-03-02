@@ -153,7 +153,11 @@
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_D65.coeff" />
-    <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_E.coeff" />
+    <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_E.coeff">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_D65.coeff">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

@@ -318,6 +318,10 @@ namespace vlr {
         {
             CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/convert_to_rgb.ptx").string().c_str()));
             m_cudaPostProcessConvertToRGB.set(m_cudaPostProcessModule, "convertToRGB", cudau::dim3(32), 0);
+
+            size_t symbolSize;
+            CUDADRV_CHECK(cuModuleGetGlobal(&m_cudaPostProcessModuleLaunchParamsPtr, &symbolSize,
+                                            m_cudaPostProcessModule, "plp"));
         }
 
 
@@ -550,6 +554,8 @@ namespace vlr {
                                 imageSize.x, imageSize.y, 1);
 
         m_optix.outputBufferHolder.beginCUDAAccess(stream);
+        CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
+                                        sizeof(m_optix.launchParams), stream));
         m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
                                       m_optix.rawOutputBuffer.getBlockBuffer2D(),
                                       m_optix.outputBufferHolder.getNext(),

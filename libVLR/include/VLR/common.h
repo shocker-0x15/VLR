@@ -107,6 +107,18 @@ namespace vlr {
         return vlr::min(vlr::max(v, minv), maxv);
     }
 
+    template <typename T>
+    CUDA_DEVICE_FUNCTION T floor(T x) {
+        return std::floor(x);
+    }
+
+#if defined(VLR_Device)
+    template <>
+    CUDA_DEVICE_FUNCTION float floor(float x) {
+        return ::floorf(x);
+    }
+#endif
+
     CUDA_DEVICE_FUNCTION bool isinf(float x) {
 #if defined(VLR_Host)
         return std::isinf(x);

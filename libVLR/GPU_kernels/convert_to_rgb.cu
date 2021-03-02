@@ -1,4 +1,4 @@
-﻿#define RT_PIPELINE_LAUNCH_PARAMETERS __constant__
+﻿#define RT_PIPELINE_LAUNCH_PARAMETERS extern "C" __constant__
 #include "../shared/shared.h"
 
 namespace vlr {
@@ -15,6 +15,10 @@ namespace vlr {
         const DiscretizedSpectrum &spectrum = spectrumBuffer[launchIndex].getValue().result;
         float XYZ[3];
         spectrum.toXYZ(XYZ);
+        //if (launchIndex.x == 640 && launchIndex.y == 128) {
+        //    spectrum.print();
+        //    vlrprintf("%g, %g, %g\n", XYZ[0], XYZ[1], XYZ[2]);
+        //}
         VLRAssert(XYZ[0] >= 0.0f && XYZ[1] >= 0.0f && XYZ[2] >= 0.0f, "each value of XYZ must not be negative.");
         float recNumAccums = 1.0f / numAccumFrames;
         XYZ[0] *= recNumAccums;

@@ -114,9 +114,17 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="shaders\drawOptiXResult.frag" />
-    <CopyFileToFolders Include="shaders\drawOptiXResult.vert" />
-    <CopyFileToFolders Include="shaders\scale.frag" />
-    <CopyFileToFolders Include="shaders\scale.vert" />
+    <CopyFileToFolders Include="shaders\drawOptiXResult.vert">
+      <Filter>shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\drawOptiXResult.frag">
+      <Filter>shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\scale.vert">
+      <Filter>shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\scale.frag">
+      <Filter>shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

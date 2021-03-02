@@ -151,7 +151,7 @@ namespace vlr {
         surfPt.u = phi;
         surfPt.v = theta;
         phi += inst.rotationPhi;
-        phi = phi - std::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        phi = phi - vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
         VLRAssert(vlr::isfinite(phi) && vlr::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);

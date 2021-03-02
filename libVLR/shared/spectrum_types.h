@@ -404,6 +404,16 @@ namespace vlr {
         static void initialize();
 #   endif
 #endif
+
+        CUDA_DEVICE_FUNCTION void print() const {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+            vlrprintf("%08x, %.6f, %.6f, %g\n", m_adjIndices,
+                      static_cast<float>(m_s) / (UINT16_MAX - 1),
+                      static_cast<float>(m_t) / (UINT16_MAX - 1),
+                      m_scale);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+#endif
+        }
     };
 
 
@@ -599,6 +609,13 @@ namespace vlr {
 
         static void initialize();
 #endif
+
+        CUDA_DEVICE_FUNCTION void print() const {
+            vlrprintf("%g", values[0]);
+            for (int i = 1; i < NumStrataForStorage; ++i)
+                vlrprintf(", %g", values[i]);
+            vlrprintf("\n");
+        }
     };
 
 
