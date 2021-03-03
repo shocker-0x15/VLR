@@ -98,10 +98,12 @@ namespace vlr {
     CUDA_DEVICE_FUNCTION constexpr T min(const T a, const T b) {
         return a < b ? a : b;
     }
+
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T max(const T a, const T b) {
         return a > b ? a : b;
     }
+
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T clamp(const T v, const T minv, const T maxv) {
         return vlr::min(vlr::max(v, minv), maxv);
@@ -112,47 +114,51 @@ namespace vlr {
         return std::floor(x);
     }
 
-#if defined(VLR_Device)
+    template <typename T>
+    CUDA_DEVICE_FUNCTION T isinf(T x) {
+        return std::isinf(x);
+    }
+
+    template <typename T>
+    CUDA_DEVICE_FUNCTION T isnan(T x) {
+        return std::isnan(x);
+    }
+
+    template <typename T>
+    CUDA_DEVICE_FUNCTION T isfinite(T x) {
+        return std::isfinite(x);
+    }
+
+    template <typename T>
+    CUDA_DEVICE_FUNCTION void sincos(T angle, T* s, T* c) {
+        *s = std::sin(angle);
+        *c = std::cos(angle);
+    }
+
+#if defined(VLR_Device) || defined(__INTELLISENSE__)
     template <>
     CUDA_DEVICE_FUNCTION float floor(float x) {
         return ::floorf(x);
     }
-#endif
-
-    CUDA_DEVICE_FUNCTION bool isinf(float x) {
-#if defined(VLR_Host)
-        return std::isinf(x);
-#else
-        return ::isinf(x);
-#endif
-    }
-
-    CUDA_DEVICE_FUNCTION bool isnan(float x) {
-#if defined(VLR_Host)
-        return std::isnan(x);
-#else
-        return ::isnan(x);
-#endif
-    }
-
-    CUDA_DEVICE_FUNCTION bool isfinite(float x) {
-#if defined(VLR_Host)
-        return std::isfinite(x);
-#else
-        return ::isfinite(x);
-#endif
-    }
-
-    template <typename T>
-    CUDA_DEVICE_FUNCTION void sincos(T angle, T* s, T* c);
 
     template <>
-    CUDA_DEVICE_FUNCTION void sincos<float>(float angle, float* s, float* c) {
-#if defined(VLR_Host)
-        *s = std::sin(angle);
-        *c = std::cos(angle);
-#else
-        ::sincosf(angle, s, c);
-#endif
+    CUDA_DEVICE_FUNCTION float isinf(float x) {
+        return ::isinf(x);
     }
+
+    template <>
+    CUDA_DEVICE_FUNCTION float isnan(float x) {
+        return ::isnan(x);
+    }
+
+    template <>
+    CUDA_DEVICE_FUNCTION float isfinite(float x) {
+        return ::isfinite(x);
+    }
+
+    template <>
+    CUDA_DEVICE_FUNCTION void sincos(float angle, float* s, float* c) {
+        ::sincosf(angle, s, c);
+    }
+#endif
 }

@@ -52,7 +52,7 @@ namespace vlr {
     class ShaderNode : public Queryable {
     protected:
         struct OptiXProgramSet {
-            uint32_t callablePrograms[nextPowerOf2(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
+            uint32_t callablePrograms[nextPowerOf2Const(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
             uint32_t nodeProcedureSetIndex;
 
             OptiXProgramSet() {

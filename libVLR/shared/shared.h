@@ -333,7 +333,7 @@ namespace vlr {
 
 
         struct NodeProcedureSet {
-            int32_t progs[nextPowerOf2(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
+            int32_t progs[nextPowerOf2Const(static_cast<uint32_t>(ShaderNodePlugType::NumTypes))];
         };
 
 
