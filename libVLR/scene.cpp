@@ -148,7 +148,7 @@ namespace vlr {
         optixu::Pipeline optixPipeline = context.getOptixPipeline();
 
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/triangle_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/triangle.ptx");
         programSet.optixModule = optixPipeline.createModuleFromPTXString(
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
@@ -332,7 +332,7 @@ namespace vlr {
         optixu::Pipeline optixPipeline = context.getOptixPipeline();
 
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere.ptx");
         programSet.optixModule = optixPipeline.createModuleFromPTXString(
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
@@ -1025,7 +1025,7 @@ namespace vlr {
         optixu::Pipeline optixPipeline = context.getOptixPipeline();
 
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere_intersection.ptx");
+        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere.ptx");
         programSet.optixModule = optixPipeline.createModuleFromPTXString(
             ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
             VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),

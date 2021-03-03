@@ -127,7 +127,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="GPU_kernels\triangle_intersection.cu">
+    <CudaCompile Include="GPU_kernels\triangle.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\materials.cu">
@@ -139,7 +139,7 @@
     <CudaCompile Include="GPU_kernels\cameras.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
-    <CudaCompile Include="GPU_kernels\infinite_sphere_intersection.cu">
+    <CudaCompile Include="GPU_kernels\infinite_sphere.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\shader_nodes.cu">
