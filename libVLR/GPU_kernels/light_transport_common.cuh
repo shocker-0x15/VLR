@@ -7,7 +7,7 @@ namespace vlr {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
 
-        //ProgSigBSDFGetBaseColor progGetBaseColor;
+        ProgSigBSDFGetBaseColor progGetBaseColor;
         ProgSigBSDFmatches progMatches;
         ProgSigBSDFSampleInternal progSampleInternal;
         ProgSigBSDFEvaluateInternal progEvaluateInternal;
@@ -33,16 +33,16 @@ namespace vlr {
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
-            //progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
             progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
             progSampleInternal = static_cast<ProgSigBSDFSampleInternal>(procSet.progSampleInternal);
             progEvaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
             progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
         }
 
-        //CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() {
-        //    return progGetBaseColor(reinterpret_cast<const uint32_t*>(this));
-        //}
+        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() {
+            return progGetBaseColor(reinterpret_cast<const uint32_t*>(this));
+        }
 
         CUDA_DEVICE_FUNCTION bool hasNonDelta() {
             return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
@@ -118,31 +118,37 @@ namespace vlr {
 
 
 
-    struct Payload {
-        struct {
-            unsigned int pathLength : 16;
-            bool terminate : 1;
-            bool maxLengthTerminate : 1;
-        };
-        KernelRNG rng;
+    struct ReadOnlyPayload {
         float initImportance;
         WavelengthSamples wls;
-        SampledSpectrum alpha;
-        SampledSpectrum contribution;
-        Point3D origin;
-        Vector3D direction;
         float prevDirPDF;
         DirectionType prevSampledType;
+        unsigned int pathLength : 16;
+        bool maxLengthTerminate : 1;
     };
 
-#define PayloadSignature Payload*
-
-    struct ShadowPayload {
-        WavelengthSamples wls;
-        float fractionalVisibility;
+    struct WriteOnlyPayload {
+        Point3D nextOrigin;
+        Vector3D nextDirection;
+        float dirPDF;
+        DirectionType sampledType;
+        bool terminate : 1;
     };
 
-#define ShadowPayloadSignature ShadowPayload*
+    struct ReadWritePayload {
+        KernelRNG rng;
+        SampledSpectrum alpha;
+        SampledSpectrum contribution;
+    };
+
+    struct ExtraPayload {
+        SampledSpectrum firstHitAlbedo;
+        Normal3D firstHitNormal;
+    };
+
+#define PayloadSignature ReadOnlyPayload*, WriteOnlyPayload*, ReadWritePayload*, ExtraPayload*
+
+#define ShadowPayloadSignature WavelengthSamples, float
 
 
 
@@ -204,16 +210,14 @@ namespace vlr {
         if (!lightSurfacePoint.atInfinity)
             tmax = std::sqrt(*squaredDistance) * 0.9999f;
 
-        ShadowPayload shadowPayload;
-        shadowPayload.wls = wls;
-        shadowPayload.fractionalVisibility = 1.0f;
-        ShadowPayload* shadowPayloadPtr = &shadowPayload;
+        WavelengthSamples plWls = wls;
+        float plFracVis = 1.0f;
         optixu::trace<ShadowPayloadSignature>(
             plp.topGroup, asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), 0.0f, tmax, 0.0f,
             0xFF, OPTIX_RAY_FLAG_NONE, RayType::Shadow, RayType::NumTypes, RayType::Shadow,
-            shadowPayloadPtr);
+            plWls, plFracVis);
 
-        *fractionalVisibility = shadowPayload.fractionalVisibility;
+        *fractionalVisibility = plFracVis;
 
         return *fractionalVisibility > 0;
     }
@@ -237,9 +241,8 @@ namespace vlr {
 
 
     CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitDefault)() {
-        ShadowPayload* payload;
-        optixu::getPayloads<ShadowPayloadSignature>(&payload);
-        payload->fractionalVisibility = 0.0f;
+        float fractionalVisibility = 0.0f;
+        optixu::setPayloads<ShadowPayloadSignature>(nullptr, &fractionalVisibility);
         optixTerminateRay();
     }
 
@@ -261,25 +264,28 @@ namespace vlr {
 
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     CUDA_DEVICE_KERNEL void RT_AH_NAME(anyHitWithAlpha)() {
-        Payload* payload;
-        optixu::getPayloads<PayloadSignature>(&payload);
+        ReadOnlyPayload* roPayload;
+        ReadWritePayload* rwPayload;
+        optixu::getPayloads<PayloadSignature>(&roPayload, nullptr, &rwPayload, nullptr);
 
-        float alpha = getAlpha(payload->wls);
+        float alpha = getAlpha(roPayload->wls);
 
         // Stochastic Alpha Test
-        if (payload->rng.getFloat0cTo1o() >= alpha)
+        if (rwPayload->rng.getFloat0cTo1o() >= alpha)
             optixIgnoreIntersection();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays
     CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitWithAlpha)() {
-        ShadowPayload* payload;
-        optixu::getPayloads<ShadowPayloadSignature>(&payload);
+        WavelengthSamples wls;
+        float fractionalVisibility;
+        optixu::getPayloads<ShadowPayloadSignature>(&wls, &fractionalVisibility);
 
-        float alpha = getAlpha(payload->wls);
+        float alpha = getAlpha(wls);
 
-        payload->fractionalVisibility *= (1 - alpha);
-        if (payload->fractionalVisibility == 0.0f)
+        fractionalVisibility *= (1 - alpha);
+        optixu::setPayloads<ShadowPayloadSignature>(nullptr, &fractionalVisibility);
+        if (fractionalVisibility == 0.0f)
             optixTerminateRay();
         else
             optixIgnoreIntersection();

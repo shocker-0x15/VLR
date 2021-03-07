@@ -220,7 +220,7 @@ namespace vlr {
         }
 
         if (plp.numAccumFrames == 1)
-            plp.outputBuffer[launchIndex].reset();
-        plp.outputBuffer[launchIndex].add(wls, payload.value / selectWLPDF);
+            plp.accumBuffer[launchIndex].reset();
+        plp.accumBuffer[launchIndex].add(wls, payload.value / selectWLPDF);
     }
 }

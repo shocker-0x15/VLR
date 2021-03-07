@@ -99,5 +99,5 @@ static void Cpp_CompileTest() {
     context->bindOutputBuffer(1024, 1024, 0);
 
     // Let's render the scene!
-    context->render(scene, camera, 1, firstFrame, &numAccumFrames);
+    context->render(scene, camera, true, 1, firstFrame, &numAccumFrames);
 }

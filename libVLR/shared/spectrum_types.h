@@ -467,6 +467,17 @@ namespace vlr {
             values{ v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v } {}
         CUDA_DEVICE_FUNCTION constexpr DiscretizedSpectrumTemplate(const RealType* vals) : 
             values{ vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15] } {}
+        template <uint32_t N>
+        CUDA_DEVICE_FUNCTION constexpr DiscretizedSpectrumTemplate(const WavelengthSamplesTemplate<RealType, N> &wls,
+                                                                   const SampledSpectrumTemplate<RealType, N> &val) {
+            const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
+            for (int i = 0; i < N; ++i)
+                values[i] = 0.0f;
+            for (int i = 0; i < N; ++i) {
+                uint32_t sBin = vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                values[sBin] += val[i] * recBinWidth;
+            }
+        }
 
         CUDA_DEVICE_FUNCTION DiscretizedSpectrumTemplate operator+() const { return *this; }
         CUDA_DEVICE_FUNCTION DiscretizedSpectrumTemplate operator-() const {

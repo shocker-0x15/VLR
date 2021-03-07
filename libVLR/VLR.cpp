@@ -142,19 +142,21 @@ VLR_API VLRResult vlrContextSetScene(VLRContext context, VLRScene scene) {
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextRender(VLRContext context, VLRCameraConst camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextRender(VLRContext context, VLRCameraConst camera, bool denoise,
+                                   uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
         if (!camera->isMemberOf<vlr::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
 
-        context->render(camera, shrinkCoeff, firstFrame, numAccumFrames);
+        context->render(camera, denoise, shrinkCoeff, firstFrame, numAccumFrames);
 
         return VLRResult_NoError;
     }
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRCameraConst camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+VLR_API VLRResult vlrContextDebugRender(VLRContext context, VLRCameraConst camera, VLRDebugRenderingMode renderMode,
+                                        uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
         if (!camera->isMemberOf<vlr::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;

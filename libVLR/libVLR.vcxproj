@@ -186,7 +186,7 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
     </CudaCompile>
-    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu" />
+    <CudaCompile Include="GPU_kernels\post_process.cu" />
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>

@@ -895,7 +895,9 @@ namespace vlr {
             const Instance* instBuffer;
 
             optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
-            optixu::BlockBuffer2D<SpectrumStorage, 0> outputBuffer;
+            optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer;
+            DiscretizedSpectrum* accumAlbedoBuffer;
+            Normal3D* accumNormalBuffer;
 
             OptixTraversableHandle topGroup;
             const uint32_t* instIndices;
@@ -903,6 +905,7 @@ namespace vlr {
             uint32_t envLightInstIndex;
 
             uint2 imageSize;
+            uint32_t imageStrideInPixels;
             PerspectiveCamera perspectiveCamera;
             EquirectangularCamera equirectangularCamera;
             int32_t progSampleLensPosition;
@@ -932,20 +935,22 @@ namespace vlr {
                 vlrprintf("geomInstBuffer: 0x%p\n", geomInstBuffer);
                 vlrprintf("instBuffer: 0x%p\n", instBuffer);
 
+                vlrprintf("accumAlbedoBuffer: 0x%p\n", accumAlbedoBuffer);
+                vlrprintf("accumNormalBuffer: 0x%p\n", accumNormalBuffer);
+
+                vlrprintf("topGroup: 0x%p\n", topGroup);
                 vlrprintf("instIndices: 0x%p\n", instIndices);
                 vlrprintf("envLightInstIndex: %u\n", envLightInstIndex);
 
-                vlrprintf("topGroup: 0x%p\n", topGroup);
-
                 vlrprintf("imageSize: %ux%u\n", imageSize.x, imageSize.y);
-                vlrprintf("numAccumFrames: %u\n", numAccumFrames);
                 vlrprintf("progSampleLensPosition: %d\n", progSampleLensPosition);
                 vlrprintf("progSampleIDF: %d\n", progSampleIDF);
+                vlrprintf("numAccumFrames: %u\n", numAccumFrames);
 
                 vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
             }
         };
-        static_assert(sizeof(PipelineLaunchParameters) == 512 &&
+        static_assert(sizeof(PipelineLaunchParameters) == 536 &&
                       alignof(PipelineLaunchParameters) == 8,
                       "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
 

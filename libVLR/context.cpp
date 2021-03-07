@@ -132,7 +132,7 @@ namespace vlr {
 
         m_optix.pipeline = m_optix.context.createPipeline();
         m_optix.pipeline.setPipelineOptions(
-            2, 2,
+            8, 2,
             "plp", sizeof(shared::PipelineLaunchParameters),
             false,
             OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
@@ -315,13 +315,21 @@ namespace vlr {
 
 
 
+        m_optix.denoiser = m_optix.context.createDenoiser(OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL);
+        m_optix.denoiser.setModel(OPTIX_DENOISER_MODEL_KIND_HDR, nullptr, 0);
+        CUDADRV_CHECK(cuMemAlloc(&m_optix.hdrIntensity, sizeof(float)));
+
+
+
         {
-            CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/convert_to_rgb.ptx").string().c_str()));
-            m_cudaPostProcessConvertToRGB.set(m_cudaPostProcessModule, "convertToRGB", cudau::dim3(32), 0);
+            CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/post_process.ptx").string().c_str()));
 
             size_t symbolSize;
             CUDADRV_CHECK(cuModuleGetGlobal(&m_cudaPostProcessModuleLaunchParamsPtr, &symbolSize,
                                             m_cudaPostProcessModule, "plp"));
+
+            m_copyBuffers.set(m_cudaPostProcessModule, "copyBuffers", cudau::dim3(32), 0);
+            m_convertToRGB.set(m_cudaPostProcessModule, "convertToRGB", cudau::dim3(32), 0);
         }
 
 
@@ -353,8 +361,20 @@ namespace vlr {
         m_optix.hitGroupShaderBindingTable.finalize();
         m_optix.shaderBindingTable.finalize();
 
+
+
+        m_optix.linearDenoisedColorBuffer.finalize();
+        m_optix.linearNormalBuffer.finalize();
+        m_optix.linearAlbedoBuffer.finalize();
+        m_optix.linearColorBuffer.finalize();
+        m_optix.accumNormalBuffer.finalize();
+        m_optix.accumAlbedoBuffer.finalize();
+        m_optix.denoiserScratchBuffer.finalize();
+        m_optix.denoiserStateBuffer.finalize();
+
+        m_optix.outputBufferHolder.finalize();
         m_optix.outputBuffer.finalize();
-        m_optix.rawOutputBuffer.finalize();
+        m_optix.accumBuffer.finalize();
         m_optix.rngBuffer.finalize();
 
 
@@ -365,6 +385,11 @@ namespace vlr {
         SurfaceMaterial::finalize(*this);
         ShaderNode::finalize(*this);
         Image2D::finalize(*this);
+
+
+
+        cuMemFree(m_optix.hdrIntensity);
+        m_optix.denoiser.destroy();
 
 
 
@@ -445,8 +470,8 @@ namespace vlr {
         m_optix.outputBufferHolder.finalize();
         if (m_optix.outputBuffer.isInitialized())
             m_optix.outputBuffer.finalize();
-        if (m_optix.rawOutputBuffer.isInitialized())
-            m_optix.rawOutputBuffer.finalize();
+        if (m_optix.accumBuffer.isInitialized())
+            m_optix.accumBuffer.finalize();
         if (m_optix.rngBuffer.isInitialized())
             m_optix.rngBuffer.finalize();
 
@@ -473,13 +498,13 @@ namespace vlr {
             m_optix.outputBuffer.initialize2D(
                 m_cuContext, cudau::ArrayElementType::Float32, 4,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable,
-                width, height, 1);
+                m_width, m_height, 1);
         }
 
-        m_optix.rawOutputBuffer.initialize(m_cuContext, g_bufferType, width, height);
-        m_optix.launchParams.outputBuffer = m_optix.rawOutputBuffer.getBlockBuffer2D();
+        m_optix.accumBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
+        m_optix.launchParams.accumBuffer = m_optix.accumBuffer.getBlockBuffer2D();
 
-        m_optix.rngBuffer.initialize(m_cuContext, g_bufferType, width, height);
+        m_optix.rngBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
         {
             m_optix.rngBuffer.map();
             std::mt19937_64 rng(591842031321323413);
@@ -491,6 +516,56 @@ namespace vlr {
             m_optix.rngBuffer.unmap();
         }
         m_optix.launchParams.rngBuffer = m_optix.rngBuffer.getBlockBuffer2D();
+
+
+
+        if (m_optix.linearDenoisedColorBuffer.isInitialized())
+            m_optix.linearDenoisedColorBuffer.finalize();
+        if (m_optix.linearNormalBuffer.isInitialized())
+            m_optix.linearNormalBuffer.finalize();
+        if (m_optix.linearAlbedoBuffer.isInitialized())
+            m_optix.linearAlbedoBuffer.finalize();
+        if (m_optix.linearColorBuffer.isInitialized())
+            m_optix.linearColorBuffer.finalize();
+        if (m_optix.accumNormalBuffer.isInitialized())
+            m_optix.accumNormalBuffer.finalize();
+        if (m_optix.accumAlbedoBuffer.isInitialized())
+            m_optix.accumAlbedoBuffer.finalize();
+        if (m_optix.denoiserScratchBuffer.isInitialized())
+            m_optix.denoiserScratchBuffer.finalize();
+        if (m_optix.denoiserStateBuffer.isInitialized())
+            m_optix.denoiserStateBuffer.finalize();
+        
+        size_t stateBufferSize;
+        size_t scratchBufferSize;
+        size_t scratchBufferSizeForComputeIntensity;
+        uint32_t numTasks;
+        m_optix.denoiser.prepare(m_width, m_height, 0, 0,
+                                 &stateBufferSize, &scratchBufferSize, &scratchBufferSizeForComputeIntensity,
+                                 &numTasks);
+        m_optix.denoiserStateBuffer.initialize(m_cuContext, g_bufferType, stateBufferSize, 1);
+        m_optix.denoiserScratchBuffer.initialize(m_cuContext, g_bufferType,
+                                                 std::max(scratchBufferSize, scratchBufferSizeForComputeIntensity), 1);
+        m_optix.denoiserTasks.resize(numTasks);
+        m_optix.accumAlbedoBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.accumNormalBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.linearColorBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.linearAlbedoBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.linearNormalBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.linearDenoisedColorBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
+        m_optix.denoiser.getTasks(m_optix.denoiserTasks.data());
+        m_optix.denoiser.setLayers(m_optix.linearColorBuffer,
+                                   m_optix.linearAlbedoBuffer,
+                                   m_optix.linearNormalBuffer,
+                                   m_optix.linearDenoisedColorBuffer,
+                                   OPTIX_PIXEL_FORMAT_FLOAT4, OPTIX_PIXEL_FORMAT_FLOAT4, OPTIX_PIXEL_FORMAT_FLOAT4);
+
+        m_optix.launchParams.accumAlbedoBuffer = m_optix.accumAlbedoBuffer.getDevicePointer();
+        m_optix.launchParams.accumNormalBuffer = m_optix.accumNormalBuffer.getDevicePointer();
+
+
+
+        m_optix.launchParams.imageStrideInPixels = m_width;
     }
 
     const cudau::Array &Context::getOutputBuffer() const {
@@ -524,12 +599,13 @@ namespace vlr {
         CUDADRV_CHECK(cuStreamSynchronize(stream));
     }
 
-    void Context::render(const Camera* camera,
+    void Context::render(const Camera* camera, bool denoise,
                          bool debugRender, VLRDebugRenderingMode renderMode,
                          uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         CUstream stream = 0;
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
+        uint32_t imageStrideInPixels = m_optix.launchParams.imageStrideInPixels;
         if (firstFrame) {
             camera->setup(&m_optix.launchParams);
 
@@ -539,6 +615,8 @@ namespace vlr {
                 m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
             else
                 m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
+
+            m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
 
             m_numAccumFrames = 0;
         }
@@ -553,24 +631,44 @@ namespace vlr {
         m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
                                 imageSize.x, imageSize.y, 1);
 
-        m_optix.outputBufferHolder.beginCUDAAccess(stream);
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
-        m_cudaPostProcessConvertToRGB(stream, m_cudaPostProcessConvertToRGB.calcGridDim(imageSize.x, imageSize.y),
-                                      m_optix.rawOutputBuffer.getBlockBuffer2D(),
-                                      m_optix.outputBufferHolder.getNext(),
-                                      m_numAccumFrames);
+
+        if (denoise) {
+            m_copyBuffers(stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
+                          m_optix.accumBuffer.getBlockBuffer2D(),
+                          m_optix.accumAlbedoBuffer.getDevicePointer(),
+                          m_optix.accumNormalBuffer.getDevicePointer(),
+                          imageSize, imageStrideInPixels, m_numAccumFrames,
+                          m_optix.linearColorBuffer.getDevicePointer(),
+                          m_optix.linearAlbedoBuffer.getDevicePointer(),
+                          m_optix.linearNormalBuffer.getDevicePointer());
+
+            m_optix.denoiser.computeIntensity(stream, m_optix.denoiserScratchBuffer, m_optix.hdrIntensity);
+
+            for (int i = 0; i < m_optix.denoiserTasks.size(); ++i)
+                m_optix.denoiser.invoke(stream, false, m_optix.hdrIntensity, 0.0f, m_optix.denoiserTasks[i]);
+        }
+
+        m_optix.outputBufferHolder.beginCUDAAccess(stream);
+        m_convertToRGB(stream, m_convertToRGB.calcGridDim(imageSize.x, imageSize.y),
+                       m_optix.accumBuffer.getBlockBuffer2D(),
+                       m_optix.linearDenoisedColorBuffer.getDevicePointer(),
+                       denoise, imageSize, imageStrideInPixels, m_numAccumFrames,
+                       m_optix.outputBufferHolder.getNext());
         m_optix.outputBufferHolder.endCUDAAccess(stream);
 
         CUDADRV_CHECK(cuStreamSynchronize(stream));
     }
 
-    void Context::render(const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        render(camera, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame, numAccumFrames);
+    void Context::render(const Camera* camera, bool denoise,
+                         uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+        render(camera, denoise, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
-    void Context::debugRender(const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        render(camera, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
+    void Context::debugRender(const Camera* camera, VLRDebugRenderingMode renderMode,
+                              uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
+        render(camera, false, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
 

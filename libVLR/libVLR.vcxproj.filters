@@ -148,7 +148,7 @@
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
-    <CudaCompile Include="GPU_kernels\convert_to_rgb.cu">
+    <CudaCompile Include="GPU_kernels\post_process.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
   </ItemGroup>

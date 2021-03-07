@@ -150,7 +150,20 @@ namespace vlr {
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_E;
 #endif
 
-            optixu::HostBlockBuffer2D<SpectrumStorage, 0> rawOutputBuffer;
+            optixu::Denoiser denoiser;
+            CUdeviceptr hdrIntensity;
+            cudau::Buffer denoiserStateBuffer;
+            cudau::Buffer denoiserScratchBuffer;
+            std::vector<optixu::DenoisingTask> denoiserTasks;
+            cudau::TypedBuffer<DiscretizedSpectrum> accumAlbedoBuffer;
+            cudau::TypedBuffer<Normal3D> accumNormalBuffer;
+            cudau::TypedBuffer<float4> linearColorBuffer;
+            cudau::TypedBuffer<float4> linearAlbedoBuffer;
+            cudau::TypedBuffer<float4> linearNormalBuffer;
+            cudau::TypedBuffer<float4> linearDenoisedColorBuffer;
+
+            optixu::HostBlockBuffer2D<SpectrumStorage, 0> accumBuffer;
+
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
             optixu::HostBlockBuffer2D<shared::KernelRNG, 2> rngBuffer;
@@ -160,14 +173,15 @@ namespace vlr {
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;
-        cudau::Kernel m_cudaPostProcessConvertToRGB;
         CUdeviceptr m_cudaPostProcessModuleLaunchParamsPtr;
+        cudau::Kernel m_copyBuffers;
+        cudau::Kernel m_convertToRGB;
 
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
 
-        void render(const Camera* camera,
+        void render(const Camera* camera, bool denoise,
                     bool debugRender, VLRDebugRenderingMode renderMode,
                     uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
@@ -184,8 +198,10 @@ namespace vlr {
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
         void setScene(Scene &scene);
-        void render(const Camera* camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-        void debugRender(const Camera* camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void render(const Camera* camera, bool denoise,
+                    uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+        void debugRender(const Camera* camera, VLRDebugRenderingMode renderMode,
+                         uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         CUcontext getCUcontext() const {
             return m_cuContext;

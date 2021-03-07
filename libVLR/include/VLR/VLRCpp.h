@@ -701,12 +701,15 @@ namespace vlr {
             errorCheck(vlrContextSetScene(m_rawContext, scene->getRaw<VLRScene>()));
         }
 
-        void render(const SceneRef &scene, const CameraRef &camera, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextRender(m_rawContext, camera->getRaw<VLRCamera>(), shrinkCoeff, firstFrame, numAccumFrames));
+        void render(const SceneRef &scene, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,
+                    bool firstFrame, uint32_t* numAccumFrames) const {
+            errorCheck(vlrContextRender(m_rawContext, camera->getRaw<VLRCamera>(), denoise,
+                                        shrinkCoeff, firstFrame, numAccumFrames));
         }
 
         void debugRender(const SceneRef &scene, const CameraRef &camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextDebugRender(m_rawContext, camera->getRaw<VLRCamera>(), renderMode, shrinkCoeff, firstFrame, numAccumFrames));
+            errorCheck(vlrContextDebugRender(m_rawContext, camera->getRaw<VLRCamera>(), renderMode,
+                                             shrinkCoeff, firstFrame, numAccumFrames));
         }
 
 

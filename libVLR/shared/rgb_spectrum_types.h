@@ -52,6 +52,9 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION RGBSpectrumTemplate() {}
         CUDA_DEVICE_FUNCTION constexpr RGBSpectrumTemplate(RealType v) : r(v), g(v), b(v) {}
         CUDA_DEVICE_FUNCTION constexpr RGBSpectrumTemplate(RealType rr, RealType gg, RealType bb) : r(rr), g(gg), b(bb) {}
+        CUDA_DEVICE_FUNCTION constexpr RGBSpectrumTemplate(const RGBWavelengthSamplesTemplate<RealType> &wls,
+                                                           const RGBSpectrumTemplate<RealType> &val) :
+        r(val.r), g(val.g), b(val.b) {}
 
         CUDA_DEVICE_FUNCTION RGBSpectrumTemplate operator+() const {
             return *this;
@@ -192,6 +195,10 @@ namespace vlr {
 #if defined(VLR_Host)
         static void initialize() {}
 #endif
+
+        CUDA_DEVICE_FUNCTION void print() const {
+            vlrprintf("%g, %g, %g\n", r, g, b);
+        }
 
         // ----------------------------------------------------------------
     };

@@ -182,6 +182,8 @@ static void glfw_error_callback(int32_t error, const char* description) {
 
 
 class HostProgram {
+    static constexpr GLenum s_frameBufferColorFormat = GL_SRGB8_ALPHA8/*GL_RGBA8*/;
+
     vlr::ContextRef m_context;
 
     GLFWwindow* m_window;
@@ -292,6 +294,7 @@ class HostProgram {
 
     float m_environmentRotation;
 
+    bool m_enableDenoiser;
     bool m_enableDebugRendering;
     VLRDebugRenderingMode m_debugRenderingMode;
 
@@ -331,6 +334,8 @@ class HostProgram {
 
         m_cameraSettingsChanged |= ImGui::InputFloat3("Position", (float*)&m_cameraPosition);
         m_cameraSettingsChanged |= ImGui::InputFloat4("Orientation", (float*)&m_cameraOrientation);
+
+        ImGui::Checkbox("Denoiser", &m_enableDenoiser);
 
         static constexpr const char* debugRenderModes[] = {
             "BaseColor",
@@ -751,6 +756,8 @@ public:
         m_renderTargetSizeX = initWindowSizeX;
         m_renderTargetSizeY = initWindowSizeY;
 
+        m_enableDenoiser = true;
+
         constexpr bool enableGLDebugCallback = true;
 
         // JP: OpenGL 4.6 Core Profileのコンテキストを作成する。
@@ -843,7 +850,7 @@ public:
                                                readTxtFile(exeDir / "shaders/drawOptiXResult.frag"));
 
         // JP: HiDPIディスプレイで過剰なレンダリング負荷になってしまうため低解像度フレームバッファーを作成する。
-        GLenum colorFormats[] = { GL_RGBA8 };
+        GLenum colorFormats[] = { s_frameBufferColorFormat };
         GLenum depthFormat = GL_DEPTH_COMPONENT32;
         m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, 1,
                                  colorFormats, 0, 1,
@@ -968,7 +975,7 @@ public:
                 m_outputBufferGL.initialize(GL_RGBA32F, m_renderTargetSizeX, m_renderTargetSizeY, 1);
                 m_context->bindOutputBuffer(m_renderTargetSizeX, m_renderTargetSizeY, m_outputBufferGL.getHandle());
 
-                GLenum colorFormats[] = { GL_RGBA8 };
+                GLenum colorFormats[] = { s_frameBufferColorFormat };
                 GLenum depthFormat = GL_DEPTH_COMPONENT32;
                 m_frameBuffer.initialize(m_renderTargetSizeX, m_renderTargetSizeY, 1,
                                          colorFormats, 0, 1,
@@ -1099,9 +1106,11 @@ public:
                 else
                     sw.start();
                 if (m_enableDebugRendering)
-                    m_context->debugRender(m_shot.scene, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame, &m_numAccumFrames);
+                    m_context->debugRender(m_shot.scene, m_camera, m_debugRenderingMode,
+                                           shrinkCoeff, firstFrame, &m_numAccumFrames);
                 else
-                    m_context->render(m_shot.scene, m_camera, shrinkCoeff, firstFrame, &m_numAccumFrames);
+                    m_context->render(m_shot.scene, m_camera, m_enableDenoiser,
+                                      shrinkCoeff, firstFrame, &m_numAccumFrames);
                 if (!firstFrame)
                     m_accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
@@ -1112,6 +1121,8 @@ public:
 
                 glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer.getHandle(0));
                 m_frameBuffer.setDrawBuffers();
+
+                glEnable(GL_FRAMEBUFFER_SRGB);
 
                 glViewport(0, 0, m_frameBuffer.getWidth(), m_frameBuffer.getHeight());
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1159,7 +1170,6 @@ public:
 
             glUniform1f(0, m_UIScaling);
 
-            glActiveTexture(GL_TEXTURE0);
             const glu::Texture2D& srcFBTex = m_frameBuffer.getRenderTargetTexture(0, 0);
             glBindTextureUnit(0, srcFBTex.getHandle());
             glBindSampler(0, m_scaleSampler.getHandle());
@@ -1263,7 +1273,8 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t finishTime = 123 * 1000 - 3000;
         auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
-            context->render(shot.scene, shot.viewpoints[0], 1, numAccumFrames == 0 ? true : false, &numAccumFrames);
+            context->render(shot.scene, shot.viewpoints[0], true,
+                            1, numAccumFrames == 0 ? true : false, &numAccumFrames);
 
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;

@@ -244,6 +244,7 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION Vector3DTemplate<RealType> operator/(RealType s) const { RealType r = 1 / s; return Vector3DTemplate<RealType>(x * r, y * r, z * r); }
         CUDA_DEVICE_FUNCTION friend Vector3DTemplate<RealType> operator*(RealType s, const Normal3DTemplate &n) { return Vector3DTemplate<RealType>(s * n.x, s * n.y, s * n.z); }
 
+        CUDA_DEVICE_FUNCTION Normal3DTemplate &operator+=(const Normal3DTemplate &v) { x += v.x; y += v.y; z += v.z; return *this; }
         CUDA_DEVICE_FUNCTION Normal3DTemplate &operator/=(RealType s) { RealType r = 1 / s; x *= r; y *= r; z *= r; return *this; }
 
         CUDA_DEVICE_FUNCTION bool operator==(const Normal3DTemplate &p) const { return x == p.x && y == p.y && z == p.z; }
