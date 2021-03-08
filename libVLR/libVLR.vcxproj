@@ -44,11 +44,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\VLR;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.2.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -156,11 +156,11 @@
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
     <ClInclude Include="image.h" />
-    <ClInclude Include="include\VLR\basic_types.h" />
-    <ClInclude Include="include\VLR\common.h" />
-    <ClInclude Include="include\VLR\vlr.h" />
-    <ClInclude Include="include\VLR\vlrcpp.h" />
-    <ClInclude Include="include\VLR\public_types.h" />
+    <ClInclude Include="include\vlr\basic_types.h" />
+    <ClInclude Include="include\vlr\common.h" />
+    <ClInclude Include="include\vlr\vlr.h" />
+    <ClInclude Include="include\vlr\vlrcpp.h" />
+    <ClInclude Include="include\vlr\public_types.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="queryable.h" />
     <ClInclude Include="scene.h" />

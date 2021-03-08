@@ -42,13 +42,13 @@
       <Filter>ext</Filter>
     </ClInclude>
     <ClInclude Include="shader_nodes.h" />
-    <ClInclude Include="include\VLR\public_types.h">
+    <ClInclude Include="include\vlr\public_types.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\basic_types.h">
+    <ClInclude Include="include\vlr\basic_types.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\common.h">
+    <ClInclude Include="include\vlr\common.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="shared\common_internal.h">
@@ -96,10 +96,10 @@
     <ClInclude Include="ext\include\KHR\khrplatform.h">
       <Filter>ext\gl3w</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\vlr.h">
+    <ClInclude Include="include\vlr\vlr.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="include\VLR\vlrcpp.h">
+    <ClInclude Include="include\vlr\vlrcpp.h">
       <Filter>API</Filter>
     </ClInclude>
   </ItemGroup>
