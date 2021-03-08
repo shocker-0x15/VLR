@@ -841,6 +841,8 @@ namespace vlr {
             
             Instance &inst = m_instances.at(shtr);
             inst.optixInst.setTransform(tMat);
+            inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
+            m_context.updateInstance(inst.instIndex, inst.data);
         }
 
         // TODO: 子のいないTransformの更新に対してもdirtyにしてしまう。
