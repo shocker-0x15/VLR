@@ -1711,6 +1711,8 @@ namespace vlr {
         float coeff = std::round(m_bumpCoeff * (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1))) - 1;
         nodeData.bumpCoeff = vlr::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
+        nodeData.width = m_image->getWidth();
+        nodeData.height = m_image->getHeight();
 
         updateNodeDescriptor();
     }
