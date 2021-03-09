@@ -102,6 +102,9 @@
     <ClInclude Include="include\vlr\vlrcpp.h">
       <Filter>API</Filter>
     </ClInclude>
+    <ClInclude Include="GPU_kernels\renderer_common.cuh">
+      <Filter>GPU Kernels</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GPU Kernels">

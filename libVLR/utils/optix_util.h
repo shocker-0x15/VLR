@@ -1174,6 +1174,8 @@ private: \
                                                       Module module_AH, const char* entryFunctionNameAH,
                                                       Module module_IS, const char* entryFunctionNameIS) const;
         [[nodiscard]]
+        ProgramGroup createEmptyHitProgramGroup() const;
+        [[nodiscard]]
         ProgramGroup createCallableProgramGroup(Module module_DC, const char* entryFunctionNameDC,
                                                 Module module_CC, const char* entryFunctionNameCC) const;
 

@@ -1,26 +1,24 @@
 ﻿#include "materials.h"
 
 namespace vlr {
-    optixu::Module SurfaceMaterial::s_optixModule;
-
     // static
     void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
             programSet->dcSetupBSDF = context.createDirectCallableProgram(
-                s_optixModule, identifiers[0]);
+                OptiXModule_Material, identifiers[0]);
 
             programSet->dcBSDFGetBaseColor = context.createDirectCallableProgram(
-                s_optixModule, identifiers[1]);
+                OptiXModule_Material, identifiers[1]);
             programSet->dcBSDFmatches = context.createDirectCallableProgram(
-                s_optixModule, identifiers[2]);
+                OptiXModule_Material, identifiers[2]);
             programSet->dcBSDFSampleInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[3]);
+                OptiXModule_Material, identifiers[3]);
             programSet->dcBSDFEvaluateInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[4]);
+                OptiXModule_Material, identifiers[4]);
             programSet->dcBSDFEvaluatePDFInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[5]);
+                OptiXModule_Material, identifiers[5]);
             programSet->dcBSDFWeightInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[6]);
+                OptiXModule_Material, identifiers[6]);
 
             shared::BSDFProcedureSet bsdfProcSet;
             {
@@ -37,12 +35,12 @@ namespace vlr {
 
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
             programSet->dcSetupEDF = context.createDirectCallableProgram(
-                s_optixModule, identifiers[7]);
+                OptiXModule_Material, identifiers[7]);
 
             programSet->dcEDFEvaluateEmittanceInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[8]);
+                OptiXModule_Material, identifiers[8]);
             programSet->dcEDFEvaluateInternal = context.createDirectCallableProgram(
-                s_optixModule, identifiers[9]);
+                OptiXModule_Material, identifiers[9]);
 
             shared::EDFProcedureSet edfProcSet;
             {
@@ -112,13 +110,6 @@ namespace vlr {
 
     // static
     void SurfaceMaterial::initialize(Context &context) {
-        optixu::Pipeline pipeline = context.getOptixPipeline();
-        s_optixModule = pipeline.createModuleFromPTXString(
-            readTxtFile(getExecutableDirectory() / "ptxes/materials.ptx"),
-            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-
         MatteSurfaceMaterial::initialize(context);
         SpecularReflectionSurfaceMaterial::initialize(context);
         SpecularScatteringSurfaceMaterial::initialize(context);
@@ -145,8 +136,6 @@ namespace vlr {
         SpecularScatteringSurfaceMaterial::finalize(context);
         SpecularReflectionSurfaceMaterial::finalize(context);
         MatteSurfaceMaterial::finalize(context);
-
-        s_optixModule.destroy();
     }
 
     SurfaceMaterial::SurfaceMaterial(Context &context) : Queryable(context) {

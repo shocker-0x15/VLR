@@ -185,7 +185,6 @@ namespace vlr {
 
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optixu::Module optixModule;
             uint32_t dcDecodeHitPointForTriangle;
             uint32_t dcSampleTriangleMesh;
         };
@@ -251,7 +250,6 @@ namespace vlr {
 
     class InfiniteSphereSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
-            optixu::Module optixModule;
             uint32_t dcDecodeHitPointForInfiniteSphere;
             uint32_t dcSampleInfiniteSphere;
         };
@@ -410,7 +408,6 @@ namespace vlr {
 
     class Scene : public Object {
         struct OptiXProgramSet {
-            optixu::Module optixModule;
             uint32_t dcSampleInfiniteSphere;
         };
 
@@ -485,7 +482,6 @@ namespace vlr {
             uint32_t dcSampleIDF;
         };
 
-        static std::map<uint32_t, optixu::Module> s_optixModules;
         static void commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet);
 

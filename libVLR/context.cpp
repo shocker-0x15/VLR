@@ -103,6 +103,8 @@ namespace vlr {
     uint32_t Context::NextID = 0;
 
     Context::Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
+        const std::filesystem::path exeDir = getExecutableDirectory();
+
         vlrprintf("Start initializing VLR ...");
 
         initializeColorSystem();
@@ -130,99 +132,192 @@ namespace vlr {
 
         m_optix.context = optixu::Context::create(cuContext/*, 4, true*/);
 
-        m_optix.pipeline = m_optix.context.createPipeline();
-        m_optix.pipeline.setPipelineOptions(
-            8, 2,
-            "plp", sizeof(shared::PipelineLaunchParameters),
-            false,
-            OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-            VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                             OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                             OPTIX_EXCEPTION_FLAG_DEBUG,
-                             OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
-            OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
-        m_optix.pipeline.setNumMissRayTypes(shared::RayType::NumTypes);
-        m_optix.pipeline.setNumCallablePrograms(512);
+        m_optix.materialDefault = m_optix.context.createMaterial();
+        m_optix.materialWithAlpha = m_optix.context.createMaterial();
 
-        const std::filesystem::path exeDir = getExecutableDirectory();
-
+        // Pipeline for Path Tracing
         {
-            std::string ptx = readTxtFile(exeDir / "ptxes/path_tracing.ptx");
-            m_optix.pathTracingModule = m_optix.pipeline.createModuleFromPTXString(
-                ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            p.pipeline = m_optix.context.createPipeline();
+            p.pipeline.setPipelineOptions(
+                8, 2,
+                "plp", sizeof(shared::PipelineLaunchParameters),
+                false,
+                OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
+                                 OPTIX_EXCEPTION_FLAG_DEBUG,
+                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
+            p.pipeline.setNumMissRayTypes(shared::PTRayType::NumTypes);
+
+            p.modules.resize(NumOptiXModules);
+            p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/path_tracing.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_ShaderNode] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/shader_nodes.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Material] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/materials.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Triangle] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/triangle.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_InfiniteSphere] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/infinite_sphere.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Camera] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/cameras.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
-            m_optix.pathTracingRayGeneration = m_optix.pipeline.createRayGenProgram(
-                m_optix.pathTracingModule, RT_RG_NAME_STR("pathTracing"));
+            p.rayGeneration = p.pipeline.createRayGenProgram(
+                p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("pathTracing"));
 
-            m_optix.pathTracingMiss = m_optix.pipeline.createMissProgram(
-                m_optix.pathTracingModule, RT_MS_NAME_STR("pathTracingMiss"));
-            m_optix.pathTracingShadowMiss = m_optix.pipeline.createMissProgram(
+            p.miss = p.pipeline.createMissProgram(
+                p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("pathTracingMiss"));
+            p.shadowMiss = p.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
 
-            m_optix.pathTracingHitGroupDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+            p.hitGroupDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
-                m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("pathTracingIteration"),
                 optixu::Module(), nullptr);
-            m_optix.pathTracingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
-                m_optix.pathTracingModule, RT_CH_NAME_STR("pathTracingIteration"),
-                m_optix.pathTracingModule, RT_AH_NAME_STR("anyHitWithAlpha"));
-            m_optix.pathTracingHitGroupShadowDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("pathTracingIteration"),
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("anyHitWithAlpha"));
+            p.hitGroupShadowDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 optixu::Module(), nullptr,
-                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitDefault"));
-            m_optix.pathTracingHitGroupShadowWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitDefault"));
+            p.hitGroupShadowWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
                 optixu::Module(), nullptr,
-                m_optix.pathTracingModule, RT_AH_NAME_STR("shadowAnyHitWithAlpha"));
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitWithAlpha"));
+            p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
+
+            p.pipeline.setRayGenerationProgram(p.rayGeneration);
+            p.pipeline.setMissProgram(shared::PTRayType::Closest, p.miss);
+            p.pipeline.setMissProgram(shared::PTRayType::Shadow, p.shadowMiss);
+
+            for (int rIdx = 0; rIdx < shared::MaxNumRayTypes; ++rIdx) {
+                m_optix.materialDefault.setHitGroup(rIdx, p.emptyHitGroup);
+                m_optix.materialWithAlpha.setHitGroup(rIdx, p.emptyHitGroup);
+            }
+            m_optix.materialDefault.setHitGroup(shared::PTRayType::Closest, p.hitGroupDefault);
+            m_optix.materialWithAlpha.setHitGroup(shared::PTRayType::Closest, p.hitGroupWithAlpha);
+            m_optix.materialDefault.setHitGroup(shared::PTRayType::Shadow, p.hitGroupShadowDefault);
+            m_optix.materialWithAlpha.setHitGroup(shared::PTRayType::Shadow, p.hitGroupShadowWithAlpha);
         }
 
+        // Pipeline for Debug Rendering
         {
-            std::string ptx = readTxtFile(exeDir / "ptxes/debug_rendering.ptx");
-            m_optix.debugRenderingModule = m_optix.pipeline.createModuleFromPTXString(
-                ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            p.pipeline = m_optix.context.createPipeline();
+            p.pipeline.setPipelineOptions(
+                2, 2,
+                "plp", sizeof(shared::PipelineLaunchParameters),
+                false,
+                OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
+                                 OPTIX_EXCEPTION_FLAG_DEBUG,
+                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
+            p.pipeline.setNumMissRayTypes(shared::DebugRayType::NumTypes);
+
+            p.modules.resize(NumOptiXModules);
+            p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/debug_rendering.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_ShaderNode] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/shader_nodes.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Material] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/materials.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Triangle] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/triangle.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_InfiniteSphere] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/infinite_sphere.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.modules[OptiXModule_Camera] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/cameras.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
 
-            m_optix.debugRenderingRayGeneration = m_optix.pipeline.createRayGenProgram(
-                m_optix.debugRenderingModule, RT_RG_NAME_STR("debugRenderingRayGeneration"));
+            p.rayGeneration = p.pipeline.createRayGenProgram(
+                p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("debugRenderingRayGeneration"));
 
-            m_optix.debugRenderingMiss = m_optix.pipeline.createMissProgram(
-                m_optix.debugRenderingModule, RT_MS_NAME_STR("debugRenderingMiss"));
+            p.miss = p.pipeline.createMissProgram(
+                p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("debugRenderingMiss"));
 
-            m_optix.debugRenderingHitGroupDefault = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+            p.hitGroupDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
-                m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingClosestHit"),
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("debugRenderingClosestHit"),
                 optixu::Module(), nullptr);
-            m_optix.debugRenderingHitGroupWithAlpha = m_optix.pipeline.createHitProgramGroupForBuiltinIS(
+            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
                 OPTIX_PRIMITIVE_TYPE_TRIANGLE,
-                m_optix.debugRenderingModule, RT_CH_NAME_STR("debugRenderingClosestHit"),
-                m_optix.debugRenderingModule, RT_AH_NAME_STR("debugRenderingAnyHitWithAlpha"));
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("debugRenderingClosestHit"),
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("debugRenderingAnyHitWithAlpha"));
+
+            p.pipeline.setRayGenerationProgram(p.rayGeneration);
+            p.pipeline.setMissProgram(shared::DebugRayType::Primary, p.miss);
+
+            for (int rIdx = 0; rIdx < shared::MaxNumRayTypes; ++rIdx) {
+                m_optix.materialDefault.setHitGroup(rIdx, p.emptyHitGroup);
+                m_optix.materialWithAlpha.setHitGroup(rIdx, p.emptyHitGroup);
+            }
+            m_optix.materialDefault.setHitGroup(shared::DebugRayType::Primary, p.hitGroupDefault);
+            m_optix.materialWithAlpha.setHitGroup(shared::DebugRayType::Primary, p.hitGroupWithAlpha);
         }
 
-        {
-            std::string ptx = readTxtFile(exeDir / "ptxes/materials.ptx");
-            m_optix.nullDFModule = m_optix.pipeline.createModuleFromPTXString(
-                ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
 
+
+        // Null BSDF/EDF
+        {
             m_optix.dcNullBSDF_setupBSDF = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_setupBSDF"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_setupBSDF"));
             m_optix.dcNullBSDF_getBaseColor = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_getBaseColor"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_getBaseColor"));
             m_optix.dcNullBSDF_matches = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_matches"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_matches"));
             m_optix.dcNullBSDF_sampleInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_sampleInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_sampleInternal"));
             m_optix.dcNullBSDF_evaluateInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluateInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluateInternal"));
             m_optix.dcNullBSDF_evaluatePDFInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"));
             m_optix.dcNullBSDF_weightInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullBSDF_weightInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_weightInternal"));
 
             shared::BSDFProcedureSet bsdfProcSet;
             {
@@ -235,14 +330,15 @@ namespace vlr {
             }
             m_optix.nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
             updateBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex, bsdfProcSet);
-            VLRAssert(m_optix.nullBSDFProcedureSetIndex == 0, "Index of the null BSDF procedure set is expected to be 0.");
+            VLRAssert(m_optix.nullBSDFProcedureSetIndex == 0,
+                      "Index of the null BSDF procedure set is expected to be 0.");
 
             m_optix.dcNullEDF_setupEDF = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_setupEDF"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_setupEDF"));
             m_optix.dcNullEDF_evaluateEmittanceInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"));
             m_optix.dcNullEDF_evaluateInternal = createDirectCallableProgram(
-                m_optix.nullDFModule, RT_DC_NAME_STR("NullEDF_evaluateInternal"));
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_evaluateInternal"));
 
             shared::EDFProcedureSet edfProcSet;
             {
@@ -251,23 +347,9 @@ namespace vlr {
             }
             m_optix.nullEDFProcedureSetIndex = allocateEDFProcedureSet();
             updateEDFProcedureSet(m_optix.nullEDFProcedureSetIndex, edfProcSet);
-            VLRAssert(m_optix.nullEDFProcedureSetIndex == 0, "Index of the null EDF procedure set is expected to be 0.");
+            VLRAssert(m_optix.nullEDFProcedureSetIndex == 0,
+                      "Index of the null EDF procedure set is expected to be 0.");
         }
-
-        m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
-        m_optix.pipeline.setMissProgram(shared::RayType::Closest, m_optix.pathTracingMiss);
-        m_optix.pipeline.setMissProgram(shared::RayType::Shadow, m_optix.pathTracingShadowMiss);
-        m_optix.pipeline.setMissProgram(shared::RayType::DebugPrimary, m_optix.debugRenderingMiss);
-
-        m_optix.materialDefault = m_optix.context.createMaterial();
-        m_optix.materialDefault.setHitGroup(shared::RayType::Closest, m_optix.pathTracingHitGroupDefault);
-        m_optix.materialDefault.setHitGroup(shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowDefault);
-        m_optix.materialDefault.setHitGroup(shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupDefault);
-
-        m_optix.materialWithAlpha = m_optix.context.createMaterial();
-        m_optix.materialWithAlpha.setHitGroup(shared::RayType::Closest, m_optix.pathTracingHitGroupWithAlpha);
-        m_optix.materialWithAlpha.setHitGroup(shared::RayType::Shadow, m_optix.pathTracingHitGroupShadowWithAlpha);
-        m_optix.materialWithAlpha.setHitGroup(shared::RayType::DebugPrimary, m_optix.debugRenderingHitGroupWithAlpha);
 
 
 
@@ -341,28 +423,44 @@ namespace vlr {
         Camera::initialize(*this);
         Scene::initialize(*this);
 
-        m_optix.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+        // Pipeline for Path Tracing
+        {
+            OptiX::PathTracing &p = m_optix.pathTracing;
 
-        m_optix.pipeline.setNumCallablePrograms(m_optix.callablePrograms.size());
-        for (int i = 0; i < m_optix.callablePrograms.size(); ++i)
-            m_optix.pipeline.setCallableProgram(i, m_optix.callablePrograms[i]);
+            p.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.setNumCallablePrograms(p.callablePrograms.size());
+            for (int i = 0; i < p.callablePrograms.size(); ++i)
+                p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
 
-        size_t sbtSize;
-        m_optix.pipeline.generateShaderBindingTableLayout(&sbtSize);
-        m_optix.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-        m_optix.shaderBindingTable.setMappedMemoryPersistent(true);
-        m_optix.pipeline.setShaderBindingTable(m_optix.shaderBindingTable,
-                                               m_optix.shaderBindingTable.getMappedPointer());
+            size_t sbtSize;
+            p.pipeline.generateShaderBindingTableLayout(&sbtSize);
+            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.shaderBindingTable.setMappedMemoryPersistent(true);
+            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
+                                             p.shaderBindingTable.getMappedPointer());
+        }
+
+        // Pipeline for Debug Rendering
+        {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            p.pipeline.link(1, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.setNumCallablePrograms(p.callablePrograms.size());
+            for (int i = 0; i < p.callablePrograms.size(); ++i)
+                p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+
+            size_t sbtSize;
+            p.pipeline.generateShaderBindingTableLayout(&sbtSize);
+            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.shaderBindingTable.setMappedMemoryPersistent(true);
+            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
+                                             p.shaderBindingTable.getMappedPointer());
+        }
 
         vlrprintf(" done.\n");
     }
 
     Context::~Context() {
-        m_optix.hitGroupShaderBindingTable.finalize();
-        m_optix.shaderBindingTable.finalize();
-
-
-
         m_optix.linearDenoisedColorBuffer.finalize();
         m_optix.linearNormalBuffer.finalize();
         m_optix.linearAlbedoBuffer.finalize();
@@ -378,6 +476,20 @@ namespace vlr {
         m_optix.rngBuffer.finalize();
 
 
+
+        // Pipeline for Debug Rendering
+        {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            p.shaderBindingTable.finalize();
+        }
+
+        // Pipeline for Path Tracing
+        {
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            p.shaderBindingTable.finalize();
+        }
 
         Scene::finalize(*this);
         Camera::finalize(*this);
@@ -420,6 +532,7 @@ namespace vlr {
         m_optix.materialWithAlpha.destroy();
         m_optix.materialDefault.destroy();
 
+        // Null BSDF/EDF
         {
             releaseEDFProcedureSet(m_optix.nullEDFProcedureSetIndex);
             destroyDirectCallableProgram(m_optix.dcNullEDF_evaluateInternal);
@@ -434,32 +547,48 @@ namespace vlr {
             destroyDirectCallableProgram(m_optix.dcNullBSDF_matches);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_getBaseColor);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_setupBSDF);
-
-            m_optix.nullDFModule.destroy();
         }
 
+        // Pipeline for Debug Rendering
         {
-            m_optix.debugRenderingHitGroupWithAlpha.destroy();
-            m_optix.debugRenderingHitGroupDefault.destroy();
-            m_optix.debugRenderingMiss.destroy();
-            m_optix.debugRenderingRayGeneration.destroy();
+            OptiX::DebugRendering &p = m_optix.debugRendering;
 
-            m_optix.debugRenderingModule.destroy();
+            p.emptyHitGroup.destroy();
+            p.hitGroupWithAlpha.destroy();
+            p.hitGroupDefault.destroy();
+            p.miss.destroy();
+            p.rayGeneration.destroy();
+
+            p.modules[OptiXModule_InfiniteSphere].destroy();
+            p.modules[OptiXModule_Triangle].destroy();
+            p.modules[OptiXModule_Material].destroy();
+            p.modules[OptiXModule_ShaderNode].destroy();
+            p.modules[OptiXModule_LightTransport].destroy();
+
+            p.pipeline.destroy();
         }
 
+        // Pipeline for Path Tracing
         {
-            m_optix.pathTracingHitGroupShadowWithAlpha.destroy();
-            m_optix.pathTracingHitGroupShadowDefault.destroy();
-            m_optix.pathTracingHitGroupWithAlpha.destroy();
-            m_optix.pathTracingHitGroupDefault.destroy();
-            m_optix.pathTracingShadowMiss.destroy();
-            m_optix.pathTracingMiss.destroy();
-            m_optix.pathTracingRayGeneration.destroy();
+            OptiX::PathTracing &p = m_optix.pathTracing;
 
-            m_optix.pathTracingModule.destroy();
+            p.emptyHitGroup.destroy();
+            p.hitGroupShadowWithAlpha.destroy();
+            p.hitGroupShadowDefault.destroy();
+            p.hitGroupWithAlpha.destroy();
+            p.hitGroupDefault.destroy();
+            p.shadowMiss.destroy();
+            p.miss.destroy();
+            p.rayGeneration.destroy();
+
+            p.modules[OptiXModule_InfiniteSphere].destroy();
+            p.modules[OptiXModule_Triangle].destroy();
+            p.modules[OptiXModule_Material].destroy();
+            p.modules[OptiXModule_ShaderNode].destroy();
+            p.modules[OptiXModule_LightTransport].destroy();
+
+            p.pipeline.destroy();
         }
-
-        m_optix.pipeline.destroy();
 
         m_optix.context.destroy();
 
@@ -582,12 +711,34 @@ namespace vlr {
 
         size_t sbtSize;
         m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
-        m_optix.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-        m_optix.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
 
-        m_optix.pipeline.setScene(m_optix.scene);
-        m_optix.pipeline.setHitGroupShaderBindingTable(m_optix.hitGroupShaderBindingTable,
-                                                       m_optix.hitGroupShaderBindingTable.getMappedPointer());
+        // Path Tracing
+        {
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            p.hitGroupShaderBindingTable.finalize();
+            p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+
+            p.pipeline.setScene(m_optix.scene);
+            p.pipeline.setHitGroupShaderBindingTable(
+                p.hitGroupShaderBindingTable,
+                p.hitGroupShaderBindingTable.getMappedPointer());
+        }
+
+        // Debug Rendering
+        {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            p.hitGroupShaderBindingTable.finalize();
+            p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+
+            p.pipeline.setScene(m_optix.scene);
+            p.pipeline.setHitGroupShaderBindingTable(
+                p.hitGroupShaderBindingTable,
+                p.hitGroupShaderBindingTable.getMappedPointer());
+        }
 
         size_t asScratchSize;
         scene.prepareSetup(&asScratchSize);
@@ -604,17 +755,18 @@ namespace vlr {
                          uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         CUstream stream = 0;
 
+        optixu::Pipeline pipeline;
+        if (debugRender)
+            pipeline = m_optix.debugRendering.pipeline;
+        else
+            pipeline = m_optix.pathTracing.pipeline;
+
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         uint32_t imageStrideInPixels = m_optix.launchParams.imageStrideInPixels;
         if (firstFrame) {
             camera->setup(&m_optix.launchParams);
 
             m_optix.launchParams.imageSize = imageSize;
-
-            if (debugRender)
-                m_optix.pipeline.setRayGenerationProgram(m_optix.debugRenderingRayGeneration);
-            else
-                m_optix.pipeline.setRayGenerationProgram(m_optix.pathTracingRayGeneration);
 
             m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
 
@@ -628,8 +780,8 @@ namespace vlr {
 
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
-        m_optix.pipeline.launch(stream, m_optix.launchParamsOnDevice,
-                                imageSize.x, imageSize.y, 1);
+        pipeline.launch(stream, m_optix.launchParamsOnDevice,
+                        imageSize.x, imageSize.y, 1);
 
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
@@ -673,16 +825,50 @@ namespace vlr {
 
 
 
-    uint32_t Context::createDirectCallableProgram(optixu::Module dcModule, const char* dcName) {
-        optixu::ProgramGroup program = m_optix.pipeline.createCallableProgramGroup(
-            dcModule, dcName,
-            optixu::Module(), nullptr);
-        uint32_t index = m_optix.callablePrograms.size();
-        m_optix.callablePrograms.push_back(program);
+    uint32_t Context::createDirectCallableProgram(OptiXModule mdl, const char* dcName) {
+        // TODO: 何かしらのかたちでパストレーシングから分離？
+        uint32_t index = m_optix.pathTracing.callablePrograms.size();
+        VLRAssert(m_optix.pathTracing.callablePrograms.size() == m_optix.debugRendering.callablePrograms.size(),
+                  "Number of callable programs is expected to be the same between pipelines.");
+
+        // Path Tracing
+        {
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+                p.modules[mdl], dcName,
+                optixu::Module(), nullptr);
+            p.callablePrograms.push_back(program);
+        }
+
+        // Debug Rendering
+        {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+                p.modules[mdl], dcName,
+                optixu::Module(), nullptr);
+            p.callablePrograms.push_back(program);
+        }
+
         return index;
     }
     void Context::destroyDirectCallableProgram(uint32_t index) {
-        m_optix.callablePrograms[index].destroy();
+        // Path Tracing
+        {
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            VLRAssert(index < p.callablePrograms.size(), "DC program index is out of bounds");
+            p.callablePrograms[index].destroy();
+        }
+
+        // Debug Rendering
+        {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            VLRAssert(index < p.callablePrograms.size(), "DC program index is out of bounds");
+            p.callablePrograms[index].destroy();
+        }
     }
 
 

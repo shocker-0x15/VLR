@@ -145,18 +145,11 @@ namespace vlr {
 
     // static
     void TriangleMeshSurfaceNode::initialize(Context &context) {
-        optixu::Pipeline optixPipeline = context.getOptixPipeline();
-
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/triangle.ptx");
-        programSet.optixModule = optixPipeline.createModuleFromPTXString(
-            ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
         programSet.dcDecodeHitPointForTriangle = context.createDirectCallableProgram(
-            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForTriangle"));
+            OptiXModule_Triangle, RT_DC_NAME_STR("decodeHitPointForTriangle"));
         programSet.dcSampleTriangleMesh = context.createDirectCallableProgram(
-            programSet.optixModule, RT_DC_NAME_STR("sampleTriangleMesh"));
+            OptiXModule_Triangle, RT_DC_NAME_STR("sampleTriangleMesh"));
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -329,18 +322,11 @@ namespace vlr {
 
     // static
     void InfiniteSphereSurfaceNode::initialize(Context &context) {
-        optixu::Pipeline optixPipeline = context.getOptixPipeline();
-
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere.ptx");
-        programSet.optixModule = optixPipeline.createModuleFromPTXString(
-            ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
         programSet.dcDecodeHitPointForInfiniteSphere = context.createDirectCallableProgram(
-            programSet.optixModule, RT_DC_NAME_STR("decodeHitPointForInfiniteSphere"));
+            OptiXModule_InfiniteSphere, RT_DC_NAME_STR("decodeHitPointForInfiniteSphere"));
         programSet.dcSampleInfiniteSphere = context.createDirectCallableProgram(
-            programSet.optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"));
+            OptiXModule_InfiniteSphere, RT_DC_NAME_STR("sampleInfiniteSphere"));
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -418,7 +404,7 @@ namespace vlr {
         optixu::GeometryAccelerationStructure optixGas = optixScene.createGeometryAccelerationStructure();
         optixGas.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false, false);
         optixGas.setNumMaterialSets(1);
-        optixGas.setNumRayTypes(0, shared::RayType::NumTypes);
+        optixGas.setNumRayTypes(0, shared::MaxNumRayTypes);
         m_shGeomGroup = new SHGeometryGroup(optixGas);
         m_shTransforms.at(nullptr)->setChild(m_shGeomGroup);
     }
@@ -1024,16 +1010,9 @@ namespace vlr {
 
     // static
     void Scene::initialize(Context &context) {
-        optixu::Pipeline optixPipeline = context.getOptixPipeline();
-
         OptiXProgramSet programSet;
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/infinite_sphere.ptx");
-        programSet.optixModule = optixPipeline.createModuleFromPTXString(
-            ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
         programSet.dcSampleInfiniteSphere = context.createDirectCallableProgram(
-            programSet.optixModule, RT_DC_NAME_STR("sampleInfiniteSphere"));
+            OptiXModule_InfiniteSphere, RT_DC_NAME_STR("sampleInfiniteSphere"));
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1134,14 +1113,12 @@ namespace vlr {
 
 
 
-    std::map<uint32_t, optixu::Module> Camera::s_optixModules;
-
     // static
     void Camera::commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet) {
-        optixu::Module optixModule = s_optixModules.at(context.getID());
-
-        programSet->dcSampleLensPosition = context.createDirectCallableProgram(optixModule, identifiers[0]);
-        programSet->dcSampleIDF = context.createDirectCallableProgram(optixModule, identifiers[1]);
+        programSet->dcSampleLensPosition = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[0]);
+        programSet->dcSampleIDF = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[1]);
     }
 
     // static
@@ -1154,14 +1131,6 @@ namespace vlr {
     
     // static
     void Camera::initialize(Context &context) {
-        optixu::Pipeline optixPipeline = context.getOptixPipeline();
-
-        std::string ptx = readTxtFile(getExecutableDirectory() / "ptxes/cameras.ptx");
-        s_optixModules[context.getID()] = optixPipeline.createModuleFromPTXString(
-            ptx, OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-
         PerspectiveCamera::initialize(context);
         EquirectangularCamera::initialize(context);
     }
@@ -1170,8 +1139,6 @@ namespace vlr {
     void Camera::finalize(Context &context) {
         EquirectangularCamera::finalize(context);
         PerspectiveCamera::finalize(context);
-
-        s_optixModules[context.getID()].destroy();
     }
 
 

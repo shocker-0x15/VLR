@@ -67,7 +67,6 @@ namespace vlr {
 
         uint32_t m_matIndex;
 
-        static optixu::Module s_optixModule;
         static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
         static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc);

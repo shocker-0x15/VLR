@@ -155,6 +155,7 @@
     <ClInclude Include="ext\include\KHR\khrplatform.h" />
     <ClInclude Include="GPU_kernels\kernel_common.cuh" />
     <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
+    <ClInclude Include="GPU_kernels\renderer_common.cuh" />
     <ClInclude Include="image.h" />
     <ClInclude Include="include\vlr\basic_types.h" />
     <ClInclude Include="include\vlr\common.h" />

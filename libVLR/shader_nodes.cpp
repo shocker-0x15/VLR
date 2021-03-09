@@ -15,8 +15,6 @@ namespace vlr {
 
 
 
-    optixu::Module ShaderNode::s_optixModule;
-
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
         shared::NodeProcedureSet nodeProcSet;
@@ -25,7 +23,7 @@ namespace vlr {
         for (int i = 0; i < numPairs; ++i) {
             uint32_t ptype = static_cast<uint32_t>(pairs[i].ptype);
             programSet->callablePrograms[ptype] = context.createDirectCallableProgram(
-                s_optixModule, pairs[i].programName);
+                OptiXModule_ShaderNode, pairs[i].programName);
             nodeProcSet.progs[ptype] = programSet->callablePrograms[ptype];
         }
 
@@ -56,13 +54,6 @@ namespace vlr {
 
     // static
     void ShaderNode::initialize(Context &context) {
-        optixu::Pipeline pipeline = context.getOptixPipeline();
-        s_optixModule = pipeline.createModuleFromPTXString(
-            readTxtFile(getExecutableDirectory() / "ptxes/shader_nodes.ptx"),
-            OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-            VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-
         GeometryShaderNode::initialize(context);
         TangentShaderNode::initialize(context);
         Float2ShaderNode::initialize(context);
@@ -93,8 +84,6 @@ namespace vlr {
         Float2ShaderNode::finalize(context);
         TangentShaderNode::finalize(context);
         GeometryShaderNode::finalize(context);
-
-        s_optixModule.destroy();
     }
 
     ShaderNode::ShaderNode(Context &context, size_t sizeOfNode) : Queryable(context) {

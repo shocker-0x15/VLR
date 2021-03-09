@@ -1,4 +1,4 @@
-﻿#include "light_transport_common.cuh"
+﻿#include "renderer_common.cuh"
 
 namespace vlr {
     struct DebugRenderingPayload {
@@ -209,7 +209,7 @@ namespace vlr {
         optixu::trace<DebugPayloadSignature>(
             plp.topGroup, asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
             0xFF, OPTIX_RAY_FLAG_NONE,
-            RayType::DebugPrimary, RayType::NumTypes, RayType::DebugPrimary,
+            DebugRayType::Primary, MaxNumRayTypes, DebugRayType::Primary,
             payloadPtr);
 
         plp.rngBuffer[launchIndex] = payload.rng;

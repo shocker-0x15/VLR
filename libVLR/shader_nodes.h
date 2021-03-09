@@ -75,7 +75,6 @@ namespace vlr {
             ShaderNodePlugType ptype;
             const char* programName;
         };
-        static optixu::Module s_optixModule;
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 

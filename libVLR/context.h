@@ -75,6 +75,18 @@ namespace vlr {
 
 
 
+    enum OptiXModule {
+        OptiXModule_LightTransport = 0,
+        OptiXModule_ShaderNode,
+        OptiXModule_Material,
+        OptiXModule_Triangle,
+        OptiXModule_InfiniteSphere,
+        OptiXModule_Camera,
+        NumOptiXModules,
+    };
+
+
+
     class Context {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
@@ -84,7 +96,7 @@ namespace vlr {
         uint32_t m_ID;
         CUcontext m_cuContext;
 
-        struct {
+        struct OptiX {
             SlotBuffer<shared::NodeProcedureSet> nodeProcedureSetBuffer;
 
             SlotBuffer<shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
@@ -98,26 +110,44 @@ namespace vlr {
 
             optixu::Context context;
 
-            optixu::Pipeline pipeline;
+            optixu::Material materialDefault;
+            optixu::Material materialWithAlpha;
 
-            optixu::Module pathTracingModule;
-            optixu::ProgramGroup pathTracingRayGeneration;
-            optixu::ProgramGroup pathTracingMiss;
-            optixu::ProgramGroup pathTracingShadowMiss;
-            optixu::ProgramGroup pathTracingHitGroupDefault;
-            optixu::ProgramGroup pathTracingHitGroupWithAlpha;
-            optixu::ProgramGroup pathTracingHitGroupShadowDefault;
-            optixu::ProgramGroup pathTracingHitGroupShadowWithAlpha;
+            struct PathTracing {
+                optixu::Pipeline pipeline;
 
-            optixu::Module debugRenderingModule;
-            optixu::ProgramGroup debugRenderingRayGeneration;
-            optixu::ProgramGroup debugRenderingMiss;
-            optixu::ProgramGroup debugRenderingHitGroupDefault;
-            optixu::ProgramGroup debugRenderingHitGroupWithAlpha;
+                std::vector<optixu::Module> modules;
 
-            std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::ProgramGroup rayGeneration;
+                optixu::ProgramGroup miss;
+                optixu::ProgramGroup shadowMiss;
+                optixu::ProgramGroup hitGroupDefault;
+                optixu::ProgramGroup hitGroupWithAlpha;
+                optixu::ProgramGroup hitGroupShadowDefault;
+                optixu::ProgramGroup hitGroupShadowWithAlpha;
+                optixu::ProgramGroup emptyHitGroup;
+                std::vector<optixu::ProgramGroup> callablePrograms;
 
-            optixu::Module nullDFModule;
+                cudau::Buffer shaderBindingTable;
+                cudau::Buffer hitGroupShaderBindingTable;
+            } pathTracing;
+
+            struct DebugRendering {
+                optixu::Pipeline pipeline;
+
+                std::vector<optixu::Module> modules;
+
+                optixu::ProgramGroup rayGeneration;
+                optixu::ProgramGroup miss;
+                optixu::ProgramGroup hitGroupDefault;
+                optixu::ProgramGroup hitGroupWithAlpha;
+                optixu::ProgramGroup emptyHitGroup;
+                std::vector<optixu::ProgramGroup> callablePrograms;
+
+                cudau::Buffer shaderBindingTable;
+                cudau::Buffer hitGroupShaderBindingTable;
+            } debugRendering;
+
             uint32_t dcNullBSDF_setupBSDF;
             uint32_t dcNullBSDF_getBaseColor;
             uint32_t dcNullBSDF_matches;
@@ -130,9 +160,6 @@ namespace vlr {
             uint32_t dcNullEDF_evaluateEmittanceInternal;
             uint32_t dcNullEDF_evaluateInternal;
             uint32_t nullEDFProcedureSetIndex;
-
-            optixu::Material materialDefault;
-            optixu::Material materialWithAlpha;
 
             optixu::Scene scene;
             SlotBuffer<shared::GeometryInstance> geomInstBuffer;
@@ -167,9 +194,6 @@ namespace vlr {
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
             optixu::HostBlockBuffer2D<shared::KernelRNG, 2> rngBuffer;
-
-            cudau::Buffer shaderBindingTable;
-            cudau::Buffer hitGroupShaderBindingTable;
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;
@@ -209,9 +233,6 @@ namespace vlr {
         optixu::Context getOptiXContext() const {
             return m_optix.context;
         }
-        optixu::Pipeline getOptixPipeline() const {
-            return m_optix.pipeline;
-        }
 
         optixu::Material getOptiXMaterialDefault() const {
             return m_optix.materialDefault;
@@ -224,7 +245,7 @@ namespace vlr {
             return m_optix.scene;
         }
 
-        uint32_t createDirectCallableProgram(optixu::Module dcModule, const char* dcName);
+        uint32_t createDirectCallableProgram(OptiXModule mdl, const char* dcName);
         void destroyDirectCallableProgram(uint32_t index);
 
         uint32_t allocateNodeProcedureSet();

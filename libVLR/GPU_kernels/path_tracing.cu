@@ -80,7 +80,7 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (M.hasNonZero() &&
-                testVisibility(surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
+                testVisibility<PTRayType>(surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
@@ -246,7 +246,7 @@ namespace vlr {
             optixu::trace<PayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 0xFF, OPTIX_RAY_FLAG_NONE,
-                RayType::Closest, RayType::NumTypes, RayType::Closest,
+                PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,
                 roPayloadPtr, woPayloadPtr, rwPayloadPtr, exPayloadPtr);
             if (roPayload.pathLength == 1) {
                 uint32_t linearIndex = launchIndex.y * plp.imageStrideInPixels + launchIndex.x;

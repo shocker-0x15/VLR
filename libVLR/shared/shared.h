@@ -550,16 +550,26 @@ namespace vlr {
 
 
 
-        struct RayType {
+        struct PTRayType {
             enum Value {
                 Closest = 0,
                 Shadow,
-                DebugPrimary,
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr RayType(Value v = Closest) : value(v) {}
+            CUDA_DEVICE_FUNCTION constexpr PTRayType(Value v = Closest) : value(v) {}
         };
+
+        struct DebugRayType {
+            enum Value {
+                Primary,
+                NumTypes
+            } value;
+
+            CUDA_DEVICE_FUNCTION constexpr DebugRayType(Value v = Primary) : value(v) {}
+        };
+
+        static constexpr uint32_t MaxNumRayTypes = 2;
 
 
 

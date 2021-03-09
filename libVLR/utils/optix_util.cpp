@@ -2366,6 +2366,17 @@ namespace optixu {
         return (new _ProgramGroup(m, group))->getPublicType();
     }
 
+    ProgramGroup Pipeline::createEmptyHitProgramGroup() const {
+        OptixProgramGroupDesc desc = {};
+
+        OptixProgramGroupOptions options = {};
+
+        OptixProgramGroup group;
+        m->createProgram(desc, options, &group);
+
+        return (new _ProgramGroup(m, group))->getPublicType();
+    }
+
     ProgramGroup Pipeline::createCallableProgramGroup(Module module_DC, const char* entryFunctionNameDC,
                                                       Module module_CC, const char* entryFunctionNameCC) const {
         _Module* _module_DC = extract(module_DC);
