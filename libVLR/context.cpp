@@ -756,7 +756,7 @@ namespace vlr {
         CUstream stream = 0;
 
         optixu::Pipeline pipeline;
-        if (debugRender)
+        if (debugRender && !denoise)
             pipeline = m_optix.debugRendering.pipeline;
         else
             pipeline = m_optix.pathTracing.pipeline;
@@ -773,10 +773,12 @@ namespace vlr {
             m_numAccumFrames = 0;
         }
 
+        auto debugAttr = static_cast<shared::DebugRenderingAttribute>(renderMode);
+
         ++m_numAccumFrames;
         *numAccumFrames = m_numAccumFrames;
         m_optix.launchParams.numAccumFrames = m_numAccumFrames;
-        m_optix.launchParams.debugRenderingAttribute = static_cast<shared::DebugRenderingAttribute>(renderMode);
+        m_optix.launchParams.debugRenderingAttribute = debugAttr;
 
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
@@ -806,7 +808,10 @@ namespace vlr {
         m_convertToRGB(stream, m_convertToRGB.calcGridDim(imageSize.x, imageSize.y),
                        m_optix.accumBuffer.getBlockBuffer2D(),
                        m_optix.linearDenoisedColorBuffer.getDevicePointer(),
-                       denoise, imageSize, imageStrideInPixels, m_numAccumFrames,
+                       m_optix.linearAlbedoBuffer.getDevicePointer(),
+                       m_optix.linearNormalBuffer.getDevicePointer(),
+                       denoise, debugRender, debugAttr,
+                       imageSize, imageStrideInPixels, m_numAccumFrames,
                        m_optix.outputBufferHolder.getNext());
         m_optix.outputBufferHolder.endCUDAAccess(stream);
 
@@ -820,7 +825,10 @@ namespace vlr {
 
     void Context::debugRender(const Camera* camera, VLRDebugRenderingMode renderMode,
                               uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        render(camera, false, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
+        bool enableDenoiser =
+            renderMode == VLRDebugRenderingMode_DenoiserAlbedo ||
+            renderMode == VLRDebugRenderingMode_DenoiserNormal;
+        render(camera, enableDenoiser, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
 

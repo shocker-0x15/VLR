@@ -73,10 +73,15 @@ namespace vlr {
     struct SampledSpectrumTemplate {
         RealType values[NumSpectralSamples];
 
-        static_assert(NumSpectralSamples == 4, "Code assumes NumSpectralSamples == 4.");
         CUDA_DEVICE_FUNCTION SampledSpectrumTemplate() {}
-        CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate(RealType v) : values{ v, v, v, v } {}
-        CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate(const RealType* vals) : values{ vals[0], vals[1], vals[2], vals[3] } {}
+        CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate(RealType v) {
+            for (int i = 0; i < NumSpectralSamples; ++i)
+                values[i] = v;
+        }
+        CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate(const RealType* vals) {
+            for (int i = 0; i < NumSpectralSamples; ++i)
+                values[i] = vals[i];
+        }
 
 
 
@@ -471,7 +476,7 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION constexpr DiscretizedSpectrumTemplate(const WavelengthSamplesTemplate<RealType, N> &wls,
                                                                    const SampledSpectrumTemplate<RealType, N> &val) {
             const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
-            for (int i = 0; i < N; ++i)
+            for (int i = 0; i < NumStrataForStorage; ++i)
                 values[i] = 0.0f;
             for (int i = 0; i < N; ++i) {
                 uint32_t sBin = vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);

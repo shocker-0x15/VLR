@@ -583,6 +583,8 @@ namespace vlr {
             GeometricVsShadingNormal,
             ShadingFrameLengths,
             ShadingFrameOrthogonality,
+            DenoiserAlbedo,
+            DenoiserNormal,
             NumAttributes
         };
 

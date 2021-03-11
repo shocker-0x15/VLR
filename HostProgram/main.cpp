@@ -347,6 +347,8 @@ class HostProgram {
             "GeometricVsShadingNormal",
             "ShadingFrameLengths",
             "ShadingFrameOrthogonality",
+            "DenoiserAlbedo",
+            "DenoiserNormal",
         };
         bool rendererChanged = ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
         if (rendererChanged)

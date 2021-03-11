@@ -130,7 +130,13 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_MS_NAME(pathTracingMiss)() {
         ReadOnlyPayload* roPayload;
         ReadWritePayload* rwPayload;
-        optixu::getPayloads<PayloadSignature>(&roPayload, nullptr, &rwPayload, nullptr);
+        ExtraPayload* exPayload;
+        optixu::getPayloads<PayloadSignature>(&roPayload, nullptr, &rwPayload, &exPayload);
+
+        if (exPayload) {
+            exPayload->firstHitAlbedo = SampledSpectrum::Zero();
+            exPayload->firstHitNormal = Normal3D(0.0f, 0.0f, 0.0f);
+        }
 
         const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
         const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
@@ -256,7 +262,7 @@ namespace vlr {
                     accumAlbedo = DiscretizedSpectrum::Zero();
                     accumNormal = Normal3D(0.0f, 0.0f, 0.0f);
                 }
-                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo);
+                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo / selectWLPDF);
                 accumNormal += exPayload.firstHitNormal;
                 exPayloadPtr = nullptr;
             }

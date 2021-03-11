@@ -53,7 +53,10 @@ namespace vlr {
 
     CUDA_DEVICE_KERNEL void convertToRGB(const optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer,
                                          const float4* linearDenoisedColorBuffer,
-                                         bool useDenoiser, uint2 imageSize, uint32_t imageStrideInWidth, uint32_t numAccumFrames,
+                                         const float4* linearAlbedoBuffer,
+                                         const float4* linearNormalBuffer,
+                                         bool useDenoiser, bool debugRender, DebugRenderingAttribute debugAttr,
+                                         uint2 imageSize, uint32_t imageStrideInWidth, uint32_t numAccumFrames,
                                          optixu::NativeBlockBuffer2D<float4> outputBuffer) {
         uint2 launchIndex = make_uint2(blockDim.x * blockIdx.x + threadIdx.x,
                                        blockDim.y * blockIdx.y + threadIdx.y);
@@ -63,7 +66,24 @@ namespace vlr {
         float RGB[3];
         if (useDenoiser) {
             uint32_t linearIndex = launchIndex.y * imageStrideInWidth + launchIndex.x;
-            float4 value = linearDenoisedColorBuffer[linearIndex];
+            float4 value;
+            if (debugRender) {
+                switch (debugAttr) {
+                case DebugRenderingAttribute::DenoiserAlbedo:
+                    value = linearAlbedoBuffer[linearIndex];
+                    break;
+                case DebugRenderingAttribute::DenoiserNormal:
+                    value = linearNormalBuffer[linearIndex];
+                    value = make_float4(0.5f * value.x + 0.5f,
+                                        0.5f * value.y + 0.5f,
+                                        0.5f * value.z + 0.5f,
+                                        value.w);
+                    break;
+                }
+            }
+            else {
+                value = linearDenoisedColorBuffer[linearIndex];
+            }
             RGB[0] = value.x;
             RGB[1] = value.y;
             RGB[2] = value.z;

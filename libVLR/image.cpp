@@ -654,6 +654,36 @@ namespace vlr {
         VLRAssert(dataFormat < DataFormat::BC1 || dataFormat > DataFormat::BC7, "Specified data format is a block compressed format.");
         m_data.resize(getStride() * getWidth() * getHeight());
 
+        //{
+        //    /*
+        //    - sRGB D65の表示環境を想定。
+        //    - D65光源のレンダリング結果は(1, 1, 1)のように等しいRGB値になるべき。
+        //    - (1, 1, 1)のような等しいRGB反射率を持った物体をD65光源で照らした場合の結果は
+        //      (1, 1, 1)のように等しいRGB値になるべき。
+        //    */
+
+        //    float reflectanceRGB[3] = { 1, 1, 1 };
+        //    float reflectanceXYZ[3];
+        //    transformTristimulus(mat_Rec709_E_to_XYZ, reflectanceRGB, reflectanceXYZ);
+
+        //    float b = reflectanceXYZ[0] + reflectanceXYZ[1] + reflectanceXYZ[2];
+        //    float xy[2];
+        //    xy[0] = b > 0.0f ? reflectanceXYZ[0] / b : (1.0f / 3.0f);
+        //    xy[1] = b > 0.0f ? reflectanceXYZ[1] / b : (1.0f / 3.0f);
+
+        //    float uv[2];
+        //    UpsampledSpectrum::xy_to_uv(xy, uv);
+        //    float s = b / UpsampledSpectrum::EqualEnergyReflectance();
+
+        //    UpsampledSpectrum ups(uv[0], uv[1], s);
+        //    float wlPDF;
+
+        //    // JP: RGBで等しい反射率はフラットなスペクトラムの反射率になる。
+        //    WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(0.5f, 0, &wlPDF);
+        //    SampledSpectrum val = ups.evaluate(wls);
+        //    printf("");
+        //}
+
         switch (dataFormat) {
         case DataFormat::RGB8x3: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)

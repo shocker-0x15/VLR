@@ -120,7 +120,9 @@ namespace vlr {
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
             auto progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
 
-            payload->value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf));
+            TripletSpectrum lightSource = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
+                                                                1, 1, 1);
+            payload->value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf)) * lightSource.evaluate(wls);
         }
         else {
             payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);

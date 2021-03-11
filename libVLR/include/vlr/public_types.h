@@ -44,6 +44,8 @@ enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_GeometricVsShadingNormal,
     VLRDebugRenderingMode_ShadingFrameLengths,
     VLRDebugRenderingMode_ShadingFrameOrthogonality,
+    VLRDebugRenderingMode_DenoiserAlbedo,
+    VLRDebugRenderingMode_DenoiserNormal,
 };
 
 #if !defined(__cplusplus)
