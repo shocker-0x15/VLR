@@ -262,7 +262,9 @@ namespace vlr {
                     accumAlbedo = DiscretizedSpectrum::Zero();
                     accumNormal = Normal3D(0.0f, 0.0f, 0.0f);
                 }
-                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo / selectWLPDF);
+                TripletSpectrum whitePoint = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
+                                                                   1, 1, 1);
+                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo * whitePoint.evaluate(wls) / selectWLPDF);
                 accumNormal += exPayload.firstHitNormal;
                 exPayloadPtr = nullptr;
             }

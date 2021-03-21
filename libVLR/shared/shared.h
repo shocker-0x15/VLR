@@ -105,6 +105,8 @@ namespace vlr {
             break;
         }
 
+        // JP: ここの変換で内部的に使っている色空間がRec.709の場合は、
+        //     Rec.709のRGB入力に対しては入力値に戻しているだけになるが、ここでRec.2020などを使うこともできる。
         float RGB[3];
         transformToRenderingRGB(spectrumType, XYZ, RGB);
         return RGBSpectrum(RGB[0], RGB[1], RGB[2]);
