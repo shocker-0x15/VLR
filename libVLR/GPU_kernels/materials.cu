@@ -137,7 +137,7 @@ namespace vlr {
     public:
         CUDA_DEVICE_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
             m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {
-            vlr::sincos(rotation, &m_sinRt, &m_cosRt);
+            ::vlr::sincos(rotation, &m_sinRt, &m_cosRt);
         }
 
         CUDA_DEVICE_FUNCTION float evaluate(const Normal3D &m) {
@@ -200,7 +200,7 @@ namespace vlr {
             float r = std::sqrt(u0);
             float phi = VLR_M_PI * ((u1 < a) ? u1 / a : 1 + (u1 - a) / (1.0f - a));
             float sinPhi, cosPhi;
-            vlr::sincos(phi, &sinPhi, &cosPhi);
+            ::vlr::sincos(phi, &sinPhi, &cosPhi);
             float P1 = r * cosPhi;
             float P2 = r * sinPhi * ((u1 < a) ? 1.0f : sv.z);
 
@@ -764,7 +764,7 @@ namespace vlr {
         float mPDF;
         float D = ggx.sample(dirV, uDir[0], uDir[1], &m, &mPDF);
         float dotHV = dot(dirV, m);
-        if (dotHV <= 0 || vlr::isnan(D)) {
+        if (dotHV <= 0 || ::vlr::isnan(D)) {
             result->dirPDF = 0.0f;
             return SampledSpectrum::Zero();
         }

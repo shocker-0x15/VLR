@@ -92,7 +92,7 @@ namespace vlr {
                 float bsdfPDF = bsdf.evaluatePDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
 
                 float MISWeight = 1.0f;
-                if (!lpResult.posType.isDelta() && !vlr::isinf(lightPDF))
+                if (!lpResult.posType.isDelta() && !::vlr::isinf(lightPDF))
                     MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
@@ -149,7 +149,7 @@ namespace vlr {
         direction.toPolarYUp(&theta, &phi);
 
         float sinPhi, cosPhi;
-        vlr::sincos(phi, &sinPhi, &cosPhi);
+        ::vlr::sincos(phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
@@ -166,7 +166,7 @@ namespace vlr {
         surfPt.u = phi;
         surfPt.v = theta;
         phi += inst.rotationPhi;
-        phi = phi - vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        phi = phi - ::vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
         VLRAssert(vlr::isfinite(phi) && vlr::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);

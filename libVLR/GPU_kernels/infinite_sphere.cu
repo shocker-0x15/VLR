@@ -16,7 +16,7 @@ namespace vlr {
         const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         Vector3D direction = Vector3D::fromPolarYUp(param.phi, param.theta);
         float sinPhi, cosPhi;
-        vlr::sincos(param.phi, &sinPhi, &cosPhi);
+        ::vlr::sincos(param.phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = Vector3D(-cosPhi, 0.0f, -sinPhi);
 
         surfPt->position = Point3D(direction.x, direction.y, direction.z);
@@ -46,13 +46,13 @@ namespace vlr {
         float theta = VLR_M_PI * v;
 
         float posPhi = phi - inst.rotationPhi;
-        posPhi = posPhi - vlr::floor(posPhi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        posPhi = posPhi - ::vlr::floor(posPhi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
 
         Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
         Point3D position = Point3D(direction.x, direction.y, direction.z);
 
         float sinPhi, cosPhi;
-        vlr::sincos(posPhi, &sinPhi, &cosPhi);
+        ::vlr::sincos(posPhi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
 
         Normal3D geometricNormal = -static_cast<Vector3D>(position);

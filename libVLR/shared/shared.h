@@ -261,7 +261,7 @@ namespace vlr {
             }
             CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType smp) const {
                 VLRAssert(smp >= 0 && smp < 1.0, "\"smp\": %g is out of range [0, 1).", smp);
-                int32_t idx = vlr::min<int32_t>(m_numValues - 1, smp * m_numValues);
+                int32_t idx = ::vlr::min<int32_t>(m_numValues - 1, smp * m_numValues);
                 return m_PDF[idx];
             }
             CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
@@ -288,12 +288,12 @@ namespace vlr {
             CUDA_DEVICE_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
                 *d1 = m_top1DDist.sample(u1, &topPDF);
-                uint32_t idx1D = vlr::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
+                uint32_t idx1D = ::vlr::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
                 *d0 = m_1DDists[idx1D].sample(u0, probDensity);
                 *probDensity *= topPDF;
             }
             CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
-                uint32_t idx1D = vlr::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
+                uint32_t idx1D = ::vlr::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
                 return m_top1DDist.evaluatePDF(d1) * m_1DDists[idx1D].evaluatePDF(d0);
             }
         };
@@ -964,9 +964,14 @@ namespace vlr {
                 vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
             }
         };
-        static_assert(sizeof(PipelineLaunchParameters) == 536 &&
-                      alignof(PipelineLaunchParameters) == 8,
-                      "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
+        static_assert(
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+            sizeof(PipelineLaunchParameters) == 536 &&
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            sizeof(PipelineLaunchParameters) == 544 &&
+#endif
+            alignof(PipelineLaunchParameters) == 8,
+            "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;

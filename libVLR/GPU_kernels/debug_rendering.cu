@@ -42,8 +42,8 @@ namespace vlr {
             break;
         case DebugRenderingAttribute::TextureCoordinates:
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                          surfPt.texCoord.u - vlr::floor(surfPt.texCoord.u),
-                                          surfPt.texCoord.v - vlr::floor(surfPt.texCoord.v),
+                                          surfPt.texCoord.u - ::vlr::floor(surfPt.texCoord.u),
+                                          surfPt.texCoord.v - ::vlr::floor(surfPt.texCoord.v),
                                           0.0f);
             break;
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
@@ -141,14 +141,14 @@ namespace vlr {
         WavelengthSamples &wls = payload->wls;
 
         const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
-        const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
+        //const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
 
         Vector3D direction = asVector3D(optixGetWorldRayDirection());
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
         float sinPhi, cosPhi;
-        vlr::sincos(phi, &sinPhi, &cosPhi);
+        ::vlr::sincos(phi, &sinPhi, &cosPhi);
         Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
         ReferenceFrame shadingFrame;
         shadingFrame.x = texCoord0Dir;
@@ -165,7 +165,7 @@ namespace vlr {
         surfPt.u = phi;
         surfPt.v = theta;
         phi += inst.rotationPhi;
-        phi = phi - vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+        phi = phi - ::vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {

@@ -106,7 +106,7 @@ namespace vlr {
 
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T clamp(const T v, const T minv, const T maxv) {
-        return vlr::min(vlr::max(v, minv), maxv);
+        return ::vlr::min(::vlr::max(v, minv), maxv);
     }
 
     template <typename T>

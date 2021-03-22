@@ -188,7 +188,7 @@ namespace vlr {
         float projLength = std::sqrt(modNormalInTF.x * modNormalInTF.x + modNormalInTF.y * modNormalInTF.y);
         float tiltAngle = std::atan(projLength / modNormalInTF.z);
         float qSin, qCos;
-        vlr::sincos(tiltAngle / 2, &qSin, &qCos);
+        ::vlr::sincos(tiltAngle / 2, &qSin, &qCos);
         float qX = (-modNormalInTF.y / projLength) * qSin;
         float qY = (modNormalInTF.x / projLength) * qSin;
         float qW = qCos;
@@ -220,7 +220,7 @@ namespace vlr {
         float tangentAngle = std::atan2(ly, lx);
 
         float s, c;
-        vlr::sincos(tangentAngle, &s, &c);
+        ::vlr::sincos(tangentAngle, &s, &c);
         Vector3D modTangentInTF = Vector3D(c, s, 0);
         Vector3D modBitangentInTF = Vector3D(-s, c, 0);
 

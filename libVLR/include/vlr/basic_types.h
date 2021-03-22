@@ -65,15 +65,15 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION static Vector3DTemplate fromPolarZUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            vlr::sincos(phi, &sinPhi, &cosPhi);
-            vlr::sincos(theta, &sinTheta, &cosTheta);
+            ::vlr::sincos(phi, &sinPhi, &cosPhi);
+            ::vlr::sincos(theta, &sinTheta, &cosTheta);
             return Vector3DTemplate(cosPhi * sinTheta, sinPhi * sinTheta, cosTheta);
         }
         CUDA_DEVICE_FUNCTION static Vector3DTemplate fromPolarYUp(RealType phi, RealType theta) {
             RealType sinPhi, cosPhi;
             RealType sinTheta, cosTheta;
-            vlr::sincos(phi, &sinPhi, &cosPhi);
-            vlr::sincos(theta, &sinTheta, &cosTheta);
+            ::vlr::sincos(phi, &sinPhi, &cosPhi);
+            ::vlr::sincos(theta, &sinTheta, &cosTheta);
             return Vector3DTemplate(-sinPhi * sinTheta, cosTheta, cosPhi * sinTheta);
         }
         CUDA_DEVICE_FUNCTION void toPolarZUp(RealType* theta, RealType* phi) const {
