@@ -480,9 +480,9 @@ namespace vlr {
 
     template <typename ColorSpaceFunc>
     void perPixelFunc(const RGBA16Fx4 &srcData, RGBA16Fx4 &dstData) {
-        dstData.r = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.r));
-        dstData.g = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.g));
-        dstData.b = (half)ColorSpaceFunc::degamma(static_cast<float>(srcData.b));
+        dstData.r = static_cast<half>(ColorSpaceFunc::degamma(static_cast<float>(srcData.r)));
+        dstData.g = static_cast<half>(ColorSpaceFunc::degamma(static_cast<float>(srcData.g)));
+        dstData.b = static_cast<half>(ColorSpaceFunc::degamma(static_cast<float>(srcData.b)));
         dstData.a = srcData.a;
     }
 
@@ -533,9 +533,9 @@ namespace vlr {
         float uv[2];
         UpsampledSpectrum::xy_to_uv(xy, uv);
 
-        dstData.u = (uint8_t)(255 * clamp<float>(uv[0] / UpsampledSpectrum::GridWidth(), 0, 1));
-        dstData.v = (uint8_t)(255 * clamp<float>(uv[1] / UpsampledSpectrum::GridHeight(), 0, 1));
-        dstData.s = (uint8_t)(255 * clamp<float>(b / 3.0f, 0, 1));
+        dstData.u = static_cast<uint8_t>(255 * clamp<float>(uv[0] / UpsampledSpectrum::GridWidth(), 0, 1));
+        dstData.v = static_cast<uint8_t>(255 * clamp<float>(uv[1] / UpsampledSpectrum::GridHeight(), 0, 1));
+        dstData.s = static_cast<uint8_t>(255 * clamp<float>(b / 3.0f, 0, 1));
     }
 
     template <typename ColorSpaceFunc>
@@ -648,6 +648,29 @@ namespace vlr {
     void LinearImage2D::finalize(Context &context) {
     }
 
+    template <typename SrcType, typename DstType, typename DstTypeForNA>
+    static inline void processAllPixels(const uint8_t* srcData, uint8_t* dstData,
+                                        SpectrumType spectrumType, ColorSpace colorSpace, uint32_t width, uint32_t height) {
+        if (spectrumType != SpectrumType::NA) {
+            if (spectrumType == SpectrumType::Reflectance ||
+                spectrumType == SpectrumType::IndexOfRefraction) {
+                if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                    processAllPixels<SrcType, DstType, sRGB_E_ColorSpaceFunc<true>>(srcData, dstData, width, height);
+                else
+                    processAllPixels<SrcType, DstType, sRGB_E_ColorSpaceFunc<false>>(srcData, dstData, width, height);
+            }
+            else {
+                if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
+                    processAllPixels<SrcType, DstType, sRGB_D65_ColorSpaceFunc<true>>(srcData, dstData, width, height);
+                else
+                    processAllPixels<SrcType, DstType, sRGB_D65_ColorSpaceFunc<false>>(srcData, dstData, width, height);
+            }
+        }
+        else {
+            processAllPixels<SrcType, DstTypeForNA, sRGB_E_ColorSpaceFunc<false>>(srcData, dstData, width, height);
+        }
+    }
+
     LinearImage2D::LinearImage2D(Context &context, const uint8_t* linearData, uint32_t width, uint32_t height,
                                  DataFormat dataFormat, SpectrumType spectrumType, ColorSpace colorSpace) :
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
@@ -687,24 +710,7 @@ namespace vlr {
         switch (dataFormat) {
         case DataFormat::RGB8x3: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != SpectrumType::NA) {
-                if (spectrumType == SpectrumType::Reflectance ||
-                    spectrumType == SpectrumType::IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB8x3, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-                else {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB8x3, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB8x3, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-            }
-            else {
-                processAllPixels<RGB8x3, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-            }
+            processAllPixels<RGB8x3, uvsA8x4, RGBA8x4>(linearData, m_data.data(), spectrumType, colorSpace, width, height);
 #else
             processAllPixels<RGB8x3, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
 #endif
@@ -712,24 +718,7 @@ namespace vlr {
         }
         case DataFormat::RGB_8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != SpectrumType::NA) {
-                if (spectrumType == SpectrumType::Reflectance ||
-                    spectrumType == SpectrumType::IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-                else {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGB_8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-            }
-            else {
-                processAllPixels<RGB_8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-            }
+            processAllPixels<RGB_8x4, uvsA8x4, RGBA8x4>(linearData, m_data.data(), spectrumType, colorSpace, width, height);
 #else
             processAllPixels<RGB_8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
 #endif
@@ -737,24 +726,7 @@ namespace vlr {
         }
         case DataFormat::RGBA8x4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != SpectrumType::NA) {
-                if (spectrumType == SpectrumType::Reflectance ||
-                    spectrumType == SpectrumType::IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-                else {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGBA8x4, uvsA8x4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-            }
-            else {
-                processAllPixels<RGBA8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-            }
+            processAllPixels<RGBA8x4, uvsA8x4, RGBA8x4>(linearData, m_data.data(), spectrumType, colorSpace, width, height);
 #else
             processAllPixels<RGBA8x4, RGBA8x4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
 #endif
@@ -762,27 +734,7 @@ namespace vlr {
         }
         case DataFormat::RGBA16Fx4: {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
-            if (spectrumType != SpectrumType::NA) {
-                if (spectrumType == SpectrumType::Reflectance ||
-                    spectrumType == SpectrumType::IndexOfRefraction) {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-                else {
-                    if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_D65_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                    else
-                        processAllPixels<RGBA16Fx4, uvsA16Fx4, sRGB_D65_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-                }
-            }
-            else {
-                if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
-                    processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
-                else
-                    processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<false>>(linearData, m_data.data(), width, height);
-            }
+            processAllPixels<RGBA16Fx4, uvsA16Fx4, RGBA16Fx4>(linearData, m_data.data(), spectrumType, colorSpace, width, height);
 #else
             if (colorSpace == ColorSpace::Rec709_D65_sRGBGamma)
                 processAllPixels<RGBA16Fx4, RGBA16Fx4, sRGB_E_ColorSpaceFunc<true>>(linearData, m_data.data(), width, height);
@@ -829,7 +781,7 @@ namespace vlr {
         }
         case DataFormat::uvsA8x4:
         case DataFormat::uvsA16Fx4:
-            std::copy(linearData, linearData + getStride() * width * height, (uint8_t*)m_data.data());
+            std::copy(linearData, linearData + getStride() * width * height, reinterpret_cast<uint8_t*>(m_data.data()));
             break;
         default:
             VLRAssert(false, "Data format is invalid.");

@@ -58,7 +58,7 @@ namespace vlr {
             WavelengthSamplesTemplate wls;
             for (int i = 0; i < NumSpectralSamples; ++i)
                 wls.lambdas[i] = WavelengthLowBound + (WavelengthHighBound - WavelengthLowBound) * (i + offset) / NumSpectralSamples;
-            wls._selectedLambdaIndex = vlr::min<uint16_t>(NumSpectralSamples * uLambda, NumSpectralSamples - 1);
+            wls._selectedLambdaIndex = ::vlr::min<uint16_t>(NumSpectralSamples * uLambda, NumSpectralSamples - 1);
             wls._singleIsSelected = false;
             *PDF = NumSpectralSamples / (WavelengthHighBound - WavelengthLowBound);
             return wls;
@@ -223,13 +223,13 @@ namespace vlr {
         }
         CUDA_DEVICE_FUNCTION bool hasNaN() const {
             for (int i = 0; i < NumSpectralSamples; ++i)
-                if (vlr::isnan(values[i]))
+                if (::vlr::isnan(values[i]))
                     return true;
             return false;
         }
         CUDA_DEVICE_FUNCTION bool hasInf() const {
             for (int i = 0; i < NumSpectralSamples; ++i)
-                if (vlr::isinf(values[i]))
+                if (::vlr::isinf(values[i]))
                     return true;
             return false;
         }
@@ -336,9 +336,11 @@ namespace vlr {
         }
         CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(uint32_t adjIndices, uint16_t s, uint16_t t, RealType scale) :
         m_adjIndices(adjIndices), m_s((RealType)s / (UINT16_MAX - 1)), m_t((RealType)t / (UINT16_MAX - 1)), m_scale(scale) {}
+        CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        CUDA_DEVICE_FUNCTION UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 #endif
         CUDA_DEVICE_FUNCTION UpsampledSpectrumTemplate() {}
-        CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 
         CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples> evaluate(const WavelengthSamplesTemplate<RealType, NumSpectralSamples> &wls) const;
 
@@ -400,7 +402,7 @@ namespace vlr {
                 - static_cast<RealType>(0.006895157122499944);
         }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-        static const uint32_t kTableResolution = 64;
+        static constexpr uint32_t kTableResolution = 64;
 #   if defined(VLR_Host)
         static float maxBrightnesses[kTableResolution];
         static PolynomialCoefficients coefficients_sRGB_D65[3 * pow3(kTableResolution)];
@@ -417,6 +419,7 @@ namespace vlr {
                       static_cast<float>(m_t) / (UINT16_MAX - 1),
                       m_scale);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            vlrprintf("%g, %g, %g\n", m_c[0], m_c[1], m_c[2]);
 #endif
         }
     };
@@ -479,7 +482,7 @@ namespace vlr {
             for (int i = 0; i < NumStrataForStorage; ++i)
                 values[i] = 0.0f;
             for (int i = 0; i < N; ++i) {
-                uint32_t sBin = vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                uint32_t sBin = ::vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
                 values[sBin] += val[i] * recBinWidth;
             }
         }
@@ -653,7 +656,7 @@ namespace vlr {
             const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
             ValueType addend(0.0);
             for (int i = 0; i < N; ++i) {
-                uint32_t sBin = vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                uint32_t sBin = ::vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
                 addend[sBin] += val[i] * recBinWidth;
             }
             value += addend;

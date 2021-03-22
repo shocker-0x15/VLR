@@ -1,6 +1,12 @@
 ﻿#include "spectrum_types.h"
 
 namespace vlr {
+#if defined(VLR_Device) && SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+#   define maxBrightnesses plp.UpsampledSpectrum_maxBrightnesses
+#   define coefficients_sRGB_D65 plp.UpsampledSpectrum_coefficients_sRGB_D65
+#   define coefficients_sRGB_E plp.UpsampledSpectrum_coefficients_sRGB_E
+#endif
+
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
     CUDA_DEVICE_FUNCTION void UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
@@ -93,7 +99,11 @@ namespace vlr {
             maxComp = 2;
         maxValue += 1e-10f;
         RealType nTriplet[3] = { e0 / maxValue, e1 / maxValue, e2 / maxValue };
-        RealType coords[3] = { std::fmax(maxBrightnesses[0], maxValue), nTriplet[(maxComp + 2) % 3], nTriplet[(maxComp + 1) % 3] };
+        RealType coords[3] = {
+            std::fmax(maxBrightnesses[0], maxValue),
+            nTriplet[(maxComp + 2) % 3],
+            nTriplet[(maxComp + 1) % 3]
+        };
 
         uint32_t idx = 0;
         for (int d = prevPowerOf2(kTableResolution - 1); d > 0; d >>= 1) {
@@ -105,9 +115,9 @@ namespace vlr {
         RealType fBaseYIdx = (kTableResolution - 1) * coords[1];
         RealType fBaseXIdx = (kTableResolution - 1) * coords[2];
 
-        uint32_t baseBIdx = std::min<uint32_t>(kTableResolution - 2, idx);
-        uint32_t baseYIdx = std::min<uint32_t>(kTableResolution - 2, fBaseYIdx);
-        uint32_t baseXIdx = std::min<uint32_t>(kTableResolution - 2, fBaseXIdx);
+        uint32_t baseBIdx = ::vlr::min<uint32_t>(kTableResolution - 2, idx);
+        uint32_t baseYIdx = ::vlr::min<uint32_t>(kTableResolution - 2, fBaseYIdx);
+        uint32_t baseXIdx = ::vlr::min<uint32_t>(kTableResolution - 2, fBaseXIdx);
 
         RealType brightnessL = maxBrightnesses[baseBIdx];
         RealType brightnessU = maxBrightnesses[baseBIdx + 1];
@@ -147,10 +157,10 @@ namespace vlr {
     }
 #endif
 
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
     template <typename RealType, uint32_t NumSpectralSamples>
     CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
         UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
-#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
         RealType xy[2];
         RealType brightness;
         switch (space) {
@@ -213,7 +223,11 @@ namespace vlr {
         VLRAssert(vlr::isfinite(uv[0]) && vlr::isfinite(uv[1]) && vlr::isfinite(m_scale), "Invalid value.");
 
         computeAdjacents(uv[0], uv[1]);
+    }
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+    template <typename RealType, uint32_t NumSpectralSamples>
+    CUDA_DEVICE_FUNCTION UpsampledSpectrumTemplate<RealType, NumSpectralSamples>::
+        UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2) {
         switch (space) {
         case ColorSpace::Rec709_D65_sRGBGamma: {
             e0 = sRGB_degamma(e0);
@@ -223,29 +237,14 @@ namespace vlr {
         }
         case ColorSpace::Rec709_D65: {
             switch (spType) {
-            case SpectrumType::Reflectance: {
-#   if defined(VLR_Host)
-                interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
-#   else
-                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_D65));
-#   endif
-                break;
-            }
+            case SpectrumType::Reflectance:
             case SpectrumType::IndexOfRefraction:
             case SpectrumType::NA: {
-#   if defined(VLR_Host)
                 interpolateCoefficients(e0, e1, e2, coefficients_sRGB_D65);
-#   else
-                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_D65));
-#   endif
                 break;
             }
             case SpectrumType::LightSource: {
-#   if defined(VLR_Host)
                 interpolateCoefficients(e0, e1, e2, coefficients_sRGB_E);
-#   else
-                interpolateCoefficients(e0, e1, e2, rtBufferId<PolynomialCoefficients, 1>(UpsampledSpectrum_coefficients_sRGB_E));
-#   endif
                 break;
             }
             default:
@@ -266,8 +265,8 @@ namespace vlr {
             VLRAssert_ShouldNotBeCalled();
             break;
         }
-#endif
     }
+#endif
 
     template <typename RealType, uint32_t NumSpectralSamples>
     CUDA_DEVICE_FUNCTION SampledSpectrumTemplate<RealType, NumSpectralSamples>
@@ -327,12 +326,18 @@ namespace vlr {
                 return a * b + c;
             };
             RealType x = fmad(fmad(m_c[0], wls[i], m_c[1]), wls[i], m_c[2]);
-            ret[i] = fmad(static_cast<RealType>(0.5) * x, 1 / std::sqrt(fmad(x, x, 1)), (RealType)0.5);
+            ret[i] = fmad(static_cast<RealType>(0.5) * x, 1 / std::sqrt(fmad(x, x, 1)), static_cast<RealType>(0.5));
         }
 
         return ret;
 #endif
     }
+
+#if defined(VLR_Device) && SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+#   undef coefficients_sRGB_E
+#   undef coefficients_sRGB_D65
+#   undef maxBrightnesses
+#endif
 
 #if defined(VLR_Host)
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
@@ -352,7 +357,7 @@ namespace vlr {
 #   if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
 #   elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
         const auto readUpsamplingTable = [](const char* filename, PolynomialCoefficients* coefficients) {
-            const filesystem::path tableDir = getExecutableDirectory() / "spectral_upsampling_table/";
+            const std::filesystem::path tableDir = getExecutableDirectory() / "spectral_upsampling_table/";
             std::ifstream ifs;
             ifs.open(tableDir / filename, std::ios::in | std::ios::binary);
             VLRAssert(!ifs.fail(), "failed to open the upsampling table.");
