@@ -441,11 +441,17 @@ namespace cudau {
             Buffer::initialize(context, type, numElements, sizeof(T));
         }
         TypedBuffer(CUcontext context, BufferType type, uint32_t numElements, const T &value) {
+            std::vector<T> values(numElements, value);
+            Buffer::initialize(context, type, values.size(), sizeof(T));
+            CUDADRV_CHECK(cuMemcpyHtoD(Buffer::getCUdeviceptr(), values.data(), values.size() * sizeof(T)));
+        }
+        TypedBuffer(CUcontext context, BufferType type, const T* v, uint32_t numElements) {
             Buffer::initialize(context, type, numElements, sizeof(T));
-            T* values = (T*)map();
-            for (int i = 0; i < numElements; ++i)
-                values[i] = value;
-            unmap();
+            CUDADRV_CHECK(cuMemcpyHtoD(Buffer::getCUdeviceptr(), v, numElements * sizeof(T)));
+        }
+        TypedBuffer(CUcontext context, BufferType type, const std::vector<T> &v) {
+            Buffer::initialize(context, type, static_cast<uint32_t>(v.size()), sizeof(T));
+            CUDADRV_CHECK(cuMemcpyHtoD(Buffer::getCUdeviceptr(), v.data(), v.size() * sizeof(T)));
         }
 
         void initialize(CUcontext context, BufferType type, uint32_t numElements) {
@@ -470,6 +476,11 @@ namespace cudau {
 
         void resize(int32_t numElements, CUstream stream = 0) {
             Buffer::resize(numElements, sizeof(T), stream);
+        }
+        void resize(int32_t numElements, const T &value, CUstream stream = 0) {
+            std::vector<T> values(numElements, value);
+            Buffer::resize(numElements, sizeof(T), stream);
+            CUDADRV_CHECK(cuMemcpyHtoDAsync(Buffer::getCUdeviceptr(), values.data(), values.size() * sizeof(T), stream));
         }
 
         T* getDevicePointer() const {

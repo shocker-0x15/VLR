@@ -1444,6 +1444,21 @@ namespace vlr {
         auto &p = *reinterpret_cast<MultiBSDF*>(params);
         auto &mat = *reinterpret_cast<const MultiSurfaceMaterial*>(matDesc);
 
+        /*
+        MultiBSDF
+        ---- <-- MultiBSDF::bsdf0
+        ProcedureSetIndex0
+        Data0
+        ---- <-- MultiBSDF::bsdf1
+        ProcedureSetIndex1
+        Data1
+        ---- <-- MultiBSDF::bsdf2
+        ProcedureSetIndex2
+        Data2
+        ---- <-- MultiBSDF::bsdf3
+        ProcedureSetIndex3
+        Data3
+        */
         uint32_t baseIndex = sizeof(MultiBSDF) / 4;
         uint32_t bsdfOffsets[4] = { 0, 0, 0, 0 };
         for (int i = 0; i < mat.numSubMaterials; ++i) {

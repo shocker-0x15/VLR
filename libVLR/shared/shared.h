@@ -194,12 +194,11 @@ namespace vlr {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = 0;
                 for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
+                    if (idx + d >= m_numValues)
+                        continue;
                     if (m_CDF[idx + d] <= u)
                         idx += d;
-                    if (idx + 1 >= m_numValues)
-                        break;
                 }
-                idx = min<int32_t>(m_numValues - 1, idx);
                 VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 return idx;
@@ -208,12 +207,11 @@ namespace vlr {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = 0;
                 for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
+                    if (idx + d >= m_numValues)
+                        continue;
                     if (m_CDF[idx + d] <= u)
                         idx += d;
-                    if (idx + 1 >= m_numValues)
-                        break;
                 }
-                idx = min<int32_t>(m_numValues - 1, idx);
                 VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *prob = m_PMF[idx];
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
@@ -246,14 +244,14 @@ namespace vlr {
             CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
 
             CUDA_DEVICE_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
-                VLRAssert(u < 1, "\"u\": %g must be in range [0, 1).", u);
-                int idx = m_numValues;
-                for (int d = prevPowerOf2(m_numValues); d > 0; d >>= 1) {
-                    int newIdx = idx - d;
-                    if (newIdx > 0 && m_CDF[newIdx] > u)
-                        idx = newIdx;
+                VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
+                int idx = 0;
+                for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
+                    if (idx + d >= m_numValues)
+                        continue;
+                    if (m_CDF[idx + d] <= u)
+                        idx += d;
                 }
-                --idx;
                 VLRAssert(idx >= 0 && idx < m_numValues, "Invalid Index!: %d", idx);
                 *probDensity = m_PDF[idx];
                 RealType t = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);

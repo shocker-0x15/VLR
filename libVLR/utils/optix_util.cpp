@@ -82,8 +82,8 @@ namespace optixu {
         return (new _Pipeline(m))->getPublicType();
     }
 
-    Denoiser Context::createDenoiser(OptixDenoiserInputKind inputKind) const {
-        return (new _Denoiser(m, inputKind))->getPublicType();
+    Denoiser Context::createDenoiser(OptixDenoiserModelKind modelKind, bool guideAlbedo, bool guideNormal) const {
+        return (new _Denoiser(m, modelKind, guideAlbedo, guideNormal))->getPublicType();
     }
 
     CUcontext Context::getCUcontext() const {
@@ -1002,9 +1002,10 @@ namespace optixu {
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
         else if (m->tradeoff == ASTradeoff::PreferFastBuild)
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_BUILD;
-        m->buildOptions.buildFlags |= ((m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
-                                       (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0) |
-                                       (m->allowRandomVertexAccess ? OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS : 0));
+        m->buildOptions.buildFlags |=
+            (m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0)
+            | (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0)
+            | (m->allowRandomVertexAccess ? OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS : 0);
 
         uint32_t numBuildInputs = static_cast<uint32_t>(m->buildInputs.size());
         if (numBuildInputs > 0)
@@ -1784,7 +1785,10 @@ namespace optixu {
         m = nullptr;
     }
 
-    void InstanceAccelerationStructure::setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction) const {
+    void InstanceAccelerationStructure::setConfiguration(ASTradeoff tradeoff,
+                                                         bool allowUpdate,
+                                                         bool allowCompaction,
+                                                         bool allowRandomInstanceAccess) const {
         bool changed = false;
         changed |= m->tradeoff != tradeoff;
         m->tradeoff = tradeoff;
@@ -1792,6 +1796,8 @@ namespace optixu {
         m->allowUpdate = allowUpdate;
         changed |= m->allowCompaction != allowCompaction;
         m->allowCompaction = allowCompaction;
+        changed |= m->allowRandomInstanceAccess != allowRandomInstanceAccess;
+        m->allowRandomInstanceAccess = allowRandomInstanceAccess;
 
         if (changed)
             m->markDirty(false);
@@ -1858,8 +1864,10 @@ namespace optixu {
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
         else if (m->tradeoff == ASTradeoff::PreferFastBuild)
             m->buildOptions.buildFlags |= OPTIX_BUILD_FLAG_PREFER_FAST_BUILD;
-        m->buildOptions.buildFlags |= ((m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0) |
-                                       (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0));
+        m->buildOptions.buildFlags |= 
+            (m->allowUpdate ? OPTIX_BUILD_FLAG_ALLOW_UPDATE : 0)
+            | (m->allowCompaction ? OPTIX_BUILD_FLAG_ALLOW_COMPACTION : 0)
+            | (m->allowRandomInstanceAccess ? OPTIX_BUILD_FLAG_ALLOW_RANDOM_INSTANCE_ACCESS : 0);
 
         OPTIX_CHECK(optixAccelComputeMemoryUsage(m->getRawContext(), &m->buildOptions,
                                                  &m->buildInput, 1,
@@ -2593,29 +2601,119 @@ namespace optixu {
 
 
 
+    void Denoiser::Priv::invoke(CUstream stream,
+                                bool denoiseAlpha, CUdeviceptr hdrIntensity, CUdeviceptr hdrAverageColor, float blendFactor,
+                                const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                                const BufferView* noisyAovs, OptixPixelFormat* aovFormats, uint32_t numAovs,
+                                const BufferView &albedo, OptixPixelFormat albedoFormat,
+                                const BufferView &normal, OptixPixelFormat normalFormat,
+                                const BufferView &flow, OptixPixelFormat flowFormat,
+                                const BufferView &previousDenoisedBeauty,
+                                const BufferView* previousDenoisedAovs,
+                                const BufferView &denoisedBeauty,
+                                const BufferView* denoisedAovs,
+                                const DenoisingTask &task) const {
+        throwRuntimeError(stateIsReady, "You need to call setupState() before invoke.");
+        throwRuntimeError(noisyBeauty.isValid(), "Input noisy beauty buffer must be provided.");
+        throwRuntimeError(denoisedBeauty.isValid(), "Denoised beauty buffer must be provided.");
+        throwRuntimeError(numAovs == 0 || (noisyAovs && denoisedAovs), "Both of noisy/denoised AOV buffers must be provided.");
+        for (int i = 0; i < numAovs; ++i) {
+            throwRuntimeError(noisyAovs[i].isValid() && denoisedAovs[i].isValid(),
+                              "Either of AOV %u input/output buffer is invalid.", i);
+        }
+        if (guideAlbedo)
+            throwRuntimeError(albedo.isValid(), "Denoiser requires albedo buffer.");
+        if (guideNormal)
+            throwRuntimeError(normal.isValid(), "Denoiser requires normal buffer.");
+        if (modelKind == OPTIX_DENOISER_MODEL_KIND_TEMPORAL)
+            throwRuntimeError(flow.isValid() && previousDenoisedBeauty.isValid(),
+                              "Denoiser requires flow buffer and the previous denoised beauty buffer.");
+        OptixDenoiserParams params = {};
+        params.denoiseAlpha = denoiseAlpha;
+        params.hdrIntensity = hdrIntensity;
+        params.hdrAverageColor = hdrAverageColor;
+        params.blendFactor = blendFactor;
+
+        _DenoisingTask _task(task);
+
+        const auto setupInputLayer = [&]
+        (OptixPixelFormat format, CUdeviceptr baseAddress, OptixImage2D* layer) {
+            uint32_t pixelStride = getPixelSize(format);
+            *layer = {};
+            layer->rowStrideInBytes = imageWidth * pixelStride;
+            layer->pixelStrideInBytes = pixelStride;
+            uint32_t addressOffset = _task.inputOffsetY * layer->rowStrideInBytes + _task.inputOffsetX * pixelStride;
+            layer->data = baseAddress + addressOffset;
+            layer->width = maxInputWidth;
+            layer->height = maxInputHeight;
+            layer->format = format;
+        };
+        const auto setupOutputLayer = [&]
+        (OptixPixelFormat format, CUdeviceptr baseAddress, OptixImage2D* layer) {
+            uint32_t pixelStride = getPixelSize(format);
+            *layer = {};
+            layer->rowStrideInBytes = imageWidth * pixelStride;
+            layer->pixelStrideInBytes = pixelStride;
+            uint32_t addressOffset = _task.outputOffsetY * layer->rowStrideInBytes + _task.outputOffsetX * pixelStride;
+            layer->data = baseAddress + addressOffset;
+            layer->width = _task.outputWidth;
+            layer->height = _task.outputHeight;
+            layer->format = format;
+        };
+
+        // TODO: 入出力画像のrowStrideを指定できるようにする。
+
+        OptixDenoiserGuideLayer guideLayer = {};
+        if (guideAlbedo)
+            setupInputLayer(albedoFormat, albedo.getCUdeviceptr(), &guideLayer.albedo);
+        if (guideNormal)
+            setupInputLayer(normalFormat, normal.getCUdeviceptr(), &guideLayer.normal);
+        if (modelKind == OPTIX_DENOISER_MODEL_KIND_TEMPORAL)
+            setupInputLayer(flowFormat, flow.getCUdeviceptr(), &guideLayer.flow);
+
+        struct LayerInfo {
+            BufferView input;
+            BufferView output;
+            BufferView previousOuput;
+            OptixPixelFormat format;
+        };
+        std::vector<LayerInfo> layerInfos(1 + numAovs);
+        layerInfos[0] = LayerInfo{ noisyBeauty, denoisedBeauty, previousDenoisedBeauty, beautyFormat };
+        for (int i = 0; i < numAovs; ++i)
+            layerInfos[i + 1] = LayerInfo{ noisyAovs[i], denoisedAovs[i], previousDenoisedAovs[i], aovFormats[i] };
+
+        std::vector<OptixDenoiserLayer> denoiserLayers(1 + numAovs);
+        for (int layerIdx = 0; layerIdx < 1 + numAovs; ++layerIdx) {
+            const LayerInfo &layerInfo = layerInfos[layerIdx];
+            OptixDenoiserLayer &denoiserLayer = denoiserLayers[layerIdx];
+            std::memset(&denoiserLayer, 0, sizeof(denoiserLayer));
+
+            setupInputLayer(layerInfo.format, layerInfo.input.getCUdeviceptr(), &denoiserLayer.input);
+            if (modelKind == OPTIX_DENOISER_MODEL_KIND_TEMPORAL)
+                setupOutputLayer(layerInfo.format, layerInfo.previousOuput.getCUdeviceptr(), &denoiserLayer.previousOutput);
+            setupOutputLayer(layerInfo.format, layerInfo.output.getCUdeviceptr(), &denoiserLayer.output);
+        }
+
+        int32_t offsetX = _task.outputOffsetX - _task.inputOffsetX;
+        int32_t offsetY = _task.outputOffsetY - _task.inputOffsetY;
+        OPTIX_CHECK(optixDenoiserInvoke(rawDenoiser, stream,
+                                        &params,
+                                        stateBuffer.getCUdeviceptr(), stateBuffer.sizeInBytes(),
+                                        &guideLayer,
+                                        denoiserLayers.data(), 1 + numAovs,
+                                        offsetX, offsetY,
+                                        scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes()));
+    }
+
     void Denoiser::destroy() {
         if (m)
             delete m;
         m = nullptr;
     }
 
-    void Denoiser::setModel(OptixDenoiserModelKind kind, void* data, size_t sizeInBytes) const {
-        m->throwRuntimeError((kind != OPTIX_DENOISER_MODEL_KIND_USER) != (data != nullptr),
-                             "When a user model is used, data must be provided, otherwise data must be null.");
-        m->throwRuntimeError(kind != OPTIX_DENOISER_MODEL_KIND_AOV,
-                             "OPTIX_DENOISER_MODEL_KIND_AOV is currently not supported.");
-        OPTIX_CHECK(optixDenoiserSetModel(m->rawDenoiser, kind, data, sizeInBytes));
-
-        m->stateIsReady = false;
-        m->imageSizeSet = false;
-
-        m->modelSet = true;
-    }
-
     void Denoiser::prepare(uint32_t imageWidth, uint32_t imageHeight, uint32_t tileWidth, uint32_t tileHeight,
                            size_t* stateBufferSize, size_t* scratchBufferSize, size_t* scratchBufferSizeForComputeIntensity,
                            uint32_t* numTasks) const {
-        m->throwRuntimeError(m->modelSet, "Model has not been set.");
         m->throwRuntimeError(tileWidth <= imageWidth && tileHeight <= imageHeight,
                              "Tile width/height must be equal to or smaller than the image size.");
 
@@ -2635,7 +2733,10 @@ namespace optixu {
         m->stateSize = sizes.stateSizeInBytes;
         m->scratchSize = m->useTiling ?
             sizes.withOverlapScratchSizeInBytes : sizes.withoutOverlapScratchSizeInBytes;
-        m->scratchSizeForComputeIntensity = sizeof(int32_t) * (2 + m->imageWidth * m->imageHeight);
+        if (m->modelKind == OPTIX_DENOISER_MODEL_KIND_AOV)
+            m->scratchSizeForComputeAverageColor = sizeof(int32_t) * (3 + 3 * m->imageWidth * m->imageHeight);
+        else
+            m->scratchSizeForComputeIntensity = sizeof(int32_t) * (2 + m->imageWidth * m->imageHeight);
         m->overlapWidth = sizes.overlapWindowSizeInPixels;
         m->maxInputWidth = std::min(tileWidth + 2 * m->overlapWidth, imageWidth);
         m->maxInputHeight = std::min(tileHeight + 2 * m->overlapWidth, imageHeight);
@@ -2709,26 +2810,6 @@ namespace optixu {
         }
     }
 
-    void Denoiser::setLayers(const BufferView &color, const BufferView &albedo, const BufferView &normal, const BufferView &denoisedColor,
-                             OptixPixelFormat colorFormat, OptixPixelFormat albedoFormat, OptixPixelFormat normalFormat) const {
-        m->throwRuntimeError(m->imageSizeSet, "Call prepare() before this function.");
-        m->throwRuntimeError(color.isValid(), "Input color buffer must be set.");
-        if (m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO || m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL)
-            m->throwRuntimeError(albedo.isValid(), "Denoiser requires albedo buffer.");
-        if (m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL)
-            m->throwRuntimeError(normal.isValid(), "Denoiser requires normal buffer.");
-
-        m->colorBuffer = color;
-        m->albedoBuffer = albedo;
-        m->normalBuffer = normal;
-        m->outputBuffer = denoisedColor;
-        m->colorFormat = colorFormat;
-        m->albedoFormat = albedoFormat;
-        m->normalFormat = normalFormat;
-
-        m->imageLayersSet = true;
-    }
-
     void Denoiser::setupState(CUstream stream, const BufferView &stateBuffer, const BufferView &scratchBuffer) const {
         m->throwRuntimeError(m->imageSizeSet, "Call setImageSizes() before this function.");
         m->throwRuntimeError(stateBuffer.sizeInBytes() >= m->stateSize,
@@ -2747,84 +2828,84 @@ namespace optixu {
         m->stateIsReady = true;
     }
 
-    void Denoiser::computeIntensity(CUstream stream, const BufferView &scratchBuffer, CUdeviceptr outputIntensity) const {
-        m->throwRuntimeError(m->imageLayersSet, "You need to set image layers and formats before invoke.");
+    void Denoiser::computeIntensity(CUstream stream,
+                                    const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                                    const BufferView &scratchBuffer, CUdeviceptr outputIntensity) const {
         m->throwRuntimeError(scratchBuffer.sizeInBytes() >= m->scratchSizeForComputeIntensity,
                              "Size of the given scratch buffer is not enough.");
 
         OptixImage2D colorLayer = {};
-        colorLayer.data = m->colorBuffer.getCUdeviceptr();
+        colorLayer.data = noisyBeauty.getCUdeviceptr();
         colorLayer.width = m->imageWidth;
         colorLayer.height = m->imageHeight;
-        colorLayer.format = m->colorFormat;
-        colorLayer.pixelStrideInBytes = getPixelSize(m->colorFormat);
+        colorLayer.format = beautyFormat;
+        colorLayer.pixelStrideInBytes = getPixelSize(beautyFormat);
         colorLayer.rowStrideInBytes = colorLayer.pixelStrideInBytes * m->imageWidth;
 
-        OPTIX_CHECK(optixDenoiserComputeIntensity(m->rawDenoiser, stream,
-                                                  &colorLayer, outputIntensity,
-                                                  scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes()));
+        OPTIX_CHECK(optixDenoiserComputeIntensity(
+            m->rawDenoiser, stream,
+            &colorLayer, outputIntensity,
+            scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes()));
     }
 
-    void Denoiser::invoke(CUstream stream, bool denoiseAlpha, CUdeviceptr hdrIntensity, float blendFactor,
+    void Denoiser::computeAverageColor(CUstream stream,
+                                       const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                                       const BufferView &scratchBuffer, CUdeviceptr outputAverageColor) const {
+        m->throwRuntimeError(scratchBuffer.sizeInBytes() >= m->scratchSizeForComputeAverageColor,
+                             "Size of the given scratch buffer is not enough.");
+
+        OptixImage2D colorLayer = {};
+        colorLayer.data = noisyBeauty.getCUdeviceptr();
+        colorLayer.width = m->imageWidth;
+        colorLayer.height = m->imageHeight;
+        colorLayer.format = beautyFormat;
+        colorLayer.pixelStrideInBytes = getPixelSize(beautyFormat);
+        colorLayer.rowStrideInBytes = colorLayer.pixelStrideInBytes * m->imageWidth;
+
+        OPTIX_CHECK(optixDenoiserComputeAverageColor(
+            m->rawDenoiser, stream,
+            &colorLayer, outputAverageColor,
+            scratchBuffer.getCUdeviceptr(), scratchBuffer.sizeInBytes()));
+    }
+
+    void Denoiser::invoke(CUstream stream,
+                          bool denoiseAlpha, CUdeviceptr hdrIntensity, float blendFactor,
+                          const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                          const BufferView &albedo, OptixPixelFormat albedoFormat,
+                          const BufferView &normal, OptixPixelFormat normalFormat,
+                          const BufferView &flow, OptixPixelFormat flowFormat,
+                          const BufferView &previousDenoisedBeauty,
+                          const BufferView &denoisedBeauty,
                           const DenoisingTask &task) const {
-        m->throwRuntimeError(m->stateIsReady, "You need to call setupState() before invoke.");
-        m->throwRuntimeError(m->imageLayersSet, "You need to set image layers and formats before invoke.");
-        OptixDenoiserParams params = {};
-        params.denoiseAlpha = denoiseAlpha;
-        params.hdrIntensity = hdrIntensity;
-        params.blendFactor = blendFactor;
+        m->invoke(stream,
+                  denoiseAlpha, hdrIntensity, 0, blendFactor,
+                  noisyBeauty, beautyFormat, nullptr, nullptr, 0,
+                  albedo, albedoFormat,
+                  normal, normalFormat,
+                  flow, flowFormat,
+                  previousDenoisedBeauty, nullptr,
+                  denoisedBeauty, nullptr,
+                  task);
+    }
 
-        _DenoisingTask _task(task);
-
-        uint32_t numInputLayers = 0;
-
-        const auto setupInputLayer = [&]
-        (OptixPixelFormat format, CUdeviceptr baseAddress, OptixImage2D* layer) {
-            uint32_t pixelStride = getPixelSize(format);
-            *layer = {};
-            layer->rowStrideInBytes = m->imageWidth * pixelStride;
-            layer->pixelStrideInBytes = pixelStride;
-            uint32_t addressOffset = _task.inputOffsetY * layer->rowStrideInBytes + _task.inputOffsetX * pixelStride;
-            layer->data = baseAddress + addressOffset;
-            layer->width = m->maxInputWidth;
-            layer->height = m->maxInputHeight;
-            layer->format = format;
-
-            ++numInputLayers;
-        };
-
-        // TODO: 入出力画像のrowStrideを指定できるようにする。
-
-        OptixImage2D denoiserInputs[3];
-        setupInputLayer(m->colorFormat, m->colorBuffer.getCUdeviceptr(), &denoiserInputs[0]);
-        if (m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO ||
-            m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL)
-            setupInputLayer(m->albedoFormat, m->albedoBuffer.getCUdeviceptr(), &denoiserInputs[1]);
-        if (m->inputKind == OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL)
-            setupInputLayer(m->normalFormat, m->normalBuffer.getCUdeviceptr(), &denoiserInputs[2]);
-
-        OptixImage2D denoiserOutput = {};
-        {
-            OptixImage2D &layer = denoiserOutput;
-            OptixPixelFormat format = m->colorFormat;
-            uint32_t pixelStride = getPixelSize(format);
-            layer.rowStrideInBytes = m->imageWidth * pixelStride;
-            layer.pixelStrideInBytes = pixelStride;
-            uint32_t addressOffset = _task.outputOffsetY * layer.rowStrideInBytes + _task.outputOffsetX * pixelStride;
-            layer.data = m->outputBuffer.getCUdeviceptr() + addressOffset;
-            layer.width = _task.outputWidth;
-            layer.height = _task.outputHeight;
-            layer.format = format;
-        }
-
-        int32_t offsetX = _task.outputOffsetX - _task.inputOffsetX;
-        int32_t offsetY = _task.outputOffsetY - _task.inputOffsetY;
-        OPTIX_CHECK(optixDenoiserInvoke(m->rawDenoiser, stream,
-                                        &params,
-                                        m->stateBuffer.getCUdeviceptr(), m->stateBuffer.sizeInBytes(),
-                                        denoiserInputs, numInputLayers,
-                                        offsetX, offsetY,
-                                        &denoiserOutput,
-                                        m->scratchBuffer.getCUdeviceptr(), m->scratchBuffer.sizeInBytes()));
+    void Denoiser::invoke(CUstream stream,
+                          bool denoiseAlpha, CUdeviceptr hdrAverageColor, float blendFactor,
+                          const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                          const BufferView* noisyAovs, OptixPixelFormat* aovFormats, uint32_t numAovs,
+                          const BufferView &albedo, OptixPixelFormat albedoFormat,
+                          const BufferView &normal, OptixPixelFormat normalFormat,
+                          /*const BufferView &flow, OptixPixelFormat flowFormat,
+                          const BufferView &previousDenoisedBeauty, const BufferView* previousDenoisedAovs,*/
+                          const BufferView &denoisedBeauty, const BufferView* denoisedAovs,
+                          const DenoisingTask &task) const {
+        m->invoke(stream,
+                  denoiseAlpha, 0, hdrAverageColor, blendFactor,
+                  noisyBeauty, beautyFormat, noisyAovs, aovFormats, numAovs,
+                  albedo, albedoFormat,
+                  normal, normalFormat,
+                  BufferView(), OPTIX_PIXEL_FORMAT_FLOAT4,/*flow, flowFormat,*/
+                  BufferView(), nullptr,/*previousDenoisedBeauty, previousDenoisedAovs,*/
+                  denoisedBeauty, denoisedAovs,
+                  task);
     }
 }

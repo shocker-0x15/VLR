@@ -871,6 +871,7 @@ namespace optixu {
         struct {
             unsigned int allowUpdate : 1;
             unsigned int allowCompaction : 1;
+            unsigned int allowRandomInstanceAccess : 1;
             unsigned int readyToBuild : 1;
             unsigned int available : 1;
             unsigned int readyToCompact : 1;
@@ -884,7 +885,7 @@ namespace optixu {
             scene(_scene),
             handle(0), compactedHandle(0),
             tradeoff(ASTradeoff::Default),
-            allowUpdate(false), allowCompaction(false),
+            allowUpdate(false), allowCompaction(false), allowRandomInstanceAccess(false),
             readyToBuild(false), available(false),
             readyToCompact(false), compactedAvailable(false) {
             scene->addIAS(this);
@@ -1072,10 +1073,14 @@ namespace optixu {
 
     static inline uint32_t getPixelSize(OptixPixelFormat format) {
         switch (format) {
+        case OPTIX_PIXEL_FORMAT_HALF2:
+            return 2 * sizeof(uint16_t);
         case OPTIX_PIXEL_FORMAT_HALF3:
             return 3 * sizeof(uint16_t);
         case OPTIX_PIXEL_FORMAT_HALF4:
             return 4 * sizeof(uint16_t);
+        case OPTIX_PIXEL_FORMAT_FLOAT2:
+            return 2 * sizeof(float);
         case OPTIX_PIXEL_FORMAT_FLOAT3:
             return 3 * sizeof(float);
         case OPTIX_PIXEL_FORMAT_FLOAT4:
@@ -1116,7 +1121,7 @@ namespace optixu {
     class Denoiser::Priv {
         _Context* context;
         OptixDenoiser rawDenoiser;
-        OptixDenoiserInputKind inputKind;
+        OptixDenoiserModelKind modelKind;
 
         uint32_t imageWidth;
         uint32_t imageHeight;
@@ -1128,37 +1133,47 @@ namespace optixu {
         size_t stateSize;
         size_t scratchSize;
         size_t scratchSizeForComputeIntensity;
+        size_t scratchSizeForComputeAverageColor;
 
         BufferView stateBuffer;
         BufferView scratchBuffer;
-        BufferView colorBuffer;
-        BufferView albedoBuffer;
-        BufferView normalBuffer;
-        BufferView outputBuffer;
-        OptixPixelFormat colorFormat;
-        OptixPixelFormat albedoFormat;
-        OptixPixelFormat normalFormat;
         struct {
-            unsigned int modelSet : 1;
+            unsigned int guideAlbedo : 1;
+            unsigned int guideNormal : 1;
+
             unsigned int useTiling : 1;
             unsigned int imageSizeSet : 1;
-            unsigned int imageLayersSet : 1;
             unsigned int stateIsReady : 1;
         };
+
+        void invoke(CUstream stream,
+                    bool denoiseAlpha, CUdeviceptr hdrIntensity, CUdeviceptr hdrAverageColor, float blendFactor,
+                    const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                    const BufferView* noisyAovs, OptixPixelFormat* aovFormats, uint32_t numAovs,
+                    const BufferView &albedo, OptixPixelFormat albedoFormat,
+                    const BufferView &normal, OptixPixelFormat normalFormat,
+                    const BufferView &flow, OptixPixelFormat flowFormat,
+                    const BufferView &previousDenoisedBeauty,
+                    const BufferView* previousDenoisedAovs,
+                    const BufferView &denoisedBeauty,
+                    const BufferView* denoisedAovs,
+                    const DenoisingTask &task) const;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(Denoiser);
 
-        Priv(_Context* ctxt, OptixDenoiserInputKind _inputKind) :
+        Priv(_Context* ctxt, OptixDenoiserModelKind _modelKind, bool _guideAlbedo, bool _guideNormal) :
             context(ctxt),
-            inputKind(_inputKind),
             imageWidth(0), imageHeight(0), tileWidth(0), tileHeight(0),
             overlapWidth(0), maxInputWidth(0), maxInputHeight(0),
-            stateSize(0), scratchSize(0), scratchSizeForComputeIntensity(0),
-            modelSet(false), useTiling(false), imageSizeSet(false), imageLayersSet(false), stateIsReady(false) {
+            stateSize(0), scratchSize(0),
+            scratchSizeForComputeIntensity(0), scratchSizeForComputeAverageColor(0),
+            modelKind(_modelKind), guideAlbedo(_guideAlbedo), guideNormal(_guideNormal),
+            useTiling(false), imageSizeSet(false), stateIsReady(false) {
             OptixDenoiserOptions options = {};
-            options.inputKind = inputKind;
-            OPTIX_CHECK(optixDenoiserCreate(context->getRawContext(), &options, &rawDenoiser));
+            options.guideAlbedo = _guideAlbedo;
+            options.guideNormal = _guideNormal;
+            OPTIX_CHECK(optixDenoiserCreate(context->getRawContext(), modelKind, &options, &rawDenoiser));
         }
         ~Priv() {
             optixDenoiserDestroy(rawDenoiser);

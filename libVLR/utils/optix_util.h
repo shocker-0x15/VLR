@@ -32,15 +32,26 @@ EN:
 
 変更履歴 / Update History:
 - !!BREAKING
+  JP: OptiX 7.3.0をサポート。
+      InstanceAccelerationStructure::setConfiguration()が一つ多くの引数を受け取るようになった。
+      Denoiserの入出力レイヤーをinvoke(), computeIntensity()に直接渡すように変更。setLayers()を削除。
+  EN: Supported OptiX 7.3.0.
+      InstanceAccelerationStructure::setConfiguration() takes one more additional argument.
+      Changed Denoiser's invoke(), computeIntensisty() to directly take input/output layers.
+      Removed setLayers().
+
+- !!BREAKING
   JP: カーブプリミティブをサポート。
       ヒットグループを生成する関数を変更。三角形とカーブに関してはcreateHitProgramGroupForBuiltinIS()を、
       カスタムプリミティブに関してはcreateHitProgramGroupForCustomIS()を使用してください。
   EN: Added support for curve primitives.
       Changed the function to create a hit group. Use createHitProgramGroupForBuiltinIS() for triangles and
       curves and createHitProgramGroupForCustomIS() for custom primitives.
+
 - !!BREAKING
   JP: GeometryInstanceとGASをSceneから生成する関数の引数の型をenumに変更。
   EN: Changed the type of argument of the functions to create a GeometryInstance or a GAS from a Scene to enum.
+
 - !!BREAKING
   JP: GAS/IASのremoveChild()を削除。代わりにremoveChildAt()を定義。
       GAS/IAS::findChildIndex()を使用すれば目的の子のインデックスを特定できる。
@@ -48,16 +59,20 @@ EN:
   EN: Removed GAS/IAS's removeChild(), instead defined removeChildAt().
       Use GAS/IAS::findChildIndex() to identify the index of the target child.
       Also, defined GAS/IAS::clearChildren().
+
 - JP: GASの子ごとのユーザーデータを設定するAPIを追加。
   EN: Added APIs to set per-GAS child user data.
+
 - JP: 各種パラメターを取得するためのAPIを追加。
   EN: Added APIs to get parameters.
+
 - JP: マテリアルのユーザーデータのサイズやアラインメントを、シェーダーバインディングテーブルレイアウト生成後に
       変更した場合にレイアウトを手動で無効化するためのScene::markShaderBindingTableLayoutDirty()を追加。
       併せてScene::shaderBindingTableLayoutIsReady()も追加。
   EN: Added Scene::markShaderBindingTableLayoutDirty() to manually invalidate the layout of shader binding table
       for the case changing the size and/or alignment of a material's user data after generating the layout.
       Added Scene::shaderBindingTableLayoutIsReady() as well.
+
 - !!BREAKING
   JP: InstanceAccelerationStructure::prepareForBuild()が引数でインスタンス数を返さないように変更。
       InstanceAccelerationStructure::getNumChildren()を代わりに使用してください。
@@ -70,7 +85,7 @@ TODO:
 - Linux環境でのテスト。
 - CMake整備。
 - ASのRelocationサポート。
-- AOV Denoiserサポート。
+- AOV Denoiserのサンプル作成。
 - Instance Pointersサポート。
 - removeUncompacted再考。(compaction終了待ちとしてとらえる？)
 - 途中で各オブジェクトのパラメターを変更した際の処理。
@@ -79,6 +94,7 @@ TODO:
 - Assertとexceptionの整理。
 
 検討事項 (Items under author's consideration, ignore this :) ):
+- Denoiserの事前設定は画像サイズにも依存するので、各バッファーはinvoke時ではなく事前に渡しておくべき？
 - Priv構造体がOptiXの構造体を直接持っていない場合が多々あるのがもったいない？
   => OptixBuildInputは巨大なパディングを含んでいるので好ましくない。
   => IASが直接持っているOptixBuildInputを除去orポインター化？
@@ -100,8 +116,10 @@ TODO:
   現状の問題点：
   - パイプラインごとにマテリアルに設定されているレイタイプ数が異なる場合に、
     最大のレイタイプ数をGASに設定すると、SBTレコードを書き込む際にマテリアルがあるレイタイプに対して
-    設定されていないと言われてしまう。
+    設定されていないと言われてしまう。(とりあえず空のHitGroupを作れるようにして対処してある。)
     => GASのレイタイプ数設定をパイプラインに依存させる？ => Sceneとパイプラインは切り離したい。
+    => 多少Sceneがパイプラインに依存するとしてもパイプラインごとに別のレイタイプ数設定のほうがきれいそう。
+    => しかしIASが持つSBTオフセットが絶対的な値なので、IASをパイプライン間で共通化させようと思うと結局無理。
   - GASがレイタイプ数設定を持っているのが不自然？ => パイプラインがレイタイプ数を持つようにして
     SBTレイアウト計算もPipelineに依存させる？
 ----------------------------------------------------------------
@@ -783,7 +801,7 @@ private: \
         [[nodiscard]]
         Scene createScene() const;
         [[nodiscard]]
-        Denoiser createDenoiser(OptixDenoiserInputKind inputKind) const;
+        Denoiser createDenoiser(OptixDenoiserModelKind modelKind, bool guideAlbedo, bool guideNormal) const;
     };
 
 
@@ -1097,7 +1115,7 @@ private: \
 
         // JP: 以下のAPIを呼んだ場合はIASが自動でdirty状態になる。
         // EN: Calling the following APIs automatically marks the IAS dirty.
-        void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction) const;
+        void setConfiguration(ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomInstanceAccess) const;
         void setMotionOptions(uint32_t numKeys, float timeBegin, float timeEnd, OptixMotionFlags flags) const;
         void addChild(Instance instance) const;
         void removeChildAt(uint32_t index) const;
@@ -1269,17 +1287,36 @@ private: \
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(Denoiser);
 
-        void setModel(OptixDenoiserModelKind kind, void* data, size_t sizeInBytes) const;
         void prepare(uint32_t imageWidth, uint32_t imageHeight, uint32_t tileWidth, uint32_t tileHeight,
                      size_t* stateBufferSize, size_t* scratchBufferSize, size_t* scratchBufferSizeForComputeIntensity,
                      uint32_t* numTasks) const;
         void getTasks(DenoisingTask* tasks) const;
-        void setLayers(const BufferView &color, const BufferView &albedo, const BufferView &normal, const BufferView &denoisedColor,
-                       OptixPixelFormat colorFormat, OptixPixelFormat albedoFormat, OptixPixelFormat normalFormat) const;
         void setupState(CUstream stream, const BufferView &stateBuffer, const BufferView &scratchBuffer) const;
 
-        void computeIntensity(CUstream stream, const BufferView &scratchBuffer, CUdeviceptr outputIntensity) const;
-        void invoke(CUstream stream, bool denoiseAlpha, CUdeviceptr hdrIntensity, float blendFactor,
+        void computeIntensity(CUstream stream,
+                              const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                              const BufferView &scratchBuffer, CUdeviceptr outputIntensity) const;
+        void computeAverageColor(CUstream stream,
+                                 const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                                 const BufferView &scratchBuffer, CUdeviceptr outputAverageColor) const;
+        void invoke(CUstream stream,
+                    bool denoiseAlpha, CUdeviceptr hdrIntensity, float blendFactor,
+                    const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                    const BufferView &albedo, OptixPixelFormat albedoFormat,
+                    const BufferView &normal, OptixPixelFormat normalFormat,
+                    const BufferView &flow, OptixPixelFormat flowFormat,
+                    const BufferView &previousDenoisedBeauty,
+                    const BufferView &denoisedBeauty,
+                    const DenoisingTask &task) const;
+        // JP: AOVデノイザー用。
+        // EN: For AOV denoiser.
+        void invoke(CUstream stream,
+                    bool denoiseAlpha, CUdeviceptr hdrAverageColor, float blendFactor,
+                    const BufferView &noisyBeauty, OptixPixelFormat beautyFormat,
+                    const BufferView* noisyAovs, OptixPixelFormat* aovFormats, uint32_t numAovs,
+                    const BufferView &albedo, OptixPixelFormat albedoFormat,
+                    const BufferView &normal, OptixPixelFormat normalFormat,
+                    const BufferView &denoisedBeauty, const BufferView* denoisedAovs,
                     const DenoisingTask &task) const;
     };
 

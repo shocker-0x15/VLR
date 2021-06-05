@@ -733,7 +733,7 @@ namespace vlr {
         }
 
         m_optixIas = optixScene.createInstanceAccelerationStructure();
-        m_optixIas.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false);
+        m_optixIas.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false, false);
     }
 
     RootNode::~RootNode() {

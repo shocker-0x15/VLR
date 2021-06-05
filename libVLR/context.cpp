@@ -397,8 +397,8 @@ namespace vlr {
 
 
 
-        m_optix.denoiser = m_optix.context.createDenoiser(OPTIX_DENOISER_INPUT_RGB_ALBEDO_NORMAL);
-        m_optix.denoiser.setModel(OPTIX_DENOISER_MODEL_KIND_HDR, nullptr, 0);
+        m_optix.denoiser = m_optix.context.createDenoiser(
+            OPTIX_DENOISER_MODEL_KIND_HDR, true, true);
         CUDADRV_CHECK(cuMemAlloc(&m_optix.hdrIntensity, sizeof(float)));
 
 
@@ -683,11 +683,6 @@ namespace vlr {
         m_optix.linearNormalBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
         m_optix.linearDenoisedColorBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
         m_optix.denoiser.getTasks(m_optix.denoiserTasks.data());
-        m_optix.denoiser.setLayers(m_optix.linearColorBuffer,
-                                   m_optix.linearAlbedoBuffer,
-                                   m_optix.linearNormalBuffer,
-                                   m_optix.linearDenoisedColorBuffer,
-                                   OPTIX_PIXEL_FORMAT_FLOAT4, OPTIX_PIXEL_FORMAT_FLOAT4, OPTIX_PIXEL_FORMAT_FLOAT4);
 
         m_optix.launchParams.accumAlbedoBuffer = m_optix.accumAlbedoBuffer.getDevicePointer();
         m_optix.launchParams.accumNormalBuffer = m_optix.accumNormalBuffer.getDevicePointer();
@@ -798,10 +793,21 @@ namespace vlr {
                           m_optix.linearAlbedoBuffer.getDevicePointer(),
                           m_optix.linearNormalBuffer.getDevicePointer());
 
-            m_optix.denoiser.computeIntensity(stream, m_optix.denoiserScratchBuffer, m_optix.hdrIntensity);
+            m_optix.denoiser.computeIntensity(
+                stream,
+                m_optix.linearColorBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
+                m_optix.denoiserScratchBuffer, m_optix.hdrIntensity);
 
             for (int i = 0; i < m_optix.denoiserTasks.size(); ++i)
-                m_optix.denoiser.invoke(stream, false, m_optix.hdrIntensity, 0.0f, m_optix.denoiserTasks[i]);
+                m_optix.denoiser.invoke(
+                    stream,
+                    false, m_optix.hdrIntensity, 0.0f,
+                    m_optix.linearColorBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
+                    m_optix.linearAlbedoBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
+                    m_optix.linearNormalBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
+                    optixu::BufferView(), OPTIX_PIXEL_FORMAT_FLOAT2,
+                    optixu::BufferView(), m_optix.linearDenoisedColorBuffer,
+                    m_optix.denoiserTasks[i]);
         }
 
         m_optix.outputBufferHolder.beginCUDAAccess(stream);
@@ -1050,16 +1056,16 @@ namespace vlr {
         std::memcpy(PDF, values, sizeof(RealType) * m_numValues);
 
         CompensatedSum<RealType> sum{ 0 };
-        CDF[0] = 0;
         for (int i = 0; i < m_numValues; ++i) {
+            CDF[i] = sum;
             sum += PDF[i] / m_numValues;
-            CDF[i + 1] = sum;
         }
         m_integral = sum;
         for (int i = 0; i < m_numValues; ++i) {
-            PDF[i] /= sum;
-            CDF[i + 1] /= sum;
+            PDF[i] /= m_integral;
+            CDF[i] /= m_integral;
         }
+        CDF[m_numValues] = 1.0f;
 
         m_CDF.unmap();
         m_PDF.unmap();
