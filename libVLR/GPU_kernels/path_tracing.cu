@@ -204,7 +204,7 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_RG_NAME(pathTracing)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
 
-        KernelRNG rng = plp.rngBuffer[launchIndex];
+        KernelRNG rng = plp.rngBuffer.read(launchIndex);
 
         float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
                                launchIndex.y + rng.getFloat0cTo1o());
@@ -278,7 +278,7 @@ namespace vlr {
             roPayload.prevDirPDF = woPayload.dirPDF;
             roPayload.prevSampledType = woPayload.sampledType;
         }
-        plp.rngBuffer[launchIndex] = rwPayload.rng;
+        plp.rngBuffer.write(launchIndex, rwPayload.rng);
         if (!rwPayload.contribution.allFinite()) {
             vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
             return;

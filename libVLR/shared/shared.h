@@ -906,7 +906,7 @@ namespace vlr {
             const GeometryInstance* geomInstBuffer;
             const Instance* instBuffer;
 
-            optixu::BlockBuffer2D<KernelRNG, 2> rngBuffer;
+            optixu::NativeBlockBuffer2D<KernelRNG> rngBuffer;
             optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer;
             DiscretizedSpectrum* accumAlbedoBuffer;
             Normal3D* accumNormalBuffer;
@@ -964,9 +964,9 @@ namespace vlr {
         };
         static_assert(
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 536 &&
+            sizeof(PipelineLaunchParameters) == 520 &&
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 544 &&
+            sizeof(PipelineLaunchParameters) == 528 &&
 #endif
             alignof(PipelineLaunchParameters) == 8,
             "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");

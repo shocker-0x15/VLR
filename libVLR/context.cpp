@@ -633,18 +633,21 @@ namespace vlr {
         m_optix.accumBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
         m_optix.launchParams.accumBuffer = m_optix.accumBuffer.getBlockBuffer2D();
 
-        m_optix.rngBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
+        m_optix.rngBuffer.initialize2D(
+            m_cuContext, cudau::ArrayElementType::UInt32, 2,
+            cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable,
+            m_width, m_height, 1);
         {
-            m_optix.rngBuffer.map();
-            std::mt19937_64 rng(591842031321323413);
+            auto rngs = m_optix.rngBuffer.map<shared::KernelRNG>();
+            std::mt19937_64 seedRng(591842031321323413);
             for (int y = 0; y < m_height; ++y) {
                 for (int x = 0; x < m_width; ++x) {
-                    m_optix.rngBuffer(x, y) = rng();
+                    rngs[y * m_width + x] = shared::KernelRNG(seedRng());
                 }
             }
             m_optix.rngBuffer.unmap();
         }
-        m_optix.launchParams.rngBuffer = m_optix.rngBuffer.getBlockBuffer2D();
+        m_optix.launchParams.rngBuffer = m_optix.rngBuffer.getSurfaceObject(0);
 
 
 

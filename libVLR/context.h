@@ -193,7 +193,7 @@ namespace vlr {
 
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
-            optixu::HostBlockBuffer2D<shared::KernelRNG, 2> rngBuffer;
+            cudau::Array rngBuffer;
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;

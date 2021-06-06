@@ -182,7 +182,7 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_RG_NAME(debugRenderingRayGeneration)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
 
-        KernelRNG rng = plp.rngBuffer[launchIndex];
+        KernelRNG rng = plp.rngBuffer.read(launchIndex);
 
         float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
                                launchIndex.y + rng.getFloat0cTo1o());
@@ -214,7 +214,7 @@ namespace vlr {
             DebugRayType::Primary, MaxNumRayTypes, DebugRayType::Primary,
             payloadPtr);
 
-        plp.rngBuffer[launchIndex] = payload.rng;
+        plp.rngBuffer.write(launchIndex, payload.rng);
 
         if (!payload.value.allFinite()) {
             vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
