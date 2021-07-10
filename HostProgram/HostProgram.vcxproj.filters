@@ -126,5 +126,20 @@
     <CopyFileToFolders Include="shaders\scale.frag">
       <Filter>shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\assimp-vc142-mt.dll">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Imath-3_1.dll">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\OpenEXR-3_1.dll">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Iex-3_1.dll">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\IlmThread-3_1.dll">
+      <Filter>files to copy</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

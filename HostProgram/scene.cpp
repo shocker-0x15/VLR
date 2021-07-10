@@ -2229,6 +2229,23 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 
         shot->viewpoints.push_back(camera);
     }
+
+    {
+        auto camera = context->createCamera("Perspective");
+
+        camera->set("position", Point3D(25.535f, 1.531f, 1.669f));
+        camera->set("orientation", Quaternion(-0.063f, 0.557f, -0.054f, -0.827f));
+
+        camera->set("aspect", (float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        float lensRadius = 0.01f;
+        camera->set("sensitivity", lensRadius > 0.0f ? 1.0f / (M_PI * lensRadius * lensRadius) : 1.0f);
+        camera->set("fovy", 65 * M_PI / 180);
+        camera->set("lens radius", lensRadius);
+        camera->set("op distance", 3.779f);
+
+        shot->viewpoints.push_back(camera);
+    }
 }
 
 void createScene(const vlr::ContextRef &context, Shot* shot) {
