@@ -3,8 +3,8 @@
 #include <string>
 #include <algorithm>
 #include <vector>
-#include <set>
-#include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <memory>
 #include <stdexcept>
 
@@ -109,7 +109,7 @@ namespace vlr {
 
 
     class QueryableHolder : public ObjectHolder {
-        std::map<const char*, ObjectRef> m_objects;
+        std::unordered_map<const char*, ObjectRef> m_objects;
 
     public:
         QueryableHolder(const ContextConstRef& context) : ObjectHolder(context) {}
@@ -470,7 +470,7 @@ namespace vlr {
 
     class InternalNodeHolder : public NodeHolder {
         TransformRef m_transform;
-        std::map<VLRNode, NodeRef> m_children;
+        std::unordered_map<VLRNode, NodeRef> m_children;
 
     public:
         InternalNodeHolder(const ContextConstRef &context, const char* name, const TransformRef &transform) :
@@ -541,7 +541,7 @@ namespace vlr {
 
     class SceneHolder : public ObjectHolder {
         TransformRef m_transform;
-        std::map<VLRNode, NodeRef> m_children;
+        std::unordered_map<VLRNode, NodeRef> m_children;
         SurfaceMaterialRef m_matEnv;
 
     public:
@@ -630,7 +630,7 @@ namespace vlr {
 
 
     class Context : public std::enable_shared_from_this<Context> {
-        std::set<VLRResult> m_enabledErrors;
+        std::unordered_set<VLRResult> m_enabledErrors;
         VLRContext m_rawContext;
         StaticTransformRef m_identityTransform;
 

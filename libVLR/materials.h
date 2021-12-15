@@ -92,7 +92,7 @@ namespace vlr {
     class MatteSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeAlbedo;
         ImmediateSpectrum m_immAlbedo;
@@ -120,7 +120,7 @@ namespace vlr {
     class SpecularReflectionSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeCoeff;
         ShaderNodePlug m_nodeEta;
@@ -152,7 +152,7 @@ namespace vlr {
     class SpecularScatteringSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeCoeff;
         ShaderNodePlug m_nodeEtaExt;
@@ -184,7 +184,7 @@ namespace vlr {
     class MicrofacetReflectionSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeEta;
         ShaderNodePlug m_node_k;
@@ -220,7 +220,7 @@ namespace vlr {
     class MicrofacetScatteringSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeCoeff;
         ShaderNodePlug m_nodeEtaExt;
@@ -258,7 +258,7 @@ namespace vlr {
     class LambertianScatteringSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeCoeff;
         ShaderNodePlug m_nodeF0;
@@ -290,7 +290,7 @@ namespace vlr {
     class UE4SurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeBaseColor;
         ShaderNodePlug m_nodeOcclusionRoughnessMetallic;
@@ -324,7 +324,7 @@ namespace vlr {
     class OldStyleSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeDiffuseColor;
         ShaderNodePlug m_nodeSpecularColor;
@@ -358,7 +358,7 @@ namespace vlr {
     class DiffuseEmitterSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeEmittance;
         ImmediateSpectrum m_immEmittance;
@@ -391,7 +391,7 @@ namespace vlr {
     class MultiSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         const SurfaceMaterial* m_subMaterials[4];
 
@@ -418,7 +418,7 @@ namespace vlr {
     class EnvironmentEmitterSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         ShaderNodePlug m_nodeEmittance;
         ImmediateSpectrum m_immEmittance;

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../shared/basic_types_internal.h"
+#include "basic_types_internal.h"
 
 namespace vlr {
     class PCG32RNG {

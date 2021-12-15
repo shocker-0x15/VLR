@@ -141,7 +141,7 @@ namespace vlr {
 
 
 
-    std::map<uint32_t, TriangleMeshSurfaceNode::OptiXProgramSet> TriangleMeshSurfaceNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, TriangleMeshSurfaceNode::OptiXProgramSet> TriangleMeshSurfaceNode::s_optiXProgramSets;
 
     // static
     void TriangleMeshSurfaceNode::initialize(Context &context) {
@@ -318,7 +318,7 @@ namespace vlr {
 
 
 
-    std::map<uint32_t, InfiniteSphereSurfaceNode::OptiXProgramSet> InfiniteSphereSurfaceNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, InfiniteSphereSurfaceNode::OptiXProgramSet> InfiniteSphereSurfaceNode::s_optiXProgramSets;
 
     // static
     void InfiniteSphereSurfaceNode::initialize(Context &context) {
@@ -1006,7 +1006,7 @@ namespace vlr {
 
 
 
-    std::map<uint32_t, Scene::OptiXProgramSet> Scene::s_optiXProgramSets;
+    std::unordered_map<uint32_t, Scene::OptiXProgramSet> Scene::s_optiXProgramSets;
 
     // static
     void Scene::initialize(Context &context) {
@@ -1145,7 +1145,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> PerspectiveCamera::ParameterInfos;
     
-    std::map<uint32_t, Camera::OptiXProgramSet> PerspectiveCamera::s_optiXProgramSets;
+    std::unordered_map<uint32_t, Camera::OptiXProgramSet> PerspectiveCamera::s_optiXProgramSets;
 
     // static
     void PerspectiveCamera::initialize(Context &context) {
@@ -1331,7 +1331,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> EquirectangularCamera::ParameterInfos;
     
-    std::map<uint32_t, Camera::OptiXProgramSet> EquirectangularCamera::s_optiXProgramSets;
+    std::unordered_map<uint32_t, Camera::OptiXProgramSet> EquirectangularCamera::s_optiXProgramSets;
 
     // static
     void EquirectangularCamera::initialize(Context &context) {

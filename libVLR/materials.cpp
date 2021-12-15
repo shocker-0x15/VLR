@@ -152,7 +152,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> MatteSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MatteSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MatteSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MatteSurfaceMaterial::initialize(Context &context) {
@@ -269,7 +269,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> SpecularReflectionSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularReflectionSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void SpecularReflectionSurfaceMaterial::initialize(Context &context) {
@@ -425,7 +425,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> SpecularScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularScatteringSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void SpecularScatteringSurfaceMaterial::initialize(Context &context) {
@@ -581,7 +581,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> MicrofacetReflectionSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MicrofacetReflectionSurfaceMaterial::initialize(Context &context) {
@@ -792,7 +792,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> MicrofacetScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MicrofacetScatteringSurfaceMaterial::initialize(Context &context) {
@@ -1022,7 +1022,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> LambertianScatteringSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void LambertianScatteringSurfaceMaterial::initialize(Context &context) {
@@ -1184,7 +1184,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> UE4SurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> UE4SurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> UE4SurfaceMaterial::s_optiXProgramSets;
 
     // static
     void UE4SurfaceMaterial::initialize(Context &context) {
@@ -1375,7 +1375,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> OldStyleSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void OldStyleSurfaceMaterial::initialize(Context &context) {
@@ -1557,7 +1557,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> DiffuseEmitterSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> DiffuseEmitterSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> DiffuseEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void DiffuseEmitterSurfaceMaterial::initialize(Context &context) {
@@ -1708,7 +1708,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> MultiSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> MultiSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MultiSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void MultiSurfaceMaterial::initialize(Context &context) {
@@ -1833,7 +1833,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> EnvironmentEmitterSurfaceMaterial::ParameterInfos;
     
-    std::map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::s_optiXProgramSets;
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
     void EnvironmentEmitterSurfaceMaterial::initialize(Context &context) {

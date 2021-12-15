@@ -119,7 +119,7 @@ namespace vlr {
     };
 
 #define VLR_SHADER_NODE_DECLARE_PROGRAM_SET() \
-    static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets; \
+    static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets; \
     uint32_t getProcedureSetIndex() const override { \
         return s_optiXProgramSets.at(m_context.getID()).nodeProcedureSetIndex; \
     }
@@ -130,7 +130,7 @@ namespace vlr {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
-        static std::map<uint32_t, GeometryShaderNode*> s_instances;
+        static std::unordered_map<uint32_t, GeometryShaderNode*> s_instances;
 
         void setupNodeDescriptor();
 
@@ -559,7 +559,7 @@ namespace vlr {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
-        static std::map<uint32_t, LinearImage2D*> NullImages;
+        static std::unordered_map<uint32_t, LinearImage2D*> NullImages;
 
         cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;
@@ -613,7 +613,7 @@ namespace vlr {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
-        static std::map<uint32_t, LinearImage2D*> NullImages;
+        static std::unordered_map<uint32_t, LinearImage2D*> NullImages;
 
         cudau::TextureSampler m_textureSampler;
         const Image2D* m_image;

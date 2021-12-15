@@ -27,14 +27,8 @@ namespace vlr {
     const char* EnumTextureWrapMode = "TextureWrapMode";
     const char* EnumTangentType = "TangentType";
 
-    struct EnumNameComparator {
-        bool operator()(const std::string& strA, const std::string& strB) const {
-            return tolower(strA) < tolower(strB);
-        }
-    };
-
     static bool s_enumTableInitialized = false;
-    static const std::map<std::string, std::vector<std::pair<const char*, uint32_t>>> s_enumTables = {
+    static const std::unordered_map<std::string, std::vector<std::pair<const char*, uint32_t>>> s_enumTables = {
         {
             EnumSpectrumType, {
                 {"Reflectance", static_cast<uint32_t>(SpectrumType::Reflectance)},
@@ -105,8 +99,8 @@ namespace vlr {
             }
         },
     };
-    static std::map<std::string, std::map<std::string, uint32_t, EnumNameComparator>> s_enumNameToIntTables;
-    static std::map<std::string, std::map<uint32_t, std::string>> s_enumIntToNameTables;
+    static std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> s_enumNameToIntTables;
+    static std::unordered_map<std::string, std::unordered_map<uint32_t, std::string>> s_enumIntToNameTables;
 
 
 

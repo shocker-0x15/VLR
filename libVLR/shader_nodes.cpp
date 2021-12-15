@@ -118,8 +118,8 @@ namespace vlr {
 
     std::vector<ParameterInfo> GeometryShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> GeometryShaderNode::s_optiXProgramSets;
-    std::map<uint32_t, GeometryShaderNode*> GeometryShaderNode::s_instances;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> GeometryShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, GeometryShaderNode*> GeometryShaderNode::s_instances;
 
     // static
     void GeometryShaderNode::initialize(Context &context) {
@@ -168,7 +168,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> TangentShaderNode::ParameterInfos;
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> TangentShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> TangentShaderNode::s_optiXProgramSets;
 
     // static
     void TangentShaderNode::initialize(Context& context) {
@@ -247,7 +247,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> Float2ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::s_optiXProgramSets;
 
     // static
     void Float2ShaderNode::initialize(Context &context) {
@@ -386,7 +386,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> Float3ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::s_optiXProgramSets;
 
     // static
     void Float3ShaderNode::initialize(Context &context) {
@@ -550,7 +550,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> Float4ShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::s_optiXProgramSets;
 
     // static
     void Float4ShaderNode::initialize(Context &context) {
@@ -739,7 +739,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> ScaleAndOffsetFloatShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::s_optiXProgramSets;
 
     // static
     void ScaleAndOffsetFloatShaderNode::initialize(Context &context) {
@@ -886,7 +886,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> TripletSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void TripletSpectrumShaderNode::initialize(Context &context) {
@@ -1018,7 +1018,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> RegularSampledSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void RegularSampledSpectrumShaderNode::initialize(Context &context) {
@@ -1187,7 +1187,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> IrregularSampledSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void IrregularSampledSpectrumShaderNode::initialize(Context &context) {
@@ -1336,7 +1336,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> Float3ToSpectrumShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Float3ToSpectrumShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float3ToSpectrumShaderNode::s_optiXProgramSets;
 
     // static
     void Float3ToSpectrumShaderNode::initialize(Context &context) {
@@ -1501,7 +1501,7 @@ namespace vlr {
 
     std::vector<ParameterInfo> ScaleAndOffsetUVTextureMap2DShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::s_optiXProgramSets;
 
     // static
     void ScaleAndOffsetUVTextureMap2DShaderNode::initialize(Context &context) {
@@ -1604,8 +1604,8 @@ namespace vlr {
 
     std::vector<ParameterInfo> Image2DTextureShaderNode::ParameterInfos;
     
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::s_optiXProgramSets;
-    std::map<uint32_t, LinearImage2D*> Image2DTextureShaderNode::NullImages;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, LinearImage2D*> Image2DTextureShaderNode::NullImages;
 
     // static
     void Image2DTextureShaderNode::initialize(Context &context) {
@@ -1865,8 +1865,8 @@ namespace vlr {
 
     std::vector<ParameterInfo> EnvironmentTextureShaderNode::ParameterInfos;
 
-    std::map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::s_optiXProgramSets;
-    std::map<uint32_t, LinearImage2D*> EnvironmentTextureShaderNode::NullImages;
+    std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> EnvironmentTextureShaderNode::s_optiXProgramSets;
+    std::unordered_map<uint32_t, LinearImage2D*> EnvironmentTextureShaderNode::NullImages;
 
     // static
     void EnvironmentTextureShaderNode::initialize(Context &context) {

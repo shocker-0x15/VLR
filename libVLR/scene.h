@@ -189,7 +189,7 @@ namespace vlr {
             uint32_t dcSampleTriangleMesh;
         };
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         struct MaterialGroup {
             std::vector<uint32_t> indices;
@@ -254,7 +254,7 @@ namespace vlr {
             uint32_t dcSampleInfiniteSphere;
         };
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         EnvironmentEmitterSurfaceMaterial* m_material;
         SHGeometryInstance* m_shGeomInst;
@@ -286,8 +286,8 @@ namespace vlr {
 
     protected:
         uint32_t m_serialChildID;
-        std::map<Node*, uint32_t> m_childToSerialIDMap;
-        std::map<uint32_t, Node*> m_serialIDToChlidMap;
+        std::unordered_map<Node*, uint32_t> m_childToSerialIDMap;
+        std::unordered_map<uint32_t, Node*> m_serialIDToChlidMap;
         const Transform* m_localToWorld;
 
         // key: child SHTransform
@@ -378,7 +378,7 @@ namespace vlr {
         optixu::InstanceAccelerationStructure m_optixIas;
         cudau::Buffer m_optixIasMem;
         cudau::TypedBuffer<OptixInstance> m_optixInstanceBuffer;
-        std::map<const SHTransform*, Instance> m_instances;
+        std::unordered_map<const SHTransform*, Instance> m_instances;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -411,7 +411,7 @@ namespace vlr {
             uint32_t dcSampleInfiniteSphere;
         };
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         RootNode m_rootNode;
         EnvironmentEmitterSurfaceMaterial* m_matEnv;
@@ -503,7 +503,7 @@ namespace vlr {
     class PerspectiveCamera : public Camera {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         shared::PerspectiveCamera m_data;
 
@@ -531,7 +531,7 @@ namespace vlr {
     class EquirectangularCamera : public Camera {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 
-        static std::map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
 
         shared::EquirectangularCamera m_data;
 
