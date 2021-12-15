@@ -107,6 +107,7 @@ namespace optixu {
 #define OPTIXU_PREPROCESS_OBJECT(Name) using _ ## Name = Name::Priv
     OPTIXU_PREPROCESS_OBJECTS();
 #undef OPTIXU_PREPROCESS_OBJECT
+    using _PayloadType = PayloadType::Priv;
 
 
 
@@ -343,7 +344,8 @@ namespace optixu {
         SizeAlign getUserDataSizeAlign() const {
             return userDataSizeAlign;
         }
-        void setRecordData(const _Pipeline* pipeline, uint32_t rayType, uint8_t* record, SizeAlign* curSizeAlign) const;
+        void setRecordHeader(const _Pipeline* pipeline, uint32_t rayType, uint8_t* record, SizeAlign* curSizeAlign) const;
+        void setRecordData(uint8_t* record, SizeAlign* curSizeAlign) const;
     };
 
 
@@ -466,6 +468,7 @@ namespace optixu {
             BufferView* vertexBuffers;
             BufferView* widthBuffers;
             BufferView segmentIndexBuffer;
+            OptixCurveEndcapFlags endcapFlags;
         };
         struct CustomPrimitiveGeometry {
             CUdeviceptr* primitiveAabbBufferArray;
@@ -512,7 +515,8 @@ namespace optixu {
             }
             else if (geomType == GeometryType::LinearSegments ||
                      geomType == GeometryType::QuadraticBSplines ||
-                     geomType == GeometryType::CubicBSplines) {
+                     geomType == GeometryType::CubicBSplines ||
+                     geomType == GeometryType::CatmullRomSplines) {
                 geometry = CurveGeometry{};
                 auto &geom = std::get<CurveGeometry>(geometry);
                 geom.vertexBufferArray = new CUdeviceptr[numMotionSteps];
@@ -524,6 +528,7 @@ namespace optixu {
                 geom.widthBuffers = new BufferView[numMotionSteps];
                 geom.widthBuffers[0] = BufferView();
                 geom.segmentIndexBuffer = BufferView();
+                geom.endcapFlags = OPTIX_CURVE_ENDCAP_DEFAULT;
             }
             else if (geomType == GeometryType::CustomPrimitives) {
                 geometry = CustomPrimitiveGeometry{};
@@ -585,10 +590,13 @@ namespace optixu {
         void fillBuildInput(OptixBuildInput* input, CUdeviceptr preTransform) const;
         void updateBuildInput(OptixBuildInput* input, CUdeviceptr preTransform) const;
 
-        void calcSBTRequirements(uint32_t gasMatSetIdx, SizeAlign* maxRecordSizeAlign, uint32_t* numSBTRecords) const;
+        void calcSBTRequirements(uint32_t gasMatSetIdx,
+                                 const SizeAlign &gasUserDataSizeAlign,
+                                 const SizeAlign &gasChildUserDataSizeAlign,
+                                 SizeAlign* maxRecordSizeAlign, uint32_t* numSBTRecords) const;
         uint32_t fillSBTRecords(const _Pipeline* pipeline, uint32_t gasMatSetIdx,
-                                const void* gasChildUserData, const SizeAlign gasChildUserDataSizeAlign,
-                                const void* gasUserData, const SizeAlign gasUserDataSizeAlign,
+                                const void* gasUserData, const SizeAlign &gasUserDataSizeAlign,
+                                const void* gasChildUserData, const SizeAlign &gasChildUserDataSizeAlign,
                                 uint32_t numRayTypes, uint8_t* records) const;
     };
 
@@ -947,6 +955,48 @@ namespace optixu {
 
 
     class Pipeline::Priv {
+        struct KeyForCurveModule {
+            OptixPrimitiveType curveType;
+            OptixCurveEndcapFlags endcapFlags;
+            OptixBuildFlags buildFlags;
+
+            bool operator<(const KeyForCurveModule &rKey) const {
+                if (curveType < rKey.curveType)
+                    return true;
+                else if (curveType > rKey.curveType)
+                    return false;
+                if (endcapFlags < rKey.endcapFlags)
+                    return true;
+                else if (endcapFlags > rKey.endcapFlags)
+                    return false;
+                if (buildFlags < rKey.buildFlags)
+                    return true;
+                else if (buildFlags > rKey.buildFlags)
+                    return false;
+                return false;
+            }
+
+            struct Hash {
+                typedef std::size_t result_type;
+
+                std::size_t operator()(const KeyForCurveModule& key) const {
+                    size_t seed = 0;
+                    auto hash0 = std::hash<OptixPrimitiveType>()(key.curveType);
+                    auto hash1 = std::hash<OptixCurveEndcapFlags>()(key.endcapFlags);
+                    auto hash2 = std::hash<OptixBuildFlags>()(key.buildFlags);
+                    seed ^= hash0 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                    seed ^= hash1 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                    seed ^= hash2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                    return seed;
+                }
+            };
+            bool operator==(const KeyForCurveModule &rKey) const {
+                return curveType == rKey.curveType &&
+                    endcapFlags == rKey.endcapFlags &&
+                    buildFlags == rKey.buildFlags;
+            }
+        };
+
         _Context* context;
         OptixPipeline rawPipeline;
 
@@ -959,7 +1009,7 @@ namespace optixu {
         uint32_t numCallablePrograms;
         size_t sbtSize;
 
-        std::unordered_map<OptixPrimitiveType, _Module*> modulesForBuiltin;
+        std::unordered_map<KeyForCurveModule, _Module*, KeyForCurveModule::Hash> modulesForCurveIS;
         _ProgramGroup* rayGenProgram;
         _ProgramGroup* exceptionProgram;
         std::vector<_ProgramGroup*> missPrograms;
@@ -1004,7 +1054,9 @@ namespace optixu {
 
 
         void markDirty();
-        OptixModule getModuleForBuiltin(OptixPrimitiveType primType);
+        OptixModule getModuleForCurves(
+            OptixPrimitiveType curveType, OptixCurveEndcapFlags endcapFlags,
+            ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess);
         void createProgram(const OptixProgramGroupDesc &desc, const OptixProgramGroupOptions &options, OptixProgramGroup* group);
         void destroyProgram(OptixProgramGroup group);
     };
@@ -1066,6 +1118,35 @@ namespace optixu {
 
         void packHeader(uint8_t* record) const {
             OPTIX_CHECK(optixSbtRecordPackHeader(rawGroup, record));
+        }
+    };
+
+
+
+    class PayloadType::Priv {
+        std::vector<OptixPayloadSemantics> semantics;
+
+    public:
+        OPTIXU_OPAQUE_BRIDGE(PayloadType);
+
+        Priv(const uint32_t* _payloadSizesInDwords,
+             const OptixPayloadSemantics* _semantics,
+             uint32_t numPayloads) {
+            for (uint32_t i = 0; i < numPayloads; ++i) {
+                uint32_t numDwords = _payloadSizesInDwords[i];
+                OptixPayloadSemantics perVarSem = _semantics[i];
+                for (uint32_t j = 0; j < numDwords; ++j)
+                    semantics.push_back(perVarSem);
+            }
+        }
+        ~Priv() {
+        }
+
+        OptixPayloadType getRawPayloadType() const {
+            OptixPayloadType ret;
+            ret.numPayloadValues = static_cast<uint32_t>(semantics.size());
+            ret.payloadSemantics = reinterpret_cast<const uint32_t*>(semantics.data());
+            return ret;
         }
     };
 

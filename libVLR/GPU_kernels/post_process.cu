@@ -7,6 +7,7 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void copyBuffers(const optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer,
                                         const DiscretizedSpectrum* accumAlbedoBuffer,
                                         const Normal3D* accumNormalBuffer,
+                                        Quaternion invOrientation,
                                         uint2 imageSize, uint32_t imageStrideInWidth,
                                         uint32_t numAccumFrames,
                                         float4* linearColorBuffer,
@@ -43,6 +44,8 @@ namespace vlr {
         transformTristimulus(mat_XYZ_to_Rec709_D65, albedoXYZ, albedoRGB);
 
         Normal3D normal = accumNormalBuffer[linearIndex];
+        normal = invOrientation.toMatrix3x3() * normal;
+        normal.x *= -1;
         if (normal.x != 0 || normal.y != 0 || normal.z != 0)
             normal.normalize();
 

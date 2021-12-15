@@ -123,7 +123,7 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION Vector3D toLocal(const Vector3D &vecWorld) const {
-            return shadingFrame.toLocal(vecWorld);
+            return isPoint ? Vector3D(0, 0, 1) : shadingFrame.toLocal(vecWorld);
         }
         CUDA_DEVICE_FUNCTION Vector3D fromLocal(const Vector3D &vecLocal) const {
             return shadingFrame.fromLocal(vecLocal);

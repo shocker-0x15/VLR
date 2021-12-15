@@ -44,11 +44,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.4.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.4.0\include;$(IncludePath)</IncludePath>
     <TargetName>VLR</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

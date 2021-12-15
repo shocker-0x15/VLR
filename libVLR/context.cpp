@@ -192,20 +192,16 @@ namespace vlr {
             p.shadowMiss = p.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
 
-            p.hitGroupDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
                 p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("pathTracingIteration"),
                 optixu::Module(), nullptr);
-            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
                 p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("pathTracingIteration"),
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("anyHitWithAlpha"));
-            p.hitGroupShadowDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupShadowDefault = p.pipeline.createHitProgramGroupForTriangleIS(
                 optixu::Module(), nullptr,
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitDefault"));
-            p.hitGroupShadowWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupShadowWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
                 optixu::Module(), nullptr,
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitWithAlpha"));
             p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
@@ -280,12 +276,10 @@ namespace vlr {
             p.miss = p.pipeline.createMissProgram(
                 p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("debugRenderingMiss"));
 
-            p.hitGroupDefault = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
                 p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("debugRenderingClosestHit"),
                 optixu::Module(), nullptr);
-            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForBuiltinIS(
-                OPTIX_PRIMITIVE_TYPE_TRIANGLE,
+            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
                 p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("debugRenderingClosestHit"),
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("debugRenderingAnyHitWithAlpha"));
 
@@ -754,6 +748,8 @@ namespace vlr {
         CUstream stream = 0;
 
         optixu::Pipeline pipeline;
+        // JP: デノイザー用のバッファーをデバッグ表示したい場合は通常のパイプラインを実行する必要がある。
+        // EN:
         if (debugRender && !denoise)
             pipeline = m_optix.debugRendering.pipeline;
         else
@@ -787,10 +783,15 @@ namespace vlr {
                                         sizeof(m_optix.launchParams), stream));
 
         if (denoise) {
+            Quaternion camOri;
+            camera->get("orientation", &camOri);
+            Quaternion invCamOri = conjugate(camOri);
+
             m_copyBuffers(stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
                           m_optix.accumBuffer.getBlockBuffer2D(),
                           m_optix.accumAlbedoBuffer.getDevicePointer(),
                           m_optix.accumNormalBuffer.getDevicePointer(),
+                          invCamOri,
                           imageSize, imageStrideInPixels, m_numAccumFrames,
                           m_optix.linearColorBuffer.getDevicePointer(),
                           m_optix.linearAlbedoBuffer.getDevicePointer(),

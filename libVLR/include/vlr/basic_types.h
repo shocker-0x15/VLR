@@ -1083,7 +1083,7 @@ namespace vlr {
             std::memcpy(array, this, sizeof(*this));
         }
 
-        void decompose(Vector3DTemplate<RealType>* scale, Vector3DTemplate<RealType>* rotation, Vector3DTemplate<RealType>* translation) {
+        void decompose(Vector3DTemplate<RealType>* scale, Vector3DTemplate<RealType>* rotation, Vector3DTemplate<RealType>* translation) const {
             Matrix4x4Template<RealType> mat = *this;
 
             // JP: 移動成分
@@ -1400,6 +1400,10 @@ namespace vlr {
         return dot(q0.v, q1.v) + q0.w * q1.w;
     }
 
+    template <typename RealType>
+    CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> conjugate(const QuaternionTemplate<RealType> &q) {
+        return QuaternionTemplate(-q.v, q.w);
+    }
     template <typename RealType>
     CUDA_DEVICE_FUNCTION QuaternionTemplate<RealType> normalize(const QuaternionTemplate<RealType> &q) {
         return q / std::sqrt(dot(q, q));

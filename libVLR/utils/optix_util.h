@@ -31,53 +31,74 @@ EN:
 - In Visual Studio, does the CUDA property "Use Fast Math" not work for ptx compilation??
 
 変更履歴 / Update History:
-- !!BREAKING
-  JP: OptiX 7.3.0をサポート。
-      InstanceAccelerationStructure::setConfiguration()が一つ多くの引数を受け取るようになった。
-      Denoiserの入出力レイヤーをinvoke(), computeIntensity()に直接渡すように変更。setLayers()を削除。
-  EN: Supported OptiX 7.3.0.
-      InstanceAccelerationStructure::setConfiguration() takes one more additional argument.
-      Changed Denoiser's invoke(), computeIntensisty() to directly take input/output layers.
-      Removed setLayers().
+- JP: - createModuleFromPTXString(), createMissProgram(),
+        createHitProgramGroupFor***IS(), createCallableProgramGroup()
+        がペイロードアノテーションを追加で受け取れるように変更。
+        詳細については新たなサンプル"payload_annotation"を参照。
+  EN: - Changed createModuleFromPTXString(), createMissProgram(),
+        createHitProgramGroupFor***IS(), createCallableProgramGroup()
+        to be able to additionally take payload annotations.
+        See a new sample "payload_annotation" for the details.
 
 - !!BREAKING
-  JP: カーブプリミティブをサポート。
-      ヒットグループを生成する関数を変更。三角形とカーブに関してはcreateHitProgramGroupForBuiltinIS()を、
-      カスタムプリミティブに関してはcreateHitProgramGroupForCustomIS()を使用してください。
-  EN: Added support for curve primitives.
-      Changed the function to create a hit group. Use createHitProgramGroupForBuiltinIS() for triangles and
-      curves and createHitProgramGroupForCustomIS() for custom primitives.
+  JP: - OptiX 7.4.0をサポート。
+      - SBTレコード中のユーザーデータの並び順が逆になった。
+        !! ユーザーのOptiXカーネルを少し修正する必要があります。
+      - 三角形プリミティブ、カーブプリミティブ用のヒットグループ作成をそれぞれ
+        createHitProgramGroupForTriangleIS()とcreateHitProgramGroupForCurveIS()で行うように変更。
+  EN: - Supported OptiX 7.4.0.
+      - The order of user data in a SBT record has been reversed.
+        !! User's OptiX kernels need to be modified a bit.
+      - Changed hit group creation of triangle and curve primitives to use
+        createHitProgramGroupForTriangleIS() and createHitProgramGroupForCurveIS() respectively.
 
 - !!BREAKING
-  JP: GeometryInstanceとGASをSceneから生成する関数の引数の型をenumに変更。
-  EN: Changed the type of argument of the functions to create a GeometryInstance or a GAS from a Scene to enum.
+  JP: - OptiX 7.3.0をサポート。
+      - InstanceAccelerationStructure::setConfiguration()が一つ多くの引数を受け取るようになった。
+      - Denoiserの入出力レイヤーをinvoke(), computeIntensity()に直接渡すように変更。setLayers()を削除。
+  EN: - Supported OptiX 7.3.0.
+      - InstanceAccelerationStructure::setConfiguration() takes one more additional argument.
+      - Changed Denoiser's invoke(), computeIntensisty() to directly take input/output layers.
+        Removed setLayers().
 
 - !!BREAKING
-  JP: GAS/IASのremoveChild()を削除。代わりにremoveChildAt()を定義。
-      GAS/IAS::findChildIndex()を使用すれば目的の子のインデックスを特定できる。
-      また、GAS/IAS::clearChildren()を定義。
-  EN: Removed GAS/IAS's removeChild(), instead defined removeChildAt().
-      Use GAS/IAS::findChildIndex() to identify the index of the target child.
-      Also, defined GAS/IAS::clearChildren().
-
-- JP: GASの子ごとのユーザーデータを設定するAPIを追加。
-  EN: Added APIs to set per-GAS child user data.
-
-- JP: 各種パラメターを取得するためのAPIを追加。
-  EN: Added APIs to get parameters.
-
-- JP: マテリアルのユーザーデータのサイズやアラインメントを、シェーダーバインディングテーブルレイアウト生成後に
-      変更した場合にレイアウトを手動で無効化するためのScene::markShaderBindingTableLayoutDirty()を追加。
-      併せてScene::shaderBindingTableLayoutIsReady()も追加。
-  EN: Added Scene::markShaderBindingTableLayoutDirty() to manually invalidate the layout of shader binding table
-      for the case changing the size and/or alignment of a material's user data after generating the layout.
-      Added Scene::shaderBindingTableLayoutIsReady() as well.
+  JP: - カーブプリミティブをサポート。
+      - ヒットグループを生成する関数を変更。三角形とカーブに関してはcreateHitProgramGroupForBuiltinIS()を、
+        カスタムプリミティブに関してはcreateHitProgramGroupForCustomIS()を使用してください。
+  EN: - Added support for curve primitives.
+      - Changed the function to create a hit group. Use createHitProgramGroupForBuiltinIS() for triangles and
+        curves and createHitProgramGroupForCustomIS() for custom primitives.
 
 - !!BREAKING
-  JP: InstanceAccelerationStructure::prepareForBuild()が引数でインスタンス数を返さないように変更。
-      InstanceAccelerationStructure::getNumChildren()を代わりに使用してください。
-  EN: Changed InstanceAccelerationStructure::prepareForBuild() not to return the number of instances as an argument.
-      Use InstanceAccelerationStructure::getNumChildren() instead.
+  JP: - GeometryInstanceとGASをSceneから生成する関数の引数の型をenumに変更。
+  EN: - Changed the type of argument of the functions to create a GeometryInstance or a GAS from a Scene to enum.
+
+- !!BREAKING
+  JP: - GAS/IASのremoveChild()を削除。代わりにremoveChildAt()を定義。
+        GAS/IAS::findChildIndex()を使用すれば目的の子のインデックスを特定できる。
+      - また、GAS/IAS::clearChildren()を定義。
+  EN: - Removed GAS/IAS's removeChild(), instead defined removeChildAt().
+        Use GAS/IAS::findChildIndex() to identify the index of the target child.
+      - Also, defined GAS/IAS::clearChildren().
+
+- JP: - GASの子ごとのユーザーデータを設定するAPIを追加。
+  EN: - Added APIs to set per-GAS child user data.
+
+- JP: - 各種パラメターを取得するためのAPIを追加。
+  EN: - Added APIs to get parameters.
+
+- JP: - マテリアルのユーザーデータのサイズやアラインメントを、シェーダーバインディングテーブルレイアウト生成後に
+        変更した場合にレイアウトを手動で無効化するためのScene::markShaderBindingTableLayoutDirty()を追加。
+      - 併せてScene::shaderBindingTableLayoutIsReady()も追加。
+  EN: - Added Scene::markShaderBindingTableLayoutDirty() to manually invalidate the layout of shader binding table
+        for the case changing the size and/or alignment of a material's user data after generating the layout.
+      - Added Scene::shaderBindingTableLayoutIsReady() as well.
+
+- !!BREAKING
+  JP: - InstanceAccelerationStructure::prepareForBuild()が引数でインスタンス数を返さないように変更。
+        InstanceAccelerationStructure::getNumChildren()を代わりに使用してください。
+  EN: - Changed InstanceAccelerationStructure::prepareForBuild() not to return the number of instances as an argument.
+        Use InstanceAccelerationStructure::getNumChildren() instead.
 
 ----------------------------------------------------------------
 TODO:
@@ -154,6 +175,7 @@ TODO:
 #include <cstdint>
 #include <cfloat>
 #include <string>
+#include <initializer_list>
 #endif
 #include <optix.h>
 
@@ -224,6 +246,8 @@ OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixMotionFlags);
 OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixRayFlags);
 OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixTraversableGraphFlags);
 OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixExceptionFlags);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixPayloadSemantics);
+OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixPayloadTypeID);
 
 #undef OPTIXU_DEFINE_OPERATORS_FOR_FLAGS
 
@@ -270,6 +294,9 @@ namespace optixu {
 #define optixuAssert_NotImplemented() optixuAssert(false, "Not implemented yet!")
 
     namespace detail {
+        static constexpr uint32_t maxNumPayloadsInDwords = 32;
+#define OPTIXU_STR_MAX_NUM_PAYLOADS "32"
+
         template <typename T>
         RT_DEVICE_FUNCTION constexpr size_t getNumDwords() {
             return (sizeof(T) + 3) / 4;
@@ -397,68 +424,131 @@ namespace optixu {
                 traceSetPayloads<startSlot + numDwords>(p, tailPayloads...);
         }
 
+        template <size_t... I>
+        RT_DEVICE_FUNCTION void trace(OptixPayloadTypeID payloadTypeID,
+                                      OptixTraversableHandle handle,
+                                      const float3 &origin, const float3 &direction,
+                                      float tmin, float tmax, float rayTime,
+                                      OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
+                                      uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
+                                      uint32_t* const* payloads,
+                                      std::index_sequence<I...>) {
+            optixTrace(payloadTypeID,
+                       handle,
+                       origin, direction,
+                       tmin, tmax, rayTime,
+                       visibilityMask, rayFlags,
+                       SBToffset, SBTstride, missSBTIndex,
+                       *payloads[I]...);
+        }
+
+        template <size_t... I>
+        RT_DEVICE_FUNCTION void reportIntersection(float hitT, uint32_t hitKind, const uint32_t* attributes,
+                                                   std::index_sequence<I...>) {
+            optixReportIntersection(hitT, hitKind, attributes[I]...);
+        }
+
+        template <size_t... I>
+        RT_DEVICE_FUNCTION void throwException(int32_t exceptionCode, const uint32_t* exDetails,
+                                               std::index_sequence<I...>) {
+            optixThrowException(exceptionCode, exDetails[I]...);
+        }
+
         struct PayloadFunc {
             template <uint32_t index>
             RT_DEVICE_FUNCTION static uint32_t get() {
-                if constexpr (index == 0)
-                    return optixGetPayload_0();
-                if constexpr (index == 1)
-                    return optixGetPayload_1();
-                if constexpr (index == 2)
-                    return optixGetPayload_2();
-                if constexpr (index == 3)
-                    return optixGetPayload_3();
-                if constexpr (index == 4)
-                    return optixGetPayload_4();
-                if constexpr (index == 5)
-                    return optixGetPayload_5();
-                if constexpr (index == 6)
-                    return optixGetPayload_6();
-                if constexpr (index == 7)
-                    return optixGetPayload_7();
+#define OPTIXU_INTRINSIC_GET_PAYLOAD(Index) \
+    if constexpr (index == Index) return optixGetPayload_##Index()
+                OPTIXU_INTRINSIC_GET_PAYLOAD(0);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(1);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(2);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(3);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(4);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(5);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(6);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(7);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(8);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(9);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(10);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(11);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(12);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(13);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(14);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(15);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(16);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(17);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(18);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(19);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(20);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(21);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(22);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(23);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(24);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(25);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(26);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(27);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(28);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(29);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(30);
+                OPTIXU_INTRINSIC_GET_PAYLOAD(31);
+#undef OPTIXU_INTRINSIC_GET_PAYLOAD
                 return 0;
             }
 
             template <uint32_t index>
             RT_DEVICE_FUNCTION static void set(uint32_t p) {
-                if constexpr (index == 0)
-                    optixSetPayload_0(p);
-                if constexpr (index == 1)
-                    optixSetPayload_1(p);
-                if constexpr (index == 2)
-                    optixSetPayload_2(p);
-                if constexpr (index == 3)
-                    optixSetPayload_3(p);
-                if constexpr (index == 4)
-                    optixSetPayload_4(p);
-                if constexpr (index == 5)
-                    optixSetPayload_5(p);
-                if constexpr (index == 6)
-                    optixSetPayload_6(p);
-                if constexpr (index == 7)
-                    optixSetPayload_7(p);
+#define OPTIXU_INTRINSIC_SET_PAYLOAD(Index) \
+    if constexpr (index == Index) optixSetPayload_ ##Index(p)
+                OPTIXU_INTRINSIC_SET_PAYLOAD(0);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(1);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(2);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(3);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(4);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(5);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(6);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(7);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(8);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(9);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(10);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(11);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(12);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(13);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(14);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(15);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(16);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(17);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(18);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(19);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(20);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(21);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(22);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(23);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(24);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(25);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(26);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(27);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(28);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(29);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(30);
+                OPTIXU_INTRINSIC_SET_PAYLOAD(31);
+#undef OPTIXU_INTRINSIC_SET_PAYLOAD
             }
         };
 
         struct AttributeFunc {
             template <uint32_t index>
             RT_DEVICE_FUNCTION static uint32_t get() {
-                if constexpr (index == 0)
-                    return optixGetAttribute_0();
-                if constexpr (index == 1)
-                    return optixGetAttribute_1();
-                if constexpr (index == 2)
-                    return optixGetAttribute_2();
-                if constexpr (index == 3)
-                    return optixGetAttribute_3();
-                if constexpr (index == 4)
-                    return optixGetAttribute_4();
-                if constexpr (index == 5)
-                    return optixGetAttribute_5();
-                if constexpr (index == 6)
-                    return optixGetAttribute_6();
-                if constexpr (index == 7)
-                    return optixGetAttribute_7();
+#define OPTIXU_INTRINSIC_GET_ATTRIBUTE(Index) \
+    if constexpr (index == Index) return optixGetAttribute_##Index()
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(0);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(1);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(2);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(3);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(4);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(5);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(6);
+                OPTIXU_INTRINSIC_GET_ATTRIBUTE(7);
+#undef OPTIXU_INTRINSIC_GET_ATTRIBUTE
                 return 0;
             }
         };
@@ -466,22 +556,17 @@ namespace optixu {
         struct ExceptionDetailFunc {
             template <uint32_t index>
             RT_DEVICE_FUNCTION static uint32_t get() {
-                if constexpr (index == 0)
-                    return optixGetExceptionDetail_0();
-                if constexpr (index == 1)
-                    return optixGetExceptionDetail_1();
-                if constexpr (index == 2)
-                    return optixGetExceptionDetail_2();
-                if constexpr (index == 3)
-                    return optixGetExceptionDetail_3();
-                if constexpr (index == 4)
-                    return optixGetExceptionDetail_4();
-                if constexpr (index == 5)
-                    return optixGetExceptionDetail_5();
-                if constexpr (index == 6)
-                    return optixGetExceptionDetail_6();
-                if constexpr (index == 7)
-                    return optixGetExceptionDetail_7();
+#define OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(Index) \
+    if constexpr (index == Index) return optixGetExceptionDetail_##Index()
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(0);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(1);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(2);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(3);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(4);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(5);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(6);
+                OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL(7);
+#undef OPTIXU_INTRINSIC_GET_EXCEPTION_DETAIL
                 return 0;
             }
         };
@@ -493,47 +578,51 @@ namespace optixu {
     //     However take them as normal reference to ease consistency check of template arguments and for
     //     conforming optixTrace.
     template <typename... PayloadTypes>
-    RT_DEVICE_FUNCTION void trace(OptixTraversableHandle handle,
+    RT_DEVICE_FUNCTION void trace(OptixPayloadTypeID payloadTypeID,
+                                  OptixTraversableHandle handle,
                                   const float3 &origin, const float3 &direction,
                                   float tmin, float tmax, float rayTime,
                                   OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
                                   uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
                                   PayloadTypes &... payloads) {
         constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
-        static_assert(numDwords <= 8, "Maximum number of payloads is 8 dwords.");
-
-#define OPTIXU_TRACE_ARGUMENTS \
-    handle, \
-    origin, direction, \
-    tmin, tmax, rayTime, \
-    visibilityMask, rayFlags, \
-    SBToffset, SBTstride, missSBTIndex
-
+        static_assert(numDwords <= detail::maxNumPayloadsInDwords,
+                      "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
         if constexpr (numDwords == 0) {
-            optixTrace(OPTIXU_TRACE_ARGUMENTS);
+            optixTrace(payloadTypeID,
+                       handle,
+                       origin, direction,
+                       tmin, tmax, rayTime,
+                       visibilityMask, rayFlags,
+                       SBToffset, SBTstride, missSBTIndex);
         }
         else {
             uint32_t* p[numDwords];
             detail::traceSetPayloads<0>(p, payloads...);
-
-            if constexpr (numDwords == 1)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0]);
-            if constexpr (numDwords == 2)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1]);
-            if constexpr (numDwords == 3)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2]);
-            if constexpr (numDwords == 4)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2], *p[3]);
-            if constexpr (numDwords == 5)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2], *p[3], *p[4]);
-            if constexpr (numDwords == 6)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2], *p[3], *p[4], *p[5]);
-            if constexpr (numDwords == 7)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2], *p[3], *p[4], *p[5], *p[6]);
-            if constexpr (numDwords == 8)
-                optixTrace(OPTIXU_TRACE_ARGUMENTS, *p[0], *p[1], *p[2], *p[3], *p[4], *p[5], *p[6], *p[7]);
+            detail::trace(payloadTypeID,
+                          handle,
+                          origin, direction,
+                          tmin, tmax, rayTime,
+                          visibilityMask, rayFlags,
+                          SBToffset, SBTstride, missSBTIndex,
+                          p, std::make_index_sequence<numDwords>{});
         }
-#undef OPTIXU_TRACE_ARGUMENTS
+    }
+
+    template <typename... PayloadTypes>
+    RT_DEVICE_FUNCTION void trace(OptixTraversableHandle handle,
+                                  const float3 &origin, const float3 &direction,
+                                  float tmin, float tmax, float rayTime,
+                                  OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
+                                  uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
+                                  PayloadTypes &... payloads) {
+        trace(OPTIX_PAYLOAD_TYPE_DEFAULT,
+              handle,
+              origin, direction,
+              tmin, tmax, rayTime,
+              visibilityMask, rayFlags,
+              SBToffset, SBTstride, missSBTIndex,
+              payloads...);
     }
 
 
@@ -541,7 +630,8 @@ namespace optixu {
     template <typename... PayloadTypes>
     RT_DEVICE_FUNCTION void getPayloads(PayloadTypes*... payloads) {
         constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
-        static_assert(numDwords <= 8, "Maximum number of payloads is 8 dwords.");
+        static_assert(numDwords <= detail::maxNumPayloadsInDwords,
+                      "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
         static_assert(numDwords > 0, "Calling this function without payloads has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::PayloadFunc, 0>(payloads...);
@@ -550,7 +640,8 @@ namespace optixu {
     template <typename... PayloadTypes>
     RT_DEVICE_FUNCTION void setPayloads(const PayloadTypes*... payloads) {
         constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
-        static_assert(numDwords <= 8, "Maximum number of payloads is 8 dwords.");
+        static_assert(numDwords <= detail::maxNumPayloadsInDwords,
+                      "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
         static_assert(numDwords > 0, "Calling this function without payloads has no effect.");
         if constexpr (numDwords > 0)
             detail::setValues<detail::PayloadFunc, 0>(payloads...);
@@ -569,23 +660,7 @@ namespace optixu {
         else {
             uint32_t a[numDwords];
             detail::packToUInts<0>(a, attributes...);
-
-            if constexpr (numDwords == 1)
-                optixReportIntersection(hitT, hitKind, a[0]);
-            if constexpr (numDwords == 2)
-                optixReportIntersection(hitT, hitKind, a[0], a[1]);
-            if constexpr (numDwords == 3)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2]);
-            if constexpr (numDwords == 4)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3]);
-            if constexpr (numDwords == 5)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4]);
-            if constexpr (numDwords == 6)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5]);
-            if constexpr (numDwords == 7)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
-            if constexpr (numDwords == 8)
-                optixReportIntersection(hitT, hitKind, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+            detail::reportIntersection(hitT, hitKind, a, std::make_index_sequence<numDwords>{});
         }
     }
 
@@ -611,23 +686,7 @@ namespace optixu {
         else {
             uint32_t ed[numDwords];
             detail::packToUInts<0>(ed, exceptionDetails...);
-
-            if constexpr (numDwords == 1)
-                optixThrowException(exceptionCode, ed[0]);
-            if constexpr (numDwords == 2)
-                optixThrowException(exceptionCode, ed[0], ed[1]);
-            if constexpr (numDwords == 3)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2]);
-            if constexpr (numDwords == 4)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2], ed[3]);
-            if constexpr (numDwords == 5)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2], ed[3], ed[4]);
-            if constexpr (numDwords == 6)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2], ed[3], ed[4], ed[5]);
-            if constexpr (numDwords == 7)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2], ed[3], ed[4], ed[5], ed[6]);
-            if constexpr (numDwords == 8)
-                optixThrowException(exceptionCode, ed[0], ed[1], ed[2], ed[3], ed[4], ed[5], ed[6], ed[7]);
+            detail::throwException(exceptionCode, ed, std::make_index_sequence<numDwords>{});
         }
     }
 
@@ -675,6 +734,50 @@ namespace optixu {
     JP: 
     EN: 
 
+
+
+    Hit Group Shader Binding Table Layout
+    | GAS 0 - MS 0 | GAS 0 - MS 1 | ... | GAS 0 - MS * | GAS 1 - MS 0 | GAS 1 - MS 1 | ...
+    GAS: Geometry Acceleration Structure
+    MS: Material Set
+   
+    Per-GAS, Per-Material Set SBT Layout
+    | GAS * - MS *                               |
+    | GeomInst 0 | GeomInst 1 | ... | GeomInst * |
+    GeomInst: Geometry Instance
+   
+    Per-Geometry Instance SBT Layout
+    | GeomInst *                                 |
+    | Material 0 | Material 1 | ... | Material * |
+   
+    Per-Material SBT Layout
+    | Material *                                 |
+    | Ray Type 0 | Ray Type 1 | ... | Ray Type * |
+    | SBT Record | SBT Record |     | SBT Record |
+   
+    SBT Record
+    <-- SBT Record Stride (Globally Common) --------------------------->
+    | Header | GAS       | GAS Child | GeomInst  | Material  | Padding |
+    |        | User Data | User Data | User Data | User Data |         |
+             ^
+             |
+             optixGetSbtDataPointer()
+   
+    JP: CH/AH/ISプログラムにてoptixGetSbtDataPointer()で取得できるポインターの位置に
+        GeometryInstanceAccelerationStructureのsetUserData(), setChildUserData(),
+        GeometryInstanceのsetUserData(), MaterialのsetUserData()
+        で設定したデータが順番に並んでいる(各データの相対的な開始位置は指定したアラインメントに従う)。
+        各データの開始位置は前方のデータのサイズによって変わるので、例えば同じGASに属していても
+        GASの子ごとのデータサイズが異なればGeometryInstanceのデータの開始位置は異なる可能性があることに注意。
+    EN: Data set by each of
+        GeometryInstanceAccelerationStructure's setUserData() and setChildUserData(),
+        GeometryInstance's setUserData(), Material's setUserData()
+        line up in the order (Each relative offset follows the specified alignment)
+        at the position pointed by optixGetSbtDataPointer() called in CH/AH/IS programs.
+        Note that the start position of each data changes depending on the sizes of forward data.
+        Therefore for example, the start positions of GeometryInstance's data are different
+        if data sizes of GAS children are different even if those belong to the same GAS.
+
     */
 
 #define OPTIXU_PREPROCESS_OBJECTS() \
@@ -695,12 +798,14 @@ namespace optixu {
 #define OPTIXU_PREPROCESS_OBJECT(Type) class Type
     OPTIXU_PREPROCESS_OBJECTS();
 #undef OPTIXU_PREPROCESS_OBJECT
+    class PayloadType;
 
     enum class GeometryType {
         Triangles = 0,
         LinearSegments,
         QuadraticBSplines,
         CubicBSplines,
+        CatmullRomSplines,
         CustomPrimitives,
     };
 
@@ -887,6 +992,7 @@ private: \
         void setWidthBuffer(const BufferView &widthBuffer, uint32_t motionStep = 0) const;
         void setTriangleBuffer(const BufferView &triangleBuffer, OptixIndicesFormat format = OPTIX_INDICES_FORMAT_UNSIGNED_INT3) const;
         void setSegmentIndexBuffer(const BufferView &segmentIndexBuffer) const;
+        void setCurveEndcapFlags(OptixCurveEndcapFlags endcapFlags) const;
         void setCustomPrimitiveAABBBuffer(const BufferView &primitiveAABBBuffer, uint32_t motionStep = 0) const;
         void setPrimitiveIndexOffset(uint32_t offset) const;
         void setNumMaterials(uint32_t numMaterials, const BufferView &matIndexBuffer, uint32_t indexSize = sizeof(uint32_t)) const;
@@ -1158,6 +1264,31 @@ private: \
 
 
 
+    class PayloadType {
+        OPTIXU_PIMPL();
+
+        static PayloadType create(const uint32_t* payloadSizesInDwords,
+                                  const OptixPayloadSemantics* semantics,
+                                  uint32_t numPayloads);
+    public:
+        template <typename... PayloadTypes, uint32_t N>
+        static PayloadType create(const OptixPayloadSemantics (&semantics)[N]) {
+            // Nの代わりにsizeof...(PayloadTypes)を使った場合、渡された引数の数が足りない場合を検知できない。
+            static_assert(N == sizeof...(PayloadTypes),
+                          "Number of semantics passed doesn't match to the number of payload variables.");
+            constexpr uint32_t payloadSizesInDwords[N] = { detail::getNumDwords<PayloadTypes>()... };
+            return create(payloadSizesInDwords, semantics, N);
+        }
+
+        void destroy();
+        operator bool() const { return m; }
+        bool operator==(const PayloadType &r) const { return m == r.m; }
+        bool operator!=(const PayloadType &r) const { return m != r.m; }
+        bool operator<(const PayloadType &r) const { return m < r.m; }
+    };
+
+
+
     class Pipeline {
         OPTIXU_PIMPL();
 
@@ -1175,27 +1306,42 @@ private: \
         [[nodiscard]]
         Module createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,
                                          OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel,
-                                         OptixModuleCompileBoundValueEntry* boundValues = nullptr, uint32_t numBoundValues = 0) const;
+                                         OptixModuleCompileBoundValueEntry* boundValues = nullptr, uint32_t numBoundValues = 0,
+                                         PayloadType* payloadTypes = nullptr, uint32_t numPayloadTypes = 0) const;
 
         [[nodiscard]]
         ProgramGroup createRayGenProgram(Module module, const char* entryFunctionName) const;
         [[nodiscard]]
         ProgramGroup createExceptionProgram(Module module, const char* entryFunctionName) const;
         [[nodiscard]]
-        ProgramGroup createMissProgram(Module module, const char* entryFunctionName) const;
+        ProgramGroup createMissProgram(
+            Module module, const char* entryFunctionName,
+            PayloadType payloadType = PayloadType()) const;
         [[nodiscard]]
-        ProgramGroup createHitProgramGroupForBuiltinIS(OptixPrimitiveType primType,
-                                                       Module module_CH, const char* entryFunctionNameCH,
-                                                       Module module_AH, const char* entryFunctionNameAH) const;
+        ProgramGroup createHitProgramGroupForTriangleIS(
+            Module module_CH, const char* entryFunctionNameCH,
+            Module module_AH, const char* entryFunctionNameAH,
+            PayloadType payloadType = PayloadType()) const;
         [[nodiscard]]
-        ProgramGroup createHitProgramGroupForCustomIS(Module module_CH, const char* entryFunctionNameCH,
-                                                      Module module_AH, const char* entryFunctionNameAH,
-                                                      Module module_IS, const char* entryFunctionNameIS) const;
+        ProgramGroup createHitProgramGroupForCurveIS(
+            OptixPrimitiveType curveType, OptixCurveEndcapFlags endcapFlags,
+            Module module_CH, const char* entryFunctionNameCH,
+            Module module_AH, const char* entryFunctionNameAH,
+            ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess,
+            PayloadType payloadType = PayloadType()) const;
+        [[nodiscard]]
+        ProgramGroup createHitProgramGroupForCustomIS(
+            Module module_CH, const char* entryFunctionNameCH,
+            Module module_AH, const char* entryFunctionNameAH,
+            Module module_IS, const char* entryFunctionNameIS,
+            PayloadType payloadType = PayloadType()) const;
         [[nodiscard]]
         ProgramGroup createEmptyHitProgramGroup() const;
         [[nodiscard]]
-        ProgramGroup createCallableProgramGroup(Module module_DC, const char* entryFunctionNameDC,
-                                                Module module_CC, const char* entryFunctionNameCC) const;
+        ProgramGroup createCallableProgramGroup(
+            Module module_DC, const char* entryFunctionNameDC,
+            Module module_CC, const char* entryFunctionNameCC,
+            PayloadType payloadType = PayloadType()) const;
 
         void link(uint32_t maxTraceDepth, OptixCompileDebugLevel debugLevel) const;
 
@@ -1316,6 +1462,8 @@ private: \
                     const BufferView* noisyAovs, OptixPixelFormat* aovFormats, uint32_t numAovs,
                     const BufferView &albedo, OptixPixelFormat albedoFormat,
                     const BufferView &normal, OptixPixelFormat normalFormat,
+                    const BufferView &flow, OptixPixelFormat flowFormat,
+                    const BufferView &previousDenoisedBeauty, const BufferView* previousDenoisedAovs,
                     const BufferView &denoisedBeauty, const BufferView* denoisedAovs,
                     const DenoisingTask &task) const;
     };

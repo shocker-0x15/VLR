@@ -164,13 +164,21 @@ namespace cudau {
     template <typename... ArgTypes>
     void callKernel(CUstream stream, CUfunction kernel, const dim3 &gridDim, const dim3 &blockDim, uint32_t sharedMemSize,
                     ArgTypes&&... args) {
-        ConstVoidPtr argPointers[sizeof...(args)];
-        addArgPointer(argPointers, std::forward<ArgTypes>(args)...);
+        if constexpr (sizeof...(args) > 0) {
+            ConstVoidPtr argPointers[sizeof...(args)];
+            addArgPointer(argPointers, std::forward<ArgTypes>(args)...);
 
-        CUDADRV_CHECK(cuLaunchKernel(kernel,
-                                     gridDim.x, gridDim.y, gridDim.z,
-                                     blockDim.x, blockDim.y, blockDim.z,
-                                     sharedMemSize, stream, const_cast<void**>(argPointers), nullptr));
+            CUDADRV_CHECK(cuLaunchKernel(kernel,
+                                         gridDim.x, gridDim.y, gridDim.z,
+                                         blockDim.x, blockDim.y, blockDim.z,
+                                         sharedMemSize, stream, const_cast<void**>(argPointers), nullptr));
+        }
+        else {
+            CUDADRV_CHECK(cuLaunchKernel(kernel,
+                                         gridDim.x, gridDim.y, gridDim.z,
+                                         blockDim.x, blockDim.y, blockDim.z,
+                                         sharedMemSize, stream, nullptr, nullptr));
+        }
     }
 
 
@@ -181,7 +189,7 @@ namespace cudau {
         uint32_t m_sharedMemSize;
 
     public:
-        Kernel() {}
+        Kernel() : m_kernel(nullptr), m_blockDim(1), m_sharedMemSize(0) {}
         Kernel(CUmodule module, const char* name, const dim3 blockDim, uint32_t sharedMemSize) :
             m_blockDim(blockDim), m_sharedMemSize(sharedMemSize) {
             CUDADRV_CHECK(cuModuleGetFunction(&m_kernel, module, name));
@@ -293,9 +301,9 @@ namespace cudau {
         CUgraphicsResource m_cudaGfxResource;
 
         struct {
-            unsigned int m_initialized : 1;
             unsigned int m_persistentMappedMemory : 1;
             unsigned int m_mapped : 1;
+            unsigned int m_initialized : 1;
         };
 
         Buffer(const Buffer &) = delete;
@@ -379,12 +387,18 @@ namespace cudau {
         }
         void unmap(CUstream stream = 0);
         void* getMappedPointer() const {
+            if (m_type == BufferType::ZeroCopy ||
+                m_type == BufferType::Managed)
+                return m_hostPointer;
             if (m_mappedPointer == nullptr)
                 throw std::runtime_error("The buffer is not not mapped.");
             return m_mappedPointer;
         }
         template <typename T>
         T* getMappedPointer() const {
+            if (m_type == BufferType::ZeroCopy ||
+                m_type == BufferType::Managed)
+                return reinterpret_cast<T*>(m_hostPointer);
             if (m_mappedPointer == nullptr)
                 throw std::runtime_error("The buffer is not not mapped.");
             return reinterpret_cast<T*>(m_mappedPointer);
@@ -399,7 +413,7 @@ namespace cudau {
         }
         template <typename T>
         void write(const std::vector<T> &values, CUstream stream = 0) const {
-            write(values.data(), values.size(), stream);
+            write(values.data(), static_cast<uint32_t>(values.size()), stream);
         }
         template <typename T>
         void read(T* dstValues, uint32_t numValues, CUstream stream = 0) const {
@@ -411,14 +425,14 @@ namespace cudau {
         }
         template <typename T>
         void read(std::vector<T> &values, CUstream stream = 0) const {
-            read(values.data(), values.size(), stream);
+            read(values.data(), static_cast<uint32_t>(values.size()), stream);
         }
         template <typename T>
         void fill(const T &value, CUstream stream = 0) const {
-            size_t numValues = (static_cast<size_t>(m_stride) * m_numElements) / sizeof(T);
+            uint32_t numValues = (m_stride * m_numElements) / sizeof(T);
             if (m_persistentMappedMemory) {
                 T* values = reinterpret_cast<T*>(m_mappedPointer);
-                for (int i = 0; i < numValues; ++i)
+                for (uint32_t i = 0; i < numValues; ++i)
                     values[i] = value;
                 write(values, numValues, stream);
             }
@@ -442,7 +456,7 @@ namespace cudau {
         }
         TypedBuffer(CUcontext context, BufferType type, uint32_t numElements, const T &value) {
             std::vector<T> values(numElements, value);
-            Buffer::initialize(context, type, values.size(), sizeof(T));
+            Buffer::initialize(context, type, static_cast<uint32_t>(values.size()), sizeof(T));
             CUDADRV_CHECK(cuMemcpyHtoD(Buffer::getCUdeviceptr(), values.data(), values.size() * sizeof(T)));
         }
         TypedBuffer(CUcontext context, BufferType type, const T* v, uint32_t numElements) {
@@ -459,7 +473,7 @@ namespace cudau {
         }
         void initialize(CUcontext context, BufferType type, uint32_t numElements, const T &value, CUstream stream = 0) {
             std::vector<T> values(numElements, value);
-            initialize(context, type, values.size());
+            initialize(context, type, static_cast<uint32_t>(values.size()));
             CUDADRV_CHECK(cuMemcpyHtoDAsync(Buffer::getCUdeviceptr(), values.data(), values.size() * sizeof(T), stream));
         }
         void initialize(CUcontext context, BufferType type, const T* v, uint32_t numElements, CUstream stream = 0) {
@@ -500,13 +514,13 @@ namespace cudau {
             Buffer::write<T>(srcValues, numValues, stream);
         }
         void write(const std::vector<T> &values, CUstream stream = 0) const {
-            write(values.data(), values.size(), stream);
+            Buffer::write<T>(values, stream);
         }
         void read(T* dstValues, uint32_t numValues, CUstream stream = 0) const {
             Buffer::read<T>(dstValues, numValues, stream);
         }
         void read(std::vector<T> &values, CUstream stream = 0) const {
-            read(values.data(), values.size(), stream);
+            Buffer::read<T>(values, stream);
         }
         void fill(const T &value, CUstream stream = 0) const {
             Buffer::fill<T>(value, stream);
@@ -524,6 +538,12 @@ namespace cudau {
             TypedBuffer<T> ret;
             // safe ?
             *reinterpret_cast<Buffer*>(&ret) = Buffer::copy(stream);
+            return ret;
+        }
+
+        operator std::vector<T>() {
+            std::vector<T> ret(numElements());
+            read(ret);
             return ret;
         }
     };
@@ -720,6 +740,10 @@ namespace cudau {
             unmap(mipmapLevel, stream);
         }
         template <typename T>
+        void write(const std::vector<T> &values, uint32_t mipmapLevel = 0, CUstream stream = 0) {
+            write(values.data(), static_cast<uint32_t>(values.size()), mipmapLevel, stream);
+        }
+        template <typename T>
         void read(T* dstValues, uint32_t numValues, uint32_t mipmapLevel = 0, CUstream stream = 0) {
             uint32_t width = std::max<uint32_t>(1, m_width >> mipmapLevel);
             uint32_t height = std::max<uint32_t>(1, m_height >> mipmapLevel);
@@ -730,6 +754,10 @@ namespace cudau {
             auto srcValues = map<T>(mipmapLevel, stream);
             std::copy_n(srcValues, numValues, dstValues);
             unmap(mipmapLevel, stream);
+        }
+        template <typename T>
+        void read(std::vector<T> &values, uint32_t mipmapLevel = 0, CUstream stream = 0) {
+            read(values.data(), static_cast<uint32_t>(values.size()), mipmapLevel, stream);
         }
         template <typename T>
         void fill(const T &value, uint32_t mipmapLevel = 0, CUstream stream = 0) {
@@ -780,11 +808,11 @@ namespace cudau {
         void initialize(Array* array) {
             m_array = array;
             m_bufferIndex = 0;
-            for (int i = 0; i < NumBuffers; ++i)
+            for (uint32_t i = 0; i < NumBuffers; ++i)
                 m_surfObjs[i] = 0;
         }
         void finalize() {
-            for (int i = 0; i < NumBuffers; ++i) {
+            for (uint32_t i = 0; i < NumBuffers; ++i) {
                 CUDADRV_CHECK(cuSurfObjectDestroy(m_surfObjs[i]));
                 m_surfObjs[i] = 0;
             }
@@ -948,11 +976,11 @@ namespace cudau {
             m_numArrays = numArrays;
             m_arrayIndex = initIndex;
             m_bufferIndex = 0;
-            for (int i = 0; i < NumBuffers; ++i)
+            for (uint32_t i = 0; i < NumBuffers; ++i)
                 m_texObjs[i] = 0;
         }
         void finalize() {
-            for (int i = 0; i < NumBuffers; ++i) {
+            for (uint32_t i = 0; i < NumBuffers; ++i) {
                 CUDADRV_CHECK(cuTexObjectDestroy(m_texObjs[i]));
                 m_texObjs[i] = 0;
             }

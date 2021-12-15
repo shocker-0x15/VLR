@@ -145,7 +145,13 @@ namespace cudau {
         m_numElements = numElements;
         m_stride = stride;
 
+        m_hostPointer = nullptr;
+        m_devicePointer = 0;
+        m_mappedPointer = nullptr;
+        m_mapFlag = BufferMapFlag::ReadWrite;
+
         m_GLBufferID = glBufferID;
+        m_cudaGfxResource = nullptr;
 
         size_t size = static_cast<size_t>(m_numElements) * m_stride;
 
@@ -167,6 +173,9 @@ namespace cudau {
             CUDADRV_CHECK(cuMemAllocManaged(&m_devicePointer, size, CU_MEM_ATTACH_GLOBAL));
             m_hostPointer = reinterpret_cast<void*>(m_devicePointer);
         }
+
+        m_persistentMappedMemory = false;
+        m_mapped = false;
 
         m_initialized = true;
     }
@@ -578,6 +587,11 @@ namespace cudau {
         m_numMipmapLevels = std::max(numMipmapLevels, 1u);
         m_elemType = elemType;
         m_numChannels = numChannels;
+        m_mapFlag = BufferMapFlag::ReadWrite;
+
+        m_GLTexID = glTexID;
+        m_cudaGfxResource = nullptr;
+
         m_surfaceLoadStore = surfaceLoadStore;
         m_useTextureGather = useTextureGather;
         m_cubemap = cubemap;
@@ -632,8 +646,8 @@ namespace cudau {
             m_stride = 4;
             m_numChannels = 2;
             numChannels = 2;
-            m_width >>= 2;
-            m_height >>= 2;
+            m_width = (m_width + 3) / 4;
+            m_height = (m_height + 3) / 4;
             break;
         case cudau::ArrayElementType::BC2_UNorm:
         case cudau::ArrayElementType::BC3_UNorm:
@@ -646,8 +660,8 @@ namespace cudau {
             m_stride = 4;
             m_numChannels = 4;
             numChannels = 4;
-            m_width >>= 2;
-            m_height >>= 2;
+            m_width = (m_width + 3) / 4;
+            m_height = (m_height + 3) / 4;
             break;
         default:
             CUDAUAssert_ShouldNotBeCalled();
@@ -659,12 +673,11 @@ namespace cudau {
         arrayDesc.NumChannels = numChannels;
         m_stride *= numChannels;
 
-        if (glTexID != 0) {
+        if (m_GLTexID != 0) {
 #if defined(CUDA_UTIL_USE_GL_INTEROP)
             uint32_t flags = ((surfaceLoadStore ? CU_GRAPHICS_REGISTER_FLAGS_SURFACE_LDST : CU_GRAPHICS_REGISTER_FLAGS_READ_ONLY) |
                               (useTextureGather ? CU_GRAPHICS_REGISTER_FLAGS_TEXTURE_GATHER : 0));
             CUDADRV_CHECK(cuGraphicsGLRegisterImage(&m_cudaGfxResource, glTexID, GL_TEXTURE_2D, flags));
-            m_GLTexID = glTexID;
 #else
             throw std::runtime_error("Enable \"CUDA_UTIL_USE_GL_INTEROP\" at the top of the header if you use CUDA/OpenGL interoperability.");
 #endif
@@ -700,6 +713,9 @@ namespace cudau {
                 resDesc.res.array.hArray = m_array;
                 CUDADRV_CHECK(cuSurfObjectCreate(&m_surfObjs[0], &resDesc));
             }
+        }
+        else {
+            m_surfObjs = nullptr;
         }
 
         m_initialized = true;
