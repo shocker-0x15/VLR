@@ -36,7 +36,7 @@ static void C_CompileTest() {
 
     VLRShaderNode imageNode;
     CHECK(vlrShaderNodeCreate(context, "Image2DTexture", &imageNode));
-    CHECK(vlrShaderNodeSetImage(imageNode, imageA));
+    CHECK(vlrQueryableSetImage2D(imageNode, "image", imageA));
 
     VLRSurfaceMaterial ue4Mat;
     CHECK(vlrSurfaceMaterialCreate(context, "UE4", &ue4Mat));

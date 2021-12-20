@@ -204,7 +204,6 @@ class HostProgram {
     glu::GraphicsProgram m_scaleShader;
     glu::Sampler m_scaleSampler;
 
-    uint64_t m_accumFrameTimes;
     bool m_forceLowResolution;
 
     
@@ -391,7 +390,7 @@ class HostProgram {
             m_camera = m_equirectangularCamera;
         }
 
-        ImGui::Text("%u [spp], %g [ms/sample]", m_numAccumFrames, (float)m_accumFrameTimes / (m_numAccumFrames - 1));
+        ImGui::Text("%u [spp]", m_numAccumFrames);
 
         ImGui::End();
     }
@@ -1113,10 +1112,6 @@ public:
                     m_sceneChanged;
                 if (m_frameIndex == 0)
                     firstFrame = true;
-                if (firstFrame)
-                    m_accumFrameTimes = 0;
-                else
-                    sw.start();
                 if (m_enableDebugRendering)
                     m_context->debugRender(
                         curStream, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame,
@@ -1125,8 +1120,6 @@ public:
                     m_context->render(
                         curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
                         &m_numAccumFrames);
-                if (!firstFrame)
-                    m_accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
                 m_operatedCameraOnPrevFrame = operatingCamera;
 

@@ -49,7 +49,7 @@ Code Example using VLRCpp (C++ wrapper)
 using namespace VLR;
 using namespace VLRCpp;
 
-ContextRef context = Context::create(enableLogging);
+ContextRef context = Context::create(cuContext, enableLogging, maxCallableDepth);
 
 // Construct a scene by defining meshes and materials.
 
@@ -117,7 +117,8 @@ context->render(cuStream, camera, enableDenoiser, 1, firstFrame, &numAccumFrames
 
 ## TODO
 - [ ] Make the rendering properly asynchronous.
-- [ ] Scene Editor
+- [ ] Python Binding
+- [ ] Simple Scene Editor
 - [ ] Compile shader node at runtime using NVRTC to remove overhead of callable programs.
 
 ## 動作環境 / Confirmed Environment
