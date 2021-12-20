@@ -77,8 +77,7 @@ namespace vlr {
     VLR_DEFINE_CLASS_ID(SurfaceNode, InfiniteSphereSurfaceNode);
     VLR_DEFINE_CLASS_ID(Node, ParentNode);
     VLR_DEFINE_CLASS_ID(ParentNode, InternalNode);
-    VLR_DEFINE_CLASS_ID(ParentNode, RootNode);
-    VLR_DEFINE_CLASS_ID(Object, Scene);
+    VLR_DEFINE_CLASS_ID(ParentNode, Scene);
 
     VLR_DEFINE_CLASS_ID(Queryable, Camera);
     VLR_DEFINE_CLASS_ID(Camera, PerspectiveCamera);
@@ -323,7 +322,7 @@ namespace vlr {
                 bsdfProcSet.progWeightInternal = m_optix.dcNullBSDF_weightInternal;
             }
             m_optix.nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
-            updateBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex, bsdfProcSet);
+            updateBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex, bsdfProcSet, 0);
             VLRAssert(m_optix.nullBSDFProcedureSetIndex == 0,
                       "Index of the null BSDF procedure set is expected to be 0.");
 
@@ -340,19 +339,10 @@ namespace vlr {
                 edfProcSet.progEvaluateInternal = m_optix.dcNullEDF_evaluateInternal;
             }
             m_optix.nullEDFProcedureSetIndex = allocateEDFProcedureSet();
-            updateEDFProcedureSet(m_optix.nullEDFProcedureSetIndex, edfProcSet);
+            updateEDFProcedureSet(m_optix.nullEDFProcedureSetIndex, edfProcSet, 0);
             VLRAssert(m_optix.nullEDFProcedureSetIndex == 0,
                       "Index of the null EDF procedure set is expected to be 0.");
         }
-
-
-
-        m_optix.scene = m_optix.context.createScene();
-
-        m_optix.geomInstBuffer.initialize(cuContext, 65536);
-        m_optix.instBuffer.initialize(cuContext, 65536);
-        m_optix.launchParams.geomInstBuffer = m_optix.geomInstBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.instBuffer = m_optix.instBuffer.optixBuffer.getDevicePointer();
 
 
 
@@ -362,8 +352,8 @@ namespace vlr {
         m_optix.launchParams.DiscretizedSpectrum_integralCMF = DiscretizedSpectrumAlwaysSpectral::integralCMF;
 
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-        const uint32_t NumSpectrumGridCells = 168;
-        const uint32_t NumSpectrumDataPoints = 186;
+        constexpr uint32_t NumSpectrumGridCells = 168;
+        constexpr uint32_t NumSpectrumDataPoints = 186;
         m_optix.UpsampledSpectrum_spectrum_grid.initialize(
             m_cuContext, g_bufferType,
             UpsampledSpectrum::spectrum_grid, NumSpectrumGridCells);
@@ -455,6 +445,8 @@ namespace vlr {
     }
 
     Context::~Context() {
+        m_optix.asScratchMem.finalize();
+
         m_optix.linearDenoisedColorBuffer.finalize();
         m_optix.linearNormalBuffer.finalize();
         m_optix.linearAlbedoBuffer.finalize();
@@ -518,10 +510,6 @@ namespace vlr {
         m_optix.UpsampledSpectrum_coefficients_sRGB_D65.finalize();
         m_optix.UpsampledSpectrum_maxBrightnesses.finalize();
 #endif
-
-        m_optix.instBuffer.finalize();
-        m_optix.geomInstBuffer.finalize();
-        m_optix.scene.destroy();
 
         m_optix.materialWithAlpha.destroy();
         m_optix.materialDefault.destroy();
@@ -698,62 +686,82 @@ namespace vlr {
         *height = m_height;
     }
 
-    void Context::setScene(Scene &scene) {
-        CUstream stream = 0;
-
-        size_t sbtSize;
-        m_optix.scene.generateShaderBindingTableLayout(&sbtSize);
-
-        // Path Tracing
-        {
-            OptiX::PathTracing &p = m_optix.pathTracing;
-
-            p.hitGroupShaderBindingTable.finalize();
-            p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
-
-            p.pipeline.setScene(m_optix.scene);
-            p.pipeline.setHitGroupShaderBindingTable(
-                p.hitGroupShaderBindingTable,
-                p.hitGroupShaderBindingTable.getMappedPointer());
-        }
-
-        // Debug Rendering
-        {
-            OptiX::DebugRendering &p = m_optix.debugRendering;
-
-            p.hitGroupShaderBindingTable.finalize();
-            p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
-            p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
-
-            p.pipeline.setScene(m_optix.scene);
-            p.pipeline.setHitGroupShaderBindingTable(
-                p.hitGroupShaderBindingTable,
-                p.hitGroupShaderBindingTable.getMappedPointer());
-        }
-
-        size_t asScratchSize;
-        scene.prepareSetup(&asScratchSize);
-        cudau::Buffer asScratchMem;
-        asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
-        scene.setup(stream, asScratchMem, &m_optix.launchParams);
-        asScratchMem.finalize();
-
-        CUDADRV_CHECK(cuStreamSynchronize(stream));
+    void Context::setScene(Scene* scene) {
+        m_scene = scene;
     }
 
-    void Context::render(const Camera* camera, bool denoise,
+    void Context::render(CUstream stream, const Camera* camera, bool denoise,
                          bool debugRender, VLRDebugRenderingMode renderMode,
                          uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        CUstream stream = 0;
+        // JP: シェーダーノードのデータを転送する。
+        // EN: Transfer shader node data.
+        for (ShaderNode* node : m_optix.dirtyShaderNodes)
+            node->setup(stream);
+        m_optix.dirtyShaderNodes.clear();
 
+        // JP: サーフェスマテリアルのデータを転送する。
+        // EN: Transfer surface material data.
+        for (SurfaceMaterial* surfMat : m_optix.dirtySurfaceMaterials)
+            surfMat->setup(stream);
+        m_optix.dirtySurfaceMaterials.clear();
+
+        // JP: シーンのセットアップを行う。
+        // EN: Setup a scene.
+        size_t asScratchSize;
+        optixu::Scene optixScene;
+        m_scene->prepareSetup(&asScratchSize, &optixScene);
+        if (!m_optix.asScratchMem.isInitialized() || m_optix.asScratchMem.sizeInBytes() < asScratchSize) {
+            m_optix.asScratchMem.finalize();
+            m_optix.asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
+        }
+        size_t sbtSize = 0;
+        bool sbtLayoutIsUpToDate = optixScene.shaderBindingTableLayoutIsReady();
+        optixScene.generateShaderBindingTableLayout(&sbtSize);
+        m_scene->setup(stream, m_optix.asScratchMem, &m_optix.launchParams);
+
+        // JP: パイプラインのヒットグループ用シェーダーバインディングテーブルをセットアップする。
+        //     デノイザー用のバッファーをデバッグ表示したい場合は通常のパイプラインを実行する必要がある。
+        // EN: Setup the hit group shader binding table for the pipeline.
+        //     It needs to run the normal pipeline when debug-visualizing denoiser-related buffers.
         optixu::Pipeline pipeline;
-        // JP: デノイザー用のバッファーをデバッグ表示したい場合は通常のパイプラインを実行する必要がある。
-        // EN:
-        if (debugRender && !denoise)
-            pipeline = m_optix.debugRendering.pipeline;
-        else
-            pipeline = m_optix.pathTracing.pipeline;
+        if (debugRender && !denoise) {
+            OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            if (!p.hitGroupShaderBindingTable.isInitialized() ||
+                p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                p.hitGroupShaderBindingTable.finalize();
+                p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+                p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            }
+
+            if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
+                p.pipeline.setScene(optixScene);
+                p.pipeline.setHitGroupShaderBindingTable(
+                    p.hitGroupShaderBindingTable,
+                    p.hitGroupShaderBindingTable.getMappedPointer());
+            }
+
+            pipeline = p.pipeline;
+        }
+        else {
+            OptiX::PathTracing &p = m_optix.pathTracing;
+
+            if (!p.hitGroupShaderBindingTable.isInitialized() ||
+                p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                p.hitGroupShaderBindingTable.finalize();
+                p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+                p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            }
+
+            if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
+                p.pipeline.setScene(optixScene);
+                p.pipeline.setHitGroupShaderBindingTable(
+                    p.hitGroupShaderBindingTable,
+                    p.hitGroupShaderBindingTable.getMappedPointer());
+            }
+
+            pipeline = p.pipeline;
+        }
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
         uint32_t imageStrideInPixels = m_optix.launchParams.imageStrideInPixels;
@@ -824,21 +832,19 @@ namespace vlr {
                        imageSize, imageStrideInPixels, m_numAccumFrames,
                        m_optix.outputBufferHolder.getNext());
         m_optix.outputBufferHolder.endCUDAAccess(stream);
-
-        CUDADRV_CHECK(cuStreamSynchronize(stream));
     }
 
-    void Context::render(const Camera* camera, bool denoise,
+    void Context::render(CUstream stream, const Camera* camera, bool denoise,
                          uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
-        render(camera, denoise, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame, numAccumFrames);
+        render(stream, camera, denoise, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
-    void Context::debugRender(const Camera* camera, VLRDebugRenderingMode renderMode,
+    void Context::debugRender(CUstream stream, const Camera* camera, VLRDebugRenderingMode renderMode,
                               uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
         bool enableDenoiser =
             renderMode == VLRDebugRenderingMode_DenoiserAlbedo ||
             renderMode == VLRDebugRenderingMode_DenoiserNormal;
-        render(camera, enableDenoiser, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
+        render(stream, camera, enableDenoiser, true, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
     }
 
 
@@ -897,8 +903,8 @@ namespace vlr {
     void Context::releaseNodeProcedureSet(uint32_t index) {
         m_optix.nodeProcedureSetBuffer.release(index);
     }
-    void Context::updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet) {
-        m_optix.nodeProcedureSetBuffer.update(index, procSet);
+    void Context::updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet, CUstream stream) {
+        m_optix.nodeProcedureSetBuffer.update(index, procSet, stream);
     }
 
 
@@ -909,8 +915,8 @@ namespace vlr {
     void Context::releaseSmallNodeDescriptor(uint32_t index) {
         m_optix.smallNodeDescriptorBuffer.release(index);
     }
-    void Context::updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc) {
-        m_optix.smallNodeDescriptorBuffer.update(index, nodeDesc);
+    void Context::updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc, CUstream stream) {
+        m_optix.smallNodeDescriptorBuffer.update(index, nodeDesc, stream);
     }
 
 
@@ -921,8 +927,8 @@ namespace vlr {
     void Context::releaseMediumNodeDescriptor(uint32_t index) {
         m_optix.mediumNodeDescriptorBuffer.release(index);
     }
-    void Context::updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc) {
-        m_optix.mediumNodeDescriptorBuffer.update(index, nodeDesc);
+    void Context::updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc, CUstream stream) {
+        m_optix.mediumNodeDescriptorBuffer.update(index, nodeDesc, stream);
     }
 
 
@@ -933,8 +939,8 @@ namespace vlr {
     void Context::releaseLargeNodeDescriptor(uint32_t index) {
         m_optix.largeNodeDescriptorBuffer.release(index);
     }
-    void Context::updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc) {
-        m_optix.largeNodeDescriptorBuffer.update(index, nodeDesc);
+    void Context::updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc, CUstream stream) {
+        m_optix.largeNodeDescriptorBuffer.update(index, nodeDesc, stream);
     }
 
 
@@ -945,8 +951,8 @@ namespace vlr {
     void Context::releaseBSDFProcedureSet(uint32_t index) {
         m_optix.bsdfProcedureSetBuffer.release(index);
     }
-    void Context::updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet) {
-        m_optix.bsdfProcedureSetBuffer.update(index, procSet);
+    void Context::updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet, CUstream stream) {
+        m_optix.bsdfProcedureSetBuffer.update(index, procSet, stream);
     }
 
 
@@ -957,8 +963,8 @@ namespace vlr {
     void Context::releaseEDFProcedureSet(uint32_t index) {
         m_optix.edfProcedureSetBuffer.release(index);
     }
-    void Context::updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet) {
-        m_optix.edfProcedureSetBuffer.update(index, procSet);
+    void Context::updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet, CUstream stream) {
+        m_optix.edfProcedureSetBuffer.update(index, procSet, stream);
     }
 
 
@@ -969,33 +975,21 @@ namespace vlr {
     void Context::releaseSurfaceMaterialDescriptor(uint32_t index) {
         m_optix.surfaceMaterialDescriptorBuffer.release(index);
     }
-    void Context::updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc) {
-        m_optix.surfaceMaterialDescriptorBuffer.update(index, matDesc);
+    void Context::updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc, CUstream stream) {
+        m_optix.surfaceMaterialDescriptorBuffer.update(index, matDesc, stream);
     }
 
 
 
-    uint32_t Context::allocateGeometryInstance() {
-        return m_optix.geomInstBuffer.allocate();
+    void Context::markShaderNodeDescriptorDirty(ShaderNode* node) {
+        m_optix.dirtyShaderNodes.insert(node);
     }
-    void Context::releaseGeometryInstance(uint32_t index) {
-        m_optix.geomInstBuffer.release(index);
-    }
-    void Context::updateGeometryInstance(uint32_t index, const shared::GeometryInstance &geomInst) {
-        m_optix.geomInstBuffer.update(index, geomInst);
+
+    void Context::markSurfaceMaterialDescriptorDirty(SurfaceMaterial* mat) {
+        m_optix.dirtySurfaceMaterials.insert(mat);
     }
 
 
-
-    uint32_t Context::allocateInstance() {
-        return m_optix.instBuffer.allocate();
-    }
-    void Context::releaseInstance(uint32_t index) {
-        m_optix.instBuffer.release(index);
-    }
-    void Context::updateInstance(uint32_t index, const shared::Instance &inst) {
-        m_optix.instBuffer.update(index, inst);
-    }
 
     // ----------------------------------------------------------------
     // Miscellaneous

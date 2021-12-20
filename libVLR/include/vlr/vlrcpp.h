@@ -72,7 +72,8 @@ namespace vlr {
         ContextConstRef context;
         VLRParameterInfoConst raw;
 
-        ParameterInfo(const ContextConstRef &_context, VLRParameterInfoConst _raw) : context(_context), raw(_raw) {}
+        ParameterInfo(const ContextConstRef &_context, VLRParameterInfoConst _raw) :
+            context(_context), raw(_raw) {}
 
         inline VLRResult errorCheck(VLRResult errorCode) const;
 
@@ -155,52 +156,63 @@ namespace vlr {
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, float* values, uint32_t length) const {
-            VLRResult err = errorCheck(vlrQueryableGetFloatTuple(getRaw<VLRQueryable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableGetFloatTuple(
+                getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, const float** values, uint32_t* length) const {
-            VLRResult err = errorCheck(vlrQueryableGetFloatArray(getRaw<VLRQueryable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableGetFloatArray(
+                getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, Image2DRef* image) const;
         inline bool get(const char* paramName, VLRImmediateSpectrum* spectrum) const {
-            VLRResult err = errorCheck(vlrQueryableGetImmediateSpectrum(getRaw<VLRQueryable>(), paramName, spectrum));
+            VLRResult err = errorCheck(vlrQueryableGetImmediateSpectrum(
+                getRaw<VLRQueryable>(), paramName, spectrum));
             return err == VLRResult_NoError;
         }
         inline bool get(const char* paramName, SurfaceMaterialRef* material) const;
         inline bool get(const char* paramName, ShaderNodePlug* plug) const;
 
         inline bool set(const char* paramName, const char* enumValue) const {
-            VLRResult err = errorCheck(vlrQueryableSetEnumValue(getRaw<VLRQueryable>(), paramName, enumValue));
+            VLRResult err = errorCheck(vlrQueryableSetEnumValue(
+                getRaw<VLRQueryable>(), paramName, enumValue));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const vlr::Point3D& value) const {
-            VLRResult err = errorCheck(vlrQueryableSetPoint3D(getRaw<VLRQueryable>(), paramName, (VLRPoint3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetPoint3D(
+                getRaw<VLRQueryable>(), paramName, (VLRPoint3D*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const vlr::Vector3D& value) const {
-            VLRResult err = errorCheck(vlrQueryableSetVector3D(getRaw<VLRQueryable>(), paramName, (VLRVector3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetVector3D(
+                getRaw<VLRQueryable>(), paramName, (VLRVector3D*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const vlr::Normal3D& value) const {
-            VLRResult err = errorCheck(vlrQueryableSetNormal3D(getRaw<VLRQueryable>(), paramName, (VLRNormal3D*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetNormal3D(
+                getRaw<VLRQueryable>(), paramName, (VLRNormal3D*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const vlr::Quaternion& value) const {
-            VLRResult err = errorCheck(vlrQueryableSetQuaternion(getRaw<VLRQueryable>(), paramName, (VLRQuaternion*)&value));
+            VLRResult err = errorCheck(vlrQueryableSetQuaternion(
+                getRaw<VLRQueryable>(), paramName, (VLRQuaternion*)&value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, float value) const {
-            VLRResult err = errorCheck(vlrQueryableSetFloat(getRaw<VLRQueryable>(), paramName, value));
+            VLRResult err = errorCheck(vlrQueryableSetFloat(
+                getRaw<VLRQueryable>(), paramName, value));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const float* values, uint32_t length) const {
-            VLRResult err = errorCheck(vlrQueryableSetFloatTuple(getRaw<VLRQueryable>(), paramName, values, length));
+            VLRResult err = errorCheck(vlrQueryableSetFloatTuple(
+                getRaw<VLRQueryable>(), paramName, values, length));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const Image2DRef& image);
         inline bool set(const char* paramName, const VLRImmediateSpectrum& spectrum) const {
-            VLRResult err = errorCheck(vlrQueryableSetImmediateSpectrum(getRaw<VLRQueryable>(), paramName, &spectrum));
+            VLRResult err = errorCheck(vlrQueryableSetImmediateSpectrum(
+                getRaw<VLRQueryable>(), paramName, &spectrum));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, const SurfaceMaterialRef& material);
@@ -259,7 +271,10 @@ namespace vlr {
                             const uint8_t* linearData, uint32_t width, uint32_t height,
                             const char* format, const char* spectrumType, const char* colorSpace) :
             Image2DHolder(context) {
-            errorCheck(vlrLinearImage2DCreate(getRawContext(m_context), (VLRLinearImage2D*)&m_raw, const_cast<uint8_t*>(linearData), width, height, format, spectrumType, colorSpace));
+            errorCheck(vlrLinearImage2DCreate(
+                getRawContext(m_context),
+                const_cast<uint8_t*>(linearData), width, height, format, spectrumType, colorSpace,
+                (VLRLinearImage2D*)&m_raw));
         }
         ~LinearImage2DHolder() {
             errorCheck(vlrLinearImage2DDestroy(getRawContext(m_context), getRaw<VLRLinearImage2D>()));
@@ -270,14 +285,20 @@ namespace vlr {
 
     class BlockCompressedImage2DHolder : public Image2DHolder {
     public:
-        BlockCompressedImage2DHolder(const ContextConstRef &context,
-                                     const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                     const char* dataFormat, const char* spectrumType, const char* colorSpace) :
+        BlockCompressedImage2DHolder(
+            const ContextConstRef &context,
+            const uint8_t* const* data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+            const char* dataFormat, const char* spectrumType, const char* colorSpace) :
             Image2DHolder(context) {
-            errorCheck(vlrBlockCompressedImage2DCreate(getRawContext(m_context), (VLRBlockCompressedImage2D*)&m_raw, const_cast<uint8_t**>(data), const_cast<size_t*>(sizes), mipCount, width, height, dataFormat, spectrumType, colorSpace));
+            errorCheck(vlrBlockCompressedImage2DCreate(
+                getRawContext(m_context),
+                const_cast<uint8_t**>(data), const_cast<size_t*>(sizes),
+                mipCount, width, height, dataFormat, spectrumType, colorSpace,
+                (VLRBlockCompressedImage2D*)&m_raw));
         }
         ~BlockCompressedImage2DHolder() {
-            errorCheck(vlrBlockCompressedImage2DDestroy(getRawContext(m_context), getRaw<VLRBlockCompressedImage2D>()));
+            errorCheck(vlrBlockCompressedImage2DDestroy(
+                getRawContext(m_context), getRaw<VLRBlockCompressedImage2D>()));
         }
     };
 
@@ -286,7 +307,9 @@ namespace vlr {
     class ShaderNodeHolder : public QueryableHolder {
     public:
         ShaderNodeHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
-            errorCheck(vlrShaderNodeCreate(getRawContext(m_context), typeName, (VLRShaderNode*)&m_raw));
+            errorCheck(vlrShaderNodeCreate(
+                getRawContext(m_context), typeName,
+                (VLRShaderNode*)&m_raw));
         }
 
         ShaderNodePlug getPlug(VLRShaderNodePlugType plugType, uint32_t option) {
@@ -301,7 +324,9 @@ namespace vlr {
     class SurfaceMaterialHolder : public QueryableHolder {
     public:
         SurfaceMaterialHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
-            errorCheck(vlrSurfaceMaterialCreate(getRawContext(m_context), typeName, (VLRSurfaceMaterial*)&m_raw));
+            errorCheck(vlrSurfaceMaterialCreate(
+                getRawContext(m_context), typeName,
+                (VLRSurfaceMaterial*)&m_raw));
         }
     };
 
@@ -388,12 +413,16 @@ namespace vlr {
     class StaticTransformHolder : public TransformHolder {
     public:
         StaticTransformHolder(const ContextConstRef &context, const float mat[16]) : TransformHolder(context) {
-            errorCheck(vlrStaticTransformCreate(getRawContext(m_context), (VLRStaticTransform*)&m_raw, mat));
+            errorCheck(vlrStaticTransformCreate(
+                getRawContext(m_context), mat,
+                (VLRStaticTransform*)&m_raw));
         }
         StaticTransformHolder(const ContextConstRef &context, const vlr::Matrix4x4 &mat) : TransformHolder(context) {
             float matArray[16];
             mat.getArray(matArray);
-            errorCheck(vlrStaticTransformCreate(getRawContext(m_context), (VLRStaticTransform*)&m_raw, matArray));
+            errorCheck(vlrStaticTransformCreate(
+                getRawContext(m_context), matArray,
+                (VLRStaticTransform*)&m_raw));
         }
         ~StaticTransformHolder() {
             errorCheck(vlrStaticTransformDestroy(getRawContext(m_context), getRaw<VLRStaticTransform>()));
@@ -444,14 +473,18 @@ namespace vlr {
     public:
         TriangleMeshSurfaceNodeHolder(const ContextConstRef &context, const char* name) :
             SurfaceNodeHolder(context) {
-            errorCheck(vlrTriangleMeshSurfaceNodeCreate(getRawContext(m_context), (VLRTriangleMeshSurfaceNode*)&m_raw, name));
+            errorCheck(vlrTriangleMeshSurfaceNodeCreate(
+                getRawContext(m_context), name,
+                (VLRTriangleMeshSurfaceNode*)&m_raw));
         }
         ~TriangleMeshSurfaceNodeHolder() {
-            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(getRawContext(m_context), getRaw<VLRTriangleMeshSurfaceNode>()));
+            errorCheck(vlrTriangleMeshSurfaceNodeDestroy(
+                getRawContext(m_context), getRaw<VLRTriangleMeshSurfaceNode>()));
         }
 
         void setVertices(vlr::Vertex* vertices, uint32_t numVertices) {
-            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(getRaw<VLRTriangleMeshSurfaceNode>(), (VLRVertex*)vertices, numVertices));
+            errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(
+                getRaw<VLRTriangleMeshSurfaceNode>(), (VLRVertex*)vertices, numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
@@ -460,9 +493,10 @@ namespace vlr {
             m_nodeNormals.push_back(nodeNormal);
             m_nodeTangents.push_back(nodeTangent);
             m_nodeAlphas.push_back(nodeAlpha);
-            errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup(getRaw<VLRTriangleMeshSurfaceNode>(), indices, numIndices,
-                                                                  material->getRaw<VLRSurfaceMaterial>(),
-                                                                  nodeNormal.plug, nodeTangent.plug, nodeAlpha.plug));
+            errorCheck(vlrTriangleMeshSurfaceNodeAddMaterialGroup(
+                getRaw<VLRTriangleMeshSurfaceNode>(), indices, numIndices,
+                material->getRaw<VLRSurfaceMaterial>(),
+                nodeNormal.plug, nodeTangent.plug, nodeAlpha.plug));
         }
     };
 
@@ -475,7 +509,9 @@ namespace vlr {
     public:
         InternalNodeHolder(const ContextConstRef &context, const char* name, const TransformRef &transform) :
             NodeHolder(context), m_transform(transform) {
-            errorCheck(vlrInternalNodeCreate(getRawContext(m_context), (VLRInternalNode*)&m_raw, name, m_transform->getRaw<VLRTransform>()));
+            errorCheck(vlrInternalNodeCreate(
+                getRawContext(m_context), name, m_transform->getRaw<VLRTransform>(),
+                (VLRInternalNode*)&m_raw));
         }
         ~InternalNodeHolder() {
             errorCheck(vlrInternalNodeDestroy(getRawContext(m_context), getRaw<VLRInternalNode>()));
@@ -547,7 +583,9 @@ namespace vlr {
     public:
         SceneHolder(const ContextConstRef &context, const TransformRef &transform) :
             ObjectHolder(context), m_transform(transform) {
-            errorCheck(vlrSceneCreate(getRawContext(m_context), (VLRScene*)&m_raw, m_transform->getRaw<VLRTransform>()));
+            errorCheck(vlrSceneCreate(
+                getRawContext(m_context), m_transform->getRaw<VLRTransform>(),
+                (VLRScene*)&m_raw));
         }
         ~SceneHolder() {
             errorCheck(vlrSceneDestroy(getRawContext(m_context), getRaw<VLRScene>()));
@@ -623,7 +661,9 @@ namespace vlr {
     class CameraHolder : public QueryableHolder {
     public:
         CameraHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
-            errorCheck(vlrCameraCreate(getRawContext(m_context), typeName, (VLRCamera*)&m_raw));
+            errorCheck(vlrCameraCreate(
+                getRawContext(m_context), typeName,
+                (VLRCamera*)&m_raw));
         }
     };
 
@@ -637,8 +677,9 @@ namespace vlr {
         Context() : m_rawContext(nullptr) {}
 
         void initialize(CUcontext cuContext, bool logging, uint32_t maxCallableDepth) {
-            errorCheck(vlrCreateContext(&m_rawContext, cuContext, logging, maxCallableDepth));
-            m_identityTransform = std::make_shared<StaticTransformHolder>(shared_from_this(), vlr::Matrix4x4::Identity());
+            errorCheck(vlrCreateContext(cuContext, logging, maxCallableDepth, &m_rawContext));
+            m_identityTransform = std::make_shared<StaticTransformHolder>(
+                shared_from_this(), vlr::Matrix4x4::Identity());
         }
 
     public:
@@ -701,31 +742,37 @@ namespace vlr {
             errorCheck(vlrContextSetScene(m_rawContext, scene->getRaw<VLRScene>()));
         }
 
-        void render(const SceneRef &scene, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,
+        void render(CUstream stream, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,
                     bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextRender(m_rawContext, camera->getRaw<VLRCamera>(), denoise,
+            errorCheck(vlrContextRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), denoise,
                                         shrinkCoeff, firstFrame, numAccumFrames));
         }
 
-        void debugRender(const SceneRef &scene, const CameraRef &camera, VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextDebugRender(m_rawContext, camera->getRaw<VLRCamera>(), renderMode,
+        void debugRender(CUstream stream, const CameraRef &camera,
+                         VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame,
+                         uint32_t* numAccumFrames) const {
+            errorCheck(vlrContextDebugRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), renderMode,
                                              shrinkCoeff, firstFrame, numAccumFrames));
         }
 
 
 
-        LinearImage2DRef createLinearImage2D(const uint8_t* linearData, uint32_t width, uint32_t height,
-                                             const char* format, const char* spectrumType, const char* colorSpace) const {
-            return std::make_shared<LinearImage2DHolder>(shared_from_this(),
-                                                         linearData, width, height,
-                                                         format, spectrumType, colorSpace);
+        LinearImage2DRef createLinearImage2D(
+            const uint8_t* linearData, uint32_t width, uint32_t height,
+            const char* format, const char* spectrumType, const char* colorSpace) const {
+            return std::make_shared<LinearImage2DHolder>(
+                shared_from_this(),
+                linearData, width, height,
+                format, spectrumType, colorSpace);
         }
 
-        BlockCompressedImage2DRef createBlockCompressedImage2D(uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
-                                                               const char* format, const char* spectrumType, const char* colorSpace) const {
-            return std::make_shared<BlockCompressedImage2DHolder>(shared_from_this(),
-                                                                  data, sizes, mipCount, width, height,
-                                                                  format, spectrumType, colorSpace);
+        BlockCompressedImage2DRef createBlockCompressedImage2D(
+            uint8_t** data, const size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
+            const char* format, const char* spectrumType, const char* colorSpace) const {
+            return std::make_shared<BlockCompressedImage2DHolder>(
+                shared_from_this(),
+                data, sizes, mipCount, width, height,
+                format, spectrumType, colorSpace);
         }
 
 
@@ -757,11 +804,13 @@ namespace vlr {
         }
 
         InternalNodeRef createInternalNode(const char* name, const StaticTransformRef &transform = nullptr) const {
-            return std::make_shared<InternalNodeHolder>(shared_from_this(), name, transform ? transform : getIdentityTransform());
+            return std::make_shared<InternalNodeHolder>(
+                shared_from_this(), name, transform ? transform : getIdentityTransform());
         }
 
         SceneRef createScene(const StaticTransformRef &transform = nullptr) const {
-            return std::make_shared<SceneHolder>(shared_from_this(), transform ? transform : getIdentityTransform());
+            return std::make_shared<SceneHolder>(
+                shared_from_this(), transform ? transform : getIdentityTransform());
         }
 
         CameraRef createCamera(const char* typeName) const {

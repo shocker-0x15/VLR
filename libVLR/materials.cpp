@@ -2,7 +2,8 @@
 
 namespace vlr {
     // static
-    void SurfaceMaterial::commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
+    void SurfaceMaterial::commonInitializeProcedure(
+        Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
         if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
             programSet->dcSetupBSDF = context.createDirectCallableProgram(
                 OptiXModule_Material, identifiers[0]);
@@ -30,7 +31,7 @@ namespace vlr {
                 bsdfProcSet.progWeightInternal = programSet->dcBSDFWeightInternal;
             }
             programSet->bsdfProcedureSetIndex = context.allocateBSDFProcedureSet();
-            context.updateBSDFProcedureSet(programSet->bsdfProcedureSetIndex, bsdfProcSet);
+            context.updateBSDFProcedureSet(programSet->bsdfProcedureSetIndex, bsdfProcSet, 0);
         }
 
         if (identifiers[7] && identifiers[8] && identifiers[9]) {
@@ -48,12 +49,13 @@ namespace vlr {
                 edfProcSet.progEvaluateInternal = programSet->dcEDFEvaluateInternal;
             }
             programSet->edfProcedureSetIndex = context.allocateEDFProcedureSet();
-            context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet);
+            context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet, 0);
         }
     }
 
     // static
-    void SurfaceMaterial::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
+    void SurfaceMaterial::commonFinalizeProcedure(
+        Context &context, OptiXProgramSet &programSet) {
         if (programSet.dcSetupEDF) {
             context.releaseEDFProcedureSet(programSet.edfProcedureSetIndex);
 
@@ -88,7 +90,8 @@ namespace vlr {
     }
 
     // static
-    void SurfaceMaterial::setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc) {
+    void SurfaceMaterial::setupMaterialDescriptorHead(
+        Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc) {
         if (progSet.dcSetupBSDF) {
             matDesc->progSetupBSDF = progSet.dcSetupBSDF;
             matDesc->bsdfProcedureSetIndex = progSet.bsdfProcedureSetIndex;
@@ -192,13 +195,13 @@ namespace vlr {
 
     MatteSurfaceMaterial::MatteSurfaceMaterial(Context &context) :
         SurfaceMaterial(context), m_immAlbedo(ColorSpace::Rec709_D65, 0.18f, 0.18f, 0.18f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     MatteSurfaceMaterial::~MatteSurfaceMaterial() {
     }
 
-    void MatteSurfaceMaterial::setupMaterialDescriptor() const {
+    void MatteSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -207,7 +210,7 @@ namespace vlr {
         mat.nodeAlbedo = m_nodeAlbedo.getSharedType();
         mat.immAlbedo = m_immAlbedo.createTripletSpectrum(SpectrumType::Reflectance);
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool MatteSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
@@ -245,7 +248,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -260,7 +263,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -268,7 +271,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> SpecularReflectionSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -314,13 +317,13 @@ namespace vlr {
         m_immCoeff(ColorSpace::Rec709_D65, 0.8f, 0.8f, 0.8f),
         m_immEta(ColorSpace::Rec709_D65, 1.0f, 1.0f, 1.0f),
         m_imm_k(ColorSpace::Rec709_D65, 0.0f, 0.0f, 0.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     SpecularReflectionSurfaceMaterial::~SpecularReflectionSurfaceMaterial() {
     }
 
-    void SpecularReflectionSurfaceMaterial::setupMaterialDescriptor() const {
+    void SpecularReflectionSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -333,7 +336,7 @@ namespace vlr {
         mat.immEta = m_immEta.createTripletSpectrum(SpectrumType::IndexOfRefraction);
         mat.imm_k = m_imm_k.createTripletSpectrum(SpectrumType::IndexOfRefraction);
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool SpecularReflectionSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
@@ -389,7 +392,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -416,7 +419,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -424,7 +427,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> SpecularScatteringSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> SpecularScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -470,13 +473,13 @@ namespace vlr {
         m_immCoeff(ColorSpace::Rec709_D65, 0.8f, 0.8f, 0.8f),
         m_immEtaExt(ColorSpace::Rec709_D65, 1.0f, 1.0f, 1.0f),
         m_immEtaInt(ColorSpace::Rec709_D65, 1.5f, 1.5f, 1.5f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     SpecularScatteringSurfaceMaterial::~SpecularScatteringSurfaceMaterial() {
     }
 
-    void SpecularScatteringSurfaceMaterial::setupMaterialDescriptor() const {
+    void SpecularScatteringSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -489,7 +492,7 @@ namespace vlr {
         mat.immEtaExt = m_immEtaExt.createTripletSpectrum(SpectrumType::IndexOfRefraction);
         mat.immEtaInt = m_immEtaInt.createTripletSpectrum(SpectrumType::IndexOfRefraction);
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool SpecularScatteringSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
@@ -545,7 +548,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -572,7 +575,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -580,7 +583,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> MicrofacetReflectionSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetReflectionSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -629,13 +632,13 @@ namespace vlr {
         m_immEta(ColorSpace::Rec709_D65, 1.0f, 1.0f, 1.0f),
         m_imm_k(ColorSpace::Rec709_D65, 0.0f, 0.0f, 0.0f),
         m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     MicrofacetReflectionSurfaceMaterial::~MicrofacetReflectionSurfaceMaterial() {
     }
 
-    void MicrofacetReflectionSurfaceMaterial::setupMaterialDescriptor() const {
+    void MicrofacetReflectionSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -650,7 +653,7 @@ namespace vlr {
         mat.immAnisotropy = m_immAnisotropy;
         mat.immRotation = m_immRotation;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool MicrofacetReflectionSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -741,7 +744,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -756,7 +759,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -783,7 +786,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -791,7 +794,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> MicrofacetScatteringSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MicrofacetScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -842,13 +845,13 @@ namespace vlr {
         m_immEtaExt(ColorSpace::Rec709_D65, 1.0f, 1.0f, 1.0f),
         m_immEtaInt(ColorSpace::Rec709_D65, 1.5f, 1.5f, 1.5f),
         m_immRoughness(0.1f), m_immAnisotropy(0.0f), m_immRotation(0.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     MicrofacetScatteringSurfaceMaterial::~MicrofacetScatteringSurfaceMaterial() {
     }
 
-    void MicrofacetScatteringSurfaceMaterial::setupMaterialDescriptor() const {
+    void MicrofacetScatteringSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -865,7 +868,7 @@ namespace vlr {
         mat.immAnisotropy = m_immAnisotropy;
         mat.immRotation = m_immRotation;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool MicrofacetScatteringSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -962,7 +965,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -980,7 +983,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1013,7 +1016,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1021,7 +1024,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> LambertianScatteringSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> LambertianScatteringSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1064,13 +1067,13 @@ namespace vlr {
     LambertianScatteringSurfaceMaterial::LambertianScatteringSurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
         m_immCoeff(ColorSpace::Rec709_D65, 0.8f, 0.8f, 0.8f), m_immF0(0.04f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     LambertianScatteringSurfaceMaterial::~LambertianScatteringSurfaceMaterial() {
     }
 
-    void LambertianScatteringSurfaceMaterial::setupMaterialDescriptor() const {
+    void LambertianScatteringSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1081,7 +1084,7 @@ namespace vlr {
         mat.immCoeff = m_immCoeff.createTripletSpectrum(SpectrumType::Reflectance);
         mat.immF0 = m_immF0;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool LambertianScatteringSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -1142,7 +1145,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1154,7 +1157,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1175,7 +1178,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1183,7 +1186,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> UE4SurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> UE4SurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1229,13 +1232,13 @@ namespace vlr {
     UE4SurfaceMaterial::UE4SurfaceMaterial(Context &context) :
         SurfaceMaterial(context),
         m_immBaseColor(ColorSpace::Rec709_D65, 0.18f, 0.18f, 0.18f), m_immOcculusion(0.0f), m_immRoughness(0.1f), m_immMetallic(0.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     UE4SurfaceMaterial::~UE4SurfaceMaterial() {
     }
 
-    void UE4SurfaceMaterial::setupMaterialDescriptor() const {
+    void UE4SurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1248,7 +1251,7 @@ namespace vlr {
         mat.immRoughness = m_immRoughness;
         mat.immMetallic = m_immMetallic;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool UE4SurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -1333,7 +1336,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1345,7 +1348,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1366,7 +1369,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1374,7 +1377,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> OldStyleSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> OldStyleSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1420,13 +1423,13 @@ namespace vlr {
         m_immDiffuseColor(ColorSpace::Rec709_D65, 0.18f, 0.18f, 0.18f),
         m_immSpecularColor(ColorSpace::Rec709_D65, 0.04f, 0.04f, 0.04f),
         m_immGlossiness(0.6f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     OldStyleSurfaceMaterial::~OldStyleSurfaceMaterial() {
     }
 
-    void OldStyleSurfaceMaterial::setupMaterialDescriptor() const {
+    void OldStyleSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1439,7 +1442,7 @@ namespace vlr {
         mat.immSpecularColor = m_immSpecularColor.createTripletSpectrum(SpectrumType::Reflectance);
         mat.immGlossiness = m_immGlossiness;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool OldStyleSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -1506,7 +1509,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1521,7 +1524,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1548,7 +1551,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1556,7 +1559,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> DiffuseEmitterSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> DiffuseEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1598,13 +1601,13 @@ namespace vlr {
 
     DiffuseEmitterSurfaceMaterial::DiffuseEmitterSurfaceMaterial(Context &context) :
         SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     DiffuseEmitterSurfaceMaterial::~DiffuseEmitterSurfaceMaterial() {
     }
 
-    void DiffuseEmitterSurfaceMaterial::setupMaterialDescriptor() const {
+    void DiffuseEmitterSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1614,7 +1617,7 @@ namespace vlr {
         mat.immEmittance = m_immEmittance.createTripletSpectrum(SpectrumType::LightSource);
         mat.immScale = m_immScale;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool DiffuseEmitterSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -1672,7 +1675,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1684,7 +1687,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1699,7 +1702,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1707,7 +1710,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> MultiSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> MultiSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1752,13 +1755,13 @@ namespace vlr {
     MultiSurfaceMaterial::MultiSurfaceMaterial(Context &context) :
         SurfaceMaterial(context) {
         std::fill_n(m_subMaterials, lengthof(m_subMaterials), nullptr);
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     MultiSurfaceMaterial::~MultiSurfaceMaterial() {
     }
 
-    void MultiSurfaceMaterial::setupMaterialDescriptor() const {
+    void MultiSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1772,7 +1775,7 @@ namespace vlr {
                 mat.subMatIndices[mat.numSubMaterials++] = m_subMaterials[i]->getMaterialIndex();
         }
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool MultiSurfaceMaterial::get(const char* paramName, const SurfaceMaterial** material) const {
@@ -1814,7 +1817,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1832,7 +1835,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> EnvironmentEmitterSurfaceMaterial::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> EnvironmentEmitterSurfaceMaterial::s_optiXProgramSets;
 
     // static
@@ -1874,14 +1877,14 @@ namespace vlr {
 
     EnvironmentEmitterSurfaceMaterial::EnvironmentEmitterSurfaceMaterial(Context &context) :
         SurfaceMaterial(context), m_immEmittance(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f) {
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
     }
 
     EnvironmentEmitterSurfaceMaterial::~EnvironmentEmitterSurfaceMaterial() {
         m_importanceMap.finalize(m_context);
     }
 
-    void EnvironmentEmitterSurfaceMaterial::setupMaterialDescriptor() const {
+    void EnvironmentEmitterSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         shared::SurfaceMaterialDescriptor matDesc;
@@ -1891,7 +1894,7 @@ namespace vlr {
         mat.immEmittance = m_immEmittance.createTripletSpectrum(SpectrumType::LightSource);
         mat.immScale = m_immScale;
 
-        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc);
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
     }
 
     bool EnvironmentEmitterSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
@@ -1949,7 +1952,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1963,7 +1966,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }
@@ -1980,7 +1983,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupMaterialDescriptor();
+        m_context.markSurfaceMaterialDescriptorDirty(this);
 
         return true;
     }

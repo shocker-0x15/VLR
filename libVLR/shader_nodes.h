@@ -64,11 +64,6 @@ namespace vlr {
 
     protected:
         uint32_t m_nodeIndex;
-        union {
-            shared::SmallNodeDescriptor smallNodeDesc;
-            shared::MediumNodeDescriptor mediumNodeDesc;
-            shared::LargeNodeDescriptor largeNodeDesc;
-        };
         int32_t m_nodeSizeClass;
 
         struct PlugTypeToProgramPair {
@@ -78,31 +73,37 @@ namespace vlr {
         static void commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
 
+        virtual void setupNodeDescriptor(CUstream stream) const = 0;
         template <typename T>
-        T* getData() {
-            if (m_nodeSizeClass == 0)
-                return smallNodeDesc.getData<T>();
-            else if (m_nodeSizeClass == 1)
-                return mediumNodeDesc.getData<T>();
-            else if (m_nodeSizeClass == 2)
-                return largeNodeDesc.getData<T>();
-            else
-                VLRAssert_ShouldNotBeCalled();
-            return nullptr;
+        void updateNodeDescriptor(const T &data, CUstream stream) const {
+            if (m_nodeSizeClass == 0) {
+                union U {
+                    shared::SmallNodeDescriptor desc;
+                    T rawData;
+                    U() {}
+                } u;
+                u.rawData = data;
+                m_context.updateSmallNodeDescriptor(m_nodeIndex, u.desc, stream);
+            }
+            else if (m_nodeSizeClass == 1) {
+                union U {
+                    shared::MediumNodeDescriptor desc;
+                    T rawData;
+                    U() {}
+                } u;
+                u.rawData = data;
+                m_context.updateMediumNodeDescriptor(m_nodeIndex, u.desc, stream);
+            }
+            else if (m_nodeSizeClass == 2) {
+                union U {
+                    shared::LargeNodeDescriptor desc;
+                    T rawData;
+                    U() {}
+                } u;
+                u.rawData = data;
+                m_context.updateLargeNodeDescriptor(m_nodeIndex, u.desc, stream);
+            }
         }
-        template <typename T>
-        const T* getData() const {
-            if (m_nodeSizeClass == 0)
-                return smallNodeDesc.getData<T>();
-            else if (m_nodeSizeClass == 1)
-                return mediumNodeDesc.getData<T>();
-            else if (m_nodeSizeClass == 2)
-                return largeNodeDesc.getData<T>();
-            else
-                VLRAssert_ShouldNotBeCalled();
-            return nullptr;
-        }
-        void updateNodeDescriptor() const;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -116,6 +117,10 @@ namespace vlr {
         virtual ShaderNodePlug getPlug(ShaderNodePlugType ptype, uint32_t option) const = 0;
 
         uint32_t getShaderNodeIndex() const { return m_nodeIndex; }
+
+        void setup(CUstream stream) const {
+            setupNodeDescriptor(stream);
+        }
     };
 
 #define VLR_SHADER_NODE_DECLARE_PROGRAM_SET() \
@@ -132,7 +137,7 @@ namespace vlr {
         VLR_SHADER_NODE_DECLARE_PROGRAM_SET();
         static std::unordered_map<uint32_t, GeometryShaderNode*> s_instances;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -169,7 +174,7 @@ namespace vlr {
 
         TangentType m_immTangentType;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -205,7 +210,7 @@ namespace vlr {
         float m_imm0;
         float m_imm1;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -247,7 +252,7 @@ namespace vlr {
         float m_imm1;
         float m_imm2;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -293,7 +298,7 @@ namespace vlr {
         float m_imm2;
         float m_imm3;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -338,7 +343,7 @@ namespace vlr {
         float m_immScale;
         float m_immOffset;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -375,7 +380,7 @@ namespace vlr {
         ColorSpace m_colorSpace;
         float m_immE0, m_immE1, m_immE2;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -414,7 +419,7 @@ namespace vlr {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -453,7 +458,7 @@ namespace vlr {
         float* m_values;
         uint32_t m_numSamples;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -491,7 +496,7 @@ namespace vlr {
         SpectrumType m_spectrumType;
         ColorSpace m_colorSpace;
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -529,7 +534,7 @@ namespace vlr {
         float m_offset[2];
         float m_scale[2];
 
-        void setupNodeDescriptor();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -562,6 +567,7 @@ namespace vlr {
         static std::unordered_map<uint32_t, LinearImage2D*> NullImages;
 
         cudau::TextureSampler m_textureSampler;
+        CUtexObject m_textureObject;
         const Image2D* m_image;
         BumpType m_bumpType;
         float m_bumpCoeff;
@@ -570,7 +576,8 @@ namespace vlr {
         TextureWrapMode m_wrapV;
         ShaderNodePlug m_nodeTexCoord;
 
-        void setupNodeDescriptor();
+        void createTextureSampler();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -616,10 +623,12 @@ namespace vlr {
         static std::unordered_map<uint32_t, LinearImage2D*> NullImages;
 
         cudau::TextureSampler m_textureSampler;
+        CUtexObject m_textureObject;
         const Image2D* m_image;
         TextureFilter m_xyFilter;
 
-        void setupNodeDescriptor();
+        void createTextureSampler();
+        void setupNodeDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

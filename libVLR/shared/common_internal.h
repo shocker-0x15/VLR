@@ -57,7 +57,9 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <vector>
 #include <deque>
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 #include <stack>
 
 #include <chrono>

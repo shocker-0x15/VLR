@@ -3,11 +3,11 @@
 ![VLR](README_TOP.png)\
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 
-VLRはNVIDIA OptiXを使用したGPUモンテカルロレイトレーシングレンダラーです。\
-VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX.
+VLRはNVIDIA OptiX 7を使用したGPUモンテカルロレイトレーシングレンダラーです。\
+VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX 7.
 
 ## 特徴 / Features
-* GPU Renderer using NVIDIA OptiX
+* GPU Renderer using NVIDIA OptiX 7
 * Full Spectral Rendering (Monte Carlo Spectral Sampling)\
   (For RGB resources, RGB->Spectrum conversion is performed using Meng-Simon's method \[Meng2015\])
 * RGB Rendering (built by default)
@@ -111,11 +111,12 @@ camera->set("lens radius", 0.0f);
 context->bindOutputBuffer(1024, 1024, 0);
 
 // Let's render the scene!
-context->render(scene, camera, 1, firstFrame, &numAccumFrames);
+context->setScene(scene);
+context->render(cuStream, camera, enableDenoiser, 1, firstFrame, &numAccumFrames);
 ```
 
 ## TODO
-- [ ] Efficient Sampling from Many Lights
+- [ ] Make the rendering properly asynchronous.
 - [ ] Scene Editor
 - [ ] Compile shader node at runtime using NVRTC to remove overhead of callable programs.
 
@@ -123,24 +124,21 @@ context->render(scene, camera, 1, firstFrame, &numAccumFrames);
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (1903) & Visual Studio 2019 (16.1.6)
-* Core i9-9900K, 32GB, RTX 2070 8GB
-* NVIDIA Driver 430.64\
-  430.86 - 431.36 have a bug where the program fails to bind an OpenGL buffer object to the output buffer.
+* Windows 10 (21H2) & Visual Studio 2019 (16.11.8)
+* Core i9-9900K, 32GB, RTX 3080 10GB
+* NVIDIA Driver 497.09
 
 動作させるにあたっては以下のライブラリが必要です。\
 It requires the following libraries.
 
 * libVLR
-    * CUDA 10.1 Update 1
-    * OptiX 6.0 (requires Maxwell or later generation NVIDIA GPU)
+    * CUDA 11.3 \
+    ※CUDA 11.3.0にはバグがあり、内部で使用している[OptiX Utility](https://github.com/shocker-0x15/OptiX_Utility)と一緒に使用することができません。Update 1以降が必要です。\
+    \* CUDA 11.3.0 has a bug which prevents to use it with [OptiX Utility](https://github.com/shocker-0x15/OptiX_Utility) internally used. You need to use Update 1 or later.
+    * OptiX 7.4.0 (requires Maxwell or later generation NVIDIA GPU)
 * Host Program
-    * OpenEXR 2.2
-    * assimp 4.1
-
-### Q&A
-Q. Program crashes or produces a wierd image. What's going on?\
-A. First try to launch the program with --logging option and check if it reports stack overflow error. If it does, try the --maxcallabledepth option (e.g. --maxcallabledepth 8) on RTX-enabled environment, the --stacksize option (e.g. --stacksize 3072) on non-RTX environment. You will see the stack size actually used at the early phase of standard output in the non-RTX case.
+    * OpenEXR 3.1
+    * assimp 5.0
 
 ## 注意 / Note
 モデルデータやテクスチャーを読み込むシーンファイルがありますが、それらアセットはリポジトリには含まれていません。\
@@ -171,4 +169,4 @@ IBL image 1: [Direct HDR Capture of the Sun and Sky](http://gl.ict.usc.edu/Data/
 IBL image 2: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 
 ----
-2019 [@Shocker_0x15](https://twitter.com/Shocker_0x15)
+2021 [@Shocker_0x15](https://twitter.com/Shocker_0x15)

@@ -29,6 +29,8 @@ namespace vlr {
 
     class Scene;
     class Camera;
+    class ShaderNode;
+    class SurfaceMaterial;
 
     template <typename InternalType>
     struct SlotBuffer {
@@ -65,11 +67,9 @@ namespace vlr {
             optixBuffer.unmap();
         }
 
-        void update(uint32_t index, const InternalType &value) {
+        void update(uint32_t index, const InternalType &value, CUstream stream) {
             VLRAssert(slotFinder.getUsage(index), "Invalid index.");
-            auto values = optixBuffer.map();
-            values[index] = value;
-            optixBuffer.unmap();
+            CUDADRV_CHECK(cuMemcpyHtoDAsync(optixBuffer.getCUdeviceptrAt(index), &value, sizeof(value), stream));
         }
     };
 
@@ -102,11 +102,13 @@ namespace vlr {
             SlotBuffer<shared::SmallNodeDescriptor> smallNodeDescriptorBuffer;
             SlotBuffer<shared::MediumNodeDescriptor> mediumNodeDescriptorBuffer;
             SlotBuffer<shared::LargeNodeDescriptor> largeNodeDescriptorBuffer;
+            std::unordered_set<ShaderNode*> dirtyShaderNodes;
 
             SlotBuffer<shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
             SlotBuffer<shared::EDFProcedureSet> edfProcedureSetBuffer;
 
             SlotBuffer<shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
+            std::unordered_set<SurfaceMaterial*> dirtySurfaceMaterials;
 
             optixu::Context context;
 
@@ -161,10 +163,6 @@ namespace vlr {
             uint32_t dcNullEDF_evaluateInternal;
             uint32_t nullEDFProcedureSetIndex;
 
-            optixu::Scene scene;
-            SlotBuffer<shared::GeometryInstance> geomInstBuffer;
-            SlotBuffer<shared::Instance> instBuffer;
-
             shared::PipelineLaunchParameters launchParams;
             CUdeviceptr launchParamsOnDevice;
 
@@ -194,6 +192,8 @@ namespace vlr {
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
             cudau::Array rngBuffer;
+
+            cudau::Buffer asScratchMem;
         } m_optix;
 
         CUmodule m_cudaPostProcessModule;
@@ -201,11 +201,13 @@ namespace vlr {
         cudau::Kernel m_copyBuffers;
         cudau::Kernel m_convertToRGB;
 
+        Scene* m_scene;
+
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
 
-        void render(const Camera* camera, bool denoise,
+        void render(CUstream stream, const Camera* camera, bool denoise,
                     bool debugRender, VLRDebugRenderingMode renderMode,
                     uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
@@ -221,10 +223,10 @@ namespace vlr {
         const cudau::Array &getOutputBuffer() const;
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
 
-        void setScene(Scene &scene);
-        void render(const Camera* camera, bool denoise,
+        void setScene(Scene* scene);
+        void render(CUstream stream, const Camera* camera, bool denoise,
                     uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
-        void debugRender(const Camera* camera, VLRDebugRenderingMode renderMode,
+        void debugRender(CUstream stream, const Camera* camera, VLRDebugRenderingMode renderMode,
                          uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
 
         CUcontext getCUcontext() const {
@@ -241,36 +243,32 @@ namespace vlr {
             return m_optix.materialWithAlpha;
         }
 
-        optixu::Scene getOptiXScene() const {
-            return m_optix.scene;
-        }
-
         uint32_t createDirectCallableProgram(OptiXModule mdl, const char* dcName);
         void destroyDirectCallableProgram(uint32_t index);
 
         uint32_t allocateNodeProcedureSet();
         void releaseNodeProcedureSet(uint32_t index);
-        void updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet);
+        void updateNodeProcedureSet(uint32_t index, const shared::NodeProcedureSet &procSet, CUstream stream);
 
         uint32_t allocateSmallNodeDescriptor();
         void releaseSmallNodeDescriptor(uint32_t index);
-        void updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc);
+        void updateSmallNodeDescriptor(uint32_t index, const shared::SmallNodeDescriptor &nodeDesc, CUstream stream);
 
         uint32_t allocateMediumNodeDescriptor();
         void releaseMediumNodeDescriptor(uint32_t index);
-        void updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc);
+        void updateMediumNodeDescriptor(uint32_t index, const shared::MediumNodeDescriptor &nodeDesc, CUstream stream);
 
         uint32_t allocateLargeNodeDescriptor();
         void releaseLargeNodeDescriptor(uint32_t index);
-        void updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc);
+        void updateLargeNodeDescriptor(uint32_t index, const shared::LargeNodeDescriptor &nodeDesc, CUstream stream);
 
         uint32_t allocateBSDFProcedureSet();
         void releaseBSDFProcedureSet(uint32_t index);
-        void updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet);
+        void updateBSDFProcedureSet(uint32_t index, const shared::BSDFProcedureSet &procSet, CUstream stream);
 
         uint32_t allocateEDFProcedureSet();
         void releaseEDFProcedureSet(uint32_t index);
-        void updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet);
+        void updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet, CUstream stream);
 
         uint32_t getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optix.dcNullBSDF_setupBSDF;
@@ -283,15 +281,10 @@ namespace vlr {
 
         uint32_t allocateSurfaceMaterialDescriptor();
         void releaseSurfaceMaterialDescriptor(uint32_t index);
-        void updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc);
+        void updateSurfaceMaterialDescriptor(uint32_t index, const shared::SurfaceMaterialDescriptor &matDesc, CUstream stream);
 
-        uint32_t allocateGeometryInstance();
-        void releaseGeometryInstance(uint32_t index);
-        void updateGeometryInstance(uint32_t index, const shared::GeometryInstance &geomInst);
-
-        uint32_t allocateInstance();
-        void releaseInstance(uint32_t index);
-        void updateInstance(uint32_t index, const shared::Instance &inst);
+        void markShaderNodeDescriptorDirty(ShaderNode* node);
+        void markSurfaceMaterialDescriptorDirty(SurfaceMaterial* mat);
     };
 
 

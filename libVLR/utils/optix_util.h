@@ -1392,6 +1392,8 @@ private: \
         //     Ray Generationシェーダーを起動する。
         // EN: Setup the shader binding table based on the scene set, then launch the ray generation shader.
         void launch(CUstream stream, CUdeviceptr plpOnDevice, uint32_t dimX, uint32_t dimY, uint32_t dimZ) const;
+
+        Scene getScene() const;
     };
 
 

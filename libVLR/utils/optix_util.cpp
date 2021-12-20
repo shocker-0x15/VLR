@@ -2718,6 +2718,13 @@ namespace optixu {
                                 &m->sbtParams, dimX, dimY, dimZ));
     }
 
+    Scene Pipeline::getScene() const {
+        if (m->scene)
+            return m->scene->getPublicType();
+        else
+            return Scene();
+    }
+
 
 
     void Module::destroy() {

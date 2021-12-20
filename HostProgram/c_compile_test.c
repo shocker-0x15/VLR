@@ -14,11 +14,22 @@ static void C_CompileTest() {
         assert(res == VLRResult_NoError); \
     } while (0)
 
+    CUcontext cuContext;
+    int32_t cuDeviceCount;
+    cuInit(0);
+    cuDeviceGetCount(&cuDeviceCount);
+    cuCtxCreate(&cuContext, 0, 0);
+    cuCtxSetCurrent(cuContext);
+
     VLRContext context;
-    CHECK(vlrCreateContext(&context, true, true, 8, 0, NULL, 0));
+    CHECK(vlrCreateContext(
+        cuContext, true, 8, &context));
 
     VLRLinearImage2D imageA;
-    CHECK(vlrLinearImage2DCreate(context, &imageA, NULL, 128, 128, "RGBA8x4", "Reflectance", "Rec709(D65) sRGB Gamma"));
+    CHECK(vlrLinearImage2DCreate(
+        context,
+        NULL, 128, 128, "RGBA8x4", "Reflectance", "Rec709(D65) sRGB Gamma",
+        &imageA));
 
     uint32_t width;
     CHECK(vlrImage2DGetWidth(imageA, &width));

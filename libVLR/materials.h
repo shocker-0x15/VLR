@@ -67,9 +67,14 @@ namespace vlr {
 
         uint32_t m_matIndex;
 
-        static void commonInitializeProcedure(Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
-        static void commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet);
-        static void setupMaterialDescriptorHead(Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc);
+        static void commonInitializeProcedure(
+            Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
+        static void commonFinalizeProcedure(
+            Context &context, OptiXProgramSet &programSet);
+        static void setupMaterialDescriptorHead(
+            Context &context, const OptiXProgramSet &progSet, shared::SurfaceMaterialDescriptor* matDesc);
+
+        virtual void setupMaterialDescriptor(CUstream stream) const = 0;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -85,6 +90,10 @@ namespace vlr {
         }
 
         virtual bool isEmitting() const { return false; }
+
+        void setup(CUstream stream) const {
+            setupMaterialDescriptor(stream);
+        }
     };
 
 
@@ -97,7 +106,7 @@ namespace vlr {
         ShaderNodePlug m_nodeAlbedo;
         ImmediateSpectrum m_immAlbedo;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -129,7 +138,7 @@ namespace vlr {
         ImmediateSpectrum m_immEta;
         ImmediateSpectrum m_imm_k;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -161,7 +170,7 @@ namespace vlr {
         ImmediateSpectrum m_immEtaExt;
         ImmediateSpectrum m_immEtaInt;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -195,7 +204,7 @@ namespace vlr {
         float m_immAnisotropy;
         float m_immRotation;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -233,7 +242,7 @@ namespace vlr {
         float m_immAnisotropy;
         float m_immRotation;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -265,7 +274,7 @@ namespace vlr {
         ImmediateSpectrum m_immCoeff;
         float m_immF0;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -299,7 +308,7 @@ namespace vlr {
         float m_immRoughness;
         float m_immMetallic;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -333,7 +342,7 @@ namespace vlr {
         ImmediateSpectrum m_immSpecularColor;
         float m_immGlossiness;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -364,7 +373,7 @@ namespace vlr {
         ImmediateSpectrum m_immEmittance;
         float m_immScale;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -395,7 +404,7 @@ namespace vlr {
 
         const SurfaceMaterial* m_subMaterials[4];
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -425,7 +434,7 @@ namespace vlr {
         RegularConstantContinuousDistribution2D m_importanceMap;
         float m_immScale;
 
-        void setupMaterialDescriptor() const;
+        void setupMaterialDescriptor(CUstream stream) const override;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

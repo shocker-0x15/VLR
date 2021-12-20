@@ -185,6 +185,7 @@ class HostProgram {
     static constexpr GLenum s_frameBufferColorFormat = GL_SRGB8_ALPHA8/*GL_RGBA8*/;
 
     vlr::ContextRef m_context;
+    CUstream m_stream[2];
 
     GLFWwindow* m_window;
     float m_UIScaling;
@@ -748,6 +749,8 @@ public:
 
     void initialize(const vlr::ContextRef& context, GLFWmonitor* monitor, uint32_t initWindowSizeX, uint32_t initWindowSizeY) {
         m_context = context;
+        CUDADRV_CHECK(cuStreamCreate(&m_stream[0], 0));
+        CUDADRV_CHECK(cuStreamCreate(&m_stream[1], 0));
 
         m_frameIndex = 0;
         m_resizeRequested = false;
@@ -901,6 +904,9 @@ public:
         ImGui::DestroyContext();
 
         glfwDestroyWindow(m_window);
+
+        CUDADRV_CHECK(cuStreamDestroy(m_stream[1]));
+        CUDADRV_CHECK(cuStreamDestroy(m_stream[0]));
     }
 
     void setShot(const Shot& shot) {
@@ -949,6 +955,10 @@ public:
         StopWatch sw;
 
         while (!glfwWindowShouldClose(m_window)) {
+            CUstream curStream = m_stream[m_frameIndex % 2];
+
+            CUDADRV_CHECK(cuStreamSynchronize(curStream));
+
             glfwPollEvents();
 
             if (m_resizeRequested) {
@@ -1108,11 +1118,13 @@ public:
                 else
                     sw.start();
                 if (m_enableDebugRendering)
-                    m_context->debugRender(m_shot.scene, m_camera, m_debugRenderingMode,
-                                           shrinkCoeff, firstFrame, &m_numAccumFrames);
+                    m_context->debugRender(
+                        curStream, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame,
+                        &m_numAccumFrames);
                 else
-                    m_context->render(m_shot.scene, m_camera, m_enableDenoiser,
-                                      shrinkCoeff, firstFrame, &m_numAccumFrames);
+                    m_context->render(
+                        curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
+                        &m_numAccumFrames);
                 if (!firstFrame)
                     m_accumFrameTimes += sw.stop(StopWatch::Milliseconds);
 
@@ -1228,12 +1240,10 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
 
     CUcontext cuContext;
     int32_t cuDeviceCount;
-    CUstream cuStream;
     CUDADRV_CHECK(cuInit(0));
     CUDADRV_CHECK(cuDeviceGetCount(&cuDeviceCount));
     CUDADRV_CHECK(cuCtxCreate(&cuContext, 0, 0));
     CUDADRV_CHECK(cuCtxSetCurrent(cuContext));
-    CUDADRV_CHECK(cuStreamCreate(&cuStream, 0));
 
     vlr::ContextRef context = vlr::Context::create(cuContext, enableLogging, maxCallableDepth);
 
@@ -1260,6 +1270,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         glfwTerminate();
     }
     else {
+        CUstream cuStream;
+        CUDADRV_CHECK(cuStreamCreate(&cuStream, 0));
+
         uint32_t renderTargetSizeX = shot.renderTargetSizeX;
         uint32_t renderTargetSizeY = shot.renderTargetSizeY;
 
@@ -1275,8 +1288,9 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t finishTime = 123 * 1000 - 3000;
         auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
-            context->render(shot.scene, shot.viewpoints[0], true,
+            context->render(cuStream, shot.viewpoints[0], true,
                             1, numAccumFrames == 0 ? true : false, &numAccumFrames);
+            CUDADRV_CHECK(cuStreamSynchronize(cuStream));
 
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;

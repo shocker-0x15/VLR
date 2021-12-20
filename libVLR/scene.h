@@ -47,50 +47,42 @@ namespace vlr {
 
     class SHGeometryGroup;
     struct SHGeometryInstance;
+    class SurfaceNode;
 
     class SHGeometryGroup {
-        optixu::GeometryAccelerationStructure m_optixGas;
-        cudau::Buffer m_optixGasMem;
         std::vector<const SHGeometryInstance*> m_shGeomInsts;
 
     public:
-        SHGeometryGroup(const optixu::GeometryAccelerationStructure &optixGas) :
-            m_optixGas(optixGas) {}
-        ~SHGeometryGroup() {
-            m_optixGasMem.finalize();
-            m_optixGas.destroy();
+        SHGeometryGroup() {}
+        ~SHGeometryGroup() {}
+
+        void addChild(const SHGeometryInstance* geomInst) {
+            m_shGeomInsts.push_back(geomInst);
+        }
+        void removeChild(const SHGeometryInstance* geomInst) {
+            auto idx = std::find(m_shGeomInsts.cbegin(), m_shGeomInsts.cend(), geomInst);
+            VLRAssert(idx != m_shGeomInsts.cend(), "SHGeometryInstance %p is not a child of SHGeometryGroup %p.", geomInst, this);
+            m_shGeomInsts.erase(idx);
+        }
+        void updateChild(const SHGeometryInstance* geomInst) {
+            auto idx = std::find(m_shGeomInsts.cbegin(), m_shGeomInsts.cend(), geomInst);
+            VLRAssert(idx != m_shGeomInsts.cend(), "SHGeometryInstance %p is not a child of SHGeometryGroup %p.", geomInst, this);
+            VLRAssert_NotImplemented();
         }
 
-        void addChild(const SHGeometryInstance* geomInst);
-        void removeChild(const SHGeometryInstance* geomInst);
-        void updateChild(const SHGeometryInstance* geomInst);
-
-        optixu::GeometryAccelerationStructure getOptixGas() const {
-            return m_optixGas;
+        const SHGeometryInstance* childAt(uint32_t index) const {
+            return m_shGeomInsts[index];
         }
-        uint32_t getNumChildren() const { return m_shGeomInsts.size(); }
-        void getGeometryInstanceIndices(uint32_t* indices) const;
-        void getGeometryInstanceImportanceValues(float* values) const;
-
-        void prepareSetup(size_t* asScratchSize) {
-            OptixAccelBufferSizes asSizes;
-            m_optixGas.prepareForBuild(&asSizes);
-            if (!m_optixGasMem.isInitialized() || m_optixGasMem.sizeInBytes() < asSizes.outputSizeInBytes) {
-                m_optixGasMem.finalize();
-                CUcontext cuContext = m_optixGas.getContext().getCUcontext();
-                m_optixGasMem.initialize(cuContext, g_bufferType, std::max(asSizes.outputSizeInBytes, 4llu), 1);
-            }
-            *asScratchSize = std::max(asSizes.tempSizeInBytes, asSizes.tempUpdateSizeInBytes);
-        }
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem) const {
-            m_optixGas.rebuild(cuStream, m_optixGasMem, asScratchMem);
+        uint32_t getNumChildren() const {
+            return m_shGeomInsts.size();
         }
     };
 
     struct SHGeometryInstance {
-        uint32_t geomInstIndex;
-        optixu::GeometryInstance optixGeomInst;
-        shared::GeometryInstance data;
+        const SurfaceNode* surfNode;
+        uint32_t userData;
+
+        SHGeometryInstance() : surfNode(nullptr), userData(0) {}
     };
 
     class SHTransform {
@@ -106,8 +98,10 @@ namespace vlr {
         StaticTransform resolveTransform() const;
 
     public:
-        SHTransform(const std::string &name, Context &context, const StaticTransform &transform, const SHTransform* childTransform) :
-            m_name(name), m_transform(transform), m_childTransform(childTransform), m_childIsTransform(childTransform != nullptr) {}
+        SHTransform(const std::string &name, const StaticTransform &transform, const SHTransform* childTransform) :
+            m_name(name),
+            m_transform(transform), m_childTransform(childTransform),
+            m_childIsTransform(childTransform != nullptr) {}
         ~SHTransform() {}
 
         const std::string &getName() const { return m_name; }
@@ -131,8 +125,8 @@ namespace vlr {
 
     class Node;
     class ParentNode;
-    class RootNode;
     class InternalNode;
+    class Scene;
 
 
 
@@ -154,12 +148,6 @@ namespace vlr {
         const std::string &getName() const {
             return m_name;
         }
-
-        virtual void prepareSetup(size_t* asScratchSize) {
-            *asScratchSize = 0;
-        }
-        virtual void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
-        }
     };
 
 
@@ -175,10 +163,17 @@ namespace vlr {
         static void finalize(Context &context);
 
         SurfaceNode(Context &context, const std::string &name) : Node(context, name) {}
-        virtual ~SurfaceNode() {}
+        virtual ~SurfaceNode() {
+            while (!m_parents.empty())
+                removeParent(*m_parents.rbegin());
+        }
 
         virtual void addParent(ParentNode* parent);
         virtual void removeParent(ParentNode* parent);
+
+        virtual void setupData(
+            uint32_t userData,
+            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const = 0;
     };
 
 
@@ -242,8 +237,13 @@ namespace vlr {
         void removeParent(ParentNode* parent) override;
 
         void setVertices(std::vector<Vertex> &&vertices);
-        void addMaterialGroup(std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
-                              const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha);
+        void addMaterialGroup(
+            std::vector<uint32_t> &&indices, const SurfaceMaterial* material, 
+            const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha);
+
+        void setupData(
+            uint32_t userData,
+            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const;
     };
 
 
@@ -270,6 +270,10 @@ namespace vlr {
 
         void addParent(ParentNode* parent) override;
         void removeParent(ParentNode* parent) override;
+
+        void setupData(
+            uint32_t userData,
+            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const;
     };
 
 
@@ -281,13 +285,10 @@ namespace vlr {
     //     And it manages chaining SHTransforms that children have.
     //     SHGeometryGroup holds geometries of SurfaceNode's which *directly* belong to the ParentNode.
     class ParentNode : public Node {
-        void addToChildMap(Node* child);
-        void removeFromChildMap(Node* child);
-
     protected:
         uint32_t m_serialChildID;
-        std::unordered_map<Node*, uint32_t> m_childToSerialIDMap;
-        std::unordered_map<uint32_t, Node*> m_serialIDToChlidMap;
+        std::unordered_set<Node*> m_children;
+        std::vector<Node*> m_orderedChildren;
         const Transform* m_localToWorld;
 
         // key: child SHTransform
@@ -301,10 +302,6 @@ namespace vlr {
         void removeConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
         void updateConcatanatedTransforms(const std::set<SHTransform*>& childDelta, std::set<SHTransform*>* delta);
 
-        void addToGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
-        void removeFromGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
-        void updateGeometryGroup(const std::set<const SHGeometryInstance*> &childDelta);
-
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
@@ -313,16 +310,20 @@ namespace vlr {
 
         void setName(const std::string &name) override;
 
+        void addGeometryInstance(const std::set<const SHGeometryInstance*> &childDelta);
+        void removeGeometryInstance(const std::set<const SHGeometryInstance*> &childDelta);
+        void updateGeometryInstance(const std::set<const SHGeometryInstance*> &childDelta);
+
         virtual void transformAddEvent(const std::set<SHTransform*> &childDelta) = 0;
         virtual void transformRemoveEvent(const std::set<SHTransform*> &childDelta) = 0;
         virtual void transformUpdateEvent(const std::set<SHTransform*> &childDelta) = 0;
 
-        void geometryAddEvent(const std::set<const SHGeometryInstance*> &childDelta);
-        virtual void geometryAddEvent(const SHTransform* childTransform) = 0;
-        void geometryRemoveEvent(const std::set<const SHGeometryInstance*> &childDelta);
-        virtual void geometryRemoveEvent(const SHTransform* childTransform) = 0;
-        void geometryUpdateEvent(const std::set<const SHGeometryInstance*> &childDelta);
-        virtual void geometryUpdateEvent(const SHTransform* childTransform) = 0;
+        virtual void geometryAddEvent(const SHTransform* childTransform,
+                                      const std::set<const SHGeometryInstance*> &childDelta) = 0;
+        virtual void geometryRemoveEvent(const SHTransform* childTransform,
+                                         const std::set<const SHGeometryInstance*> &childDelta) = 0;
+        virtual void geometryUpdateEvent(const SHTransform* childTransform,
+                                         const std::set<const SHGeometryInstance*> &childDelta) = 0;
 
         virtual void setTransform(const Transform* localToWorld);
         const Transform* getTransform() const {
@@ -336,9 +337,6 @@ namespace vlr {
         uint32_t getNumChildren() const;
         void getChildren(Node** children) const;
         Node* getChildAt(uint32_t index) const;
-
-        void prepareSetup(size_t* asScratchSize) override;
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) override;
     };
 
 
@@ -355,9 +353,12 @@ namespace vlr {
         void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
         void transformUpdateEvent(const std::set<SHTransform*> &childDelta) override;
 
-        void geometryAddEvent(const SHTransform* childTransform) override;
-        void geometryRemoveEvent(const SHTransform* childTransform) override;
-        void geometryUpdateEvent(const SHTransform* childTransform) override;
+        void geometryAddEvent(const SHTransform* childTransform,
+                              const std::set<const SHGeometryInstance*> &childDelta) override;
+        void geometryRemoveEvent(const SHTransform* childTransform,
+                                 const std::set<const SHGeometryInstance*> &childDelta) override;
+        void geometryUpdateEvent(const SHTransform* childTransform,
+                                 const std::set<const SHGeometryInstance*> &childDelta) override;
 
         void setTransform(const Transform* localToWorld) override;
 
@@ -367,7 +368,47 @@ namespace vlr {
 
 
 
-    class RootNode : public ParentNode {
+    class Scene : public ParentNode {
+        struct OptiXProgramSet {
+            uint32_t dcSampleInfiniteSphere;
+        };
+
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+
+        optixu::Scene m_optixScene;
+
+        std::unordered_set<SurfaceNode*> m_dirtySurfaceNodes;
+        std::unordered_set<ParentNode*> m_dirtyParentNodes;
+        bool m_iasIsDirty;
+
+        SlotBuffer<shared::GeometryInstance> m_geomInstBuffer;
+        SlotBuffer<shared::Instance> m_instBuffer;
+
+        // Environmental Light
+        EnvironmentEmitterSurfaceMaterial* m_matEnv;
+        uint32_t m_envGeomInstIndex;
+        shared::GeometryInstance m_envGeomInstance;
+        uint32_t m_envInstIndex;
+        shared::Instance m_envInstance;
+        cudau::TypedBuffer<uint32_t> m_envGeomInstIndices;
+        DiscreteDistribution1D m_envLightGeomInstDistribution;
+
+        optixu::InstanceAccelerationStructure m_ias;
+        cudau::Buffer m_iasMem;
+        cudau::TypedBuffer<OptixInstance> m_instanceBuffer;
+
+        cudau::TypedBuffer<uint32_t> m_lightInstIndices;
+        DiscreteDistribution1D m_lightInstDist;
+
+        struct GeometryInstance {
+            optixu::GeometryInstance optixGeomInst;
+            uint32_t geomInstIndex;
+            shared::GeometryInstance data;
+        };
+        struct GeometryAS {
+            optixu::GeometryAccelerationStructure optixGas;
+            cudau::Buffer optixGasMem;
+        };
         struct Instance {
             optixu::Instance optixInst;
             uint32_t instIndex;
@@ -375,60 +416,13 @@ namespace vlr {
             DiscreteDistribution1D lightGeomInstDistribution;
             shared::Instance data;
         };
-        optixu::InstanceAccelerationStructure m_optixIas;
-        cudau::Buffer m_optixIasMem;
-        cudau::TypedBuffer<OptixInstance> m_optixInstanceBuffer;
+        std::unordered_map<const SHGeometryInstance*, GeometryInstance> m_geometryInstances;
+        std::unordered_map<const SHGeometryGroup*, GeometryAS> m_geometryASes;
         std::unordered_map<const SHTransform*, Instance> m_instances;
 
-    public:
-        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
-
-        RootNode(Context &context, const Transform* localToWorld);
-        ~RootNode();
-
-        void transformAddEvent(const std::set<SHTransform*> &childDelta) override;
-        void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
-        void transformUpdateEvent(const std::set<SHTransform*> &childDelta) override;
-
-        void geometryAddEvent(const SHTransform* childTransform) override;
-        void geometryRemoveEvent(const SHTransform* childTransform) override;
-        void geometryUpdateEvent(const SHTransform* childTransform) override;
-
-        void prepareSetup(size_t* asScratchSize) override;
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) override;
-
-        uint32_t getNumInstances() const {
-            return m_instances.size();
-        }
-        void getInstanceIndices(uint32_t* indices) const;
-        void getInstanceImportanceValues(float* importances) const;
-    };
-
-
-
-    class Scene : public Object {
-        struct OptiXProgramSet {
-            uint32_t dcSampleInfiniteSphere;
-        };
-
-        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
-
-        RootNode m_rootNode;
-        EnvironmentEmitterSurfaceMaterial* m_matEnv;
-
-        // EnvLight GeomInst
-        uint32_t m_geomInstIndex;
-        shared::GeometryInstance m_geomInstance;
-
-        // EnvLight Inst
-        uint32_t m_instIndex;
-        cudau::TypedBuffer<uint32_t> m_geomInstIndices;
-        DiscreteDistribution1D m_lightGeomInstDistribution;
-        shared::Instance m_instance;
-
-        cudau::TypedBuffer<uint32_t> m_lightInstIndices;
-        DiscreteDistribution1D m_lightInstDist;
-        cudau::Buffer m_asScratchMem;
+        std::unordered_set<const SHGeometryInstance*> m_dirtyGeometryInstances;
+        std::unordered_set<const SHGeometryGroup*> m_dirtyGeometryASes;
+        std::unordered_set<const SHTransform*> m_dirtyInstances;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
@@ -439,38 +433,25 @@ namespace vlr {
         Scene(Context &context, const Transform* localToWorld);
         ~Scene();
 
-        void setTransform(const Transform* localToWorld) {
-            m_rootNode.setTransform(localToWorld);
-        }
+        void transformAddEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
+        void transformUpdateEvent(const std::set<SHTransform*> &childDelta) override;
 
-        void addChild(InternalNode* child) {
-            m_rootNode.addChild(child);
-        }
-        void addChild(SurfaceNode* child) {
-            m_rootNode.addChild(child);
-        }
-        void removeChild(InternalNode* child) {
-            m_rootNode.removeChild(child);
-        }
-        void removeChild(SurfaceNode* child) {
-            m_rootNode.removeChild(child);
-        }
-        uint32_t getNumChildren() const {
-            return m_rootNode.getNumChildren();
-        }
-        void getChildren(Node** children) const {
-            m_rootNode.getChildren(children);
-        }
-        Node* getChildAt(uint32_t index) const {
-            return m_rootNode.getChildAt(index);
-        }
+        void geometryAddEvent(const SHTransform* childTransform,
+                              const std::set<const SHGeometryInstance*> &childDelta) override;
+        void geometryRemoveEvent(const SHTransform* childTransform,
+                                 const std::set<const SHGeometryInstance*> &childDelta) override;
+        void geometryUpdateEvent(const SHTransform* childTransform,
+                                 const std::set<const SHGeometryInstance*> &childDelta) override;
+
+        void prepareSetup(size_t* asScratchSize, optixu::Scene* optixScene);
+        void setup(
+            CUstream stream,
+            const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams);
 
         // TODO: 内部実装をInfiniteSphereSurfaceNode + EnvironmentEmitterMaterialを使ったものに変えられないかを考える。
         void setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv);
         void setEnvironmentRotation(float rotationPhi);
-
-        void prepareSetup(size_t* asScratchSize);
-        void setup(CUstream cuStream, const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams);
     };
 
 

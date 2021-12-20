@@ -28,7 +28,7 @@ namespace vlr {
         }
 
         programSet->nodeProcedureSetIndex = context.allocateNodeProcedureSet();
-        context.updateNodeProcedureSet(programSet->nodeProcedureSetIndex, nodeProcSet);
+        context.updateNodeProcedureSet(programSet->nodeProcedureSetIndex, nodeProcSet, 0);
     }
 
     // static 
@@ -39,17 +39,6 @@ namespace vlr {
             if (programSet.callablePrograms[i] != 0xFFFFFFFF)
                 context.destroyDirectCallableProgram(programSet.callablePrograms[i]);
         }
-    }
-
-    void ShaderNode::updateNodeDescriptor() const {
-        if (m_nodeSizeClass == 0)
-            m_context.updateSmallNodeDescriptor(m_nodeIndex, smallNodeDesc);
-        else if (m_nodeSizeClass == 1)
-            m_context.updateMediumNodeDescriptor(m_nodeIndex, mediumNodeDesc);
-        else if (m_nodeSizeClass == 2)
-            m_context.updateLargeNodeDescriptor(m_nodeIndex, largeNodeDesc);
-        else
-            VLRAssert_ShouldNotBeCalled();
     }
 
     // static
@@ -148,16 +137,15 @@ namespace vlr {
 
     GeometryShaderNode::GeometryShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::GeometryShaderNode)) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     GeometryShaderNode::~GeometryShaderNode() {
     }
 
-    void GeometryShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::GeometryShaderNode>();
-
-        updateNodeDescriptor();
+    void GeometryShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::GeometryShaderNode nodeData;
+        updateNodeDescriptor(nodeData, stream);
     }
 
     GeometryShaderNode* GeometryShaderNode::getInstance(Context &context) {
@@ -199,17 +187,16 @@ namespace vlr {
 
     TangentShaderNode::TangentShaderNode(Context& context) :
         ShaderNode(context, sizeof(shared::TangentShaderNode)), m_immTangentType(TangentType::TC0Direction) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     TangentShaderNode::~TangentShaderNode() {
     }
 
-    void TangentShaderNode::setupNodeDescriptor() {
-        auto& nodeData = *getData<shared::TangentShaderNode>();
+    void TangentShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::TangentShaderNode nodeData;
         nodeData.tangentType = m_immTangentType;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool TangentShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -238,7 +225,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -246,7 +233,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> Float2ShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float2ShaderNode::s_optiXProgramSets;
 
     // static
@@ -281,20 +268,19 @@ namespace vlr {
     Float2ShaderNode::Float2ShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::Float2ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     Float2ShaderNode::~Float2ShaderNode() {
     }
 
-    void Float2ShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::Float2ShaderNode>();
+    void Float2ShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::Float2ShaderNode nodeData;
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool Float2ShaderNode::get(const char* paramName, float* values, uint32_t length) const {
@@ -356,7 +342,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -377,7 +363,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -385,7 +371,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> Float3ShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float3ShaderNode::s_optiXProgramSets;
 
     // static
@@ -422,22 +408,21 @@ namespace vlr {
     Float3ShaderNode::Float3ShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::Float3ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     Float3ShaderNode::~Float3ShaderNode() {
     }
 
-    void Float3ShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::Float3ShaderNode>();
+    void Float3ShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::Float3ShaderNode nodeData;
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
         nodeData.imm0 = m_imm0;
         nodeData.imm1 = m_imm1;
         nodeData.imm2 = m_imm2;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool Float3ShaderNode::get(const char* paramName, float* values, uint32_t length) const {
@@ -514,7 +499,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -541,7 +526,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -549,7 +534,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> Float4ShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float4ShaderNode::s_optiXProgramSets;
 
     // static
@@ -588,14 +573,14 @@ namespace vlr {
     Float4ShaderNode::Float4ShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::Float4ShaderNode)),
         m_imm0(0.0f), m_imm1(0.0f), m_imm2(0.0f), m_imm3(0.0f) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     Float4ShaderNode::~Float4ShaderNode() {
     }
 
-    void Float4ShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::Float4ShaderNode>();
+    void Float4ShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::Float4ShaderNode nodeData;
         nodeData.node0 = m_node0.getSharedType();
         nodeData.node1 = m_node1.getSharedType();
         nodeData.node2 = m_node2.getSharedType();
@@ -604,8 +589,7 @@ namespace vlr {
         nodeData.imm1 = m_imm1;
         nodeData.imm2 = m_imm2;
         nodeData.imm3 = m_imm3;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool Float4ShaderNode::get(const char* paramName, float* values, uint32_t length) const {
@@ -697,7 +681,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -730,7 +714,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -738,7 +722,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> ScaleAndOffsetFloatShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetFloatShaderNode::s_optiXProgramSets;
 
     // static
@@ -772,21 +756,20 @@ namespace vlr {
 
     ScaleAndOffsetFloatShaderNode::ScaleAndOffsetFloatShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::ScaleAndOffsetFloatShaderNode)), m_immScale(1.0f), m_immOffset(0.0f) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     ScaleAndOffsetFloatShaderNode::~ScaleAndOffsetFloatShaderNode() {
     }
 
-    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::ScaleAndOffsetFloatShaderNode>();
+    void ScaleAndOffsetFloatShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::ScaleAndOffsetFloatShaderNode nodeData;
         nodeData.nodeValue = m_nodeValue.getSharedType();
         nodeData.nodeScale = m_nodeScale.getSharedType();
         nodeData.nodeOffset = m_nodeOffset.getSharedType();
         nodeData.immScale = m_immScale;
         nodeData.immOffset = m_immOffset;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool ScaleAndOffsetFloatShaderNode::get(const char* paramName, float* values, uint32_t length) const {
@@ -851,7 +834,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -885,7 +868,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> TripletSpectrumShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> TripletSpectrumShaderNode::s_optiXProgramSets;
 
     // static
@@ -920,17 +903,16 @@ namespace vlr {
     TripletSpectrumShaderNode::TripletSpectrumShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::TripletSpectrumShaderNode)), m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65),
         m_immE0(0.18f), m_immE1(0.18f), m_immE2(0.18f) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     TripletSpectrumShaderNode::~TripletSpectrumShaderNode() {
     }
 
-    void TripletSpectrumShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::TripletSpectrumShaderNode>();
+    void TripletSpectrumShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::TripletSpectrumShaderNode nodeData;
         nodeData.value = createTripletSpectrum(m_spectrumType, m_colorSpace, m_immE0, m_immE1, m_immE2);
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool TripletSpectrumShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -989,7 +971,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1009,7 +991,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1017,7 +999,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> RegularSampledSpectrumShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> RegularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
@@ -1055,7 +1037,7 @@ namespace vlr {
         m_spectrumType(SpectrumType::NA), m_minLambda(0.0f), m_maxLambda(1000.0f), m_values(nullptr), m_numSamples(2) {
         m_values = new float[2];
         m_values[0] = m_values[1] = 1.0f;
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     RegularSampledSpectrumShaderNode::~RegularSampledSpectrumShaderNode() {
@@ -1063,8 +1045,8 @@ namespace vlr {
             delete[] m_values;
     }
 
-    void RegularSampledSpectrumShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::RegularSampledSpectrumShaderNode>();
+    void RegularSampledSpectrumShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::RegularSampledSpectrumShaderNode nodeData;
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         nodeData.minLambda = m_minLambda;
@@ -1079,7 +1061,7 @@ namespace vlr {
         transformToRenderingRGB(m_spectrumType, XYZ, RGB);
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
 #endif
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool RegularSampledSpectrumShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -1149,7 +1131,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1178,7 +1160,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1186,7 +1168,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> IrregularSampledSpectrumShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> IrregularSampledSpectrumShaderNode::s_optiXProgramSets;
 
     // static
@@ -1226,7 +1208,7 @@ namespace vlr {
         m_lambdas[0] = 0.0f;
         m_lambdas[1] = 1000.0f;
         m_values[0] = m_values[1] = 1.0f;
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     IrregularSampledSpectrumShaderNode::~IrregularSampledSpectrumShaderNode() {
@@ -1236,8 +1218,8 @@ namespace vlr {
         }
     }
 
-    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::IrregularSampledSpectrumShaderNode>();
+    void IrregularSampledSpectrumShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::IrregularSampledSpectrumShaderNode nodeData;
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         VLRAssert(m_numSamples <= lengthof(nodeData.values), "Number of sample points must not be greater than %u.", lengthof(nodeData.values));
         std::copy_n(m_lambdas, m_numSamples, nodeData.lambdas);
@@ -1251,7 +1233,7 @@ namespace vlr {
         transformToRenderingRGB(m_spectrumType, XYZ, RGB);
         nodeData.value = RGBSpectrum(std::fmax(0.0f, RGB[0]), std::fmax(0.0f, RGB[1]), std::fmax(0.0f, RGB[2]));
 #endif
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool IrregularSampledSpectrumShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -1302,7 +1284,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1327,7 +1309,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1335,7 +1317,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> Float3ToSpectrumShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Float3ToSpectrumShaderNode::s_optiXProgramSets;
 
     // static
@@ -1369,22 +1351,21 @@ namespace vlr {
 
     Float3ToSpectrumShaderNode::Float3ToSpectrumShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::Float3ToSpectrumShaderNode)), m_immFloat3{ 0, 0, 0 }, m_spectrumType(SpectrumType::Reflectance), m_colorSpace(ColorSpace::Rec709_D65) {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     Float3ToSpectrumShaderNode::~Float3ToSpectrumShaderNode() {
     }
 
-    void Float3ToSpectrumShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::Float3ToSpectrumShaderNode>();
+    void Float3ToSpectrumShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::Float3ToSpectrumShaderNode nodeData;
         nodeData.nodeFloat3 = m_nodeFloat3.getSharedType();
         nodeData.immFloat3[0] = m_immFloat3[0];
         nodeData.immFloat3[1] = m_immFloat3[1];
         nodeData.immFloat3[2] = m_immFloat3[2];
         nodeData.spectrumType = m_spectrumType;
         nodeData.colorSpace = m_colorSpace;
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool Float3ToSpectrumShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -1457,7 +1438,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1477,7 +1458,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1492,7 +1473,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1500,7 +1481,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> ScaleAndOffsetUVTextureMap2DShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> ScaleAndOffsetUVTextureMap2DShaderNode::s_optiXProgramSets;
 
     // static
@@ -1533,20 +1514,19 @@ namespace vlr {
 
     ScaleAndOffsetUVTextureMap2DShaderNode::ScaleAndOffsetUVTextureMap2DShaderNode(Context &context) :
         ShaderNode(context, sizeof(shared::ScaleAndOffsetUVTextureMap2DShaderNode)), m_offset{ 0.0f, 0.0f }, m_scale{ 1.0f, 1.0f } {
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     ScaleAndOffsetUVTextureMap2DShaderNode::~ScaleAndOffsetUVTextureMap2DShaderNode() {
     }
 
-    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor() {
-        auto &nodeData = *getData<shared::ScaleAndOffsetUVTextureMap2DShaderNode>();
+    void ScaleAndOffsetUVTextureMap2DShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::ScaleAndOffsetUVTextureMap2DShaderNode nodeData;
         nodeData.offset[0] = m_offset[0];
         nodeData.offset[1] = m_offset[1];
         nodeData.scale[0] = m_scale[0];
         nodeData.scale[1] = m_scale[1];
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool ScaleAndOffsetUVTextureMap2DShaderNode::get(const char* paramName, float* values, uint32_t length) const {
@@ -1595,7 +1575,7 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1603,7 +1583,7 @@ namespace vlr {
 
 
     std::vector<ParameterInfo> Image2DTextureShaderNode::ParameterInfos;
-    
+
     std::unordered_map<uint32_t, ShaderNode::OptiXProgramSet> Image2DTextureShaderNode::s_optiXProgramSets;
     std::unordered_map<uint32_t, LinearImage2D*> Image2DTextureShaderNode::NullImages;
 
@@ -1654,7 +1634,9 @@ namespace vlr {
     }
 
     Image2DTextureShaderNode::Image2DTextureShaderNode(Context &context) :
-        ShaderNode(context, sizeof(shared::Image2DTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
+        ShaderNode(context, sizeof(shared::Image2DTextureShaderNode)),
+        m_textureObject(0),
+        m_image(NullImages.at(m_context.getID())),
         m_bumpType(BumpType::NormalMap_DirectX), m_bumpCoeff(1.0f),
         m_xyFilter(TextureFilter::Linear),
         m_wrapU(TextureWrapMode::Repeat), m_wrapV(TextureWrapMode::Repeat) {
@@ -1665,16 +1647,16 @@ namespace vlr {
         m_textureSampler.setIndexingMode(cudau::TextureIndexingMode::NormalizedCoordinates);
         m_textureSampler.setReadMode(cudau::TextureReadMode::NormalizedFloat);
 
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
     }
 
     Image2DTextureShaderNode::~Image2DTextureShaderNode() {
-        auto &nodeData = *getData<shared::Image2DTextureShaderNode>();
-        if (nodeData.texture)
-            cuTexObjectDestroy(nodeData.texture);
+        if (m_textureObject)
+            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
     }
 
-    void Image2DTextureShaderNode::setupNodeDescriptor() {
+    void Image2DTextureShaderNode::createTextureSampler() {
         m_textureSampler.setXyFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter));
         m_textureSampler.setMipMapFilterMode(cudau::TextureFilterMode::Point);
         m_textureSampler.setWrapMode(0, static_cast<cudau::TextureWrapMode>(m_wrapU));
@@ -1682,11 +1664,14 @@ namespace vlr {
         m_textureSampler.setReadMode(m_image->needsHW_sRGB_degamma() ?
                                      cudau::TextureReadMode::NormalizedFloat_sRGB :
                                      cudau::TextureReadMode::NormalizedFloat);
+        if (m_textureObject)
+            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
+        m_textureObject = m_textureSampler.createTextureObject(m_image->getOptiXObject());
+    }
 
-        auto &nodeData = *getData<shared::Image2DTextureShaderNode>();
-        if (nodeData.texture)
-            CUDADRV_CHECK(cuTexObjectDestroy(nodeData.texture));
-        nodeData.texture = m_textureSampler.createTextureObject(m_image->getOptiXObject());
+    void Image2DTextureShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::Image2DTextureShaderNode nodeData;
+        nodeData.texture = m_textureObject;
         nodeData.dataFormat = static_cast<unsigned int>(m_image->getDataFormat());
         nodeData.spectrumType = static_cast<unsigned int>(m_image->getSpectrumType());
         // JP: GPUカーネル内でHWによってsRGBデガンマされて読まれる場合には、デガンマ済みとして捉える必要がある。
@@ -1702,8 +1687,7 @@ namespace vlr {
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
         nodeData.width = m_image->getWidth();
         nodeData.height = m_image->getHeight();
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool Image2DTextureShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -1810,7 +1794,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1829,7 +1814,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1841,7 +1827,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1856,7 +1843,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1904,36 +1892,40 @@ namespace vlr {
     }
 
     EnvironmentTextureShaderNode::EnvironmentTextureShaderNode(Context &context) :
-        ShaderNode(context, sizeof(shared::EnvironmentTextureShaderNode)), m_image(NullImages.at(m_context.getID())),
+        ShaderNode(context, sizeof(shared::EnvironmentTextureShaderNode)),
+        m_textureObject(0),
+        m_image(NullImages.at(m_context.getID())),
         m_xyFilter(TextureFilter::Linear) {
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
+    }
+
+    EnvironmentTextureShaderNode::~EnvironmentTextureShaderNode() {
+        if (m_textureObject)
+            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
+    }
+
+    void EnvironmentTextureShaderNode::createTextureSampler() {
         m_textureSampler.setXyFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter));
         m_textureSampler.setMipMapFilterMode(cudau::TextureFilterMode::Point);
         m_textureSampler.setWrapMode(0, cudau::TextureWrapMode::Repeat);
         m_textureSampler.setWrapMode(1, cudau::TextureWrapMode::Repeat);
+        m_textureSampler.setReadMode(m_image->needsHW_sRGB_degamma() ?
+                                     cudau::TextureReadMode::NormalizedFloat_sRGB :
+                                     cudau::TextureReadMode::NormalizedFloat);
         m_textureSampler.setIndexingMode(cudau::TextureIndexingMode::NormalizedCoordinates);
         m_textureSampler.setReadMode(cudau::TextureReadMode::NormalizedFloat);
-
-        setupNodeDescriptor();
+        if (m_textureObject)
+            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
+        m_textureObject = m_textureSampler.createTextureObject(m_image->getOptiXObject());
     }
 
-    EnvironmentTextureShaderNode::~EnvironmentTextureShaderNode() {
-        auto &nodeData = *getData<shared::EnvironmentTextureShaderNode>();
-        if (nodeData.texture)
-            cuTexObjectDestroy(nodeData.texture);
-    }
-
-    void EnvironmentTextureShaderNode::setupNodeDescriptor() {
-        m_textureSampler.setXyFilterMode(static_cast<cudau::TextureFilterMode>(m_xyFilter));
-        m_textureSampler.setMipMapFilterMode(cudau::TextureFilterMode::Point);
-
-        auto &nodeData = *getData<shared::EnvironmentTextureShaderNode>();
-        if (nodeData.texture)
-            CUDADRV_CHECK(cuTexObjectDestroy(nodeData.texture));
-        nodeData.texture = m_textureSampler.createTextureObject(m_image->getOptiXObject());
+    void EnvironmentTextureShaderNode::setupNodeDescriptor(CUstream stream) const {
+        shared::EnvironmentTextureShaderNode nodeData;
+        nodeData.texture = m_textureObject;
         nodeData.dataFormat = static_cast<unsigned int>(m_image->getDataFormat());
         nodeData.colorSpace = static_cast<unsigned int>(m_image->getColorSpace());
-
-        updateNodeDescriptor();
+        updateNodeDescriptor(nodeData, stream);
     }
 
     bool EnvironmentTextureShaderNode::get(const char* paramName, const char** enumValue) const {
@@ -1976,7 +1968,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
@@ -1988,7 +1981,8 @@ namespace vlr {
         else {
             return false;
         }
-        setupNodeDescriptor();
+        createTextureSampler();
+        m_context.markShaderNodeDescriptorDirty(this);
 
         return true;
     }
