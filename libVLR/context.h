@@ -220,8 +220,9 @@ namespace vlr {
         }
 
         void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID);
-        const cudau::Array &getOutputBuffer() const;
         void getOutputBufferSize(uint32_t* width, uint32_t* height);
+        const cudau::Array &getOutputBuffer() const;
+        void readOutputBuffer(float* data);
 
         void setScene(Scene* scene);
         void render(CUstream stream, const Camera* camera, bool denoise,

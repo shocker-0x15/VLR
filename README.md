@@ -37,7 +37,7 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX 7.
 * libVLR - Renderer Library based on OptiX\
   CのAPIを定義しています。\
   Exposes C API.
-* VLRCpp.h - Single file wrapper for C++\
+* vlrcpp.h - Single file wrapper for C++\
   std::shared_ptrを用いてオブジェクトの寿命管理を自動化しています。\
   Automatically manages lifetime of objects via std::shared_ptr.
 * HostProgram - A program to demonstrate how to use VLR
@@ -46,8 +46,7 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX 7.
 Code Example using VLRCpp (C++ wrapper)
 
 ```cpp
-using namespace VLR;
-using namespace VLRCpp;
+using namespace vlr;
 
 ContextRef context = Context::create(cuContext, enableLogging, maxCallableDepth);
 
@@ -149,6 +148,7 @@ There are some scene files loading model data and textures, but those assets are
 [Kajiya1986] "THE RENDERING EQUATION"\
 [Karis2013] "Real Shading in Unreal Engine 4"\
 [Lagarde2014] "Moving Frostbite to Physically Based Rendering 3.0"\
+[Meng2015] "Physically Meaningful Rendering using Tristimulus Colours"\
 [Veach1996] "Non-symmetric Scattering in Light Transport Algorithms"
 
 ## ギャラリー / Gallery

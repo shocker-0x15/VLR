@@ -8,11 +8,6 @@
 // Include glfw3.h after our OpenGL definitions
 #include "GLFW/glfw3.h"
 
-// DELETE ME
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBI_MSC_SECURE_CRT
-#include "stb_image_write.h"
-
 #include "scene.h"
 
 #include "StopWatch.h"
@@ -88,6 +83,7 @@ float sRGB_degamma_s(float value) {
 struct RGB {
     float r, g, b;
 
+    constexpr RGB() : r(0.0f), g(0.0f), b(0.0f) {}
     constexpr RGB(float rr, float gg, float bb) : r(rr), g(gg), b(bb) {}
 
     RGB operator-() const {
@@ -109,6 +105,15 @@ struct RGB {
     static constexpr RGB One() { return RGB(1.0f, 1.0f, 1.0f); }
 };
 
+struct RGBA {
+    RGB rgb;
+    float a;
+
+    constexpr RGBA() : a(0.0f) {}
+    constexpr RGBA(float rr, float gg, float bb, float aa) : rgb(rr, gg, bb), a(aa) {}
+    constexpr RGBA(const RGB &_rgb, float _a) : rgb(_rgb), a(_a) {}
+};
+
 RGB exp(const RGB &v) {
     return RGB(std::exp(v.r), std::exp(v.g), std::exp(v.b));
 }
@@ -125,52 +130,59 @@ RGB max(const RGB &v, float maxValue) {
     return RGB(std::fmax(v.r, maxValue), std::fmax(v.g, maxValue), std::fmax(v.b, maxValue));
 }
 
-static void saveOutputBufferAsImageFile(const vlr::ContextRef &context, const std::string &filename, float brightnessCoeff, bool debugRendering) {
-    //using namespace vlr;
+static void saveOutputBufferAsImageFile(const vlr::ContextRef &context, const std::string &filenameWoExt, float brightnessCoeff, bool debugRendering) {
+    using namespace vlr;
 
-    //CUarray outputBuffer;
-    //uint32_t width, height;
-    //context->getOutputBuffer(&outputBuffer, &width, &height);
+    uint32_t width, height;
+    context->getOutputBufferSize(&width, &height);
+    auto data = new RGBA[width * height];
+    context->readOutputBuffer(reinterpret_cast<float*>(data));
 
-    //auto data = new uint32_t[width * height];
-    //auto output = (const RGB*)outputBuffer;
+    auto ldrData = new uint32_t[width * height];
 
-    //for (int y = 0; y < height; ++y) {
-    //    for (int x = 0; x < width; ++x) {
-    //        RGB srcPix = output[y * width + x];
-    //        uint32_t &pix = data[y * width + x];
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            RGBA srcPix = data[y * width + x];
+            uint32_t &pix = ldrData[y * width + x];
 
-    //        if (srcPix.r < -0.001f || srcPix.g < -0.001f || srcPix.b < -0.001f)
-    //            hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-    //        srcPix = max(srcPix, 0.0f);
-    //        if (!debugRendering) {
-    //            srcPix *= brightnessCoeff;
-    //            srcPix = RGB::One() - exp(-srcPix);
-    //            srcPix = sRGB_gamma(srcPix);
-    //        }
+            if (srcPix.rgb.r < -0.001f || srcPix.rgb.g < -0.001f || srcPix.rgb.b < -0.001f)
+                hpprintf("Warning: Out of Color Gamut %d, %d: %g, %g, %g\n",
+                         x, y, srcPix.rgb.r, srcPix.rgb.g, srcPix.rgb.b);
+            srcPix.rgb = max(srcPix.rgb, 0.0f);
+            // Simple tone mapping and gamma correction.
+            if (!debugRendering) {
+                srcPix.rgb *= brightnessCoeff;
+                srcPix.rgb = RGB::One() - exp(-srcPix.rgb);
+                srcPix.rgb = sRGB_gamma(srcPix.rgb);
+            }
 
-    //        //float Y = srcPix.g;
-    //        //float b = srcPix.r + srcPix.g + srcPix.b;
-    //        //srcPix.r = srcPix.r / b;
-    //        //srcPix.g = srcPix.g / b;
-    //        //srcPix.b = Y * 0.6f;
-    //        //if (srcPix.r > 1.0f || srcPix.g > 1.0f || srcPix.b > 1.0f)
-    //        //    hpprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
-    //        //srcPix = min(srcPix, 1.0f);
+            //float Y = srcPix.g;
+            //float b = srcPix.r + srcPix.g + srcPix.b;
+            //srcPix.r = srcPix.r / b;
+            //srcPix.g = srcPix.g / b;
+            //srcPix.b = Y * 0.6f;
+            //if (srcPix.r > 1.0f || srcPix.g > 1.0f || srcPix.b > 1.0f)
+            //    hpprintf("Warning: Over 1.0 %d, %d: %g, %g, %g\n", x, y, srcPix.r, srcPix.g, srcPix.b);
+            //srcPix = min(srcPix, 1.0f);
 
-    //        Assert(srcPix.r <= 1.0f && srcPix.g <= 1.0f && srcPix.b <= 1.0f, "Pixel value should not be greater than 1.0.");
+            Assert(srcPix.rgb.r <= 1.0f && srcPix.rgb.g <= 1.0f && srcPix.rgb.b <= 1.0f,
+                   "Pixel value should not be greater than 1.0.");
 
-    //        pix = ((std::min<uint32_t>(srcPix.r * 256, 255) << 0) |
-    //               (std::min<uint32_t>(srcPix.g * 256, 255) << 8) |
-    //               (std::min<uint32_t>(srcPix.b * 256, 255) << 16) |
-    //               (0xFF << 24));
-    //    }
-    //}
+            pix = ((std::min<uint32_t>(srcPix.rgb.r * 256, 255) << 0) |
+                   (std::min<uint32_t>(srcPix.rgb.g * 256, 255) << 8) |
+                   (std::min<uint32_t>(srcPix.rgb.b * 256, 255) << 16) |
+                   (0xFF << 24));
+        }
+    }
 
-    //stbi_write_bmp(filename.c_str(), width, height, 4, data);
-    //delete[] data;
+    std::string pngFilename = filenameWoExt + ".png";
+    writePNG(pngFilename, width, height, ldrData);
 
-    //context->unmapOutputBuffer();
+    std::string exrFilename = filenameWoExt + ".exr";
+    writeEXR(exrFilename, width, height, reinterpret_cast<const float*>(data));
+
+    delete[] ldrData;
+    delete[] data;
 }
 
 
@@ -321,7 +333,7 @@ class HostProgram {
         m_outputBufferSizeChanged |= ImGui::Checkbox("Force Low Resolution", &m_forceLowResolution);
 
         if (ImGui::Button("Save Output")) {
-            const char* filename = "output.bmp";
+            const char* filename = "output";
             saveOutputBufferAsImageFile(m_context, filename, m_brightnessCoeff, m_enableDebugRendering);
             hpprintf("Image saved: %s\n", filename);
         }
@@ -1289,7 +1301,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
             bool finish = swGlobal.elapsedFromRoot(StopWatch::Milliseconds) > finishTime;
             if (elapsed > nextTimeToOutput || finish) {
                 char filename[256];
-                sprintf(filename, "%03u.bmp", imgIndex++);
+                sprintf(filename, "%03u", imgIndex++);
                 saveOutputBufferAsImageFile(context, filename, shot.brightnessCoeff, false);
                 hpprintf("%u [spp]: %s, %g [s]\n", numAccumFrames, filename, elapsed * 1e-3f);
 

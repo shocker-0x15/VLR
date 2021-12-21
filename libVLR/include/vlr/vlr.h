@@ -74,9 +74,15 @@ extern "C" {
     VLR_API VLRResult vlrContextBindOutputBuffer(
         VLRContext context,
         uint32_t width, uint32_t height, uint32_t bufferID);
+    VLR_API VLRResult vlrContextGetOutputBufferSize(
+        VLRContext context,
+        uint32_t* width, uint32_t* height);
     VLR_API VLRResult vlrContextGetOutputBuffer(
         VLRContext context,
-        CUarray* array, uint32_t* width, uint32_t* height);
+        CUarray* array);
+    VLR_API VLRResult vlrContextReadOutputBuffer(
+        VLRContext context,
+        float* data);
     VLR_API VLRResult vlrContextSetScene(
         VLRContext context,
         VLRScene scene);

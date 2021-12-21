@@ -677,13 +677,27 @@ namespace vlr {
         m_optix.launchParams.imageStrideInPixels = m_width;
     }
 
+    void Context::getOutputBufferSize(uint32_t* width, uint32_t* height) {
+        *width = m_width;
+        *height = m_height;
+    }
+
     const cudau::Array &Context::getOutputBuffer() const {
         return m_optix.outputBuffer;
     }
 
-    void Context::getOutputBufferSize(uint32_t* width, uint32_t* height) {
-        *width = m_width;
-        *height = m_height;
+    void Context::readOutputBuffer(float* data) {
+        auto rgbaData = reinterpret_cast<RGBA32Fx4*>(data);
+        m_optix.outputBuffer.beginCUDAAccess(0, 0);
+        auto mappedData = m_optix.outputBuffer.map<RGBA32Fx4>(0, 0, cudau::BufferMapFlag::ReadOnly);
+        for (int y = 0; y < m_height; ++y) {
+            for (int x = 0; x < m_width; ++x) {
+                uint32_t idx = y * m_width + x;
+                rgbaData[idx] = mappedData[idx];
+            }
+        }
+        m_optix.outputBuffer.unmap(0);
+        m_optix.outputBuffer.endCUDAAccess(0, 0);
     }
 
     void Context::setScene(Scene* scene) {

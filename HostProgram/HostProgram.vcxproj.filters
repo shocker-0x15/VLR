@@ -32,7 +32,7 @@
     <ClCompile Include="gl_util.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="image_loader.cpp">
+    <ClCompile Include="image.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
     <ClCompile Include="ext\src\imGui\imgui_tables.cpp">
@@ -109,7 +109,7 @@
     <ClInclude Include="dds_loader.h">
       <Filter>helpers</Filter>
     </ClInclude>
-    <ClInclude Include="image_loader.h">
+    <ClInclude Include="image.h">
       <Filter>helpers</Filter>
     </ClInclude>
   </ItemGroup>

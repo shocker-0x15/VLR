@@ -111,22 +111,6 @@ VLR_API VLRResult vlrContextBindOutputBuffer(
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrContextGetOutputBuffer(
-    VLRContext context,
-    CUarray* array, uint32_t* width, uint32_t* height) {
-    try {
-        if (array == nullptr || width == nullptr || height == nullptr)
-            return VLRResult_InvalidArgument;
-
-        const cudau::Array &cudauArray = context->getOutputBuffer();
-        *array = cudauArray.getCUarray(0);
-        context->getOutputBufferSize(width, height);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
 VLR_API VLRResult vlrContextGetOutputBufferSize(
     VLRContext context,
     uint32_t* width, uint32_t* height) {
@@ -135,6 +119,35 @@ VLR_API VLRResult vlrContextGetOutputBufferSize(
             return VLRResult_InvalidArgument;
 
         context->getOutputBufferSize(width, height);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrContextGetOutputBuffer(
+    VLRContext context,
+    CUarray* array) {
+    try {
+        if (array == nullptr)
+            return VLRResult_InvalidArgument;
+
+        const cudau::Array &cudauArray = context->getOutputBuffer();
+        *array = cudauArray.getCUarray(0);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrContextReadOutputBuffer(
+    VLRContext context,
+    float* data) {
+    try {
+        if (data == nullptr)
+            return VLRResult_InvalidArgument;
+
+        context->readOutputBuffer(data);
 
         return VLRResult_NoError;
     }

@@ -1,7 +1,11 @@
-#include "image_loader.h"
+#include "image.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_MSC_SECURE_CRT
+#include "stb_image_write.h"
 
 #include <ImfInputFile.h>
 #include <ImfRgbaFile.h>
@@ -183,4 +187,30 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
     s_image2DCache[key] = ret;
 
     return ret;
+}
+
+void writePNG(const std::filesystem::path &filePath, uint32_t width, uint32_t height, const uint32_t* data) {
+    stbi_write_png(filePath.string().c_str(), width, height, 4, data, width * 4);
+}
+
+void writeEXR(const std::filesystem::path &filePath, uint32_t width, uint32_t height, const float* data) {
+    using namespace Imf;
+
+    auto imfData = new Rgba[width * height];
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            uint32_t idx = y * width + x;
+            Rgba &outPix = imfData[idx];
+            outPix.r = static_cast<half>(data[4 * idx + 0]);
+            outPix.g = static_cast<half>(data[4 * idx + 1]);
+            outPix.b = static_cast<half>(data[4 * idx + 2]);
+            outPix.a = static_cast<half>(data[4 * idx + 3]);
+        }
+    }
+
+    RgbaOutputFile file(filePath.string().c_str(), width, height, WRITE_RGBA);
+    file.setFrameBuffer(imfData, 1, width);
+    file.writePixels(height);
+
+    delete[] imfData;
 }

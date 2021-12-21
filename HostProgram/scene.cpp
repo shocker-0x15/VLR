@@ -1,7 +1,5 @@
 #include "scene.h"
 
-#include "image_loader.h"
-
 SurfaceMaterialAttributeTuple createMaterialDefaultFunction(const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
     using namespace vlr;
 
@@ -976,8 +974,8 @@ void createColorCheckerScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 

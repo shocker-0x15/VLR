@@ -734,8 +734,16 @@ namespace vlr {
             errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID));
         }
 
-        void getOutputBuffer(CUarray* array, uint32_t* width, uint32_t* height) const {
-            errorCheck(vlrContextGetOutputBuffer(m_rawContext, array, width, height));
+        void getOutputBufferSize(uint32_t* width, uint32_t* height) const {
+            errorCheck(vlrContextGetOutputBufferSize(m_rawContext, width, height));
+        }
+
+        void getOutputBuffer(CUarray* array) const {
+            errorCheck(vlrContextGetOutputBuffer(m_rawContext, array));
+        }
+
+        void readOutputBuffer(float* data) const {
+            errorCheck(vlrContextReadOutputBuffer(m_rawContext, data));
         }
 
         void setScene(const SceneRef &scene) const {

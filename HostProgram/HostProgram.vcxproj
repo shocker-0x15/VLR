@@ -109,7 +109,7 @@
     <ClCompile Include="ext\src\imGui\imgui_tables.cpp" />
     <ClCompile Include="ext\src\imGui\imgui_widgets.cpp" />
     <ClCompile Include="gl_util.cpp" />
-    <ClCompile Include="image_loader.cpp" />
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="scene.cpp" />
   </ItemGroup>
@@ -130,7 +130,7 @@
     <ClInclude Include="ext\include\imGui\imstb_truetype.h" />
     <ClInclude Include="ext\include\KHR\khrplatform.h" />
     <ClInclude Include="gl_util.h" />
-    <ClInclude Include="image_loader.h" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="parameter.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="StopWatch.h" />
