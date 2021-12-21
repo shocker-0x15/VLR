@@ -78,7 +78,7 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
         Rgba* linearImageData = new Rgba[width * height];
         Rgba* curDataHead = linearImageData;
         for (int i = 0; i < height; ++i) {
-            std::copy_n(pixels[i], width, (Rgba*)curDataHead);
+            std::copy_n(pixels[i], width, reinterpret_cast<Rgba*>(curDataHead));
             for (int j = 0; j < width; ++j) {
                 Rgba &pix = curDataHead[j];
                 pix.r = pix.r >= 0.0f ? pix.r : (half)0.0f;
@@ -89,7 +89,9 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
             curDataHead += width;
         }
 
-        ret = context->createLinearImage2D((uint8_t*)linearImageData, width, height, "RGBA16Fx4", spectrumType.c_str(), colorSpace.c_str());
+        ret = context->createLinearImage2D(
+            reinterpret_cast<uint8_t*>(linearImageData), width, height, "RGBA16Fx4",
+            spectrumType.c_str(), colorSpace.c_str());
 
         delete[] linearImageData;
     }
@@ -161,7 +163,9 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
         bool needsDegamma;
         translate(format, &vlrFormat, &needsDegamma);
 
-        ret = context->createBlockCompressedImage2D(data, sizes, mipCount, width, height, vlrFormat, spectrumType.c_str(), colorSpace.c_str());
+        ret = context->createBlockCompressedImage2D(
+            data, sizes, mipCount, width, height, vlrFormat,
+            spectrumType.c_str(), colorSpace.c_str());
         Assert(ret, "failed to load a block compressed texture.");
 
         dds::free(data, mipCount, sizes);

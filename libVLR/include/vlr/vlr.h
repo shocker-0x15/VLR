@@ -223,6 +223,8 @@ extern "C" {
 
 
 
+    // Image2D
+    
     VLR_API VLRResult vlrImage2DGetWidth(
         VLRImage2DConst image,
         uint32_t* width);
@@ -259,6 +261,8 @@ extern "C" {
 
 
 
+    // ShaderNode
+    
     VLR_API VLRResult vlrShaderNodeCreate(
         VLRContext context,
         const char* typeName,
@@ -274,6 +278,8 @@ extern "C" {
 
 
 
+    // SurfaceMaterial
+    
     VLR_API VLRResult vlrSurfaceMaterialCreate(
         VLRContext context,
         const char* typeName,
@@ -284,6 +290,8 @@ extern "C" {
 
 
 
+    // Transform
+    
     VLR_API VLRResult vlrStaticTransformCreate(
         VLRContext context,
         const float mat[16],
@@ -297,6 +305,8 @@ extern "C" {
 
 
 
+    // Node
+    
     VLR_API VLRResult vlrNodeSetName(
         VLRNode node,
         const char* name);
@@ -352,6 +362,8 @@ extern "C" {
 
 
 
+    // Scene
+    
     VLR_API VLRResult vlrSceneCreate(
         VLRContext context,
         VLRTransformConst transform,
@@ -387,6 +399,8 @@ extern "C" {
 
 
 
+    // Camera
+    
     VLR_API VLRResult vlrCameraCreate(
         VLRContext context,
         const char* typeName,

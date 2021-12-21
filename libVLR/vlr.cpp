@@ -14,14 +14,14 @@ VLR_PROCESS_CLASS(Context);
 VLR_PROCESS_CLASS_LIST();
 #undef VLR_PROCESS_CLASS
 
-#include <VLR.h>
+#include <vlr.h>
 
 
 
 #define VLR_RETURN_INVALID_INSTANCE(var, type) \
     if (var == nullptr) \
         return VLRResult_InvalidArgument; \
-    if (!var->isMemberOf<type>()) \
+    if (!var->belongsTo<type>()) \
         return VLRResult_InvalidInstance
 
 #define VLR_RETURN_INTERNAL_ERROR() \
@@ -35,7 +35,7 @@ template <typename T>
 inline bool nonNullAndCheckType(const vlr::TypeAwareClass* obj) {
     if (obj == nullptr)
         return false;
-    if (!obj->isMemberOf<T>())
+    if (!obj->belongsTo<T>())
         return false;
     return true;
 }
@@ -173,7 +173,7 @@ VLR_API VLRResult vlrContextRender(
     CUstream stream, VLRCameraConst camera, bool denoise,
     uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
-        if (!camera->isMemberOf<vlr::Camera>() || numAccumFrames == nullptr)
+        if (!camera->belongsTo<vlr::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
 
         context->render(stream, camera, denoise, shrinkCoeff, firstFrame, numAccumFrames);
@@ -188,7 +188,7 @@ VLR_API VLRResult vlrContextDebugRender(
     CUstream stream, VLRCameraConst camera, VLRDebugRenderingMode renderMode,
     uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames) {
     try {
-        if (!camera->isMemberOf<vlr::Camera>() || numAccumFrames == nullptr)
+        if (!camera->belongsTo<vlr::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
 
         context->debugRender(stream, camera, renderMode, shrinkCoeff, firstFrame, numAccumFrames);
@@ -625,7 +625,7 @@ VLR_API VLRResult vlrQueryableSetImage2D(
     try {
         VLR_RETURN_INVALID_INSTANCE(queryable, vlr::Queryable);
         if (image != nullptr)
-            if (!image->isMemberOf<vlr::Image2D>())
+            if (!image->belongsTo<vlr::Image2D>())
                 return VLRResult_InvalidArgument;
 
         if (!queryable->set(paramName, image))
@@ -657,7 +657,7 @@ VLR_API VLRResult vlrQueryableSetSurfaceMaterial(
     try {
         VLR_RETURN_INVALID_INSTANCE(queryable, vlr::Queryable);
         if (value != nullptr)
-            if (!value->isMemberOf<vlr::Queryable>())
+            if (!value->belongsTo<vlr::Queryable>())
                 return VLRResult_InvalidArgument;
 
         if (!queryable->set(paramName, value))
@@ -1190,9 +1190,9 @@ VLR_API VLRResult vlrInternalNodeAddChild(
         if (child == nullptr)
             return VLRResult_InvalidArgument;
 
-        if (child->isMemberOf<vlr::InternalNode>())
+        if (child->belongsTo<vlr::InternalNode>())
             node->addChild((vlr::InternalNode*)child);
-        else if (child->isMemberOf<vlr::SurfaceNode>())
+        else if (child->belongsTo<vlr::SurfaceNode>())
             node->addChild((vlr::SurfaceNode*)child);
         else
             return VLRResult_InvalidArgument;
@@ -1210,9 +1210,9 @@ VLR_API VLRResult vlrInternalNodeRemoveChild(
         if (child == nullptr)
             return VLRResult_InvalidArgument;
 
-        if (child->isMemberOf<vlr::InternalNode>())
+        if (child->belongsTo<vlr::InternalNode>())
             node->removeChild((vlr::InternalNode*)child);
-        else if (child->isMemberOf<vlr::SurfaceNode>())
+        else if (child->belongsTo<vlr::SurfaceNode>())
             node->removeChild((vlr::SurfaceNode*)child);
         else
             return VLRResult_InvalidArgument;
@@ -1321,9 +1321,9 @@ VLR_API VLRResult vlrSceneAddChild(
         if (child == nullptr)
             return VLRResult_InvalidArgument;
 
-        if (child->isMemberOf<vlr::InternalNode>())
+        if (child->belongsTo<vlr::InternalNode>())
             scene->addChild((vlr::InternalNode*)child);
-        else if (child->isMemberOf<vlr::SurfaceNode>())
+        else if (child->belongsTo<vlr::SurfaceNode>())
             scene->addChild((vlr::SurfaceNode*)child);
         else
             return VLRResult_InvalidArgument;
@@ -1341,9 +1341,9 @@ VLR_API VLRResult vlrSceneRemoveChild(
         if (child == nullptr)
             return VLRResult_InvalidArgument;
 
-        if (child->isMemberOf<vlr::InternalNode>())
+        if (child->belongsTo<vlr::InternalNode>())
             scene->removeChild((vlr::InternalNode*)child);
-        else if (child->isMemberOf<vlr::SurfaceNode>())
+        else if (child->belongsTo<vlr::SurfaceNode>())
             scene->removeChild((vlr::SurfaceNode*)child);
         else
             return VLRResult_InvalidArgument;

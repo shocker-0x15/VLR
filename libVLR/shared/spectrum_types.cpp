@@ -368,13 +368,13 @@ namespace vlr {
 
             const uint32_t kTableResolution = 64;
             int32_t resolution = 0;
-            ifs.read((char*)&resolution, 4);
+            ifs.read(reinterpret_cast<char*>(&resolution), 4);
             VLRAssert(resolution == kTableResolution, "Table resolution must be %u.", kTableResolution);
 
-            ifs.read((char*)maxBrightnesses, sizeof(float) * kTableResolution);
+            ifs.read(reinterpret_cast<char*>(maxBrightnesses), sizeof(float) * kTableResolution);
 
             const uint32_t tableSize = pow3(kTableResolution);
-            ifs.read((char*)coefficients, sizeof(PolynomialCoefficients) * 3 * tableSize);
+            ifs.read(reinterpret_cast<char*>(coefficients), sizeof(PolynomialCoefficients) * 3 * tableSize);
         };
 
         readUpsamplingTable("sRGB_D65.coeff", coefficients_sRGB_D65);

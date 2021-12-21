@@ -196,7 +196,7 @@ namespace vlr {
         }
         inline bool set(const char* paramName, const vlr::Quaternion& value) const {
             VLRResult err = errorCheck(vlrQueryableSetQuaternion(
-                getRaw<VLRQueryable>(), paramName, (VLRQuaternion*)&value));
+                getRaw<VLRQueryable>(), paramName, reinterpret_cast<const VLRQuaternion*>(&value)));
             return err == VLRResult_NoError;
         }
         inline bool set(const char* paramName, float value) const {
@@ -309,7 +309,7 @@ namespace vlr {
         ShaderNodeHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrShaderNodeCreate(
                 getRawContext(m_context), typeName,
-                (VLRShaderNode*)&m_raw));
+                reinterpret_cast<VLRShaderNode*>(&m_raw)));
         }
 
         ShaderNodePlug getPlug(VLRShaderNodePlugType plugType, uint32_t option) {
@@ -326,7 +326,7 @@ namespace vlr {
         SurfaceMaterialHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrSurfaceMaterialCreate(
                 getRawContext(m_context), typeName,
-                (VLRSurfaceMaterial*)&m_raw));
+                reinterpret_cast<VLRSurfaceMaterial*>(&m_raw)));
         }
     };
 
@@ -415,14 +415,14 @@ namespace vlr {
         StaticTransformHolder(const ContextConstRef &context, const float mat[16]) : TransformHolder(context) {
             errorCheck(vlrStaticTransformCreate(
                 getRawContext(m_context), mat,
-                (VLRStaticTransform*)&m_raw));
+                reinterpret_cast<VLRStaticTransform*>(&m_raw)));
         }
         StaticTransformHolder(const ContextConstRef &context, const vlr::Matrix4x4 &mat) : TransformHolder(context) {
             float matArray[16];
             mat.getArray(matArray);
             errorCheck(vlrStaticTransformCreate(
                 getRawContext(m_context), matArray,
-                (VLRStaticTransform*)&m_raw));
+                reinterpret_cast<VLRStaticTransform*>(&m_raw)));
         }
         ~StaticTransformHolder() {
             errorCheck(vlrStaticTransformDestroy(getRawContext(m_context), getRaw<VLRStaticTransform>()));
@@ -475,7 +475,7 @@ namespace vlr {
             SurfaceNodeHolder(context) {
             errorCheck(vlrTriangleMeshSurfaceNodeCreate(
                 getRawContext(m_context), name,
-                (VLRTriangleMeshSurfaceNode*)&m_raw));
+                reinterpret_cast<VLRTriangleMeshSurfaceNode*>(&m_raw)));
         }
         ~TriangleMeshSurfaceNodeHolder() {
             errorCheck(vlrTriangleMeshSurfaceNodeDestroy(
@@ -484,7 +484,7 @@ namespace vlr {
 
         void setVertices(vlr::Vertex* vertices, uint32_t numVertices) {
             errorCheck(vlrTriangleMeshSurfaceNodeSetVertices(
-                getRaw<VLRTriangleMeshSurfaceNode>(), (VLRVertex*)vertices, numVertices));
+                getRaw<VLRTriangleMeshSurfaceNode>(), reinterpret_cast<VLRVertex*>(vertices), numVertices));
         }
         void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
                               const SurfaceMaterialRef &material,
@@ -511,7 +511,7 @@ namespace vlr {
             NodeHolder(context), m_transform(transform) {
             errorCheck(vlrInternalNodeCreate(
                 getRawContext(m_context), name, m_transform->getRaw<VLRTransform>(),
-                (VLRInternalNode*)&m_raw));
+                reinterpret_cast<VLRInternalNode*>(&m_raw)));
         }
         ~InternalNodeHolder() {
             errorCheck(vlrInternalNodeDestroy(getRawContext(m_context), getRaw<VLRInternalNode>()));
@@ -585,7 +585,7 @@ namespace vlr {
             ObjectHolder(context), m_transform(transform) {
             errorCheck(vlrSceneCreate(
                 getRawContext(m_context), m_transform->getRaw<VLRTransform>(),
-                (VLRScene*)&m_raw));
+                reinterpret_cast<VLRScene*>(&m_raw)));
         }
         ~SceneHolder() {
             errorCheck(vlrSceneDestroy(getRawContext(m_context), getRaw<VLRScene>()));
@@ -663,7 +663,7 @@ namespace vlr {
         CameraHolder(const ContextConstRef &context, const char* typeName) : QueryableHolder(context) {
             errorCheck(vlrCameraCreate(
                 getRawContext(m_context), typeName,
-                (VLRCamera*)&m_raw));
+                reinterpret_cast<VLRCamera*>(&m_raw)));
         }
     };
 

@@ -1991,7 +1991,7 @@ namespace vlr {
     const RegularConstantContinuousDistribution2D &EnvironmentEmitterSurfaceMaterial::getImportanceMap() {
         if (!m_importanceMap.isInitialized()) {
             if (m_nodeEmittance.node && m_nodeEmittance.node->is<EnvironmentTextureShaderNode>()) {
-                auto node = (EnvironmentTextureShaderNode*)m_nodeEmittance.node;
+                auto node = reinterpret_cast<const EnvironmentTextureShaderNode*>(m_nodeEmittance.node);
                 node->createImportanceMap(&m_importanceMap);
             }
             else {

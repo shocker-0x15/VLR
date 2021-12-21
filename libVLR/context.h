@@ -317,7 +317,7 @@ namespace vlr {
         }
 
         template <class T>
-        constexpr bool isMemberOf() const {
+        constexpr bool belongsTo() const {
             const ClassIdentifier* curClass = &getClass();
             while (curClass) {
                 if (curClass == &T::ClassID)
@@ -329,7 +329,7 @@ namespace vlr {
     };
 
 #define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
-    static const char* TypeName; \
+    static const char* const TypeName; \
     virtual const char* getType() const { return TypeName; } \
     static const ClassIdentifier ClassID; \
     virtual const ClassIdentifier &getClass() const override { return ClassID; }

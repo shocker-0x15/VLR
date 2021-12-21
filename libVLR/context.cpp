@@ -27,10 +27,10 @@ namespace vlr {
     }
 
 #define VLR_DEFINE_CLASS_ID(BaseType, Type) \
-    const char* Type::TypeName = #Type; \
+    const char* const Type::TypeName = #Type; \
     const ClassIdentifier Type::ClassID = ClassIdentifier(&BaseType::ClassID)
 
-    const ClassIdentifier TypeAwareClass::ClassID = ClassIdentifier((ClassIdentifier*)nullptr);
+    const ClassIdentifier TypeAwareClass::ClassID = ClassIdentifier(nullptr);
 
     VLR_DEFINE_CLASS_ID(TypeAwareClass, Object);
 

@@ -495,9 +495,14 @@ namespace vlr {
             uint32_t data[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
 
             template <typename T>
-            T* getData() const {
+            T* getData() {
                 static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
-                return (T*)data;
+                return reinterpret_cast<T*>(data);
+            }
+            template <typename T>
+            const T* getData() const {
+                static_assert(sizeof(T) <= sizeof(data), "Too big node data.");
+                return reinterpret_cast<const T*>(data);
             }
         };
 

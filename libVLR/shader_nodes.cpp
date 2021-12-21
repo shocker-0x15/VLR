@@ -1993,7 +1993,7 @@ namespace vlr {
         Image2D* shrinkedImage = m_image->createShrinkedImage2D(mapWidth, mapHeight);
         Image2D* shrinkedYImage = shrinkedImage->createLuminanceImage2D();
         delete shrinkedImage;
-        float* linearData = (float*)shrinkedYImage->createLinearImageData();
+        float* linearData = reinterpret_cast<float*>(shrinkedYImage->createLinearImageData());
         for (int y = 0; y < mapHeight; ++y) {
             float theta = M_PI * (y + 0.5f) / mapHeight;
             for (int x = 0; x < mapWidth; ++x) {
