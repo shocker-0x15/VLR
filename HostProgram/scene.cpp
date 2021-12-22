@@ -404,8 +404,8 @@ void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
     //SurfaceMaterialRef matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
     //scene->setEnvironment(matEnv);
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1024;
+    shot->renderTargetSizeY = 1024;
 
     shot->brightnessCoeff = 1.0f;
     shot->environmentRotation = 0.0f;
@@ -578,8 +578,8 @@ void createMaterialTestScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 
@@ -1110,8 +1110,8 @@ void createColorInterpolationTestScene(const vlr::ContextRef &context, Shot* sho
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 
@@ -1403,8 +1403,8 @@ void createGalleryScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
     shot->environmentRotation = 0.0f;
@@ -1617,8 +1617,8 @@ void createRungholtScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 
@@ -1686,8 +1686,8 @@ void createPowerplantScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 
@@ -1859,8 +1859,8 @@ void createAmazonBistroExteriorScene(const vlr::ContextRef &context, Shot* shot)
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
     
     shot->brightnessCoeff = 1.0f;
 
@@ -2066,8 +2066,8 @@ void createAmazonBistroInteriorScene(const vlr::ContextRef &context, Shot* shot)
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 
@@ -2206,8 +2206,8 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
 

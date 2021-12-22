@@ -677,7 +677,8 @@ namespace vlr {
                 for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
                     children.insert(shGeomGroup->childAt(i));
             }
-            parent->geometryRemoveEvent(shtr, children);
+            if (children.size() > 0)
+                parent->geometryRemoveEvent(shtr, children);
         }
 
         std::set<SHTransform*> delta;
@@ -835,9 +836,13 @@ namespace vlr {
             SHTransform* shtr = *it;
 
             Instance &inst = m_instances.at(shtr);
+            uint32_t instIdx = m_ias.findChildIndex(inst.optixInst);
+            if (instIdx != 0xFFFFFFFF)
+                m_ias.removeChildAt(instIdx);
             inst.optixInst.destroy();
             m_instBuffer.release(inst.instIndex);
             m_instances.erase(shtr);
+            m_dirtyInstances.erase(shtr);
         }
 
         for (auto it = concatDelta.cbegin(); it != concatDelta.cend(); ++it)
@@ -866,10 +871,16 @@ namespace vlr {
         // JP: 追加されたジオメトリインスタンスをOptiX上に生成する。
         // EN: Create the added geometry instances on OptiX.
         for (const SHGeometryInstance* shGeomInst : childDelta) {
+            if (m_geometryInstances.count(shGeomInst) > 0) {
+                GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
+                ++geomInst.referenceCount;
+                continue;
+            }
             GeometryInstance &geomInst = m_geometryInstances[shGeomInst];
             geomInst = {};
             geomInst.geomInstIndex = m_geomInstBuffer.allocate();
             geomInst.optixGeomInst = m_optixScene.createGeometryInstance();
+            geomInst.referenceCount = 1;
             m_dirtyGeometryInstances.insert(shGeomInst);
         }
 
@@ -889,7 +900,8 @@ namespace vlr {
         GeometryAS &gas = m_geometryASes.at(shGeomGroup);
         for (const SHGeometryInstance* shGeomInst : childDelta) {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
-            gas.optixGas.addChild(geomInst.optixGeomInst);
+            if (gas.optixGas.findChildIndex(geomInst.optixGeomInst) == 0xFFFFFFFF)
+                gas.optixGas.addChild(geomInst.optixGeomInst);
         }
         m_dirtyGeometryASes.insert(shGeomGroup);
 
@@ -898,7 +910,7 @@ namespace vlr {
         const SHTransform* shtr = m_shTransforms.at(childTransform);
         const Instance &inst = m_instances.at(shtr);
         inst.optixInst.setChild(m_geometryASes.at(shGeomGroup).optixGas);
-        if (isNewGeomGroup)
+        if (m_ias.findChildIndex(inst.optixInst) == 0xFFFFFFFF)
             m_ias.addChild(inst.optixInst);
         m_dirtyInstances.insert(shtr);
 
@@ -907,43 +919,47 @@ namespace vlr {
 
     void Scene::geometryRemoveEvent(const SHTransform* childTransform,
                                     const std::set<const SHGeometryInstance*> &childDelta) {
-        // JP: 削除されるジオメトリインスタンスをOptiX上からも削除する。
-        // EN: Remove the geometry instances being removed also from OptiX.
+        const SHGeometryGroup* shGeomGroup = nullptr;
+        childTransform->hasGeometryDescendant(&shGeomGroup);
+        GeometryAS &gas = m_geometryASes.at(shGeomGroup);
+
+        // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASからジオメトリインスタンスを削除する。
+        //     削除されるジオメトリインスタンスをOptiX上からも削除する。
+        // EN: Remove geometry instances from the GAS corresponding to a geometry group
+        //     contained in the transform path.
+        //     Remove the geometry instances being removed also from OptiX.
+        uint32_t numRemovedGeomInsts = 0;
         for (const SHGeometryInstance* shGeomInst : childDelta) {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
+            if (--geomInst.referenceCount > 0)
+                continue;
+            gas.optixGas.removeChildAt(gas.optixGas.findChildIndex(geomInst.optixGeomInst));
+            ++numRemovedGeomInsts;
+
             geomInst.optixGeomInst.destroy();
             m_geomInstBuffer.release(geomInst.geomInstIndex);
             m_geometryInstances.erase(shGeomInst);
+            m_dirtyGeometryInstances.erase(shGeomInst);
         }
 
-        // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASからジオメトリインスタンスを削除する。
-        // EN: Remove geometry instances from the GAS corresponding to a geometry group
-        //     contained in the transform path.
-        const SHGeometryGroup* shGeomGroup = nullptr;
-        childTransform->hasGeometryDescendant(&shGeomGroup);
-        bool isEmptyGeomGroup =
-            (shGeomGroup->getNumChildren() - static_cast<uint32_t>(childDelta.size())) == 0;
-        GeometryAS &gas = m_geometryASes.at(shGeomGroup);
+        // JP: 空になったGASは削除する。
+        // EN: Remove the GAS if empty.
+        bool isEmptyGeomGroup = gas.optixGas.getNumChildren() == 0;
         if (isEmptyGeomGroup) {
             gas.optixGasMem.finalize();
             gas.optixGas.destroy();
             m_geometryASes.erase(shGeomGroup);
         }
         else {
-            for (const SHGeometryInstance* shGeomInst : childDelta) {
-                GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
-                gas.optixGas.removeChildAt(gas.optixGas.findChildIndex(geomInst.optixGeomInst));
-            }
+            if (numRemovedGeomInsts > 0)
+                m_dirtyGeometryASes.insert(shGeomGroup);
         }
-        m_dirtyGeometryASes.insert(shGeomGroup);
 
         // JP: トランスフォームパスに対応するインスタンスをIASから削除する。
         // EN: Remove the instance corresponding to the transform path from the IAS.
         const SHTransform* shtr = m_shTransforms.at(childTransform);
-        const Instance &inst = m_instances.at(shtr);
-        if (isEmptyGeomGroup)
-            m_ias.removeChildAt(m_ias.findChildIndex(inst.optixInst));
-        m_dirtyInstances.insert(shtr);
+        if (!isEmptyGeomGroup && numRemovedGeomInsts > 0)
+            m_dirtyInstances.insert(shtr);
 
         m_iasIsDirty = true;
     }

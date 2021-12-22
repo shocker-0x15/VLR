@@ -1259,8 +1259,8 @@ namespace optixu {
         child.geomInst = _geomInst;
         child.preTransform = preTransform;
         auto idx = std::find(m->children.cbegin(), m->children.cend(), child);
-        m->throwRuntimeError(idx != m->children.cend(), "Geometry instance %s with transform %p has not been added.",
-                             _geomInst->getName().c_str(), preTransform);
+        if (idx == m->children.cend())
+            return 0xFFFFFFFF;
 
         return static_cast<uint32_t>(std::distance(m->children.cbegin(), idx));
     }
@@ -2066,8 +2066,8 @@ namespace optixu {
         m->throwRuntimeError(_inst->getScene() == m->scene, "Scene mismatch for the given instance %s.",
                              _inst->getName().c_str());
         auto idx = std::find(m->children.cbegin(), m->children.cend(), _inst);
-        m->throwRuntimeError(idx != m->children.cend(), "Instance %s has not been added.",
-                             _inst->getName().c_str());
+        if (idx == m->children.cend())
+            return 0xFFFFFFFF;
 
         return static_cast<uint32_t>(std::distance(m->children.cbegin(), idx));
     }

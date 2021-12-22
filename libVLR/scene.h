@@ -404,6 +404,7 @@ namespace vlr {
             optixu::GeometryInstance optixGeomInst;
             uint32_t geomInstIndex;
             shared::GeometryInstance data;
+            uint32_t referenceCount;
         };
         struct GeometryAS {
             optixu::GeometryAccelerationStructure optixGas;
