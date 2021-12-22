@@ -98,10 +98,14 @@ namespace vlr {
         StaticTransform resolveTransform() const;
 
     public:
+        SHTransform(const std::string &name, const StaticTransform &transform, const SHGeometryGroup* geomGroup) :
+            m_name(name),
+            m_transform(transform), m_childGeomGroup(geomGroup),
+            m_childIsTransform(false) {}
         SHTransform(const std::string &name, const StaticTransform &transform, const SHTransform* childTransform) :
             m_name(name),
             m_transform(transform), m_childTransform(childTransform),
-            m_childIsTransform(childTransform != nullptr) {}
+            m_childIsTransform(true) {}
         ~SHTransform() {}
 
         const std::string &getName() const { return m_name; }
@@ -115,7 +119,7 @@ namespace vlr {
         StaticTransform getStaticTransform() const;
 
         void setChild(const SHGeometryGroup* childGeomGroup);
-        bool hasGeometryDescendant(const SHGeometryGroup** descendant = nullptr) const;
+        const SHGeometryGroup* getGeometryDescendant() const;
     };
 
     // END: Shallow Hierarchy

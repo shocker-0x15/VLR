@@ -64,23 +64,20 @@ namespace vlr {
         m_childGeomGroup = childGeomGroup;
     }
 
-    bool SHTransform::hasGeometryDescendant(const SHGeometryGroup** descendant) const {
-        if (descendant)
-            *descendant = nullptr;
-
+    const SHGeometryGroup* SHTransform::getGeometryDescendant() const {
         const SHTransform* nextSHTr = this;
+        const SHGeometryGroup* geomGroup = nullptr;
         while (nextSHTr) {
-            if (!nextSHTr->m_childIsTransform && nextSHTr->m_childGeomGroup != nullptr) {
-                if (descendant)
-                    *descendant = nextSHTr->m_childGeomGroup;
-                return true;
+            if (nextSHTr->m_childIsTransform) {
+                nextSHTr = nextSHTr->m_childTransform;
             }
             else {
-                nextSHTr = nextSHTr->m_childIsTransform ? nextSHTr->m_childTransform : nullptr;
+                geomGroup = nextSHTr->m_childGeomGroup;
+                nextSHTr = nullptr;
             }
         }
 
-        return false;
+        return geomGroup;
     }
 
     // END: Shallow Hierarchy
@@ -367,24 +364,23 @@ namespace vlr {
         Node(context, name), m_localToWorld(localToWorld) {
         // JP: 自分自身のTransformを持ったSHTransformを生成。
         // EN: Create a SHTransform having Transform of this node.
+        m_shGeomGroup = new SHGeometryGroup();
         if (m_localToWorld->isStatic()) {
             auto tr = dynamic_cast<const StaticTransform*>(m_localToWorld);
-            m_shTransforms[nullptr] = new SHTransform(name, *tr, nullptr);
+            SHTransform* shtr = new SHTransform(name, *tr, m_shGeomGroup);
+            m_shTransforms[nullptr] = shtr;
         }
         else {
             VLRAssert_NotImplemented();
         }
-
-        m_shGeomGroup = new SHGeometryGroup();
-        m_shTransforms.at(nullptr)->setChild(m_shGeomGroup);
     }
 
     ParentNode::~ParentNode() {
-        delete m_shGeomGroup;
-
         for (auto it = m_shTransforms.crbegin(); it != m_shTransforms.crend(); ++it)
             delete it->second;
         m_shTransforms.clear();
+
+        delete m_shGeomGroup;
     }
 
     void ParentNode::setName(const std::string &name) {
@@ -653,11 +649,9 @@ namespace vlr {
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             SHTransform* shtr = it->second;
             std::set<const SHGeometryInstance*> children;
-            const SHGeometryGroup* shGeomGroup;
-            if (shtr->hasGeometryDescendant(&shGeomGroup)) {
-                for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
-                    children.insert(shGeomGroup->childAt(i));
-            }
+            const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
+            for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
+                children.insert(shGeomGroup->childAt(i));
             if (children.size() > 0)
                 parent->geometryAddEvent(shtr, children);
         }
@@ -672,11 +666,9 @@ namespace vlr {
         for (auto it = m_shTransforms.cbegin(); it != m_shTransforms.cend(); ++it) {
             SHTransform* shtr = it->second;
             std::set<const SHGeometryInstance*> children;
-            const SHGeometryGroup* shGeomGroup;
-            if (shtr->hasGeometryDescendant(&shGeomGroup)) {
-                for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
-                    children.insert(shGeomGroup->childAt(i));
-            }
+            const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
+            for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
+                children.insert(shGeomGroup->childAt(i));
             if (children.size() > 0)
                 parent->geometryRemoveEvent(shtr, children);
         }
@@ -887,8 +879,7 @@ namespace vlr {
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASにジオメトリインスタンスを追加する。
         // EN: Add geometry instances to the GAS corresponding to a geometry group
         //     contained in the transform path.
-        const SHGeometryGroup* shGeomGroup;
-        childTransform->hasGeometryDescendant(&shGeomGroup);
+        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
         bool isNewGeomGroup = m_geometryASes.count(shGeomGroup) == 0;
         if (isNewGeomGroup) {
             GeometryAS &gas = m_geometryASes[shGeomGroup];
@@ -919,8 +910,7 @@ namespace vlr {
 
     void Scene::geometryRemoveEvent(const SHTransform* childTransform,
                                     const std::set<const SHGeometryInstance*> &childDelta) {
-        const SHGeometryGroup* shGeomGroup = nullptr;
-        childTransform->hasGeometryDescendant(&shGeomGroup);
+        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
         GeometryAS &gas = m_geometryASes.at(shGeomGroup);
 
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASからジオメトリインスタンスを削除する。
@@ -973,8 +963,7 @@ namespace vlr {
 
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASをdirtyとしてマークする。
         // EN: Mark the GAS corresponding to a geometry group contained in the transform path as dirty.
-        const SHGeometryGroup* shGeomGroup;
-        childTransform->hasGeometryDescendant(&shGeomGroup);
+        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
         m_dirtyGeometryASes.insert(shGeomGroup);
 
         // JP: トランスフォームパスに対応するインスタンスをdirtyとしてマークする。
@@ -1071,10 +1060,8 @@ namespace vlr {
             // JP: インスタンスに含まれるジオメトリインスタンスの重要度分布をセットアップする。
             // EN: Setup importance distribution of geometry instances contained in the instance.
             float sumImportances = 0.0f;
-            const SHGeometryGroup* shGeomGroup;
-            uint32_t numGeomInsts = 0;
-            if (shtr->hasGeometryDescendant(&shGeomGroup))
-                numGeomInsts = shGeomGroup->getNumChildren();
+            const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
+            uint32_t numGeomInsts = shGeomGroup->getNumChildren();
             if (numGeomInsts > 0) {
                 std::vector<uint32_t> geomInstIndices;
                 std::vector<float> geomInstImportanceValues;
