@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include <VLR/VLR.h>
+#include <vlr/vlr.h>
 
 // Just for compile test for C language.
 

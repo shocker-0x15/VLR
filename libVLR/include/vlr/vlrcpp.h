@@ -8,7 +8,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include "VLR.h"
+#include "vlr.h"
 #include "basic_types.h"
 
 namespace vlr {
@@ -680,8 +680,8 @@ namespace vlr {
             return cuContext;
         }
 
-        void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glBufferID) const {
-            errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glBufferID));
+        void bindOutputBuffer(uint32_t width, uint32_t height, uint32_t glTexID) const {
+            errorCheck(vlrContextBindOutputBuffer(m_rawContext, width, height, glTexID));
         }
 
         void getOutputBufferSize(uint32_t* width, uint32_t* height) const {

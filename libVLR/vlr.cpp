@@ -14,6 +14,8 @@ VLR_PROCESS_CLASS(Context);
 VLR_PROCESS_CLASS_LIST();
 #undef VLR_PROCESS_CLASS
 
+#define VLR_TYPEDEF_DONE
+
 #include <vlr.h>
 
 
@@ -102,9 +104,9 @@ VLR_API VLRResult vlrContextGetCUcontext(
 
 VLR_API VLRResult vlrContextBindOutputBuffer(
     VLRContext context,
-    uint32_t width, uint32_t height, uint32_t bufferID) {
+    uint32_t width, uint32_t height, uint32_t glTexID) {
     try {
-        context->bindOutputBuffer(width, height, bufferID);
+        context->bindOutputBuffer(width, height, glTexID);
 
         return VLRResult_NoError;
     }
