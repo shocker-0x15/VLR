@@ -10,6 +10,7 @@
 
 #include "scene.h"
 
+#include "../libVLR/utils/cuda_util.h"
 #include "StopWatch.h"
 
 
@@ -198,6 +199,7 @@ class HostProgram {
 
     vlr::ContextRef m_context;
     CUstream m_stream[2];
+    cudau::Timer m_renderTimer[2];
 
     GLFWwindow* m_window;
     float m_UIScaling;
@@ -402,7 +404,11 @@ class HostProgram {
             m_camera = m_equirectangularCamera;
         }
 
-        ImGui::Text("%u [spp]", m_numAccumFrames);
+        cudau::Timer &renderTimer = m_renderTimer[m_frameIndex % 2];
+        float renderTime = NAN;
+        if (m_frameIndex >= 2)
+            renderTime = renderTimer.report();
+        ImGui::Text("%u [spp], %.2f [ms/sample]", m_numAccumFrames, renderTime);
 
         ImGui::End();
     }
@@ -760,8 +766,12 @@ public:
 
     void initialize(const vlr::ContextRef& context, GLFWmonitor* monitor, uint32_t initWindowSizeX, uint32_t initWindowSizeY) {
         m_context = context;
+        CUcontext cuContext = m_context->getCUcontext();
         CUDADRV_CHECK(cuStreamCreate(&m_stream[0], 0));
         CUDADRV_CHECK(cuStreamCreate(&m_stream[1], 0));
+
+        m_renderTimer[0].initialize(cuContext);
+        m_renderTimer[1].initialize(cuContext);
 
         m_frameIndex = 0;
         m_resizeRequested = false;
@@ -916,6 +926,9 @@ public:
 
         glfwDestroyWindow(m_window);
 
+        m_renderTimer[1].finalize();
+        m_renderTimer[0].finalize();
+
         CUDADRV_CHECK(cuStreamDestroy(m_stream[1]));
         CUDADRV_CHECK(cuStreamDestroy(m_stream[0]));
     }
@@ -967,6 +980,7 @@ public:
 
         while (!glfwWindowShouldClose(m_window)) {
             CUstream curStream = m_stream[m_frameIndex % 2];
+            cudau::Timer &renderTimer = m_renderTimer[m_frameIndex % 2];
 
             CUDADRV_CHECK(cuStreamSynchronize(curStream));
 
@@ -1124,6 +1138,7 @@ public:
                     m_sceneChanged;
                 if (m_frameIndex == 0)
                     firstFrame = true;
+                renderTimer.start(curStream);
                 if (m_enableDebugRendering)
                     m_context->debugRender(
                         curStream, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame,
@@ -1132,6 +1147,7 @@ public:
                     m_context->render(
                         curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
                         &m_numAccumFrames);
+                renderTimer.stop(curStream);
 
                 m_operatedCameraOnPrevFrame = operatingCamera;
 
@@ -1291,7 +1307,6 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t deltaTime = 15 * 1000;
         uint32_t nextTimeToOutput = deltaTime;
         uint32_t finishTime = 123 * 1000 - 3000;
-        auto data = new uint32_t[renderTargetSizeX * renderTargetSizeY];
         while (true) {
             context->render(cuStream, shot.viewpoints[0], true,
                             1, numAccumFrames == 0 ? true : false, &numAccumFrames);
@@ -1312,7 +1327,6 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
                 nextTimeToOutput = std::min(nextTimeToOutput, finishTime);
             }
         }
-        delete[] data;
 
         swGlobal.stop();
 

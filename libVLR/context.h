@@ -191,6 +191,7 @@ namespace vlr {
 
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
+            bool useGLTexture;
             cudau::Array rngBuffer;
 
             cudau::Buffer asScratchMem;

@@ -604,12 +604,14 @@ namespace vlr {
                 m_cuContext, glTexID,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable);
             m_optix.outputBufferHolder.initialize(&m_optix.outputBuffer);
+            m_optix.useGLTexture = true;
         }
         else {
             m_optix.outputBuffer.initialize2D(
                 m_cuContext, cudau::ArrayElementType::Float32, 4,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable,
                 m_width, m_height, 1);
+            m_optix.useGLTexture = false;
         }
 
         m_optix.accumBuffer.initialize(m_cuContext, g_bufferType, m_width, m_height);
@@ -671,9 +673,6 @@ namespace vlr {
 
         m_optix.launchParams.accumAlbedoBuffer = m_optix.accumAlbedoBuffer.getDevicePointer();
         m_optix.launchParams.accumNormalBuffer = m_optix.accumNormalBuffer.getDevicePointer();
-
-
-
         m_optix.launchParams.imageStrideInPixels = m_width;
     }
 
@@ -688,7 +687,8 @@ namespace vlr {
 
     void Context::readOutputBuffer(float* data) {
         auto rgbaData = reinterpret_cast<RGBA32Fx4*>(data);
-        m_optix.outputBuffer.beginCUDAAccess(0, 0);
+        if (m_optix.useGLTexture)
+            m_optix.outputBuffer.beginCUDAAccess(0, 0);
         auto mappedData = m_optix.outputBuffer.map<RGBA32Fx4>(0, 0, cudau::BufferMapFlag::ReadOnly);
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
@@ -697,7 +697,8 @@ namespace vlr {
             }
         }
         m_optix.outputBuffer.unmap(0);
-        m_optix.outputBuffer.endCUDAAccess(0, 0);
+        if (m_optix.useGLTexture)
+            m_optix.outputBuffer.endCUDAAccess(0, 0);
     }
 
     void Context::setScene(Scene* scene) {
@@ -778,14 +779,10 @@ namespace vlr {
         }
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
-        uint32_t imageStrideInPixels = m_optix.launchParams.imageStrideInPixels;
         if (firstFrame) {
-            camera->setup(&m_optix.launchParams);
-
             m_optix.launchParams.imageSize = imageSize;
-
+            camera->setup(&m_optix.launchParams);
             m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
-
             m_numAccumFrames = 0;
         }
 
@@ -804,6 +801,7 @@ namespace vlr {
         CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
                                         sizeof(m_optix.launchParams), stream));
 
+        uint32_t imageStrideInPixels = m_optix.launchParams.imageStrideInPixels;
         if (denoise) {
             Quaternion camOri;
             camera->get("orientation", &camOri);
@@ -836,7 +834,14 @@ namespace vlr {
                     m_optix.denoiserTasks[i]);
         }
 
-        m_optix.outputBufferHolder.beginCUDAAccess(stream);
+        CUsurfObject renderTarget;
+        if (m_optix.useGLTexture) {
+            m_optix.outputBufferHolder.beginCUDAAccess(stream);
+            renderTarget = m_optix.outputBufferHolder.getNext();
+        }
+        else {
+            renderTarget = m_optix.outputBuffer.getSurfaceObject(0);
+        }
         m_convertToRGB(stream, m_convertToRGB.calcGridDim(imageSize.x, imageSize.y),
                        m_optix.accumBuffer.getBlockBuffer2D(),
                        m_optix.linearDenoisedColorBuffer.getDevicePointer(),
@@ -844,8 +849,9 @@ namespace vlr {
                        m_optix.linearNormalBuffer.getDevicePointer(),
                        denoise, debugRender, debugAttr,
                        imageSize, imageStrideInPixels, m_numAccumFrames,
-                       m_optix.outputBufferHolder.getNext());
-        m_optix.outputBufferHolder.endCUDAAccess(stream);
+                       renderTarget);
+        if (m_optix.useGLTexture)
+            m_optix.outputBufferHolder.endCUDAAccess(stream);
     }
 
     void Context::render(CUstream stream, const Camera* camera, bool denoise,

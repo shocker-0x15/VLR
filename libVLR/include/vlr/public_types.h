@@ -129,6 +129,7 @@ typedef struct VLRVertex VLRVertex;
     VLR_PROCESS_CLASS(Node); \
     VLR_PROCESS_CLASS(SurfaceNode); \
     VLR_PROCESS_CLASS(TriangleMeshSurfaceNode); \
+    VLR_PROCESS_CLASS(ParentNode); \
     VLR_PROCESS_CLASS(InternalNode); \
     VLR_PROCESS_CLASS(Scene); \
  \

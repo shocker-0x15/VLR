@@ -224,6 +224,7 @@ extern "C" {
 
 
     // Image2D
+    // LinearImage2D, BlockCompressedImage2D
     
     VLR_API VLRResult vlrImage2DGetWidth(
         VLRImage2DConst image,
@@ -241,6 +242,10 @@ extern "C" {
         VLRImage2DConst image,
         bool* hasAlpha);
 
+
+
+    // LinearImage2D
+    
     VLR_API VLRResult vlrLinearImage2DCreate(
         VLRContext context,
         uint8_t* linearData, uint32_t width, uint32_t height,
@@ -250,6 +255,10 @@ extern "C" {
         VLRContext context,
         VLRLinearImage2D image);
 
+
+
+    // BlockCompressedImage2D
+    
     VLR_API VLRResult vlrBlockCompressedImage2DCreate(
         VLRContext context,
         uint8_t** data, size_t* sizes, uint32_t mipCount, uint32_t width, uint32_t height,
@@ -306,6 +315,7 @@ extern "C" {
 
 
     // Node
+    // TriangleMeshSurfaceNode, ParentNode, Scene
     
     VLR_API VLRResult vlrNodeSetName(
         VLRNode node,
@@ -313,6 +323,10 @@ extern "C" {
     VLR_API VLRResult vlrNodeGetName(
         VLRNodeConst node,
         const char** name);
+
+
+
+    // TriangleMeshSurfaceNode
     
     VLR_API VLRResult vlrTriangleMeshSurfaceNodeCreate(
         VLRContext context,
@@ -330,6 +344,38 @@ extern "C" {
         VLRSurfaceMaterialConst material,
         VLRShaderNodePlug nodeNormal, VLRShaderNodePlug nodeTangent, VLRShaderNodePlug nodeAlpha);
 
+
+
+    // ParentNode
+    // InternalNode, Scene
+
+    VLR_API VLRResult vlrParentNodeSetTransform(
+        VLRParentNode node,
+        VLRTransformConst localToWorld);
+    VLR_API VLRResult vlrParentNodeGetTransform(
+        VLRParentNodeConst node,
+        VLRTransformConst* localToWorld);
+    VLR_API VLRResult vlrParentNodeAddChild(
+        VLRParentNode node,
+        VLRNode child);
+    VLR_API VLRResult vlrParentNodeRemoveChild(
+        VLRParentNode node,
+        VLRNode child);
+    VLR_API VLRResult vlrParentNodeGetNumChildren(
+        VLRParentNodeConst node,
+        uint32_t* numChildren);
+    VLR_API VLRResult vlrParentNodeGetChildren(
+        VLRParentNodeConst node,
+        VLRNode* children);
+    VLR_API VLRResult vlrParentNodeGetChildAt(
+        VLRParentNodeConst node,
+        uint32_t index,
+        VLRNode* child);
+
+
+
+    // Internal Node
+
     VLR_API VLRResult vlrInternalNodeCreate(
         VLRContext context,
         const char* name, VLRTransformConst transform,
@@ -337,28 +383,6 @@ extern "C" {
     VLR_API VLRResult vlrInternalNodeDestroy(
         VLRContext context,
         VLRInternalNode node);
-    VLR_API VLRResult vlrInternalNodeSetTransform(
-        VLRInternalNode node,
-        VLRTransformConst localToWorld);
-    VLR_API VLRResult vlrInternalNodeGetTransform(
-        VLRInternalNodeConst node,
-        VLRTransformConst* localToWorld);
-    VLR_API VLRResult vlrInternalNodeAddChild(
-        VLRInternalNode node,
-        VLRNode child);
-    VLR_API VLRResult vlrInternalNodeRemoveChild(
-        VLRInternalNode node,
-        VLRNode child);
-    VLR_API VLRResult vlrInternalNodeGetNumChildren(
-        VLRInternalNodeConst node,
-        uint32_t* numChildren);
-    VLR_API VLRResult vlrInternalNodeGetChildren(
-        VLRInternalNodeConst node,
-        VLRNode* children);
-    VLR_API VLRResult vlrInternalNodeGetChildAt(
-        VLRInternalNodeConst node,
-        uint32_t index,
-        VLRNode* child);
 
 
 
@@ -371,25 +395,6 @@ extern "C" {
     VLR_API VLRResult vlrSceneDestroy(
         VLRContext context,
         VLRScene scene);
-    VLR_API VLRResult vlrSceneSetTransform(
-        VLRScene scene,
-        VLRTransformConst localToWorld);
-    VLR_API VLRResult vlrSceneAddChild(
-        VLRScene scene,
-        VLRNode child);
-    VLR_API VLRResult vlrSceneRemoveChild(
-        VLRScene scene,
-        VLRNode child);
-    VLR_API VLRResult vlrSceneGetNumChildren(
-        VLRSceneConst scene,
-        uint32_t* numChildren);
-    VLR_API VLRResult vlrSceneGetChildren(
-        VLRSceneConst scene,
-        VLRNode* children);
-    VLR_API VLRResult vlrSceneGetChildAt(
-        VLRSceneConst scene,
-        uint32_t index,
-        VLRNode* child);
     VLR_API VLRResult vlrSceneSetEnvironment(
         VLRScene scene,
         VLRSurfaceMaterial material);

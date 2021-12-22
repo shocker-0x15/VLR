@@ -1317,8 +1317,8 @@ void createSubstanceManScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
-    shot->renderTargetSizeX = 1280;
-    shot->renderTargetSizeY = 720;
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
 
     shot->brightnessCoeff = 1.0f;
     

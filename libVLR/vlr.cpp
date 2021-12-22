@@ -1090,7 +1090,7 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeSetVertices(
             return VLRResult_InvalidArgument;
 
         std::vector<vlr::Vertex> vecVertices(numVertices);
-        std::copy_n((vlr::Vertex*)vertices, numVertices, vecVertices.data());
+        std::copy_n(reinterpret_cast<const vlr::Vertex*>(vertices), numVertices, vecVertices.data());
 
         surfaceNode->setVertices(std::move(vecVertices));
 
@@ -1116,6 +1116,124 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(
             vlr::ShaderNodePlug(nodeNormal),
             vlr::ShaderNodePlug(nodeTangent),
             vlr::ShaderNodePlug(nodeAlpha));
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrParentNodeSetTransform(
+    VLRParentNode node,
+    VLRTransformConst localToWorld) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (!nonNullAndCheckType<vlr::Transform>(localToWorld))
+            return VLRResult_InvalidArgument;
+
+        node->setTransform(localToWorld);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeGetTransform(
+    VLRParentNodeConst node,
+    VLRTransformConst* localToWorld) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (localToWorld == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *localToWorld = node->getTransform();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeAddChild(
+    VLRParentNode node,
+    VLRNode child) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (child == nullptr)
+            return VLRResult_InvalidArgument;
+
+        if (child->belongsTo<vlr::ParentNode>())
+            node->addChild(dynamic_cast<vlr::InternalNode*>(child));
+        else if (child->belongsTo<vlr::SurfaceNode>())
+            node->addChild(dynamic_cast<vlr::SurfaceNode*>(child));
+        else
+            return VLRResult_InvalidArgument;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeRemoveChild(
+    VLRParentNode node,
+    VLRNode child) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (child == nullptr)
+            return VLRResult_InvalidArgument;
+
+        if (child->belongsTo<vlr::ParentNode>())
+            node->removeChild(dynamic_cast<vlr::InternalNode*>(child));
+        else if (child->belongsTo<vlr::SurfaceNode>())
+            node->removeChild(dynamic_cast<vlr::SurfaceNode*>(child));
+        else
+            return VLRResult_InvalidArgument;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeGetNumChildren(
+    VLRParentNodeConst node,
+    uint32_t* numChildren) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (numChildren == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *numChildren = node->getNumChildren();
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeGetChildren(
+    VLRParentNodeConst node,
+    VLRNode* children) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (children == nullptr)
+            return VLRResult_InvalidArgument;
+
+        node->getChildren(children);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrParentNodeGetChildAt(
+    VLRParentNodeConst node,
+    uint32_t index,
+    VLRNode* child) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(node, vlr::ParentNode);
+        if (child == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *child = node->getChildAt(index);
 
         return VLRResult_NoError;
     }
@@ -1152,122 +1270,6 @@ VLR_API VLRResult vlrInternalNodeDestroy(
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrInternalNodeSetTransform(
-    VLRInternalNode node,
-    VLRTransformConst localToWorld) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (!nonNullAndCheckType<vlr::Transform>(localToWorld))
-            return VLRResult_InvalidArgument;
-
-        node->setTransform(localToWorld);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeGetTransform(
-    VLRInternalNodeConst node,
-    VLRTransformConst* localToWorld) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (localToWorld == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *localToWorld = node->getTransform();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeAddChild(
-    VLRInternalNode node,
-    VLRNode child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        if (child->belongsTo<vlr::InternalNode>())
-            node->addChild((vlr::InternalNode*)child);
-        else if (child->belongsTo<vlr::SurfaceNode>())
-            node->addChild((vlr::SurfaceNode*)child);
-        else
-            return VLRResult_InvalidArgument;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeRemoveChild(
-    VLRInternalNode node,
-    VLRNode child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        if (child->belongsTo<vlr::InternalNode>())
-            node->removeChild((vlr::InternalNode*)child);
-        else if (child->belongsTo<vlr::SurfaceNode>())
-            node->removeChild((vlr::SurfaceNode*)child);
-        else
-            return VLRResult_InvalidArgument;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeGetNumChildren(
-    VLRInternalNodeConst node,
-    uint32_t* numChildren) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (numChildren == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *numChildren = node->getNumChildren();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeGetChildren(
-    VLRInternalNodeConst node,
-    VLRNode* children) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (children == nullptr)
-            return VLRResult_InvalidArgument;
-
-        node->getChildren(children);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrInternalNodeGetChildAt(
-    VLRInternalNodeConst node,
-    uint32_t index,
-    VLRNode* child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(node, vlr::InternalNode);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *child = node->getChildAt(index);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
 
 
 VLR_API VLRResult vlrSceneCreate(
@@ -1298,107 +1300,6 @@ VLR_API VLRResult vlrSceneDestroy(
     VLR_RETURN_INTERNAL_ERROR();
 }
 
-VLR_API VLRResult vlrSceneSetTransform(
-    VLRScene scene,
-    VLRTransformConst localToWorld) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (!nonNullAndCheckType<vlr::Transform>(localToWorld))
-            return VLRResult_InvalidArgument;
-
-        scene->setTransform(localToWorld);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrSceneAddChild(
-    VLRScene scene,
-    VLRNode child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        if (child->belongsTo<vlr::InternalNode>())
-            scene->addChild((vlr::InternalNode*)child);
-        else if (child->belongsTo<vlr::SurfaceNode>())
-            scene->addChild((vlr::SurfaceNode*)child);
-        else
-            return VLRResult_InvalidArgument;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrSceneRemoveChild(
-    VLRScene scene,
-    VLRNode child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        if (child->belongsTo<vlr::InternalNode>())
-            scene->removeChild((vlr::InternalNode*)child);
-        else if (child->belongsTo<vlr::SurfaceNode>())
-            scene->removeChild((vlr::SurfaceNode*)child);
-        else
-            return VLRResult_InvalidArgument;
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrSceneGetNumChildren(
-    VLRSceneConst scene,
-    uint32_t* numChildren) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (numChildren == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *numChildren = scene->getNumChildren();
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrSceneGetChildren(
-    VLRSceneConst scene,
-    VLRNode* children) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (children == nullptr)
-            return VLRResult_InvalidArgument;
-
-        scene->getChildren(children);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrSceneGetChildAt(
-    VLRSceneConst scene,
-    uint32_t index,
-    VLRNode* child) {
-    try {
-        VLR_RETURN_INVALID_INSTANCE(scene, vlr::Scene);
-        if (child == nullptr)
-            return VLRResult_InvalidArgument;
-
-        *child = scene->getChildAt(index);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
 VLR_API VLRResult vlrSceneSetEnvironment(
     VLRScene scene,
     VLRSurfaceMaterial material) {
@@ -1407,7 +1308,7 @@ VLR_API VLRResult vlrSceneSetEnvironment(
         if (!nonNullAndCheckType<vlr::EnvironmentEmitterSurfaceMaterial>(material))
             return VLRResult_InvalidArgument;
 
-        scene->setEnvironment((vlr::EnvironmentEmitterSurfaceMaterial*)material);
+        scene->setEnvironment(dynamic_cast<vlr::EnvironmentEmitterSurfaceMaterial*>(material));
 
         return VLRResult_NoError;
     }
