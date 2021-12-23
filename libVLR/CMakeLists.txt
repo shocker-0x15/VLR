@@ -4,7 +4,7 @@
 
 enable_language(CUDA)
 
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_30,code=sm_30 -cudart shared -rdc=true")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_52,code=sm_52 -cudart shared -rdc=true")
 
 file(GLOB_RECURSE libVLR_PTX_Headers
      *.cuh)
@@ -16,7 +16,7 @@ target_include_directories(VLR_PTX PUBLIC "\
 ${OptiX_SDK}/include;\
 ${CMAKE_CURRENT_SOURCE_DIR}/include/VLR\
 ")
-target_compile_features(VLR_PTX PUBLIC cxx_std_11)
+target_compile_features(VLR_PTX PUBLIC cxx_std_17)
 set_property(TARGET VLR_PTX PROPERTY CUDA_PTX_COMPILATION ON)
 
 # END: Target for PTX generation
@@ -25,11 +25,15 @@ set_property(TARGET VLR_PTX PROPERTY CUDA_PTX_COMPILATION ON)
 
 
 set(include_dirs "\
+${CMAKE_CURRENT_SOURCE_DIR}/ext/include;\
+${CMAKE_CURRENT_SOURCE_DIR}/include/vlr;\
 ${OptiX_SDK}/include;\
-${CMAKE_CURRENT_SOURCE_DIR}/include/VLR\
 ")
-set(lib_dirs "${OptiX_SDK}/lib64")
-set(libs "optix.6.0.0")
+
+set(libs "\
+cuda;cudart_static;\
+opengl32\
+")
 
 if(MSVC)
     add_definitions(-DVLR_API_EXPORTS)
@@ -44,13 +48,15 @@ file(GLOB_RECURSE libVLR_Sources
 source_group("" REGULAR_EXPRESSION 
              ".*\.(h|c|hpp|cpp)")
 source_group("include" REGULAR_EXPRESSION 
-             "include/VLR/.*\.(h|c|hpp|cpp)")
+             "include/vlr/.*\.(h|c|hpp|cpp)")
 source_group("Shared" REGULAR_EXPRESSION 
              "shared/.*\.(h|c|hpp|cpp)")
 source_group("GPU Kernels" REGULAR_EXPRESSION 
              "GPU_kernels/.*\.(cuh|cu)")
 source_group("ext" REGULAR_EXPRESSION 
-             "ext/include/.*\.(h|c|hpp|cpp)")
+             "ext/.*\.(h|c|hpp|cpp)")
+source_group("Utilities" REGULAR_EXPRESSION 
+             "utils/.*\.(h|c|hpp|cpp)")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -91,12 +97,6 @@ add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E chdir
 # copy resouces
 add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
                    "${CMAKE_CURRENT_SOURCE_DIR}/spectral_upsampling_tables" "$<TARGET_FILE_DIR:VLR>/spectral_upsampling_tables")
-
-# copy dlls
-if(MSVC)
-    add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
-                       "${OptiX_SDK}/bin64/optix.6.0.0.dll" "$<TARGET_FILE_DIR:VLR>")
-endif()
 
 # END: Post-build events
 # ----------------------------------------------------------------
