@@ -72,6 +72,7 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 #endif
 
+#undef CUDA_DEVICE_FUNCTION
 #include "../utils/optixu_on_cudau.h"
 #if defined(VLR_Host)
 #   undef CUDA_DEVICE_FUNCTION

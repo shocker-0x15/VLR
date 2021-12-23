@@ -193,7 +193,7 @@ namespace vlr {
             areas.resize(numTriangles);
             {
                 auto dstTriangles = matGroup.optixIndexBuffer.map(0, cudau::BufferMapFlag::WriteOnlyDiscard);
-                for (auto i = 0; i < numTriangles; ++i) {
+                for (auto i = 0; i < static_cast<int>(numTriangles); ++i) {
                     uint32_t i0 = matGroup.indices[3 * i + 0];
                     uint32_t i1 = matGroup.indices[3 * i + 1];
                     uint32_t i2 = matGroup.indices[3 * i + 2];
@@ -650,7 +650,7 @@ namespace vlr {
             SHTransform* shtr = it->second;
             std::set<const SHGeometryInstance*> children;
             const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
-            for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
+            for (int i = 0; i < static_cast<int>(shGeomGroup->getNumChildren()); ++i)
                 children.insert(shGeomGroup->childAt(i));
             if (children.size() > 0)
                 parent->geometryAddEvent(shtr, children);
@@ -667,7 +667,7 @@ namespace vlr {
             SHTransform* shtr = it->second;
             std::set<const SHGeometryInstance*> children;
             const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
-            for (int i = 0; i < shGeomGroup->getNumChildren(); ++i)
+            for (int i = 0; i < static_cast<int>(shGeomGroup->getNumChildren()); ++i)
                 children.insert(shGeomGroup->childAt(i));
             if (children.size() > 0)
                 parent->geometryRemoveEvent(shtr, children);
@@ -996,7 +996,8 @@ namespace vlr {
                 (!gas.optixGasMem.isInitialized() ||
                  gas.optixGasMem.sizeInBytes() < asSizes.outputSizeInBytes)) {
                 gas.optixGasMem.finalize();
-                gas.optixGasMem.initialize(cuContext, g_bufferType, asSizes.outputSizeInBytes, 1);
+                gas.optixGasMem.initialize(
+                    cuContext, g_bufferType, static_cast<uint32_t>(asSizes.outputSizeInBytes), 1);
             }
             *asScratchSize = std::max<size_t>({
                 *asScratchSize, asSizes.tempSizeInBytes, asSizes.tempUpdateSizeInBytes });
@@ -1010,7 +1011,8 @@ namespace vlr {
             m_ias.prepareForBuild(&asSizes);
             if (!m_iasMem.isInitialized() || m_iasMem.sizeInBytes() < asSizes.outputSizeInBytes) {
                 m_iasMem.finalize();
-                m_iasMem.initialize(cuContext, g_bufferType, asSizes.outputSizeInBytes, 1);
+                m_iasMem.initialize(
+                    cuContext, g_bufferType, static_cast<uint32_t>(asSizes.outputSizeInBytes), 1);
                 m_instanceBuffer.finalize();
                 m_instanceBuffer.initialize(cuContext, g_bufferType, std::max(m_ias.getNumChildren(), 1u));
             }
@@ -1065,7 +1067,7 @@ namespace vlr {
             if (numGeomInsts > 0) {
                 std::vector<uint32_t> geomInstIndices;
                 std::vector<float> geomInstImportanceValues;
-                for (int i = 0; i < numGeomInsts; ++i) {
+                for (int i = 0; i < static_cast<int>(numGeomInsts); ++i) {
                     const SHGeometryInstance* shGeomInst = shGeomGroup->childAt(i);
                     GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
                     geomInstIndices.push_back(geomInst.geomInstIndex);

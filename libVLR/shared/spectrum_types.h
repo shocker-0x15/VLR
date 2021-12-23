@@ -334,9 +334,8 @@ namespace vlr {
             computeAdjacents(u, v);
             m_scale = scale;
         }
-        CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(uint32_t adjIndices, uint16_t s, uint16_t t, RealType scale) :
-        m_adjIndices(adjIndices), m_s((RealType)s / (UINT16_MAX - 1)), m_t((RealType)t / (UINT16_MAX - 1)), m_scale(scale) {}
-        CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
+        CUDA_DEVICE_FUNCTION constexpr UpsampledSpectrumTemplate(
+            SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
         CUDA_DEVICE_FUNCTION UpsampledSpectrumTemplate(SpectrumType spType, ColorSpace space, RealType e0, RealType e1, RealType e2);
 #endif

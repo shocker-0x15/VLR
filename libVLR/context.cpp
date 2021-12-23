@@ -412,13 +412,13 @@ namespace vlr {
             OptiX::PathTracing &p = m_optix.pathTracing;
 
             p.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.pipeline.setNumCallablePrograms(p.callablePrograms.size());
+            p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
-            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
             p.pipeline.setShaderBindingTable(p.shaderBindingTable,
                                              p.shaderBindingTable.getMappedPointer());
@@ -429,13 +429,13 @@ namespace vlr {
             OptiX::DebugRendering &p = m_optix.debugRendering;
 
             p.pipeline.link(1, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.pipeline.setNumCallablePrograms(p.callablePrograms.size());
+            p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
-            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
             p.pipeline.setShaderBindingTable(p.shaderBindingTable,
                                              p.shaderBindingTable.getMappedPointer());
@@ -624,8 +624,8 @@ namespace vlr {
         {
             auto rngs = m_optix.rngBuffer.map<shared::KernelRNG>();
             std::mt19937_64 seedRng(591842031321323413);
-            for (int y = 0; y < m_height; ++y) {
-                for (int x = 0; x < m_width; ++x) {
+            for (int y = 0; y < static_cast<int>(m_height); ++y) {
+                for (int x = 0; x < static_cast<int>(m_width); ++x) {
                     rngs[y * m_width + x] = shared::KernelRNG(seedRng());
                 }
             }
@@ -656,12 +656,15 @@ namespace vlr {
         size_t scratchBufferSize;
         size_t scratchBufferSizeForComputeIntensity;
         uint32_t numTasks;
-        m_optix.denoiser.prepare(m_width, m_height, 0, 0,
-                                 &stateBufferSize, &scratchBufferSize, &scratchBufferSizeForComputeIntensity,
-                                 &numTasks);
-        m_optix.denoiserStateBuffer.initialize(m_cuContext, g_bufferType, stateBufferSize, 1);
-        m_optix.denoiserScratchBuffer.initialize(m_cuContext, g_bufferType,
-                                                 std::max(scratchBufferSize, scratchBufferSizeForComputeIntensity), 1);
+        m_optix.denoiser.prepare(
+            m_width, m_height, 0, 0,
+            &stateBufferSize, &scratchBufferSize, &scratchBufferSizeForComputeIntensity,
+            &numTasks);
+        m_optix.denoiserStateBuffer.initialize(
+            m_cuContext, g_bufferType, static_cast<uint32_t>(stateBufferSize), 1);
+        m_optix.denoiserScratchBuffer.initialize(
+            m_cuContext, g_bufferType,
+            static_cast<uint32_t>(std::max(scratchBufferSize, scratchBufferSizeForComputeIntensity)), 1);
         m_optix.denoiserTasks.resize(numTasks);
         m_optix.accumAlbedoBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
         m_optix.accumNormalBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
@@ -690,8 +693,8 @@ namespace vlr {
         if (m_optix.useGLTexture)
             m_optix.outputBuffer.beginCUDAAccess(0, 0);
         auto mappedData = m_optix.outputBuffer.map<RGBA32Fx4>(0, 0, cudau::BufferMapFlag::ReadOnly);
-        for (int y = 0; y < m_height; ++y) {
-            for (int x = 0; x < m_width; ++x) {
+        for (int y = 0; y < static_cast<int>(m_height); ++y) {
+            for (int x = 0; x < static_cast<int>(m_width); ++x) {
                 uint32_t idx = y * m_width + x;
                 rgbaData[idx] = mappedData[idx];
             }
@@ -727,7 +730,7 @@ namespace vlr {
         m_scene->prepareSetup(&asScratchSize, &optixScene);
         if (!m_optix.asScratchMem.isInitialized() || m_optix.asScratchMem.sizeInBytes() < asScratchSize) {
             m_optix.asScratchMem.finalize();
-            m_optix.asScratchMem.initialize(m_cuContext, g_bufferType, asScratchSize, 1);
+            m_optix.asScratchMem.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(asScratchSize), 1);
         }
         size_t sbtSize = 0;
         bool sbtLayoutIsUpToDate = optixScene.shaderBindingTableLayoutIsReady();
@@ -745,7 +748,8 @@ namespace vlr {
             if (!p.hitGroupShaderBindingTable.isInitialized() ||
                 p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
                 p.hitGroupShaderBindingTable.finalize();
-                p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+                p.hitGroupShaderBindingTable.initialize(
+                    m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
                 p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
             }
 
@@ -764,7 +768,8 @@ namespace vlr {
             if (!p.hitGroupShaderBindingTable.isInitialized() ||
                 p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
                 p.hitGroupShaderBindingTable.finalize();
-                p.hitGroupShaderBindingTable.initialize(m_cuContext, g_bufferType, sbtSize, 1);
+                p.hitGroupShaderBindingTable.initialize(
+                    m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
                 p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
             }
 
@@ -871,7 +876,7 @@ namespace vlr {
 
     uint32_t Context::createDirectCallableProgram(OptiXModule mdl, const char* dcName) {
         // TODO: 何かしらのかたちでパストレーシングから分離？
-        uint32_t index = m_optix.pathTracing.callablePrograms.size();
+        uint32_t index = static_cast<uint32_t>(m_optix.pathTracing.callablePrograms.size());
         VLRAssert(m_optix.pathTracing.callablePrograms.size() == m_optix.debugRendering.callablePrograms.size(),
                   "Number of callable programs is expected to be the same between pipelines.");
 
@@ -1027,12 +1032,12 @@ namespace vlr {
         std::memcpy(PMF, values, sizeof(RealType) * m_numValues);
 
         CompensatedSum<RealType> sum(0);
-        for (int i = 0; i < m_numValues; ++i) {
+        for (int i = 0; i < static_cast<int>(m_numValues); ++i) {
             CDF[i] = sum;
             sum += PMF[i];
         }
         m_integral = sum;
-        for (int i = 0; i < m_numValues; ++i) {
+        for (int i = 0; i < static_cast<int>(m_numValues); ++i) {
             PMF[i] /= m_integral;
             CDF[i] /= m_integral;
         }
@@ -1074,12 +1079,12 @@ namespace vlr {
         std::memcpy(PDF, values, sizeof(RealType) * m_numValues);
 
         CompensatedSum<RealType> sum{ 0 };
-        for (int i = 0; i < m_numValues; ++i) {
+        for (int i = 0; i < static_cast<int>(m_numValues); ++i) {
             CDF[i] = sum;
             sum += PDF[i] / m_numValues;
         }
         m_integral = sum;
-        for (int i = 0; i < m_numValues; ++i) {
+        for (int i = 0; i < static_cast<int>(m_numValues); ++i) {
             PDF[i] /= m_integral;
             CDF[i] /= m_integral;
         }
@@ -1112,7 +1117,7 @@ namespace vlr {
         CUcontext cuContext = context.getCUcontext();
 
         m_1DDists = new RegularConstantContinuousDistribution1DTemplate<RealType>[numD2];
-        m_raw1DDists.initialize(cuContext, g_bufferType, numD2);
+        m_raw1DDists.initialize(cuContext, g_bufferType, static_cast<uint32_t>(numD2));
 
         shared::RegularConstantContinuousDistribution1DTemplate<RealType>* rawDists = m_raw1DDists.map();
 

@@ -16,8 +16,8 @@ namespace vlr {
         const auto spectrum_data_points = plp.UpsampledSpectrum_spectrum_data_points;
 #   endif
 
-        u = vlr::clamp<RealType>(u, 0.0f, GridWidth());
-        v = vlr::clamp<RealType>(v, 0.0f, GridHeight());
+        u = vlr::clamp<RealType>(u, 0.0f, static_cast<RealType>(GridWidth()));
+        v = vlr::clamp<RealType>(v, 0.0f, static_cast<RealType>(GridHeight()));
 
         int32_t ui = static_cast<int32_t>(u);
         int32_t vi = static_cast<int32_t>(v);

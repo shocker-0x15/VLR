@@ -799,7 +799,7 @@ VLR_API VLRResult vlrBlockCompressedImage2DCreate(
     try {
         if (image == nullptr || data == nullptr || sizes == nullptr)
             return VLRResult_InvalidArgument;
-        for (int m = 0; m < mipCount; ++m) {
+        for (int m = 0; m < static_cast<int>(mipCount); ++m) {
             if (data[m] == nullptr)
                 return VLRResult_InvalidArgument;
         }

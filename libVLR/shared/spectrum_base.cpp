@@ -200,7 +200,7 @@ namespace vlr {
 
             CompensatedSum<float> cum(0);
             for (int i = 1; i < NumCMFSamples; ++i)
-                cum += (ybarReferenceValues[i - 1] + ybarReferenceValues[i]) * 1 * 0.5;
+                cum += (ybarReferenceValues[i - 1] + ybarReferenceValues[i]) * 1 * 0.5f;
             integralCMF = cum;
 
             s_initialized = true;

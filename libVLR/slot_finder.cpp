@@ -99,18 +99,18 @@ namespace vlr {
         uint32_t offsetToOR_last = m_offsetsToOR_AND[2 * 0 + 0];
         uint32_t offsetToAND_last = m_offsetsToOR_AND[2 * 0 + 1];
         uint32_t offsetToNumUsedFlags_last = m_offsetsToNumUsedFlags[0];
-        for (int layer = 1; layer < m_numLayers; ++layer) {
+        for (int layer = 1; layer < static_cast<int>(m_numLayers); ++layer) {
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[layer], 5);
             uint32_t offsetToOR = m_offsetsToOR_AND[2 * layer + 0];
             uint32_t offsetToAND = m_offsetsToOR_AND[2 * layer + 1];
             uint32_t offsetToNumUsedFlags = m_offsetsToNumUsedFlags[layer];
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t &ORFlagBin = m_flagBins[offsetToOR + binIdx];
                 uint32_t &ANDFlagBin = m_flagBins[offsetToAND + binIdx];
                 uint32_t &numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[offsetToNumUsedFlags + binIdx];
 
                 uint32_t numFlagsInBin = std::min(32u, m_numFlagsInLayerList[layer] - 32 * binIdx);
-                for (int bit = 0; bit < numFlagsInBin; ++bit) {
+                for (int bit = 0; bit < static_cast<int>(numFlagsInBin); ++bit) {
                     uint32_t lBinIdx = 32 * binIdx + bit;
                     uint32_t lORFlagBin = m_flagBins[offsetToOR_last + lBinIdx];
                     uint32_t lANDFlagBin = m_flagBins[offsetToAND_last + lBinIdx];
@@ -137,7 +137,7 @@ namespace vlr {
         newFinder.initialize(numSlots);
 
         uint32_t numLowestFlagBins = std::min(m_numLowestFlagBins, newFinder.m_numLowestFlagBins);
-        for (int binIdx = 0; binIdx < numLowestFlagBins; ++binIdx) {
+        for (int binIdx = 0; binIdx < static_cast<int>(numLowestFlagBins); ++binIdx) {
             uint32_t numFlagsInBin = std::min(32u, numSlots - 32 * binIdx);
             uint32_t mask = numFlagsInBin >= 32 ? 0xFFFFFFFF : ((1 << numFlagsInBin) - 1);
             uint32_t value = m_flagBins[0 + binIdx] & mask;
@@ -156,7 +156,7 @@ namespace vlr {
 
         bool setANDFlag = false;
         uint32_t flagIdxInLayer = slotIdx;
-        for (int layer = 0; layer < m_numLayers; ++layer) {
+        for (int layer = 0; layer < static_cast<int>(m_numLayers); ++layer) {
             uint32_t binIdx = flagIdxInLayer / 32;
             uint32_t flagIdxInBin = flagIdxInLayer % 32;
 
@@ -183,7 +183,7 @@ namespace vlr {
 
         bool resetORFlag = false;
         uint32_t flagIdxInLayer = slotIdx;
-        for (int layer = 0; layer < m_numLayers; ++layer) {
+        for (int layer = 0; layer < static_cast<int>(m_numLayers); ++layer) {
             uint32_t binIdx = flagIdxInLayer / 32;
             uint32_t flagIdxInBin = flagIdxInLayer % 32;
 
@@ -257,7 +257,7 @@ namespace vlr {
         for (int layer = m_numLayers - 1; layer >= 0; --layer) {
             uint32_t numUsedFlagsOffset = m_offsetsToNumUsedFlags[layer];
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[layer], 5);
-            for (int binIdx = startBinIdx; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = startBinIdx; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[numUsedFlagsOffset + binIdx];
 
                 // JP: 現在のビンの配下にインデックスnの使用中スロットがある。
@@ -281,7 +281,7 @@ namespace vlr {
     void SlotFinder::debugPrint() const {
         uint32_t numLowestFlagBins = nextMultiplierForPowOf2(m_numFlagsInLayerList[0], 5);
         vlrprintf("----");
-        for (int binIdx = 0; binIdx < numLowestFlagBins; ++binIdx) {
+        for (int binIdx = 0; binIdx < static_cast<int>(numLowestFlagBins); ++binIdx) {
             vlrprintf("------------------------------------");
         }
         vlrprintf("\n");
@@ -289,13 +289,13 @@ namespace vlr {
             vlrprintf("layer %u (%u):\n", layer, m_numFlagsInLayerList[layer]);
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[layer], 5);
             vlrprintf(" OR:");
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t ORFlagBin = m_flagBins[m_offsetsToOR_AND[2 * layer + 0] + binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
                         vlrprintf(" ");
 
-                    bool valid = binIdx * 32 + i < m_numFlagsInLayerList[layer];
+                    bool valid = binIdx * 32 + i < static_cast<int>(m_numFlagsInLayerList[layer]);
                     if (!valid)
                         continue;
 
@@ -305,13 +305,13 @@ namespace vlr {
             }
             vlrprintf("\n");
             vlrprintf("AND:");
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t ANDFlagBin = m_flagBins[m_offsetsToOR_AND[2 * layer + 1] + binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
                         vlrprintf(" ");
 
-                    bool valid = binIdx * 32 + i < m_numFlagsInLayerList[layer];
+                    bool valid = binIdx * 32 + i < static_cast<int>(m_numFlagsInLayerList[layer]);
                     if (!valid)
                         continue;
 
@@ -321,7 +321,7 @@ namespace vlr {
             }
             vlrprintf("\n");
             vlrprintf("    ");
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[m_offsetsToNumUsedFlags[layer] + binIdx];
                 vlrprintf("                            %8u", numUsedFlagsUnderBin);
             }
@@ -331,13 +331,13 @@ namespace vlr {
             vlrprintf("layer 0 (%u):\n", m_numFlagsInLayerList[0]);
             uint32_t numFlagBinsInLayer = nextMultiplierForPowOf2(m_numFlagsInLayerList[0], 5);
             vlrprintf("   :");
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t ORFlagBin = m_flagBins[binIdx];
                 for (int i = 0; i < 32; ++i) {
                     if (i % 8 == 0)
                         vlrprintf(" ");
 
-                    bool valid = binIdx * 32 + i < m_numFlagsInLayerList[0];
+                    bool valid = binIdx * 32 + i < static_cast<int>(m_numFlagsInLayerList[0]);
                     if (!valid)
                         continue;
 
@@ -347,7 +347,7 @@ namespace vlr {
             }
             vlrprintf("\n");
             vlrprintf("    ");
-            for (int binIdx = 0; binIdx < numFlagBinsInLayer; ++binIdx) {
+            for (int binIdx = 0; binIdx < static_cast<int>(numFlagBinsInLayer); ++binIdx) {
                 uint32_t numUsedFlagsUnderBin = m_numUsedFlagsUnderBinList[binIdx];
                 vlrprintf("                            %8u", numUsedFlagsUnderBin);
             }

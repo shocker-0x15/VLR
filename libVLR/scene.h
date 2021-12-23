@@ -74,7 +74,7 @@ namespace vlr {
             return m_shGeomInsts[index];
         }
         uint32_t getNumChildren() const {
-            return m_shGeomInsts.size();
+            return static_cast<uint32_t>(m_shGeomInsts.size());
         }
     };
 

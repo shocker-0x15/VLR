@@ -18,9 +18,9 @@ namespace vlr {
     // static 
     void ShaderNode::commonInitializeProcedure(Context &context, const PlugTypeToProgramPair* pairs, uint32_t numPairs, OptiXProgramSet* programSet) {
         shared::NodeProcedureSet nodeProcSet;
-        for (int i = 0; i < lengthof(nodeProcSet.progs); ++i)
+        for (uint32_t i = 0; i < lengthof(nodeProcSet.progs); ++i)
             nodeProcSet.progs[i] = 0xFFFFFFFF;
-        for (int i = 0; i < numPairs; ++i) {
+        for (uint32_t i = 0; i < numPairs; ++i) {
             uint32_t ptype = static_cast<uint32_t>(pairs[i].ptype);
             programSet->callablePrograms[ptype] = context.createDirectCallableProgram(
                 OptiXModule_ShaderNode, pairs[i].programName);
@@ -35,7 +35,8 @@ namespace vlr {
     void ShaderNode::commonFinalizeProcedure(Context &context, OptiXProgramSet &programSet) {
         context.releaseNodeProcedureSet(programSet.nodeProcedureSetIndex);
 
-        for (int i = lengthof(programSet.callablePrograms) - 1; i >= 0; --i) {
+        int32_t numCallables = static_cast<int32_t>(lengthof(programSet.callablePrograms));
+        for (int32_t i = numCallables - 1; i >= 0; --i) {
             if (programSet.callablePrograms[i] != 0xFFFFFFFF)
                 context.destroyDirectCallableProgram(programSet.callablePrograms[i]);
         }
@@ -119,7 +120,7 @@ namespace vlr {
             ShaderNodePlugType::TextureCoordinates, RT_DC_NAME_STR("GeometryShaderNode_TextureCoordinates"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
 
@@ -173,7 +174,7 @@ namespace vlr {
             ShaderNodePlugType::Vector3D, RT_DC_NAME_STR("TangentShaderNode_Vector3D"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -253,7 +254,7 @@ namespace vlr {
             ShaderNodePlugType::float2, RT_DC_NAME_STR("Float2ShaderNode_float2"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -393,7 +394,7 @@ namespace vlr {
             ShaderNodePlugType::float3, RT_DC_NAME_STR("Float3ShaderNode_float3"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -558,7 +559,7 @@ namespace vlr {
             ShaderNodePlugType::float4, RT_DC_NAME_STR("Float4ShaderNode_float4"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -742,7 +743,7 @@ namespace vlr {
             ShaderNodePlugType::float1, RT_DC_NAME_STR("ScaleAndOffsetFloatShaderNode_float1"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -888,7 +889,7 @@ namespace vlr {
             ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("TripletSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1020,7 +1021,7 @@ namespace vlr {
             ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("RegularSampledSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1188,7 +1189,7 @@ namespace vlr {
             ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("IrregularSampledSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1337,7 +1338,7 @@ namespace vlr {
             ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("Float3ToSpectrumShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1500,7 +1501,7 @@ namespace vlr {
             ShaderNodePlugType::TextureCoordinates, RT_DC_NAME_STR("ScaleAndOffsetUVTextureMap2DShaderNode_TextureCoordinates"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1615,7 +1616,7 @@ namespace vlr {
             ShaderNodePlugType::Alpha, RT_DC_NAME_STR("Image2DTextureShaderNode_Alpha"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         uint8_t nullData[] = { 255, 0, 255, 255 };
         LinearImage2D* nullImage = new LinearImage2D(context, nullData, 1, 1, DataFormat::RGBA8x4, SpectrumType::Reflectance, ColorSpace::Rec709_D65);
@@ -1653,7 +1654,7 @@ namespace vlr {
 
     Image2DTextureShaderNode::~Image2DTextureShaderNode() {
         if (m_textureObject)
-            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
+            cuTexObjectDestroy(m_textureObject);
     }
 
     void Image2DTextureShaderNode::createTextureSampler() {
@@ -1681,9 +1682,10 @@ namespace vlr {
             colorSpace = ColorSpace::Rec709_D65;
         nodeData.colorSpace = static_cast<unsigned int>(colorSpace);
         nodeData.bumpType = static_cast<unsigned int>(m_bumpType);
-        const float minCoeff = 1.0f / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
-        float coeff = std::round(m_bumpCoeff * (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1))) - 1;
-        nodeData.bumpCoeff = vlr::clamp<int32_t>(coeff, 0, (1 << VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH) - 1);
+        constexpr uint32_t bitWidth = VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH;
+        constexpr uint32_t maxIntCoeff = (1 << bitWidth) - 1;
+        uint32_t intCoeff = static_cast<uint32_t>(std::round(maxIntCoeff * m_bumpCoeff * 0.5f));
+        nodeData.bumpCoeff = std::min<uint32_t>(intCoeff, maxIntCoeff);
         nodeData.nodeTexCoord = m_nodeTexCoord.getSharedType();
         nodeData.width = m_image->getWidth();
         nodeData.height = m_image->getHeight();
@@ -1873,7 +1875,7 @@ namespace vlr {
             ShaderNodePlugType::Spectrum, RT_DC_NAME_STR("EnvironmentTextureShaderNode_Spectrum"),
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, pairs, lengthof(pairs), &programSet);
+        commonInitializeProcedure(context, pairs, static_cast<uint32_t>(lengthof(pairs)), &programSet);
 
         half nullData[] = { (half)1.0f, (half)0.0f, (half)1.0f, (half)1.0f };
         LinearImage2D* nullImage = new LinearImage2D(context, (uint8_t*)nullData, 1, 1, DataFormat::RGBA16Fx4, SpectrumType::LightSource, ColorSpace::Rec709_D65);
@@ -1902,7 +1904,7 @@ namespace vlr {
 
     EnvironmentTextureShaderNode::~EnvironmentTextureShaderNode() {
         if (m_textureObject)
-            CUDADRV_CHECK(cuTexObjectDestroy(m_textureObject));
+            cuTexObjectDestroy(m_textureObject);
     }
 
     void EnvironmentTextureShaderNode::createTextureSampler() {
@@ -1994,9 +1996,9 @@ namespace vlr {
         Image2D* shrinkedYImage = shrinkedImage->createLuminanceImage2D();
         delete shrinkedImage;
         float* linearData = reinterpret_cast<float*>(shrinkedYImage->createLinearImageData());
-        for (int y = 0; y < mapHeight; ++y) {
+        for (uint32_t y = 0; y < mapHeight; ++y) {
             float theta = M_PI * (y + 0.5f) / mapHeight;
-            for (int x = 0; x < mapWidth; ++x) {
+            for (uint32_t x = 0; x < mapWidth; ++x) {
                 linearData[y * mapWidth + x] *= std::sin(theta);
             }
         }

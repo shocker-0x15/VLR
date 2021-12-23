@@ -15,7 +15,7 @@ namespace vlr {
             // Advance internal state
             m_state = oldstate * 6364136223846793005ULL + 1;
             // Calculate output function (XSH RR), uses old state for max ILP
-            uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+            uint32_t xorshifted = static_cast<uint32_t>(((oldstate >> 18u) ^ oldstate) >> 27u);
             uint32_t rot = oldstate >> 59u;
             return (xorshifted >> rot) | (xorshifted << ((-static_cast<int32_t>(rot)) & 31));
         }

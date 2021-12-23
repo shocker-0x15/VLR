@@ -624,10 +624,10 @@ namespace vlr {
         else {
             auto srcHead = reinterpret_cast<const SrcType*>(srcData);
             auto dstHead = reinterpret_cast<DstType*>(dstData);
-            for (int y = 0; y < height; ++y) {
+            for (int y = 0; y < static_cast<int>(height); ++y) {
                 auto srcLineHead = srcHead + width * y;
                 auto dstLineHead = dstHead + width * y;
-                for (int x = 0; x < width; ++x) {
+                for (int x = 0; x < static_cast<int>(width); ++x) {
                     auto &src = *(srcLineHead + x);
                     auto &dst = *(dstLineHead + x);
                     perPixelFunc<ColorSpaceFunc>(src, dst);
@@ -799,13 +799,13 @@ namespace vlr {
 
         float deltaOrgX = orgWidth / width;
         float deltaOrgY = orgHeight / height;
-        for (int y = 0; y < height; ++y) {
+        for (int y = 0; y < static_cast<int>(height); ++y) {
             float top = deltaOrgY * y;
             float bottom = deltaOrgY * (y + 1);
             uint32_t topPix = static_cast<uint32_t>(top);
             uint32_t bottomPix = static_cast<uint32_t>(ceilf(bottom)) - 1;
 
-            for (int x = 0; x < width; ++x) {
+            for (int x = 0; x < static_cast<int>(width); ++x) {
                 float left = deltaOrgX * x;
                 float right = deltaOrgX * (x + 1);
                 uint32_t leftPix = static_cast<uint32_t>(left);
@@ -993,8 +993,8 @@ namespace vlr {
         std::vector<uint8_t> data;
         data.resize(stride * width * height);
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < static_cast<int>(height); ++y) {
+            for (int x = 0; x < static_cast<int>(width); ++x) {
                 switch (getDataFormat()) {
                 case DataFormat::RGBA16Fx4: {
                     RGBA16Fx4 pix = get<RGBA16Fx4>(x, y);
@@ -1056,7 +1056,7 @@ namespace vlr {
         Image2D(context, width, height, dataFormat, spectrumType, colorSpace), m_copyDone(false) {
         VLRAssert(dataFormat >= DataFormat::BC1 && dataFormat <= DataFormat::BC7, "Specified data format is not block compressed format.");
         m_data.resize(mipCount);
-        for (int i = 0; i < mipCount; ++i) {
+        for (int i = 0; i < static_cast<int>(mipCount); ++i) {
             m_data[i].resize(sizes[i]);
             std::copy(data[i], data[i] + sizes[i], m_data[i].data());
         }
@@ -1080,7 +1080,8 @@ namespace vlr {
     const cudau::Array &BlockCompressedImage2D::getOptiXObject() const {
         const cudau::Array &buffer = Image2D::getOptiXObject();
         if (!m_copyDone) {
-            for (int mipLevel = 0; mipLevel < m_optixDataBuffer.getNumMipmapLevels(); ++mipLevel) {
+            int32_t numMipLevels = static_cast<int32_t>(m_optixDataBuffer.getNumMipmapLevels());
+            for (int mipLevel = 0; mipLevel < numMipLevels; ++mipLevel) {
                 const std::vector<uint8_t> &srcMipData = m_data[mipLevel];
                 auto dstData = m_optixDataBuffer.map<uint8_t>(mipLevel);
                 std::copy(srcMipData.cbegin(), srcMipData.cend(), dstData);

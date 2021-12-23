@@ -1999,9 +1999,9 @@ namespace vlr {
                 uint32_t mapHeight = 256;
                 float* linearData = new float[mapWidth * mapHeight];
                 std::fill_n(linearData, mapWidth * mapHeight, 1.0f);
-                for (int y = 0; y < mapHeight; ++y) {
+                for (int y = 0; y < static_cast<int>(mapHeight); ++y) {
                     float theta = M_PI * (y + 0.5f) / mapHeight;
-                    for (int x = 0; x < mapWidth; ++x) {
+                    for (int x = 0; x < static_cast<int>(mapWidth); ++x) {
                         linearData[y * mapWidth + x] *= std::sin(theta);
                     }
                 }
