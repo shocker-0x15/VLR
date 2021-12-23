@@ -166,7 +166,7 @@ IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 Rungholt model illuminated by outdoor environment light.
 
 Model: Rungholt from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)\
-IBL image 1: [Direct HDR Capture of the Sun and Sky](http://gl.ict.usc.edu/Data/SkyProbes/)\
+IBL image 1: [Direct HDR Capture of the Sun and Sky](https://vgl.ict.usc.edu/Data/SkyProbes/)\
 IBL image 2: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 
 ----
