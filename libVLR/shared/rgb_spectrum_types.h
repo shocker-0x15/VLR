@@ -7,7 +7,7 @@ namespace vlr {
     struct RGBWavelengthSamplesTemplate {
         struct {
             unsigned int _selectedLambdaIndex : 16;
-            bool _singleIsSelected : 1;
+            unsigned int _singleIsSelected : 1;
         };
 
         CUDA_DEVICE_FUNCTION RGBWavelengthSamplesTemplate() {}

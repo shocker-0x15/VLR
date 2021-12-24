@@ -1,6 +1,8 @@
-﻿#include "kernel_common.cuh"
+﻿#include "../shared/kernel_common.h"
 
 namespace vlr {
+    using namespace shared;
+
     // ----------------------------------------------------------------
     // PerspectiveCamera
 

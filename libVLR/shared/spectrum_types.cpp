@@ -308,7 +308,7 @@ namespace vlr {
             RealType p = (lambda - MinWavelength()) / (MaxWavelength() - MinWavelength());
             p = clamp<RealType>(p, 0.0, 1.0);
             RealType sBinF = p * (NumWavelengthSamples() - 1);
-            uint32_t sBin = vlr::min<uint32_t>(sBinF, NumWavelengthSamples() - 1);
+            uint32_t sBin = vlr::min<uint32_t>(static_cast<uint32_t>(sBinF), NumWavelengthSamples() - 1);
             uint32_t sBinNext = vlr::min<uint32_t>(sBin + 1, NumWavelengthSamples() - 1);
             RealType t = sBinF - sBin;
             for (int j = 0; j < numAdjacents; ++j) {
@@ -435,7 +435,9 @@ namespace vlr {
                 ++curCMFIdx;
             }
             else {
-                uint32_t idx = vlr::min<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth, NumCMFSamples - 1);
+                uint32_t idx = vlr::min(
+                    static_cast<uint32_t>((curWL - WavelengthLowBound) / CMFBinWidth),
+                    NumCMFSamples - 1);
                 RealType CMFBaseWL = WavelengthLowBound + idx * CMFBinWidth;
                 RealType t = (curWL - CMFBaseWL) / CMFBinWidth;
                 xbarValue = (1 - t) * xbarReferenceValues[idx] + t * xbarReferenceValues[idx + 1];

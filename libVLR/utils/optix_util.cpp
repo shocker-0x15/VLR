@@ -2234,7 +2234,7 @@ namespace optixu {
         m = nullptr;
     }
 
-    void Pipeline::setPipelineOptions(uint32_t numPayloadValues, uint32_t numAttributeValues,
+    void Pipeline::setPipelineOptions(uint32_t numPayloadValuesInDwords, uint32_t numAttributeValuesInDwords,
                                       const char* launchParamsVariableName, size_t sizeOfLaunchParams,
                                       bool useMotionBlur,
                                       OptixTraversableGraphFlags traversableGraphFlags,
@@ -2245,8 +2245,8 @@ namespace optixu {
         // JP: パイプライン中のモジュール、そしてパイプライン自体に共通なコンパイルオプションの設定。
         // EN: Set pipeline compile options common among modules in the pipeline and the pipeline itself.
         m->pipelineCompileOptions = {};
-        m->pipelineCompileOptions.numPayloadValues = numPayloadValues;
-        m->pipelineCompileOptions.numAttributeValues = numAttributeValues;
+        m->pipelineCompileOptions.numPayloadValues = numPayloadValuesInDwords;
+        m->pipelineCompileOptions.numAttributeValues = numAttributeValuesInDwords;
         m->pipelineCompileOptions.pipelineLaunchParamsVariableName = launchParamsVariableName;
         m->pipelineCompileOptions.usesMotionBlur = useMotionBlur;
         m->pipelineCompileOptions.traversableGraphFlags = traversableGraphFlags;

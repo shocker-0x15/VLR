@@ -272,7 +272,7 @@ namespace vlr {
         // References
         // Building an Orthonormal Basis, Revisited
         CUDA_DEVICE_FUNCTION void makeCoordinateSystem(Vector3DTemplate<RealType>* tangent, Vector3DTemplate<RealType>* bitangent) const {
-            RealType sign = z >= 0 ? 1 : -1;
+            RealType sign = z >= 0 ? 1.0f : -1.0f;
             const RealType a = -1 / (sign + z);
             const RealType b = x * y * a;
             *tangent = Vector3DTemplate<RealType>(1 + sign * x * x * a, sign * b, -sign * x);

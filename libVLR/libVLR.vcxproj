@@ -153,9 +153,6 @@
     <ClInclude Include="ext\include\GL\glcorearb.h" />
     <ClInclude Include="ext\include\half.hpp" />
     <ClInclude Include="ext\include\KHR\khrplatform.h" />
-    <ClInclude Include="GPU_kernels\kernel_common.cuh" />
-    <ClInclude Include="GPU_kernels\light_transport_common.cuh" />
-    <ClInclude Include="GPU_kernels\renderer_common.cuh" />
     <ClInclude Include="image.h" />
     <ClInclude Include="include\vlr\basic_types.h" />
     <ClInclude Include="include\vlr\common.h" />
@@ -167,7 +164,10 @@
     <ClInclude Include="scene.h" />
     <ClInclude Include="shared\basic_types_internal.h" />
     <ClInclude Include="shared\common_internal.h" />
+    <ClInclude Include="shared\kernel_common.h" />
+    <ClInclude Include="shared\light_transport_common.h" />
     <ClInclude Include="shared\random_distributions.h" />
+    <ClInclude Include="shared\renderer_common.h" />
     <ClInclude Include="shared\rgb_spectrum_types.h" />
     <ClInclude Include="shared\shared.h" />
     <ClInclude Include="shared\spectrum_base.h" />

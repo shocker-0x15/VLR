@@ -1,13 +1,15 @@
-﻿#include "kernel_common.cuh"
+﻿#include "../shared/kernel_common.h"
 
 namespace vlr {
+    using namespace shared;
+
     // Intersection Program for Infinite Sphere
     CUDA_DEVICE_KERNEL void RT_IS_NAME(intersectInfiniteSphere)(int32_t primIdx) {
         Vector3D direction = asVector3D(optixGetObjectRayDirection());
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
-        optixu::reportIntersection(INFINITY, 0, phi, theta);
+        optixu::reportIntersection<InfiniteSphereAttributeSignature>(INFINITY, 0, phi, theta);
     }
 
 

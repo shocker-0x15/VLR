@@ -29,15 +29,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GPU_kernels\kernel_common.cuh">
-      <Filter>GPU Kernels</Filter>
-    </ClInclude>
     <ClInclude Include="scene.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="context.h" />
-    <ClInclude Include="GPU_kernels\light_transport_common.cuh">
-      <Filter>GPU Kernels</Filter>
-    </ClInclude>
     <ClInclude Include="ext\include\half.hpp">
       <Filter>ext</Filter>
     </ClInclude>
@@ -102,8 +96,14 @@
     <ClInclude Include="include\vlr\vlrcpp.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="GPU_kernels\renderer_common.cuh">
-      <Filter>GPU Kernels</Filter>
+    <ClInclude Include="shared\light_transport_common.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\renderer_common.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\kernel_common.h">
+      <Filter>Shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

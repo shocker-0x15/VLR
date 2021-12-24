@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <public_types.h>
-#include "shared/shared.h"
+#include "shared/light_transport_common.h"
 
 #include "slot_finder.h"
 

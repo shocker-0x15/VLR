@@ -1,15 +1,7 @@
-﻿#include "renderer_common.cuh"
+﻿#include "../shared/renderer_common.h"
 
 namespace vlr {
-    struct DebugRenderingPayload {
-        KernelRNG rng;
-        WavelengthSamples wls;
-        SampledSpectrum value;
-    };
-
-#define DebugPayloadSignature DebugRenderingPayload*
-
-
+    using namespace shared;
 
     // for debug rendering
     CUDA_DEVICE_FUNCTION TripletSpectrum debugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
@@ -80,14 +72,17 @@ namespace vlr {
 
     // Common Any Hit Program for All Primitive Types and Materials
     CUDA_DEVICE_KERNEL void RT_AH_NAME(debugRenderingAnyHitWithAlpha)() {
-        DebugRenderingPayload* payload;
-        optixu::getPayloads<DebugPayloadSignature>(&payload);
+        KernelRNG rng;
+        WavelengthSamples wls;
+        DebugPayloadSignature::get(&rng, &wls, nullptr);
 
-        float alpha = getAlpha(payload->wls);
+        float alpha = getAlpha(wls);
 
         // Stochastic Alpha Test
-        if (payload->rng.getFloat0cTo1o() >= alpha)
+        if (rng.getFloat0cTo1o() >= alpha)
             optixIgnoreIntersection();
+
+        DebugPayloadSignature::set(&rng, nullptr, nullptr);
     }
 
 
@@ -96,10 +91,8 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_CH_NAME(debugRenderingClosestHit)() {
         const auto hp = HitPointParameter::get();
 
-        DebugRenderingPayload* payload;
-        optixu::getPayloads<DebugPayloadSignature>(&payload);
-
-        WavelengthSamples &wls = payload->wls;
+        WavelengthSamples wls;
+        DebugPayloadSignature::get(nullptr, &wls, nullptr);
 
         SurfacePoint surfPt;
         float hypAreaPDF;
@@ -113,6 +106,7 @@ namespace vlr {
         //              surfPt.shadingFrame.y.x, surfPt.shadingFrame.y.y, surfPt.shadingFrame.y.z,
         //              surfPt.shadingFrame.z.x, surfPt.shadingFrame.z.y, surfPt.shadingFrame.z.z);
 
+        SampledSpectrum value;
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
             BSDF bsdf(matDesc, surfPt, wls);
@@ -122,11 +116,13 @@ namespace vlr {
 
             TripletSpectrum whitePoint = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
                                                                1, 1, 1);
-            payload->value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf)) * whitePoint.evaluate(wls);
+            value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf)) * whitePoint.evaluate(wls);
         }
         else {
-            payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
+            value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
         }
+
+        DebugPayloadSignature::set(nullptr, nullptr, &value);
     }
 
 
@@ -135,10 +131,8 @@ namespace vlr {
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
     CUDA_DEVICE_KERNEL void RT_MS_NAME(debugRenderingMiss)() {
-        DebugRenderingPayload* payload;
-        optixu::getPayloads<DebugPayloadSignature>(&payload);
-
-        WavelengthSamples &wls = payload->wls;
+        WavelengthSamples wls;
+        DebugPayloadSignature::get(nullptr, &wls, nullptr);
 
         const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
         //const GeometryInstance &geomInst = plp.geomInstBuffer[inst.geomInstIndices[0]];
@@ -168,12 +162,13 @@ namespace vlr {
         phi = phi - ::vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
         surfPt.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
 
-        if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
-            payload->value = SampledSpectrum::Zero();
-        }
-        else {
-            payload->value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
-        }
+        SampledSpectrum value;
+        if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor)
+            value = SampledSpectrum::Zero();
+        else
+            value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
+
+        DebugPayloadSignature::set(nullptr, nullptr, &value);
     }
 
 
@@ -204,25 +199,22 @@ namespace vlr {
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
         SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
 
-        DebugRenderingPayload payload;
-        payload.rng = rng;
-        payload.wls = wls;
-        DebugRenderingPayload* payloadPtr = &payload;
+        SampledSpectrum value;
         optixu::trace<DebugPayloadSignature>(
             plp.topGroup, asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
             0xFF, OPTIX_RAY_FLAG_NONE,
             DebugRayType::Primary, MaxNumRayTypes, DebugRayType::Primary,
-            payloadPtr);
+            rng, wls, value);
 
-        plp.rngBuffer.write(launchIndex, payload.rng);
+        plp.rngBuffer.write(launchIndex, rng);
 
-        if (!payload.value.allFinite()) {
+        if (!value.allFinite()) {
             vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
             return;
         }
 
         if (plp.numAccumFrames == 1)
             plp.accumBuffer[launchIndex].reset();
-        plp.accumBuffer[launchIndex].add(wls, payload.value / selectWLPDF);
+        plp.accumBuffer[launchIndex].add(wls, value / selectWLPDF);
     }
 }

@@ -1,6 +1,8 @@
-﻿#include "kernel_common.cuh"
+﻿#include "../shared/kernel_common.h"
 
 namespace vlr {
+    using namespace shared;
+
     CUDA_DEVICE_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
         bool reflect = dot(Vector3D(ng), d0) * dot(Vector3D(ng), d1) > 0;
         return DirectionType::AllFreq() | (reflect ? DirectionType::Reflection() : DirectionType::Transmission());

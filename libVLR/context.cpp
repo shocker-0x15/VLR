@@ -140,7 +140,9 @@ namespace vlr {
 
             p.pipeline = m_optix.context.createPipeline();
             p.pipeline.setPipelineOptions(
-                8, 2,
+                std::max(shared::PayloadSignature::numDwords,
+                         shared::ShadowPayloadSignature::numDwords),
+                optixu::calcSumDwords<float2>(),
                 "plp", sizeof(shared::PipelineLaunchParameters),
                 false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
@@ -225,7 +227,8 @@ namespace vlr {
 
             p.pipeline = m_optix.context.createPipeline();
             p.pipeline.setPipelineOptions(
-                2, 2,
+                shared::DebugPayloadSignature::numDwords,
+                optixu::calcSumDwords<float2>(),
                 "plp", sizeof(shared::PipelineLaunchParameters),
                 false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,

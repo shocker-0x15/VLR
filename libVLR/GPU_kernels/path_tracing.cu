@@ -1,6 +1,8 @@
-﻿#include "light_transport_common.cuh"
+﻿#include "../shared/light_transport_common.h"
 
 namespace vlr {
+    using namespace shared;
+
     // Common Closest Hit Program for All Primitive Types and Materials
     CUDA_DEVICE_KERNEL void RT_CH_NAME(pathTracingIteration)() {
         const auto hp = HitPointParameter::get();
@@ -9,7 +11,7 @@ namespace vlr {
         WriteOnlyPayload* woPayload;
         ReadWritePayload* rwPayload;
         ExtraPayload* exPayload;
-        optixu::getPayloads<PayloadSignature>(&roPayload, &woPayload, &rwPayload, &exPayload);
+        PayloadSignature::get(&roPayload, &woPayload, &rwPayload, &exPayload);
 
         KernelRNG &rng = rwPayload->rng;
         WavelengthSamples &wls = roPayload->wls;
@@ -131,7 +133,7 @@ namespace vlr {
         ReadOnlyPayload* roPayload;
         ReadWritePayload* rwPayload;
         ExtraPayload* exPayload;
-        optixu::getPayloads<PayloadSignature>(&roPayload, nullptr, &rwPayload, &exPayload);
+        PayloadSignature::get(&roPayload, nullptr, &rwPayload, &exPayload);
 
         if (exPayload) {
             exPayload->firstHitAlbedo = SampledSpectrum::Zero();

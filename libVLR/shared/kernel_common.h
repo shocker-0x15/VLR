@@ -1,17 +1,14 @@
 ﻿#pragma once
 
-#include "../shared/shared.h"
+#include "shared.h"
 
-namespace vlr {
-    using namespace shared;
-
-
-
+namespace vlr::shared {
     enum class TransformKind {
         ObjectToWorld = 0,
         WorldToObject
     };
 
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     template <TransformKind kind>
     CUDA_DEVICE_FUNCTION Point3D transform(const Point3D &p) {
         if constexpr (kind == TransformKind::ObjectToWorld)
@@ -41,12 +38,15 @@ namespace vlr {
         VLRAssert_ShouldNotBeCalled();
         return Normal3D();
     }
+#endif
 
 
 
     struct HitGroupSBTRecordData {
         GeometryInstance geomInst;
     };
+
+    using InfiniteSphereAttributeSignature = optixu::AttributeSignature<float, float>;
     
     struct HitPointParameter {
         const HitGroupSBTRecordData* sbtr;
@@ -60,6 +60,7 @@ namespace vlr {
         };
         int32_t primIndex;
 
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION static HitPointParameter get() {
             HitPointParameter ret;
             ret.sbtr = reinterpret_cast<HitGroupSBTRecordData*>(optixGetSbtDataPointer());
@@ -69,6 +70,7 @@ namespace vlr {
             ret.primIndex = optixGetPrimitiveIndex();
             return ret;
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };
 
     struct ReferenceFrame {
@@ -295,10 +297,12 @@ namespace vlr {
             m_geomInst(geomInst) {
         }
 
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) const {
             auto sample = static_cast<ProgSigSurfaceLight_sample>(m_geomInst.progSample);
             sample(m_inst, m_geomInst, posSample, lpResult);
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };
 
 
@@ -333,7 +337,8 @@ namespace vlr {
     using ProgSigEDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)>;
 
 
-    
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     template <typename T>
     CUDA_DEVICE_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue,
                                     const SurfacePoint &surfPt, const WavelengthSamples &wls) {
@@ -413,4 +418,5 @@ namespace vlr {
         }
         return defaultValue.evaluate(wls);
     }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 }

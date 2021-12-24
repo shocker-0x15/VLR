@@ -1,6 +1,8 @@
-﻿#include "kernel_common.cuh"
+﻿#include "../shared/kernel_common.h"
 
 namespace vlr {
+    using namespace shared;
+
     RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(
         const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const GeometryInstance &geomInst = param.sbtr->geomInst;

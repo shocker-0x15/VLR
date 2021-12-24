@@ -31,6 +31,12 @@ EN:
 - In Visual Studio, does the CUDA property "Use Fast Math" not work for ptx compilation??
 
 変更履歴 / Update History:
+- !!BREAKING
+  JP: - getPayloads()/setPayloads(), getAttributes(), getExceptionDetails()を削除。
+        ペイロードなどの値はシグネチャー型経由で取得・設定を行う。
+  EN: - Removed getPayloads()/setPayloads(), getAttributes(), getExceptionDetails().
+        Set or get values like payload via signature types.
+
 - JP: - createModuleFromPTXString(), createMissProgram(),
         createHitProgramGroupFor***IS(), createCallableProgramGroup()
         がペイロードアノテーションを追加で受け取れるように変更。
@@ -352,6 +358,58 @@ namespace optixu {
 #endif
     };
 
+
+
+    template <typename... PayloadTypes>
+    struct PayloadSignature {
+        using Types = std::tuple<PayloadTypes...>;
+        template <uint32_t index>
+        using TypeAt = std::tuple_element_t<index, Types>;
+        static constexpr uint32_t numParameters = sizeof...(PayloadTypes);
+        static constexpr uint32_t numDwords = static_cast<uint32_t>(detail::calcSumDwords<PayloadTypes...>());
+        static constexpr uint32_t _arraySize = numParameters > 0 ? numParameters : 1u;
+        static constexpr uint32_t sizesInDwords[_arraySize] = {
+            static_cast<uint32_t>(detail::getNumDwords<PayloadTypes>())...
+        };
+
+#if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
+        RT_DEVICE_FUNCTION static void get(PayloadTypes*... payloads);
+        RT_DEVICE_FUNCTION static void set(const PayloadTypes*... payloads);
+#endif
+    };
+
+    template <typename... AttributeTypes>
+    struct AttributeSignature {
+        using Types = std::tuple<AttributeTypes...>;
+        template <uint32_t index>
+        using TypeAt = std::tuple_element_t<index, Types>;
+        static constexpr uint32_t numParameters = sizeof...(AttributeTypes);
+        static constexpr uint32_t numDwords = static_cast<uint32_t>(detail::calcSumDwords<AttributeTypes...>());
+        static constexpr uint32_t sizesInDwords[numParameters] = {
+            static_cast<uint32_t>(detail::getNumDwords<AttributeTypes>())...
+        };
+
+#if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
+        RT_DEVICE_FUNCTION static void get(AttributeTypes*... attributes);
+#endif
+    };
+
+    template <typename... ExceptionDetailTypes>
+    struct ExceptionDetailSignature {
+        using Types = std::tuple<ExceptionDetailTypes...>;
+        template <uint32_t index>
+        using TypeAt = std::tuple_element_t<index, Types>;
+        static constexpr uint32_t numParameters = sizeof...(ExceptionDetailTypes);
+        static constexpr uint32_t numDwords = static_cast<uint32_t>(detail::calcSumDwords<ExceptionDetailTypes...>());
+        static constexpr uint32_t sizesInDwords[numParameters] = {
+            static_cast<uint32_t>(detail::getNumDwords<ExceptionDetailTypes>())...
+        };
+
+#if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
+        RT_DEVICE_FUNCTION static void get(ExceptionDetailTypes*... exDetails);
+#endif
+    };
+
     // END: Definitions of Host-/Device-shared classes
     // ----------------------------------------------------------------
 
@@ -577,7 +635,7 @@ namespace optixu {
     // EN: Taking payloads as rvalue reference makes it possible to take rvalue while reflecting value changes.
     //     However take them as normal reference to ease consistency check of template arguments and for
     //     conforming optixTrace.
-    template <typename... PayloadTypes>
+    template <typename PayloadSignatureType, typename... PayloadTypes>
     RT_DEVICE_FUNCTION void trace(OptixPayloadTypeID payloadTypeID,
                                   OptixTraversableHandle handle,
                                   const float3 &origin, const float3 &direction,
@@ -585,7 +643,9 @@ namespace optixu {
                                   OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
                                   uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
                                   PayloadTypes &... payloads) {
-        constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
+        static_assert(std::is_same_v<PayloadSignatureType, PayloadSignature<PayloadTypes...>>,
+                      "Payload types are inconsistent with the signature.");
+        constexpr size_t numDwords = PayloadSignatureType::numDwords;
         static_assert(numDwords <= detail::maxNumPayloadsInDwords,
                       "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
         if constexpr (numDwords == 0) {
@@ -609,49 +669,48 @@ namespace optixu {
         }
     }
 
-    template <typename... PayloadTypes>
+    template <typename PayloadSignatureType, typename... PayloadTypes>
     RT_DEVICE_FUNCTION void trace(OptixTraversableHandle handle,
                                   const float3 &origin, const float3 &direction,
                                   float tmin, float tmax, float rayTime,
                                   OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
                                   uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
                                   PayloadTypes &... payloads) {
-        trace(OPTIX_PAYLOAD_TYPE_DEFAULT,
-              handle,
-              origin, direction,
-              tmin, tmax, rayTime,
-              visibilityMask, rayFlags,
-              SBToffset, SBTstride, missSBTIndex,
-              payloads...);
+        trace<PayloadSignatureType>(
+            OPTIX_PAYLOAD_TYPE_DEFAULT,
+            handle,
+            origin, direction,
+            tmin, tmax, rayTime,
+            visibilityMask, rayFlags,
+            SBToffset, SBTstride, missSBTIndex,
+            payloads...);
     }
 
-
-
     template <typename... PayloadTypes>
-    RT_DEVICE_FUNCTION void getPayloads(PayloadTypes*... payloads) {
-        constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
+    RT_DEVICE_FUNCTION void PayloadSignature<PayloadTypes...>::get(PayloadTypes*... payloads) {
         static_assert(numDwords <= detail::maxNumPayloadsInDwords,
                       "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
-        static_assert(numDwords > 0, "Calling this function without payloads has no effect.");
+        static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::PayloadFunc, 0>(payloads...);
     }
 
     template <typename... PayloadTypes>
-    RT_DEVICE_FUNCTION void setPayloads(const PayloadTypes*... payloads) {
-        constexpr size_t numDwords = detail::calcSumDwords<PayloadTypes...>();
+    RT_DEVICE_FUNCTION void PayloadSignature<PayloadTypes...>::set(const PayloadTypes*... payloads) {
         static_assert(numDwords <= detail::maxNumPayloadsInDwords,
                       "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
-        static_assert(numDwords > 0, "Calling this function without payloads has no effect.");
+        static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::setValues<detail::PayloadFunc, 0>(payloads...);
     }
 
 
 
-    template <typename... AttributeTypes>
+    template <typename AttributeSignatureType, typename... AttributeTypes>
     RT_DEVICE_FUNCTION void reportIntersection(float hitT, uint32_t hitKind,
                                                const AttributeTypes &... attributes) {
+        static_assert(std::is_same_v<AttributeSignatureType, AttributeSignature<AttributeTypes...>>,
+                      "Attribute types are inconsistent with the signature.");
         constexpr size_t numDwords = detail::calcSumDwords<AttributeTypes...>();
         static_assert(numDwords <= 8, "Maximum number of attributes is 8 dwords.");
         if constexpr (numDwords == 0) {
@@ -665,19 +724,20 @@ namespace optixu {
     }
 
     template <typename... AttributeTypes>
-    RT_DEVICE_FUNCTION void getAttributes(AttributeTypes*... attributes) {
-        constexpr size_t numDwords = detail::calcSumDwords<AttributeTypes...>();
+    RT_DEVICE_FUNCTION void AttributeSignature<AttributeTypes...>::get(AttributeTypes*... attributes) {
         static_assert(numDwords <= 8, "Maximum number of attributes is 8 dwords.");
-        static_assert(numDwords > 0, "Calling this function without attributes has no effect.");
+        static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::AttributeFunc, 0>(attributes...);
     }
 
 
 
-    template <typename... ExceptionDetailTypes>
+    template <typename ExceptionDetailSignatureType, typename... ExceptionDetailTypes>
     RT_DEVICE_FUNCTION void throwException(int32_t exceptionCode,
-                                           const ExceptionDetailTypes &... exceptionDetails) {
+                                           const ExceptionDetailTypes &... exDetails) {
+        static_assert(std::is_same_v<ExceptionDetailSignatureType, ExceptionDetailSignature<ExceptionDetailTypes...>>,
+                      "Exception detail types are inconsistent with the signature.");
         constexpr size_t numDwords = detail::calcSumDwords<ExceptionDetailTypes...>();
         static_assert(numDwords <= 8, "Maximum number of exception details is 8 dwords.");
         if constexpr (numDwords == 0) {
@@ -685,18 +745,17 @@ namespace optixu {
         }
         else {
             uint32_t ed[numDwords];
-            detail::packToUInts<0>(ed, exceptionDetails...);
+            detail::packToUInts<0>(ed, exDetails...);
             detail::throwException(exceptionCode, ed, std::make_index_sequence<numDwords>{});
         }
     }
 
     template <typename... ExceptionDetailTypes>
-    RT_DEVICE_FUNCTION void getExceptionDetails(ExceptionDetailTypes*... details) {
-        constexpr size_t numDwords = detail::calcSumDwords<ExceptionDetailTypes...>();
+    RT_DEVICE_FUNCTION void ExceptionDetailSignature<ExceptionDetailTypes...>::get(ExceptionDetailTypes*... exDetails) {
         static_assert(numDwords <= 8, "Maximum number of exception details is 8 dwords.");
-        static_assert(numDwords > 0, "Calling this function without exception details has no effect.");
+        static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
-            detail::getValues<detail::ExceptionDetailFunc, 0>(details...);
+            detail::getValues<detail::ExceptionDetailFunc, 0>(exDetails...);
     }
 
 #endif // #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
@@ -1271,13 +1330,12 @@ private: \
                                   const OptixPayloadSemantics* semantics,
                                   uint32_t numPayloads);
     public:
-        template <typename... PayloadTypes, uint32_t N>
+        template <typename PayloadSignatureType, uint32_t N>
         static PayloadType create(const OptixPayloadSemantics (&semantics)[N]) {
             // Nの代わりにsizeof...(PayloadTypes)を使った場合、渡された引数の数が足りない場合を検知できない。
-            static_assert(N == sizeof...(PayloadTypes),
-                          "Number of semantics passed doesn't match to the number of payload variables.");
-            constexpr uint32_t payloadSizesInDwords[N] = { detail::getNumDwords<PayloadTypes>()... };
-            return create(payloadSizesInDwords, semantics, N);
+            static_assert(N == PayloadSignatureType::numParameters,
+                          "Number of semantics passed doesn't match to the number of payload parameters.");
+            return create(PayloadSignatureType::sizesInDwords, semantics, N);
         }
 
         void destroy();
@@ -1296,7 +1354,7 @@ private: \
         void destroy();
         OPTIXU_COMMON_FUNCTIONS(Pipeline);
 
-        void setPipelineOptions(uint32_t numPayloadValues, uint32_t numAttributeValues,
+        void setPipelineOptions(uint32_t numPayloadValuesInDwords, uint32_t numAttributeValuesInDwords,
                                 const char* launchParamsVariableName, size_t sizeOfLaunchParams,
                                 bool useMotionBlur,
                                 OptixTraversableGraphFlags traversableGraphFlags,

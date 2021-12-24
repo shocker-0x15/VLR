@@ -1,8 +1,12 @@
 #pragma once
 
-#include "kernel_common.cuh"
+#include "kernel_common.h"
 
-namespace vlr {
+namespace vlr::shared {
+    using DebugPayloadSignature = optixu::PayloadSignature<KernelRNG, WavelengthSamples, SampledSpectrum>;
+
+
+
     class BSDF {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
@@ -13,6 +17,7 @@ namespace vlr {
         ProgSigBSDFEvaluateInternal progEvaluateInternal;
         ProgSigBSDFEvaluatePDFInternal progEvaluatePDFInternal;
 
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
             return progMatches(reinterpret_cast<const uint32_t*>(this), dirType);
         }
@@ -25,8 +30,10 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
             setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
@@ -76,6 +83,7 @@ namespace vlr {
             float ret = evaluatePDFInternal(query, dirLocal);
             return ret;
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };
 
 
@@ -87,14 +95,17 @@ namespace vlr {
         ProgSigEDFEvaluateEmittanceInternal progEvaluateEmittanceInternal;
         ProgSigEDFEvaluateInternal progEvaluateInternal;
 
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
             return progEvaluateEmittanceInternal(reinterpret_cast<const uint32_t*>(this));
         }
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
             setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
@@ -114,6 +125,7 @@ namespace vlr {
             SampledSpectrum Le1 = evaluateInternal(query, dirLocal);
             return Le1;
         }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };
 
 
@@ -126,6 +138,8 @@ namespace vlr {
     using ProgSigFetchNormal = optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)>;
 
 
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     // Reference:
     // Chapter 6. A Fast and Robust Method for Avoiding Self-Intersection, Ray Tracing Gems, 2019
@@ -249,4 +263,6 @@ namespace vlr {
         Vector3D newTangent = calcNode(hp.sbtr->geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
         modifyTangent(newTangent, surfPt);
     }
+
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 }

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "renderer_common.cuh"
+#include "renderer_common.h"
 
-namespace vlr {
+namespace vlr::shared {
     struct ReadOnlyPayload {
         float initImportance;
         WavelengthSamples wls;
@@ -31,11 +31,13 @@ namespace vlr {
         Normal3D firstHitNormal;
     };
 
-#define PayloadSignature ReadOnlyPayload*, WriteOnlyPayload*, ReadWritePayload*, ExtraPayload*
+    using PayloadSignature = optixu::PayloadSignature<ReadOnlyPayload*, WriteOnlyPayload*, ReadWritePayload*, ExtraPayload*>;
 
-#define ShadowPayloadSignature WavelengthSamples, float
+    using ShadowPayloadSignature = optixu::PayloadSignature<WavelengthSamples, float>;
 
 
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     // ----------------------------------------------------------------
     // Light
@@ -87,7 +89,7 @@ namespace vlr {
 
     CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitDefault)() {
         float fractionalVisibility = 0.0f;
-        optixu::setPayloads<ShadowPayloadSignature>(nullptr, &fractionalVisibility);
+        ShadowPayloadSignature::set(nullptr, &fractionalVisibility);
         optixTerminateRay();
     }
 
@@ -95,7 +97,7 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_AH_NAME(anyHitWithAlpha)() {
         ReadOnlyPayload* roPayload;
         ReadWritePayload* rwPayload;
-        optixu::getPayloads<PayloadSignature>(&roPayload, nullptr, &rwPayload, nullptr);
+        PayloadSignature::get(&roPayload, nullptr, &rwPayload, nullptr);
 
         float alpha = getAlpha(roPayload->wls);
 
@@ -108,15 +110,17 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void RT_AH_NAME(shadowAnyHitWithAlpha)() {
         WavelengthSamples wls;
         float fractionalVisibility;
-        optixu::getPayloads<ShadowPayloadSignature>(&wls, &fractionalVisibility);
+        ShadowPayloadSignature::get(&wls, &fractionalVisibility);
 
         float alpha = getAlpha(wls);
 
         fractionalVisibility *= (1 - alpha);
-        optixu::setPayloads<ShadowPayloadSignature>(nullptr, &fractionalVisibility);
+        ShadowPayloadSignature::set(nullptr, &fractionalVisibility);
         if (fractionalVisibility == 0.0f)
             optixTerminateRay();
         else
             optixIgnoreIntersection();
     }
+
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 }
