@@ -40,7 +40,10 @@ namespace vlr {
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(
         const Instance &inst, const GeometryInstance &geomInst,
-        const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+        const SurfaceLightPosSample &sample, const Point3D &shadingPoint,
+        SurfaceLightPosQueryResult* result) {
+        (void)shadingPoint;
+
         float u, v;
         float uvPDF;
         geomInst.asInfSphere.importanceMap.sample(sample.uPos[0], sample.uPos[1], &u, &v, &uvPDF);

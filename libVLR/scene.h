@@ -175,6 +175,7 @@ namespace vlr {
         virtual void addParent(ParentNode* parent);
         virtual void removeParent(ParentNode* parent);
 
+        virtual bool isIntersectable() const { return true; }
         virtual void setupData(
             uint32_t userData,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const = 0;
@@ -252,6 +253,66 @@ namespace vlr {
 
 
 
+    class PointSurfaceNode : public SurfaceNode {
+        struct OptiXProgramSet {
+            uint32_t dcSamplePoint;
+        };
+
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+
+        struct MaterialGroup {
+            std::vector<uint32_t> indices;
+            cudau::TypedBuffer<uint32_t> optixIndexBuffer;
+            DiscreteDistribution1D primDist;
+            const SurfaceMaterial* material;
+            SHGeometryInstance* shGeomInst;
+
+            MaterialGroup() {}
+            MaterialGroup(MaterialGroup &&v) {
+                indices = std::move(v.indices);
+                optixIndexBuffer = std::move(v.optixIndexBuffer);
+                primDist = std::move(v.primDist);
+                material = v.material;
+                shGeomInst = v.shGeomInst;
+            }
+            MaterialGroup &operator=(MaterialGroup &&v) {
+                indices = std::move(v.indices);
+                optixIndexBuffer = std::move(v.optixIndexBuffer);
+                primDist = std::move(v.primDist);
+                material = v.material;
+                shGeomInst = v.shGeomInst;
+                return *this;
+            }
+        };
+
+        std::vector<Vertex> m_vertices;
+        cudau::TypedBuffer<Vertex> m_optixVertexBuffer;
+        std::vector<MaterialGroup> m_materialGroups;
+
+    public:
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        PointSurfaceNode(Context &context, const std::string &name);
+        ~PointSurfaceNode();
+
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
+
+        void setVertices(std::vector<Vertex> &&vertices);
+        void addMaterialGroup(
+            std::vector<uint32_t> &&indices, const SurfaceMaterial* material);
+
+        bool isIntersectable() const override { return false; }
+        void setupData(
+            uint32_t userData,
+            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const override;
+    };
+
+
+
     class InfiniteSphereSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
             uint32_t dcDecodeHitPointForInfiniteSphere;
@@ -277,7 +338,7 @@ namespace vlr {
 
         void setupData(
             uint32_t userData,
-            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const;
+            optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const override;
     };
 
 

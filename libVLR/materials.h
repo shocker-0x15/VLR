@@ -397,6 +397,76 @@ namespace vlr {
 
 
 
+    class DirectionalEmitterSurfaceMaterial : public SurfaceMaterial {
+        VLR_DECLARE_QUERYABLE_INTERFACE();
+
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+
+        ShaderNodePlug m_nodeEmittance;
+        ImmediateSpectrum m_immEmittance;
+        float m_immScale;
+        ShaderNodePlug m_nodeDirection;
+        Vector3D m_immDirection;
+
+        void setupMaterialDescriptor(CUstream stream) const override;
+
+    public:
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        DirectionalEmitterSurfaceMaterial(Context &context);
+        ~DirectionalEmitterSurfaceMaterial();
+
+        bool get(const char* paramName, float* values, uint32_t length) const override;
+        bool get(const char* paramName, Vector3D* dir) const override;
+        bool get(const char* paramName, ImmediateSpectrum* spectrum) const override;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
+
+        bool set(const char* paramName, const float* values, uint32_t length) override;
+        bool set(const char* paramName, const Vector3D& dir) override;
+        bool set(const char* paramName, const ImmediateSpectrum& spectrum) override;
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
+
+        bool isEmitting() const override { return true; }
+    };
+
+
+
+    class PointEmitterSurfaceMaterial : public SurfaceMaterial {
+        VLR_DECLARE_QUERYABLE_INTERFACE();
+
+        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
+
+        ShaderNodePlug m_nodeIntensity;
+        ImmediateSpectrum m_immIntensity;
+        float m_immScale;
+
+        void setupMaterialDescriptor(CUstream stream) const override;
+
+    public:
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
+        static void initialize(Context &context);
+        static void finalize(Context &context);
+
+        PointEmitterSurfaceMaterial(Context &context);
+        ~PointEmitterSurfaceMaterial();
+
+        bool get(const char* paramName, float* values, uint32_t length) const override;
+        bool get(const char* paramName, ImmediateSpectrum* spectrum) const override;
+        bool get(const char* paramName, ShaderNodePlug* plug) const override;
+
+        bool set(const char* paramName, const float* values, uint32_t length) override;
+        bool set(const char* paramName, const ImmediateSpectrum& spectrum) override;
+        bool set(const char* paramName, const ShaderNodePlug& plug) override;
+
+        bool isEmitting() const override { return true; }
+    };
+
+
+
     class MultiSurfaceMaterial : public SurfaceMaterial {
         VLR_DECLARE_QUERYABLE_INTERFACE();
 

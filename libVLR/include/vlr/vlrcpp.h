@@ -502,6 +502,36 @@ namespace vlr {
 
 
 
+    class PointSurfaceNodeHolder : public SurfaceNodeHolder {
+        std::vector<SurfaceMaterialRef> m_materials;
+
+    public:
+        PointSurfaceNodeHolder(const ContextConstRef &context, const char* name) :
+            SurfaceNodeHolder(context) {
+            errorCheck(vlrPointSurfaceNodeCreate(
+                getRawContext(m_context), name,
+                reinterpret_cast<VLRPointSurfaceNode*>(&m_raw)));
+        }
+        ~PointSurfaceNodeHolder() {
+            errorCheck(vlrPointSurfaceNodeDestroy(
+                getRawContext(m_context), getRaw<VLRPointSurfaceNode>()));
+        }
+
+        void setVertices(vlr::Vertex* vertices, uint32_t numVertices) {
+            errorCheck(vlrPointSurfaceNodeSetVertices(
+                getRaw<VLRPointSurfaceNode>(), reinterpret_cast<VLRVertex*>(vertices), numVertices));
+        }
+        void addMaterialGroup(uint32_t* indices, uint32_t numIndices,
+                              const SurfaceMaterialRef &material) {
+            m_materials.push_back(material);
+            errorCheck(vlrPointSurfaceNodeAddMaterialGroup(
+                getRaw<VLRPointSurfaceNode>(), indices, numIndices,
+                material->getRaw<VLRSurfaceMaterial>()));
+        }
+    };
+
+
+
     class ParentNodeHolder : public NodeHolder {
     protected:
         TransformRef m_transform;
@@ -759,6 +789,10 @@ namespace vlr {
 
         TriangleMeshSurfaceNodeRef createTriangleMeshSurfaceNode(const char* name) const {
             return std::make_shared<TriangleMeshSurfaceNodeHolder>(shared_from_this(), name);
+        }
+
+        PointSurfaceNodeRef createPointSurfaceNode(const char* name) const {
+            return std::make_shared<PointSurfaceNodeHolder>(shared_from_this(), name);
         }
 
         InternalNodeRef createInternalNode(const char* name, const StaticTransformRef &transform = nullptr) const {

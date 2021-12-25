@@ -947,6 +947,12 @@ VLR_API VLRResult vlrSurfaceMaterialCreate(
         else if (vlr::testParamName(sTypeName, "DiffuseEmitter")) {
             *material = new vlr::DiffuseEmitterSurfaceMaterial(*context);
         }
+        else if (vlr::testParamName(sTypeName, "DirectionalEmitter")) {
+            *material = new vlr::DirectionalEmitterSurfaceMaterial(*context);
+        }
+        else if (vlr::testParamName(sTypeName, "PointEmitter")) {
+            *material = new vlr::PointEmitterSurfaceMaterial(*context);
+        }
         else if (vlr::testParamName(sTypeName, "Multi")) {
             *material = new vlr::MultiSurfaceMaterial(*context);
         }
@@ -1118,6 +1124,73 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(
             vlr::ShaderNodePlug(nodeNormal),
             vlr::ShaderNodePlug(nodeTangent),
             vlr::ShaderNodePlug(nodeAlpha));
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+
+
+VLR_API VLRResult vlrPointSurfaceNodeCreate(
+    VLRContext context,
+    const char* name,
+    VLRPointSurfaceNode* surfaceNode) {
+    try {
+        if (surfaceNode == nullptr)
+            return VLRResult_InvalidArgument;
+
+        *surfaceNode = new vlr::PointSurfaceNode(*context, name);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrPointSurfaceNodeDestroy(
+    VLRContext context,
+    VLRPointSurfaceNode surfaceNode) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(surfaceNode, vlr::PointSurfaceNode);
+
+        delete surfaceNode;
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrPointSurfaceNodeSetVertices(
+    VLRPointSurfaceNode surfaceNode,
+    const VLRVertex* vertices, uint32_t numVertices) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(surfaceNode, vlr::PointSurfaceNode);
+        if (vertices == nullptr)
+            return VLRResult_InvalidArgument;
+
+        std::vector<vlr::Vertex> vecVertices(numVertices);
+        std::copy_n(reinterpret_cast<const vlr::Vertex*>(vertices), numVertices, vecVertices.data());
+
+        surfaceNode->setVertices(std::move(vecVertices));
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrPointSurfaceNodeAddMaterialGroup(
+    VLRPointSurfaceNode surfaceNode,
+    const uint32_t* indices, uint32_t numIndices,
+    VLRSurfaceMaterialConst material) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(surfaceNode, vlr::PointSurfaceNode);
+        if (indices == nullptr || !nonNullAndCheckType<vlr::SurfaceMaterial>(material))
+            return VLRResult_InvalidArgument;
+
+        std::vector<uint32_t> vecIndices(numIndices);
+        std::copy_n(indices, numIndices, vecIndices.data());
+
+        surfaceNode->addMaterialGroup(std::move(vecIndices), material);
 
         return VLRResult_NoError;
     }

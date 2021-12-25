@@ -51,7 +51,10 @@ namespace vlr {
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleTriangleMesh)(
         const Instance &inst, const GeometryInstance &geomInst,
-        const SurfaceLightPosSample &sample, SurfaceLightPosQueryResult* result) {
+        const SurfaceLightPosSample &sample, const Point3D &shadingPoint,
+        SurfaceLightPosQueryResult* result) {
+        (void)shadingPoint;
+
         float primProb;
         uint32_t primIdx = geomInst.asTriMesh.primDistribution.sample(sample.uElem, &primProb);
         //printf("%g, %u, %g\n", sample.uElem, primIdx, primProb);

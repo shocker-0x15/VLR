@@ -351,6 +351,25 @@ VLR_API VLRResult vlrTriangleMeshSurfaceNodeAddMaterialGroup(
 
 
 
+// PointSurfaceNode
+
+VLR_API VLRResult vlrPointSurfaceNodeCreate(
+    VLRContext context,
+    const char* name,
+    VLRPointSurfaceNode* surfaceNode);
+VLR_API VLRResult vlrPointSurfaceNodeDestroy(
+    VLRContext context,
+    VLRPointSurfaceNode surfaceNode);
+VLR_API VLRResult vlrPointSurfaceNodeSetVertices(
+    VLRPointSurfaceNode surfaceNode,
+    const VLRVertex* vertices, uint32_t numVertices);
+VLR_API VLRResult vlrPointSurfaceNodeAddMaterialGroup(
+    VLRPointSurfaceNode surfaceNode,
+    const uint32_t* indices, uint32_t numIndices,
+    VLRSurfaceMaterialConst material);
+
+
+
 // ParentNode
 // InternalNode, Scene
 

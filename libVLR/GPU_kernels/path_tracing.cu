@@ -72,7 +72,7 @@ namespace vlr {
 
             SurfaceLightPosSample lpSample(uPrim, rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
             SurfaceLightPosQueryResult lpResult;
-            light.sample(lpSample, &lpResult);
+            light.sample(lpSample, surfPt.position, &lpResult);
 
             const SurfaceMaterialDescriptor lightMatDesc = plp.materialDescriptorBuffer[lpResult.materialIndex];
             EDF ledf(lightMatDesc, lpResult.surfPt, wls);

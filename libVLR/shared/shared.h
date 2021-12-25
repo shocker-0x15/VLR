@@ -62,6 +62,7 @@ namespace vlr {
             e1 = sRGB_degamma(e1);
             e2 = sRGB_degamma(e2);
             // pass to Rec709 (D65)
+            [[fallthrough]];
         }
         case ColorSpace::Rec709_D65: {
             float RGB[3] = { e0, e1, e2 };
@@ -818,6 +819,20 @@ namespace vlr {
             float immScale;
         };
 
+        struct DirectionalEmitterSurfaceMaterial {
+            ShaderNodePlug nodeEmittance;
+            TripletSpectrum immEmittance;
+            float immScale;
+            ShaderNodePlug nodeDirection;
+            Vector3D immDirection;
+        };
+
+        struct PointEmitterSurfaceMaterial {
+            ShaderNodePlug nodeIntensity;
+            TripletSpectrum immIntensity;
+            float immScale;
+        };
+
         struct MultiSurfaceMaterial {
             uint32_t subMatIndices[4];
             uint32_t numSubMaterials;
@@ -841,6 +856,11 @@ namespace vlr {
                     const Triangle* triangleBuffer;
                     DiscreteDistribution1D primDistribution;
                 } asTriMesh;
+                struct {
+                    const Vertex* vertexBuffer;
+                    const uint32_t* indexBuffer;
+                    DiscreteDistribution1D primDistribution;
+                } asPoints;
                 struct {
                     RegularConstantContinuousDistribution2D importanceMap;
                 } asInfSphere;

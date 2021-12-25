@@ -43,8 +43,9 @@ namespace vlr::shared {
     // Light
 
     template <typename RayType>
-    CUDA_DEVICE_FUNCTION bool testVisibility(const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, const WavelengthSamples &wls,
-                                             Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
+    CUDA_DEVICE_FUNCTION bool testVisibility(
+        const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, const WavelengthSamples &wls,
+        Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
         VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
 
         *shadowRayDir = lightSurfacePoint.calcDirectionFrom(shadingSurfacePoint.position, squaredDistance);
@@ -69,7 +70,8 @@ namespace vlr::shared {
         return *fractionalVisibility > 0;
     }
 
-    CUDA_DEVICE_FUNCTION void selectSurfaceLight(float uLight, SurfaceLight* light, float* lightProb, float* uPrim) {
+    CUDA_DEVICE_FUNCTION void selectSurfaceLight(
+        float uLight, SurfaceLight* light, float* lightProb, float* uPrim) {
         float uInst;
         float instProb;
         uint32_t instIndex = plp.instIndices[plp.lightInstDist.sample(uLight, &instProb, &uInst)];

@@ -154,6 +154,9 @@
     <CudaCompile Include="GPU_kernels\post_process.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
+    <CudaCompile Include="GPU_kernels\point.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_E.coeff">

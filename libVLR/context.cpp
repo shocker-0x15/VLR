@@ -65,6 +65,8 @@ namespace vlr {
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, UE4SurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, OldStyleSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, DiffuseEmitterSurfaceMaterial);
+    VLR_DEFINE_CLASS_ID(SurfaceMaterial, DirectionalEmitterSurfaceMaterial);
+    VLR_DEFINE_CLASS_ID(SurfaceMaterial, PointEmitterSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, MultiSurfaceMaterial);
     VLR_DEFINE_CLASS_ID(SurfaceMaterial, EnvironmentEmitterSurfaceMaterial);
 
@@ -74,6 +76,7 @@ namespace vlr {
     VLR_DEFINE_CLASS_ID(Object, Node);
     VLR_DEFINE_CLASS_ID(Node, SurfaceNode);
     VLR_DEFINE_CLASS_ID(SurfaceNode, TriangleMeshSurfaceNode);
+    VLR_DEFINE_CLASS_ID(SurfaceNode, PointSurfaceNode);
     VLR_DEFINE_CLASS_ID(SurfaceNode, InfiniteSphereSurfaceNode);
     VLR_DEFINE_CLASS_ID(Node, ParentNode);
     VLR_DEFINE_CLASS_ID(ParentNode, InternalNode);
@@ -159,31 +162,13 @@ namespace vlr {
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_ShaderNode] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/shader_nodes.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Material] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/materials.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Triangle] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/triangle.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_InfiniteSphere] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/infinite_sphere.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Camera] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/cameras.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            for (int i = 0; i < static_cast<int>(lengthof(commonModulePaths)); ++i) {
+                p.modules[OptiXModule_ShaderNode + i] = p.pipeline.createModuleFromPTXString(
+                    readTxtFile(exeDir / commonModulePaths[i]),
+                    OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            }
 
             p.rayGeneration = p.pipeline.createRayGenProgram(
                 p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("pathTracing"));
@@ -245,31 +230,14 @@ namespace vlr {
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_ShaderNode] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/shader_nodes.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Material] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/materials.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Triangle] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/triangle.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_InfiniteSphere] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/infinite_sphere.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
-            p.modules[OptiXModule_Camera] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/cameras.ptx"),
-                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
-                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            for (int i = 0; i < static_cast<int>(lengthof(commonModulePaths)); ++i) {
+                p.modules[OptiXModule_ShaderNode + i] = p.pipeline.createModuleFromPTXString(
+                    readTxtFile(exeDir / commonModulePaths[i]),
+                    OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            }
+
             p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
 
             p.rayGeneration = p.pipeline.createRayGenProgram(

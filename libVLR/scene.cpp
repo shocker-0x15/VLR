@@ -88,12 +88,14 @@ namespace vlr {
     // static
     void SurfaceNode::initialize(Context &context) {
         TriangleMeshSurfaceNode::initialize(context);
+        PointSurfaceNode::initialize(context);
         InfiniteSphereSurfaceNode::initialize(context);
     }
 
     // static
     void SurfaceNode::finalize(Context &context) {
         InfiniteSphereSurfaceNode::finalize(context);
+        PointSurfaceNode::finalize(context);
         TriangleMeshSurfaceNode::finalize(context);
     }
 
@@ -201,8 +203,8 @@ namespace vlr {
                     dstTriangles[i] = shared::Triangle{ i0, i1, i2 };
 
                     const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
-                    areas[i] = std::fmax(0.0f, 0.5f * cross(v[1].position - v[0].position,
-                                                            v[2].position - v[0].position).length());
+                    areas[i] = 0.5f * cross(v[1].position - v[0].position,
+                                            v[2].position - v[0].position).length();
                     sumImportances += areas[i];
                 }
                 matGroup.optixIndexBuffer.unmap(0);
@@ -282,6 +284,137 @@ namespace vlr {
         optixGeomInst->setMaterial(0, 0, optixMaterial);
         optixGeomInst->setUserData(*geomInst);
         optixGeomInst->setGeometryFlags(0, OPTIX_GEOMETRY_FLAG_NONE);
+    }
+
+
+
+    std::unordered_map<uint32_t, PointSurfaceNode::OptiXProgramSet> PointSurfaceNode::s_optiXProgramSets;
+
+    // static
+    void PointSurfaceNode::initialize(Context &context) {
+        OptiXProgramSet programSet;
+        programSet.dcSamplePoint = context.createDirectCallableProgram(
+            OptiXModule_Point, RT_DC_NAME_STR("samplePoint"));
+
+        s_optiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void PointSurfaceNode::finalize(Context &context) {
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
+        context.destroyDirectCallableProgram(programSet.dcSamplePoint);
+        s_optiXProgramSets.erase(context.getID());
+    }
+
+    PointSurfaceNode::PointSurfaceNode(Context &context, const std::string &name) :
+        SurfaceNode(context, name) {}
+
+    PointSurfaceNode::~PointSurfaceNode() {
+        for (auto it = m_materialGroups.rbegin(); it != m_materialGroups.rend(); ++it) {
+            MaterialGroup &matGroup = *it;
+            delete matGroup.shGeomInst;
+            matGroup.primDist.finalize(m_context);
+            matGroup.optixIndexBuffer.finalize();
+        }
+        m_optixVertexBuffer.finalize();
+    }
+
+    void PointSurfaceNode::addParent(ParentNode* parent) {
+        SurfaceNode::addParent(parent);
+
+        std::set<const SHGeometryInstance*> delta;
+        for (auto it = m_materialGroups.cbegin(); it != m_materialGroups.cend(); ++it)
+            delta.insert(it->shGeomInst);
+
+        // JP: 追加した親にジオメトリインスタンスの追加を行わせる。
+        // EN: Let the new parent add geometry instances.
+        parent->addGeometryInstance(delta);
+    }
+
+    void PointSurfaceNode::removeParent(ParentNode* parent) {
+        std::set<const SHGeometryInstance*> delta;
+        for (auto it = m_materialGroups.cbegin(); it != m_materialGroups.cend(); ++it)
+            delta.insert(it->shGeomInst);
+
+        // JP: 削除する親にジオメトリインスタンスの削除を行わせる。
+        // EN: Let the parent being removed remove geometry instances.
+        parent->removeGeometryInstance(delta);
+
+        SurfaceNode::removeParent(parent);
+    }
+
+    void PointSurfaceNode::setVertices(std::vector<Vertex> &&vertices) {
+        m_vertices = vertices;
+
+        CUcontext cuContext = m_context.getCUcontext();
+        m_optixVertexBuffer.initialize(cuContext, g_bufferType, m_vertices);
+
+        // TODO: 頂点情報更新時の処理。(IndexBufferとの整合性など)
+    }
+
+    void PointSurfaceNode::addMaterialGroup(
+        std::vector<uint32_t> &&indices, const SurfaceMaterial* material) {
+        CUcontext cuContext = m_context.getCUcontext();
+
+        MaterialGroup matGroup;
+        CompensatedSum<float> sumImportances(0.0f);
+        {
+            matGroup.indices = std::move(indices);
+            uint32_t numPoints = static_cast<uint32_t>(matGroup.indices.size());
+
+            matGroup.optixIndexBuffer.initialize(cuContext, g_bufferType, numPoints);
+
+            std::vector<float> importances;
+            importances.resize(numPoints);
+            {
+                auto dstPoints = matGroup.optixIndexBuffer.map(0, cudau::BufferMapFlag::WriteOnlyDiscard);
+                for (auto i = 0; i < static_cast<int>(numPoints); ++i) {
+                    dstPoints[i] = matGroup.indices[i];
+                    importances[i] = 1.0f;
+                    sumImportances += importances[i];
+                }
+                matGroup.optixIndexBuffer.unmap(0);
+            }
+
+            if (material->isEmitting())
+                matGroup.primDist.initialize(m_context, importances.data(), importances.size());
+        }
+
+        matGroup.material = material;
+
+        SHGeometryInstance* shGeomInst = new SHGeometryInstance;
+        shGeomInst->surfNode = this;
+        shGeomInst->userData = static_cast<uint32_t>(m_materialGroups.size());
+
+        matGroup.shGeomInst = shGeomInst;
+        m_materialGroups.push_back(std::move(matGroup));
+
+        // JP: 親達にジオメトリインスタンスの追加を行わせる。
+        // EN: Let parents add geometry instances.
+        std::set<const SHGeometryInstance*> delta;
+        delta.insert(shGeomInst);
+        for (auto it = m_parents.cbegin(); it != m_parents.cend(); ++it) {
+            ParentNode* parent = *it;
+            parent->addGeometryInstance(delta);
+        }
+    }
+
+    void PointSurfaceNode::setupData(
+        uint32_t userData,
+        optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const {
+        const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
+        const MaterialGroup &matGroup = m_materialGroups[userData];
+
+        geomInst->asPoints.vertexBuffer = m_optixVertexBuffer.getDevicePointer();
+        geomInst->asPoints.indexBuffer = matGroup.optixIndexBuffer.getDevicePointer();
+        matGroup.primDist.getInternalType(&geomInst->asPoints.primDistribution);
+        geomInst->progSample = progSet.dcSamplePoint;
+        geomInst->progDecodeHitPoint = 0;
+        geomInst->nodeNormal = shared::ShaderNodePlug::Invalid();
+        geomInst->nodeTangent = shared::ShaderNodePlug::Invalid();
+        geomInst->nodeAlpha = shared::ShaderNodePlug::Invalid();
+        geomInst->materialIndex = matGroup.material->getMaterialIndex();
+        geomInst->importance = matGroup.material->isEmitting() ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
     }
 
 
@@ -871,7 +1004,8 @@ namespace vlr {
             GeometryInstance &geomInst = m_geometryInstances[shGeomInst];
             geomInst = {};
             geomInst.geomInstIndex = m_geomInstBuffer.allocate();
-            geomInst.optixGeomInst = m_optixScene.createGeometryInstance();
+            if (shGeomInst->surfNode->isIntersectable())
+                geomInst.optixGeomInst = m_optixScene.createGeometryInstance();
             geomInst.referenceCount = 1;
             m_dirtyGeometryInstances.insert(shGeomInst);
         }
@@ -891,7 +1025,8 @@ namespace vlr {
         GeometryAS &gas = m_geometryASes.at(shGeomGroup);
         for (const SHGeometryInstance* shGeomInst : childDelta) {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
-            if (gas.optixGas.findChildIndex(geomInst.optixGeomInst) == 0xFFFFFFFF)
+            if (shGeomInst->surfNode->isIntersectable() &&
+                gas.optixGas.findChildIndex(geomInst.optixGeomInst) == 0xFFFFFFFF)
                 gas.optixGas.addChild(geomInst.optixGeomInst);
         }
         m_dirtyGeometryASes.insert(shGeomGroup);
@@ -923,7 +1058,8 @@ namespace vlr {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
             if (--geomInst.referenceCount > 0)
                 continue;
-            gas.optixGas.removeChildAt(gas.optixGas.findChildIndex(geomInst.optixGeomInst));
+            if (shGeomInst->surfNode->isIntersectable())
+                gas.optixGas.removeChildAt(gas.optixGas.findChildIndex(geomInst.optixGeomInst));
             ++numRemovedGeomInsts;
 
             geomInst.optixGeomInst.destroy();
@@ -934,7 +1070,7 @@ namespace vlr {
 
         // JP: 空になったGASは削除する。
         // EN: Remove the GAS if empty.
-        bool isEmptyGeomGroup = gas.optixGas.getNumChildren() == 0;
+        bool isEmptyGeomGroup = shGeomGroup->getNumChildren() == 0;
         if (isEmptyGeomGroup) {
             gas.optixGasMem.finalize();
             gas.optixGas.destroy();

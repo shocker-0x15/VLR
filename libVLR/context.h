@@ -80,9 +80,19 @@ namespace vlr {
         OptiXModule_ShaderNode,
         OptiXModule_Material,
         OptiXModule_Triangle,
+        OptiXModule_Point,
         OptiXModule_InfiniteSphere,
         OptiXModule_Camera,
         NumOptiXModules,
+    };
+
+    constexpr const char* commonModulePaths[] = {
+        "ptxes/shader_nodes.ptx",
+        "ptxes/materials.ptx",
+        "ptxes/triangle.ptx",
+        "ptxes/point.ptx",
+        "ptxes/infinite_sphere.ptx",
+        "ptxes/cameras.ptx",
     };
 
 

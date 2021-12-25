@@ -284,7 +284,7 @@ namespace vlr::shared {
         uint32_t materialIndex;
     };
 
-    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, SurfaceLightPosQueryResult*)>;
+    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, const Point3D &, SurfaceLightPosQueryResult*)>;
 
     class SurfaceLight {
         Instance m_inst;
@@ -298,9 +298,11 @@ namespace vlr::shared {
         }
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION void sample(const SurfaceLightPosSample &posSample, SurfaceLightPosQueryResult* lpResult) const {
+        CUDA_DEVICE_FUNCTION void sample(
+            const SurfaceLightPosSample &posSample, const Point3D &shadingPoint,
+            SurfaceLightPosQueryResult* lpResult) const {
             auto sample = static_cast<ProgSigSurfaceLight_sample>(m_geomInst.progSample);
-            sample(m_inst, m_geomInst, posSample, lpResult);
+            sample(m_inst, m_geomInst, posSample, shadingPoint, lpResult);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };

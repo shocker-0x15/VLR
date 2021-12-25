@@ -1423,6 +1423,73 @@ namespace vlr {
 
 
 
+    class DirectionalEDF {
+        SampledSpectrum m_emittance;
+        Vector3D m_direction;
+
+    public:
+        CUDA_DEVICE_FUNCTION DirectionalEDF(const SampledSpectrum &emittance, const Vector3D &direction) :
+            m_emittance(emittance), m_direction(direction) {}
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+            return m_emittance;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            return SampledSpectrum::Zero();
+        }
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(DirectionalEmitterSurfaceMaterial_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+        auto &p = *reinterpret_cast<DirectionalEDF*>(params);
+        auto &mat = *reinterpret_cast<const DirectionalEmitterSurfaceMaterial*>(matDesc);
+
+        p = DirectionalEDF(calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls) * mat.immScale,
+                           calcNode(mat.nodeDirection, mat.immDirection, surfPt, wls));
+
+        return sizeof(DirectionalEDF) / 4;
+    }
+
+    DEFINE_EDF_INTERFACES(DirectionalEDF)
+
+
+
+    class PointEDF {
+        SampledSpectrum m_intensity;
+
+    public:
+        CUDA_DEVICE_FUNCTION PointEDF(const SampledSpectrum &intensity) :
+            m_intensity(intensity) {}
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+            // power = intensity * (4 * Pi)
+            // area = 4 * pi * r^2
+            // emittance = power / area = intensity / r^2
+            return m_intensity;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            return 1.0f / (4 * VLR_M_PI);
+        }
+    };
+
+    RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(PointEmitterSurfaceMaterial_setupEDF)(
+        const uint32_t* matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, uint32_t* params) {
+        auto &p = *reinterpret_cast<PointEDF*>(params);
+        auto &mat = *reinterpret_cast<const PointEmitterSurfaceMaterial*>(matDesc);
+
+        p = PointEDF(calcNode(mat.nodeIntensity, mat.immIntensity, surfPt, wls) * mat.immScale);
+
+        return sizeof(PointEDF) / 4;
+    }
+
+    DEFINE_EDF_INTERFACES(PointEDF)
+
+
+
     // ----------------------------------------------------------------
     // MultiBSDF / MultiEDF
 

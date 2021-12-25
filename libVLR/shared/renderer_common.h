@@ -67,12 +67,16 @@ namespace vlr::shared {
                       query.dirLocal.x, query.dirLocal.y, query.dirLocal.z, sample.uComponent, sample.uDir[0], sample.uDir[1],
                       result->dirPDF);
             float snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
+            if (result->dirLocal.z == 0.0f)
+                snCorrection = 0.0f;
             return fs_sn * snCorrection;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) {
             SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
             float snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
+            if (dirLocal.z == 0.0f)
+                snCorrection = 0.0f;
             return fs_sn * snCorrection;
         }
 
@@ -248,7 +252,8 @@ namespace vlr::shared {
 
 
 
-    CUDA_DEVICE_FUNCTION void calcSurfacePoint(const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
+    CUDA_DEVICE_FUNCTION void calcSurfacePoint(
+        const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
         ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
         decodeHitPoint(hp, surfPt, hypAreaPDF);
         surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);

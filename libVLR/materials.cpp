@@ -122,6 +122,8 @@ namespace vlr {
         UE4SurfaceMaterial::initialize(context);
         OldStyleSurfaceMaterial::initialize(context);
         DiffuseEmitterSurfaceMaterial::initialize(context);
+        DirectionalEmitterSurfaceMaterial::initialize(context);
+        PointEmitterSurfaceMaterial::initialize(context);
         MultiSurfaceMaterial::initialize(context);
         EnvironmentEmitterSurfaceMaterial::initialize(context);
     }
@@ -130,6 +132,8 @@ namespace vlr {
     void SurfaceMaterial::finalize(Context &context) {
         EnvironmentEmitterSurfaceMaterial::finalize(context);
         MultiSurfaceMaterial::finalize(context);
+        PointEmitterSurfaceMaterial::finalize(context);
+        DirectionalEmitterSurfaceMaterial::finalize(context);
         DiffuseEmitterSurfaceMaterial::finalize(context);
         OldStyleSurfaceMaterial::finalize(context);
         UE4SurfaceMaterial::finalize(context);
@@ -1698,6 +1702,348 @@ namespace vlr {
                 return false;
 
             m_nodeEmittance = plug;
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+
+
+    std::vector<ParameterInfo> DirectionalEmitterSurfaceMaterial::ParameterInfos;
+
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> DirectionalEmitterSurfaceMaterial::s_optiXProgramSets;
+
+    // static
+    void DirectionalEmitterSurfaceMaterial::initialize(Context &context) {
+        const ParameterInfo paramInfos[] = {
+            ParameterInfo("emittance", VLRParameterFormFlag_Both, ParameterSpectrum),
+            ParameterInfo("scale", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+            ParameterInfo("direction", VLRParameterFormFlag_Both, ParameterVector3D),
+        };
+
+        if (ParameterInfos.size() == 0) {
+            ParameterInfos.resize(lengthof(paramInfos));
+            std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
+        }
+
+        const char* identifiers[] = {
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            RT_DC_NAME_STR("DirectionalEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("DirectionalEDF_evaluateEmittanceInternal"),
+            RT_DC_NAME_STR("DirectionalEDF_evaluateInternal")
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        s_optiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void DirectionalEmitterSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+        s_optiXProgramSets.erase(context.getID());
+    }
+
+    DirectionalEmitterSurfaceMaterial::DirectionalEmitterSurfaceMaterial(Context &context) :
+        SurfaceMaterial(context),
+        m_immEmittance(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f),
+        m_immDirection(Vector3D(0, 0, 1)) {
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+    }
+
+    DirectionalEmitterSurfaceMaterial::~DirectionalEmitterSurfaceMaterial() {
+    }
+
+    void DirectionalEmitterSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
+
+        shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptorHead(m_context, progSet, &matDesc);
+        auto &mat = *matDesc.getData<shared::DirectionalEmitterSurfaceMaterial>();
+        mat.nodeEmittance = m_nodeEmittance.getSharedType();
+        mat.immEmittance = m_immEmittance.createTripletSpectrum(SpectrumType::LightSource);
+        mat.immScale = m_immScale;
+        mat.nodeDirection = m_nodeDirection.getSharedType();
+        mat.immDirection = m_immDirection;
+
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "scale")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_immScale;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::get(const char* paramName, Vector3D* dir) const {
+        if (dir == nullptr)
+            return false;
+
+        if (testParamName(paramName, "direction")) {
+            *dir = m_immDirection;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
+        if (spectrum == nullptr)
+            return false;
+
+        if (testParamName(paramName, "emittance")) {
+            *spectrum = m_immEmittance;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
+            return false;
+
+        if (testParamName(paramName, "emittance")) {
+            *plug = m_nodeEmittance;
+        }
+        else if (testParamName(paramName, "direction")) {
+            *plug = m_nodeDirection;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::set(const char* paramName, const float* values, uint32_t length) {
+        if (testParamName(paramName, "scale")) {
+            if (length != 1)
+                return false;
+
+            m_immScale = values[0];
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::set(const char* paramName, const Vector3D& dir) {
+        if (testParamName(paramName, "direction")) {
+            m_immDirection = dir;
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
+        if (testParamName(paramName, "emittance")) {
+            m_immEmittance = spectrum;
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+    bool DirectionalEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
+        if (testParamName(paramName, "emittance")) {
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+                return false;
+
+            m_nodeEmittance = plug;
+        }
+        else if (testParamName(paramName, "direction")) {
+            if (!shared::NodeTypeInfo<Vector3D>::ConversionIsDefinedFrom(plug.getType()))
+                return false;
+
+            m_nodeDirection = plug;
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+
+
+    std::vector<ParameterInfo> PointEmitterSurfaceMaterial::ParameterInfos;
+
+    std::unordered_map<uint32_t, SurfaceMaterial::OptiXProgramSet> PointEmitterSurfaceMaterial::s_optiXProgramSets;
+
+    // static
+    void PointEmitterSurfaceMaterial::initialize(Context &context) {
+        const ParameterInfo paramInfos[] = {
+            ParameterInfo("intensity", VLRParameterFormFlag_Both, ParameterSpectrum),
+            ParameterInfo("scale", VLRParameterFormFlag_ImmediateValue, ParameterFloat),
+        };
+
+        if (ParameterInfos.size() == 0) {
+            ParameterInfos.resize(lengthof(paramInfos));
+            std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
+        }
+
+        const char* identifiers[] = {
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            RT_DC_NAME_STR("PointEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("PointEDF_evaluateEmittanceInternal"),
+            RT_DC_NAME_STR("PointEDF_evaluateInternal")
+        };
+        OptiXProgramSet programSet;
+        commonInitializeProcedure(context, identifiers, &programSet);
+
+        s_optiXProgramSets[context.getID()] = programSet;
+    }
+
+    // static
+    void PointEmitterSurfaceMaterial::finalize(Context &context) {
+        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
+        commonFinalizeProcedure(context, programSet);
+        s_optiXProgramSets.erase(context.getID());
+    }
+
+    PointEmitterSurfaceMaterial::PointEmitterSurfaceMaterial(Context &context) :
+        SurfaceMaterial(context), m_immIntensity(ColorSpace::Rec709_D65, M_PI, M_PI, M_PI), m_immScale(1.0f) {
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+    }
+
+    PointEmitterSurfaceMaterial::~PointEmitterSurfaceMaterial() {
+    }
+
+    void PointEmitterSurfaceMaterial::setupMaterialDescriptor(CUstream stream) const {
+        OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
+
+        shared::SurfaceMaterialDescriptor matDesc;
+        setupMaterialDescriptorHead(m_context, progSet, &matDesc);
+        auto &mat = *matDesc.getData<shared::PointEmitterSurfaceMaterial>();
+        mat.nodeIntensity = m_nodeIntensity.getSharedType();
+        mat.immIntensity = m_immIntensity.createTripletSpectrum(SpectrumType::LightSource);
+        mat.immScale = m_immScale;
+
+        m_context.updateSurfaceMaterialDescriptor(m_matIndex, matDesc, stream);
+    }
+
+    bool PointEmitterSurfaceMaterial::get(const char* paramName, float* values, uint32_t length) const {
+        if (values == nullptr)
+            return false;
+
+        if (testParamName(paramName, "scale")) {
+            if (length != 1)
+                return false;
+
+            values[0] = m_immScale;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PointEmitterSurfaceMaterial::get(const char* paramName, ImmediateSpectrum* spectrum) const {
+        if (spectrum == nullptr)
+            return false;
+
+        if (testParamName(paramName, "intensity")) {
+            *spectrum = m_immIntensity;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PointEmitterSurfaceMaterial::get(const char* paramName, ShaderNodePlug* plug) const {
+        if (plug == nullptr)
+            return false;
+
+        if (testParamName(paramName, "intensity")) {
+            *plug = m_nodeIntensity;
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool PointEmitterSurfaceMaterial::set(const char* paramName, const float* values, uint32_t length) {
+        if (testParamName(paramName, "scale")) {
+            if (length != 1)
+                return false;
+
+            m_immScale = values[0];
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+    bool PointEmitterSurfaceMaterial::set(const char* paramName, const ImmediateSpectrum& spectrum) {
+        if (testParamName(paramName, "intensity")) {
+            m_immIntensity = spectrum;
+        }
+        else {
+            return false;
+        }
+        m_context.markSurfaceMaterialDescriptorDirty(this);
+
+        return true;
+    }
+
+    bool PointEmitterSurfaceMaterial::set(const char* paramName, const ShaderNodePlug& plug) {
+        if (testParamName(paramName, "intensity")) {
+            if (!shared::NodeTypeInfo<SampledSpectrum>::ConversionIsDefinedFrom(plug.getType()))
+                return false;
+
+            m_nodeIntensity = plug;
         }
         else {
             return false;
