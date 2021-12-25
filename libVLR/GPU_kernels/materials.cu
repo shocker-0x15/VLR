@@ -3,6 +3,21 @@
 namespace vlr {
     using namespace shared;
 
+    // References:
+    // - Path Space Regularization for Holistic and Robust Light Transport
+    // - Improving Robustness of Monte-Carlo Global Illumination with Directional Regularization
+    constexpr bool usePathSpaceRegularization = false;
+
+    CUDA_DEVICE_FUNCTION float computeRegularizationFactor(float* cosEpsilon) {
+        // Consider a distance-based adaptive initial value and two-vertex mollification.
+        const float epsilon = 0.04f * std::pow(static_cast<float>(plp.numAccumFrames), -1.0f / 6);
+        *cosEpsilon = std::cos(epsilon);
+        float regFactor = 1.0f / (2 * VLR_M_PI * (1 - *cosEpsilon));
+        return regFactor;
+    }
+
+
+
     CUDA_DEVICE_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
         bool reflect = dot(Vector3D(ng), d0) * dot(Vector3D(ng), d1) > 0;
         return DirectionType::AllFreq() | (reflect ? DirectionType::Reflection() : DirectionType::Transmission());
@@ -412,29 +427,69 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
-            DirectionType m_type = DirectionType::Reflection() | DirectionType::Delta0D();
-            return m_type.matches(flags);
+            DirectionType dirType;
+            if constexpr (usePathSpaceRegularization)
+                dirType = DirectionType::Reflection() | DirectionType::HighFreq();
+            else
+                dirType = DirectionType::Reflection() | DirectionType::Delta0D();
+            return dirType.matches(flags);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            float regFactor = 1.0f;
+            DirectionType dirType = DirectionType::Delta0D();
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                regFactor = computeRegularizationFactor(&cosEpsilon);
+                dirType = DirectionType::HighFreq();
+            }
+
             FresnelConductor fresnel(m_eta, m_k);
 
             result->dirLocal = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
             result->dirPDF = 1.0f;
-            result->sampledType = DirectionType::Reflection() | DirectionType::Delta0D();
-            SampledSpectrum fsValue = m_coeffR * fresnel.evaluate(query.dirLocal.z) / std::fabs(query.dirLocal.z);
+            result->sampledType = DirectionType::Reflection() | dirType;
+            SampledSpectrum ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
+                (regFactor / std::fabs(query.dirLocal.z));
 
-            return fsValue;
+            return ret;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal) const {
-            return SampledSpectrum::Zero();
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                Vector3D dirReflected = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
+                if (dot(dirLocal, dirReflected) >= cosEpsilon) {
+                    FresnelConductor fresnel(m_eta, m_k);
+                    SampledSpectrum ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
+                        (regFactor / std::fabs(query.dirLocal.z));
+                }
+
+                return SampledSpectrum::Zero();
+            }
+            else {
+                return SampledSpectrum::Zero();
+            }
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) const {
-            return 0.0f;
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                Vector3D dirReflected = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
+                if (dot(dirLocal, dirReflected) >= cosEpsilon)
+                    return regFactor;
+
+                return 0.0f;
+            }
+            else {
+                return 0.0f;
+            }
         }
 
         CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
@@ -479,8 +534,12 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
-            DirectionType m_type = DirectionType::WholeSphere() | DirectionType::Delta0D();
-            return m_type.matches(flags);
+            DirectionType dirType;
+            if constexpr (usePathSpaceRegularization)
+                dirType = DirectionType::WholeSphere() | DirectionType::HighFreq();
+            else
+                dirType = DirectionType::WholeSphere() | DirectionType::Delta0D();
+            return dirType.matches(flags);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
@@ -492,6 +551,14 @@ namespace vlr {
             FresnelDielectric fresnel(eEnter, eExit);
 
             Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+            float regFactor = 1.0f;
+            DirectionType dirType = DirectionType::Delta0D();
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                regFactor = computeRegularizationFactor(&cosEpsilon);
+                dirType = DirectionType::HighFreq();
+            }
 
             SampledSpectrum F = fresnel.evaluate(dirV.z);
             float reflectProb = F.importance(query.wlHint);
@@ -506,11 +573,11 @@ namespace vlr {
                 }
                 Vector3D dirL = Vector3D(-dirV.x, -dirV.y, dirV.z);
                 result->dirLocal = entering ? dirL : -dirL;
-                result->dirPDF = reflectProb;
-                result->sampledType = DirectionType::Reflection() | DirectionType::Delta0D();
-                SampledSpectrum fs = m_coeff * F / std::fabs(dirV.z);
+                result->dirPDF = reflectProb * regFactor;
+                result->sampledType = DirectionType::Reflection() | dirType;
+                SampledSpectrum ret = m_coeff * F * (regFactor / std::fabs(dirV.z));
 
-                return fs;
+                return ret;
             }
             else {
                 float sinEnter2 = 1.0f - dirV.z * dirV.z;
@@ -524,27 +591,112 @@ namespace vlr {
                 float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
                 Vector3D dirL = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
                 result->dirLocal = entering ? dirL : -dirL;
-                result->dirPDF = 1.0f - reflectProb;
+                result->dirPDF = (1.0f - reflectProb) * regFactor;
                 result->sampledType =
-                    DirectionType::Transmission() | DirectionType::Delta0D() |
+                    DirectionType::Transmission() | dirType |
                     (m_dispersive ? DirectionType::Dispersive() : DirectionType());
 
                 SampledSpectrum ret = SampledSpectrum::Zero();
-                ret[query.wlHint] = m_coeff[query.wlHint] * (1.0f - F[query.wlHint]);
-                SampledSpectrum fs = ret / std::fabs(cosExit);
+                ret[query.wlHint] = m_coeff[query.wlHint] *
+                    (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
 
-                return fs;
+                return ret;
             }
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal) const {
-            return SampledSpectrum::Zero();
+            if constexpr (usePathSpaceRegularization) {
+                bool entering = query.dirLocal.z >= 0.0f;
+
+                const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
+                const SampledSpectrum &eExit = entering ? m_etaInt : m_etaExt;
+                FresnelDielectric fresnel(eEnter, eExit);
+
+                Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                SampledSpectrum F = fresnel.evaluate(dirV.z);
+
+                Vector3D dirReflected = Vector3D(-dirV.x, -dirV.y, dirV.z);
+                if (!entering)
+                    dirReflected = -dirReflected;
+                if (dot(dirLocal, dirReflected) >= cosEpsilon) {
+                    SampledSpectrum ret = m_coeff * F * (regFactor / std::fabs(dirV.z));
+                    return ret;
+                }
+
+                float sinEnter2 = 1.0f - dirV.z * dirV.z;
+                float recRelIOR = eEnter[query.wlHint] / eExit[query.wlHint];// reciprocal of relative IOR.
+                float sinExit2 = recRelIOR * recRelIOR * sinEnter2;
+
+                float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
+                Vector3D dirRefracted = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
+                if (!entering)
+                    dirRefracted = -dirRefracted;
+                if (dot(dirLocal, dirRefracted) >= cosEpsilon && cosExit != 0.0f) {
+                    SampledSpectrum ret = SampledSpectrum::Zero();
+                    ret[query.wlHint] = m_coeff[query.wlHint] *
+                        (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
+                    return ret;
+                }
+
+                return SampledSpectrum::Zero();
+            }
+            else {
+                return SampledSpectrum::Zero();
+            }
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal) const {
-            return 0.0f;
+            if constexpr (usePathSpaceRegularization) {
+                bool entering = query.dirLocal.z >= 0.0f;
+
+                const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
+                const SampledSpectrum &eExit = entering ? m_etaInt : m_etaExt;
+                FresnelDielectric fresnel(eEnter, eExit);
+
+                Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
+
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                SampledSpectrum F = fresnel.evaluate(dirV.z);
+                float reflectProb = F.importance(query.wlHint);
+                if (query.dirTypeFilter.isReflection())
+                    reflectProb = 1.0f;
+                if (query.dirTypeFilter.isTransmission())
+                    reflectProb = 0.0f;
+
+                if (dirV.z == 0.0f)
+                    return 0.0f;
+                Vector3D dirReflected = Vector3D(-dirV.x, -dirV.y, dirV.z);
+                if (!entering)
+                    dirReflected = -dirReflected;
+                if (dot(dirLocal, dirReflected) >= cosEpsilon)
+                    return reflectProb * regFactor;
+
+                float sinEnter2 = 1.0f - dirV.z * dirV.z;
+                float recRelIOR = eEnter[query.wlHint] / eExit[query.wlHint];// reciprocal of relative IOR.
+                float sinExit2 = recRelIOR * recRelIOR * sinEnter2;
+
+                if (sinExit2 >= 1.0f)
+                    return 0.0f;
+                float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
+                Vector3D dirRefracted = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
+                if (!entering)
+                    dirRefracted = -dirRefracted;
+                if (dot(dirLocal, dirRefracted) >= cosEpsilon)
+                    return (1.0f - reflectProb) * regFactor;
+
+                return 0.0f;
+            }
+            else {
+                return 0.0f;
+            }
         }
 
         CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
@@ -1437,7 +1589,20 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
-            return SampledSpectrum::Zero();
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                if (dot(dirLocal, m_direction) >= cosEpsilon) {
+                    SampledSpectrum ret = SampledSpectrum(regFactor);
+                    return ret;
+                }
+
+                return SampledSpectrum::Zero();
+            }
+            else {
+                return SampledSpectrum::Zero();
+            }
         }
     };
 

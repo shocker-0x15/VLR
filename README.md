@@ -24,7 +24,8 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX 7.
 * Alpha Texture
 * Light Source Types
     * Area (Polygonal) Light
-    * Infinitely Distant Image Based Environmental Light
+    * Point Light
+    * Image Based Environmental Light
 * Camera Types
     * Perspective Camera with Depth of Field (thin-lens model)
     * Environment (Equirectangular) Camera
