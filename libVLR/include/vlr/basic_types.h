@@ -968,6 +968,18 @@ namespace vlr {
                 pht /= pht.w;
             return Point3DTemplate<RealType>(pht.x, pht.y, pht.z);
         }
+        CUDA_DEVICE_FUNCTION BoundingBox3DTemplate<RealType> operator*(const BoundingBox3DTemplate<RealType> &b) const {
+            BoundingBox3DTemplate ret(Point3DTemplate<RealType>(INFINITY), Point3DTemplate<RealType>(-INFINITY));
+            ret.unify(*this * Point3DTemplate<RealType>(b.minP.x, b.minP.y, b.minP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.maxP.x, b.minP.y, b.minP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.minP.x, b.maxP.y, b.minP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.maxP.x, b.maxP.y, b.minP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.minP.x, b.minP.y, b.maxP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.maxP.x, b.minP.y, b.maxP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.minP.x, b.maxP.y, b.maxP.z));
+            ret.unify(*this * Point3DTemplate<RealType>(b.maxP.x, b.maxP.y, b.maxP.z));
+            return ret;
+        }
         CUDA_DEVICE_FUNCTION Matrix4x4Template operator*(RealType s) const { return Matrix4x4Template(c0 * s, c1 * s, c2 * s, c3 * s); }
         CUDA_DEVICE_FUNCTION Matrix4x4Template operator/(RealType s) const { return Matrix4x4Template(c0 / s, c1 / s, c2 / s, c3 / s); }
         CUDA_DEVICE_FUNCTION friend Matrix4x4Template operator*(RealType s, const Matrix4x4Template &mat) { return Matrix4x4Template(s * mat.c0, s * mat.c1, s * mat.c2, s * mat.c3); }

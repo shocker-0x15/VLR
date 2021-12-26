@@ -215,6 +215,7 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
     </CudaCompile>
+    <CudaCompile Include="GPU_kernels\setup_scene.cu" />
     <CudaCompile Include="GPU_kernels\shader_nodes.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>

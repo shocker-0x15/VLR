@@ -1526,6 +1526,8 @@ private: \
                     const BufferView &previousDenoisedBeauty, const BufferView* previousDenoisedAovs,
                     const BufferView &denoisedBeauty, const BufferView* denoisedAovs,
                     const DenoisingTask &task) const;
+
+        bool stateIsReady() const;
     };
 
 

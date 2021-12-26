@@ -2965,7 +2965,7 @@ namespace optixu {
     }
 
     void Denoiser::setupState(CUstream stream, const BufferView &stateBuffer, const BufferView &scratchBuffer) const {
-        m->throwRuntimeError(m->imageSizeSet, "Call setImageSizes() before this function.");
+        m->throwRuntimeError(m->imageSizeSet, "Call prepare() before this function.");
         m->throwRuntimeError(stateBuffer.sizeInBytes() >= m->stateSize,
                              "Size of the given state buffer is not enough.");
         m->throwRuntimeError(scratchBuffer.sizeInBytes() >= m->scratchSize,
@@ -3061,5 +3061,9 @@ namespace optixu {
                   previousDenoisedBeauty, previousDenoisedAovs,
                   denoisedBeauty, denoisedAovs,
                   task);
+    }
+
+    bool Denoiser::stateIsReady() const {
+        return m->stateIsReady;
     }
 }

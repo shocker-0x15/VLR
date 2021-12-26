@@ -199,6 +199,7 @@ namespace vlr {
             ShaderNodePlug nodeNormal;
             ShaderNodePlug nodeTangent;
             ShaderNodePlug nodeAlpha;
+            BoundingBox3D aabb;
             SHGeometryInstance* shGeomInst;
 
             MaterialGroup() {}
@@ -210,6 +211,7 @@ namespace vlr {
                 nodeNormal = v.nodeNormal;
                 nodeTangent = v.nodeTangent;
                 nodeAlpha = v.nodeAlpha;
+                aabb = v.aabb;
                 shGeomInst = v.shGeomInst;
             }
             MaterialGroup &operator=(MaterialGroup &&v) {
@@ -220,6 +222,7 @@ namespace vlr {
                 nodeNormal = v.nodeNormal;
                 nodeTangent = v.nodeTangent;
                 nodeAlpha = v.nodeAlpha;
+                aabb = v.aabb;
                 shGeomInst = v.shGeomInst;
                 return *this;
             }
@@ -462,6 +465,9 @@ namespace vlr {
         cudau::Buffer m_iasMem;
         cudau::TypedBuffer<OptixInstance> m_instanceBuffer;
 
+        cudau::TypedBuffer<uint32_t> m_computeInstAabbs_instIndices;
+        cudau::TypedBuffer<uint32_t> m_computeInstAabbs_itemOffsets;
+        CUdeviceptr m_sceneAabb;
         cudau::TypedBuffer<uint32_t> m_lightInstIndices;
         DiscreteDistribution1D m_lightInstDist;
 
@@ -478,7 +484,7 @@ namespace vlr {
         struct Instance {
             optixu::Instance optixInst;
             uint32_t instIndex;
-            cudau::TypedBuffer<uint32_t> geomInstIndices;
+            cudau::TypedBuffer<uint32_t> optixGeomInstIndices;
             DiscreteDistribution1D lightGeomInstDistribution;
             shared::Instance data;
         };
@@ -487,8 +493,10 @@ namespace vlr {
         std::unordered_map<const SHTransform*, Instance> m_instances;
 
         std::unordered_set<const SHGeometryInstance*> m_dirtyGeometryInstances;
+        std::unordered_set<uint32_t> m_removedGeometryInstanceIndices;
         std::unordered_set<const SHGeometryGroup*> m_dirtyGeometryASes;
         std::unordered_set<const SHTransform*> m_dirtyInstances;
+        std::unordered_set<uint32_t> m_removedInstanceIndices;
 
     public:
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();

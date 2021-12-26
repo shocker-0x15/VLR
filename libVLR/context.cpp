@@ -359,6 +359,15 @@ namespace vlr {
 
 
         {
+            CUDADRV_CHECK(cuModuleLoad(&m_cudaSetupSceneModule, (exeDir / "ptxes/setup_scene.ptx").string().c_str()));
+
+            m_computeInstanceAABBs.set(m_cudaSetupSceneModule, "computeInstanceAABBs", cudau::dim3(32), 0);
+            m_castInstanceAABBs.set(m_cudaSetupSceneModule, "castInstanceAABBs", cudau::dim3(32), 0);
+            m_computeSceneAABB.set(m_cudaSetupSceneModule, "computeSceneAABB", cudau::dim3(256), 0);
+            m_castSceneAABB.set(m_cudaSetupSceneModule, "castSceneAABB", cudau::dim3(32), 0);
+        }
+        
+        {
             CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/post_process.ptx").string().c_str()));
 
             size_t symbolSize;
@@ -454,6 +463,11 @@ namespace vlr {
         SurfaceMaterial::finalize(*this);
         ShaderNode::finalize(*this);
         Image2D::finalize(*this);
+
+
+
+        cuModuleUnload(m_cudaPostProcessModule);
+        cuModuleUnload(m_cudaSetupSceneModule);
 
 
 
@@ -758,7 +772,8 @@ namespace vlr {
         if (firstFrame) {
             m_optix.launchParams.imageSize = imageSize;
             camera->setup(&m_optix.launchParams);
-            m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
+            if (!m_optix.denoiser.stateIsReady())
+                m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
             m_numAccumFrames = 0;
         }
 

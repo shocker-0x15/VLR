@@ -193,22 +193,24 @@ namespace vlr {
 
             std::vector<float> areas;
             areas.resize(numTriangles);
-            {
-                auto dstTriangles = matGroup.optixIndexBuffer.map(0, cudau::BufferMapFlag::WriteOnlyDiscard);
-                for (auto i = 0; i < static_cast<int>(numTriangles); ++i) {
-                    uint32_t i0 = matGroup.indices[3 * i + 0];
-                    uint32_t i1 = matGroup.indices[3 * i + 1];
-                    uint32_t i2 = matGroup.indices[3 * i + 2];
+            BoundingBox3D aabb;
+            auto dstTriangles = matGroup.optixIndexBuffer.map(0, cudau::BufferMapFlag::WriteOnlyDiscard);
+            for (auto i = 0; i < static_cast<int>(numTriangles); ++i) {
+                uint32_t i0 = matGroup.indices[3 * i + 0];
+                uint32_t i1 = matGroup.indices[3 * i + 1];
+                uint32_t i2 = matGroup.indices[3 * i + 2];
 
-                    dstTriangles[i] = shared::Triangle{ i0, i1, i2 };
+                dstTriangles[i] = shared::Triangle{ i0, i1, i2 };
 
-                    const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
-                    areas[i] = 0.5f * cross(v[1].position - v[0].position,
-                                            v[2].position - v[0].position).length();
-                    sumImportances += areas[i];
-                }
-                matGroup.optixIndexBuffer.unmap(0);
+                const Vertex (&v)[3] = { m_vertices[i0], m_vertices[i1], m_vertices[i2] };
+                areas[i] = 0.5f * cross(v[1].position - v[0].position,
+                                        v[2].position - v[0].position).length();
+                sumImportances += areas[i];
+
+                aabb.unify(v[0].position).unify(v[1].position).unify(v[2].position);
             }
+            matGroup.optixIndexBuffer.unmap(0);
+            matGroup.aabb = aabb;
 
             if (material->isEmitting())
                 matGroup.primDist.initialize(m_context, areas.data(), areas.size());
@@ -267,6 +269,7 @@ namespace vlr {
         geomInst->asTriMesh.vertexBuffer = m_optixVertexBuffer.getDevicePointer();
         geomInst->asTriMesh.triangleBuffer = matGroup.optixIndexBuffer.getDevicePointer();
         matGroup.primDist.getInternalType(&geomInst->asTriMesh.primDistribution);
+        geomInst->asTriMesh.aabb = matGroup.aabb;
         geomInst->progSample = progSet.dcSampleTriangleMesh;
         geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForTriangle;
         geomInst->nodeNormal = matGroup.nodeNormal.getSharedType();
@@ -274,6 +277,8 @@ namespace vlr {
         geomInst->nodeAlpha = matGroup.nodeAlpha.getSharedType();
         geomInst->materialIndex = matGroup.material->getMaterialIndex();
         geomInst->importance = matGroup.material->isEmitting() ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
+        geomInst->geomType = shared::GeometryType_TriangleMesh;
+        geomInst->isActive = true;
 
         optixu::Material optixMaterial = matGroup.nodeAlpha.isValid() ?
             m_context.getOptiXMaterialWithAlpha() :
@@ -415,6 +420,8 @@ namespace vlr {
         geomInst->nodeAlpha = shared::ShaderNodePlug::Invalid();
         geomInst->materialIndex = matGroup.material->getMaterialIndex();
         geomInst->importance = matGroup.material->isEmitting() ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
+        geomInst->geomType = shared::GeometryType_Points;
+        geomInst->isActive = true;
     }
 
 
@@ -484,6 +491,8 @@ namespace vlr {
         geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere;
         geomInst->materialIndex = m_material->getMaterialIndex();
         geomInst->importance = m_material->isEmitting() ? 1.0f : 0.0f; // TODO
+        geomInst->geomType = shared::GeometryType_InfiniteSphere;
+        geomInst->isActive = true;
 
         optixGeomInst->setNumMaterials(1, optixu::BufferView());
         optixGeomInst->setMaterial(0, 0, m_context.getOptiXMaterialDefault());
@@ -844,10 +853,18 @@ namespace vlr {
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         CUcontext cuContext = m_context.getCUcontext();
 
-        m_geomInstBuffer.initialize(cuContext, 65536);
-        m_instBuffer.initialize(cuContext, 65536);
+        shared::GeometryInstance initialGeomInst = {};
+        initialGeomInst.isActive = false;
+        shared::Instance initialInst = {};
+        initialInst.isActive = false;
+        m_geomInstBuffer.initialize(cuContext, 65536, initialGeomInst);
+        m_instBuffer.initialize(cuContext, 65536, initialInst);
 
         m_optixScene = m_context.getOptiXContext().createScene();
+
+        static_assert(sizeof(BoundingBox3D) == sizeof(BoundingBox3DAsOrderedInt),
+                      "sizeof(BoundingBox3D) and sizeof(BoundingBox3DAsOrderedInt) should match.");
+        CUDADRV_CHECK(cuMemAlloc(&m_sceneAabb, sizeof(BoundingBox3DAsOrderedInt)));
 
         // Environmental Light
         {
@@ -860,6 +877,7 @@ namespace vlr {
             m_envGeomInstance.nodeAlpha = shared::ShaderNodePlug::Invalid();
             m_envGeomInstance.materialIndex = 0;
             m_envGeomInstance.importance = 0.0f;
+            m_envGeomInstance.isActive = false;
 
             m_envInstIndex = m_instBuffer.allocate();
 
@@ -892,6 +910,7 @@ namespace vlr {
             inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
             inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
+            inst.data.isActive = false;
         }
 
         m_ias = m_optixScene.createInstanceAccelerationStructure();
@@ -899,6 +918,9 @@ namespace vlr {
     }
 
     Scene::~Scene() {
+        m_computeInstAabbs_instIndices.finalize();
+        m_computeInstAabbs_itemOffsets.finalize();
+
         m_lightInstDist.finalize(m_context);
         m_lightInstIndices.finalize();
 
@@ -911,7 +933,7 @@ namespace vlr {
         {
             Instance &inst = m_instances.at(shtr);
             inst.lightGeomInstDistribution.finalize(m_context);
-            inst.geomInstIndices.finalize();
+            inst.optixGeomInstIndices.finalize();
             inst.optixInst.destroy();
             m_instBuffer.release(inst.instIndex);
             m_instances.erase(shtr);
@@ -923,6 +945,8 @@ namespace vlr {
             m_instBuffer.release(m_envInstIndex);
             m_geomInstBuffer.release(m_envGeomInstIndex);
         }
+
+        cuMemFree(m_sceneAabb);
 
         m_optixScene.destroy();
 
@@ -944,10 +968,7 @@ namespace vlr {
             inst.instIndex = m_instBuffer.allocate();
             inst.optixInst = m_optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
-            m_dirtyInstances.insert(shtr);
         }
-
-        m_iasIsDirty = true;
     }
 
     void Scene::transformRemoveEvent(const std::set<SHTransform*> &childDelta) {
@@ -961,13 +982,14 @@ namespace vlr {
             SHTransform* shtr = *it;
 
             Instance &inst = m_instances.at(shtr);
-            uint32_t instIdx = m_ias.findChildIndex(inst.optixInst);
-            if (instIdx != 0xFFFFFFFF)
-                m_ias.removeChildAt(instIdx);
+            uint32_t instIdxInIas = m_ias.findChildIndex(inst.optixInst);
+            if (instIdxInIas != 0xFFFFFFFF)
+                m_ias.removeChildAt(instIdxInIas);
             inst.optixInst.destroy();
             m_instBuffer.release(inst.instIndex);
             m_instances.erase(shtr);
             m_dirtyInstances.erase(shtr);
+            m_removedInstanceIndices.insert(inst.instIndex);
         }
 
         for (auto it = concatDelta.cbegin(); it != concatDelta.cend(); ++it)
@@ -1066,6 +1088,7 @@ namespace vlr {
             m_geomInstBuffer.release(geomInst.geomInstIndex);
             m_geometryInstances.erase(shGeomInst);
             m_dirtyGeometryInstances.erase(shGeomInst);
+            m_removedGeometryInstanceIndices.insert(geomInst.geomInstIndex);
         }
 
         // JP: 空になったGASは削除する。
@@ -1164,9 +1187,6 @@ namespace vlr {
         const cudau::Buffer &asScratchMem, shared::PipelineLaunchParameters* launchParams) {
         CUcontext cuContext = m_context.getCUcontext();
 
-        launchParams->geomInstBuffer = m_geomInstBuffer.optixBuffer.getDevicePointer();
-        launchParams->instBuffer = m_instBuffer.optixBuffer.getDevicePointer();
-
         // JP: ジオメトリインスタンスのデータをGPUに転送する。
         // EN: Transfer the geometry instance data to a GPU.
         for (const SHGeometryInstance* shGeomInst : m_dirtyGeometryInstances) {
@@ -1174,10 +1194,19 @@ namespace vlr {
             m_geomInstBuffer.update(geomInst.geomInstIndex, geomInst.data, stream);
         }
         m_dirtyGeometryInstances.clear();
+        for (uint32_t geomInstIndex : m_removedGeometryInstanceIndices) {
+            shared::GeometryInstance initialGeomInst = {};
+            initialGeomInst.isActive = false;
+            m_geomInstBuffer.update(geomInstIndex, initialGeomInst, stream);
+        }
+        m_removedGeometryInstanceIndices.clear();
 
         // JP: インスタンスのデータをセットアップしてGPUに転送する。
         // EN: Setup the instance data, then transfer them to a GPU.
         bool instancesAreUpdated = m_dirtyInstances.size() > 0;
+        std::vector<uint32_t> computeInstAabbs_instIndices;
+        std::vector<uint32_t> computeInstAabbs_itemOffsets;
+        uint32_t computeInstAabbs_itemOffset = 0;
         for (const SHTransform* shtr : m_dirtyInstances) {
             StaticTransform xfm = shtr->getStaticTransform();
             float mat[16], invMat[16];
@@ -1193,6 +1222,9 @@ namespace vlr {
             inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
             inst.data.geomInstIndices = nullptr;
             inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
+            BoundingBox3DAsOrderedInt initAabb;
+            inst.data.childAabb = reinterpret_cast<BoundingBox3D &>(initAabb);
+            inst.data.aabbIsDirty = true;
             inst.data.importance = 0.0f;
 
             // JP: インスタンスに含まれるジオメトリインスタンスの重要度分布をセットアップする。
@@ -1200,6 +1232,7 @@ namespace vlr {
             float sumImportances = 0.0f;
             const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
             uint32_t numGeomInsts = shGeomGroup->getNumChildren();
+            inst.data.isActive = numGeomInsts > 0;
             if (numGeomInsts > 0) {
                 std::vector<uint32_t> geomInstIndices;
                 std::vector<float> geomInstImportanceValues;
@@ -1208,18 +1241,23 @@ namespace vlr {
                     GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
                     geomInstIndices.push_back(geomInst.geomInstIndex);
                     geomInstImportanceValues.push_back(geomInst.data.importance);
+
+                    computeInstAabbs_instIndices.push_back(inst.instIndex);
+                    computeInstAabbs_itemOffsets.push_back(computeInstAabbs_itemOffset);
                 }
+                computeInstAabbs_itemOffset += numGeomInsts;
 
                 for (float importance : geomInstImportanceValues)
                     sumImportances += importance;
 
-                inst.geomInstIndices.finalize();
-                inst.geomInstIndices.initialize(cuContext, g_bufferType, numGeomInsts);
-                inst.geomInstIndices.write(geomInstIndices.data(), numGeomInsts, stream);
+                inst.optixGeomInstIndices.finalize();
+                inst.optixGeomInstIndices.initialize(
+                    cuContext, g_bufferType, geomInstIndices, stream);
                 inst.lightGeomInstDistribution.finalize(m_context);
-                inst.lightGeomInstDistribution.initialize(m_context, geomInstImportanceValues.data(), numGeomInsts);
+                inst.lightGeomInstDistribution.initialize(
+                    m_context, geomInstImportanceValues.data(), numGeomInsts);
 
-                inst.data.geomInstIndices = inst.geomInstIndices.getDevicePointer();
+                inst.data.geomInstIndices = inst.optixGeomInstIndices.getDevicePointer();
                 inst.lightGeomInstDistribution.getInternalType(&inst.data.lightGeomInstDistribution);
                 inst.data.importance = sumImportances > 0.0f ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
             }
@@ -1227,6 +1265,35 @@ namespace vlr {
             m_instBuffer.update(inst.instIndex, inst.data, stream);
         }
         m_dirtyInstances.clear();
+        for (uint32_t instIndex : m_removedInstanceIndices) {
+            shared::Instance initialInst = {};
+            initialInst.isActive = false;
+            m_instBuffer.update(instIndex, initialInst, stream);
+        }
+        m_removedInstanceIndices.clear();
+
+        // JP: インスタンスAABBを計算する。
+        // EN: Compute instance AABBs.
+        if (computeInstAabbs_itemOffset > 0) {
+            if (m_computeInstAabbs_instIndices.numElements() < computeInstAabbs_itemOffset) {
+                m_computeInstAabbs_instIndices.finalize();
+                m_computeInstAabbs_itemOffsets.finalize();
+                m_computeInstAabbs_instIndices.initialize(cuContext, g_bufferType, computeInstAabbs_itemOffset);
+                m_computeInstAabbs_itemOffsets.initialize(cuContext, g_bufferType, computeInstAabbs_itemOffset);
+            }
+
+            m_computeInstAabbs_instIndices.write(computeInstAabbs_instIndices, stream);
+            m_computeInstAabbs_itemOffsets.write(computeInstAabbs_itemOffsets, stream);
+
+            m_context.computeInstanceAABBs(
+                stream,
+                m_computeInstAabbs_instIndices.getDevicePointer(), m_computeInstAabbs_itemOffsets.getDevicePointer(),
+                m_instBuffer.optixBuffer.getDevicePointer(), m_geomInstBuffer.optixBuffer.getDevicePointer(),
+                computeInstAabbs_itemOffset);
+            m_context.castInstanceAABBs(
+                stream,
+                m_instBuffer.optixBuffer.getDevicePointer(), m_instBuffer.optixBuffer.numElements());
+        }
 
         // JP: dirtyとしてマークされているGASをビルドする。
         // EN: Build GASes marked as dirty.
@@ -1241,8 +1308,6 @@ namespace vlr {
         if (m_iasIsDirty)
             m_ias.rebuild(stream, m_instanceBuffer, m_iasMem, asScratchMem);
         m_iasIsDirty = false;
-
-        launchParams->topGroup = m_ias.getHandle();
 
         // JP: 環境光源に対応するジオメトリインスタンスとインスタンスをセットアップしてGPUに転送する。
         // EN: Setup the geometry instance and instance for the environmental light, then transfer to a GPU.
@@ -1261,13 +1326,27 @@ namespace vlr {
         // JP: シーンのインスタンスの重要度分布をセットアップしてGPUに転送する。
         // EN: Setup importance distribution of instances of the scene, then transfer to a GPU.
         if (instancesAreUpdated) {
+            BoundingBox3DAsOrderedInt initAabb;
+            CUDADRV_CHECK(cuMemcpyHtoDAsync(m_sceneAabb, &initAabb, sizeof(initAabb), stream));
+            m_context.computeSceneAABB(
+                stream, m_instBuffer.optixBuffer.getDevicePointer(), m_instBuffer.optixBuffer.numElements(),
+                reinterpret_cast<BoundingBox3DAsOrderedInt*>(m_sceneAabb));
+            m_context.castSceneAABB(
+                stream, reinterpret_cast<BoundingBox3DAsOrderedInt*>(m_sceneAabb));
+
+            //CUDADRV_CHECK(cuStreamSynchronize(stream));
+            //BoundingBox3D sceneAabb;
+            //CUDADRV_CHECK(cuMemcpyDtoH(&sceneAabb, m_sceneAabb, sizeof(sceneAabb)));
+            //printf("Scene AABB: (%g, %g, %g) - (%g, %g, %g)\n",
+            //       sceneAabb.minP.x, sceneAabb.minP.y, sceneAabb.minP.z,
+            //       sceneAabb.maxP.x, sceneAabb.maxP.y, sceneAabb.maxP.z);
+
             std::vector<uint32_t> instIndices;
             instIndices.push_back(m_envInstIndex);
             for (auto &it : m_instances)
                 instIndices.push_back(it.second.instIndex);
             m_lightInstIndices.finalize();
-            m_lightInstIndices.initialize(cuContext, g_bufferType, instIndices);
-            launchParams->instIndices = m_lightInstIndices.getDevicePointer();
+            m_lightInstIndices.initialize(cuContext, g_bufferType, instIndices, stream);
 
             std::vector<float> lightImportances;
             lightImportances.push_back(m_envInstance.importance);
@@ -1275,9 +1354,14 @@ namespace vlr {
                 lightImportances.push_back(it.second.data.importance);
             m_lightInstDist.finalize(m_context);
             m_lightInstDist.initialize(m_context, lightImportances.data(), lightImportances.size());
-            m_lightInstDist.getInternalType(&launchParams->lightInstDist);
         }
 
+        launchParams->geomInstBuffer = m_geomInstBuffer.optixBuffer.getDevicePointer();
+        launchParams->instBuffer = m_instBuffer.optixBuffer.getDevicePointer();
+        launchParams->topGroup = m_ias.getHandle();
+        launchParams->sceneAabb = reinterpret_cast<BoundingBox3D*>(m_sceneAabb);
+        launchParams->instIndices = m_lightInstIndices.getDevicePointer();
+        m_lightInstDist.getInternalType(&launchParams->lightInstDist);
         launchParams->envLightInstIndex = m_envInstIndex;
     }
 

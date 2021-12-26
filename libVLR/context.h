@@ -44,6 +44,12 @@ namespace vlr {
             optixBuffer.setMappedMemoryPersistent(true);
             slotFinder.initialize(maxNumElements);
         }
+        void initialize(CUcontext cuContext, uint32_t _maxNumElements, const InternalType &defaultValue) {
+            maxNumElements = _maxNumElements;
+            optixBuffer.initialize(cuContext, g_bufferType, maxNumElements, defaultValue);
+            optixBuffer.setMappedMemoryPersistent(true);
+            slotFinder.initialize(maxNumElements);
+        }
         void finalize() {
             slotFinder.finalize();
             optixBuffer.finalize();
@@ -207,6 +213,12 @@ namespace vlr {
             cudau::Buffer asScratchMem;
         } m_optix;
 
+        CUmodule m_cudaSetupSceneModule;
+        cudau::Kernel m_computeInstanceAABBs;
+        cudau::Kernel m_castInstanceAABBs;
+        cudau::Kernel m_computeSceneAABB;
+        cudau::Kernel m_castSceneAABB;
+
         CUmodule m_cudaPostProcessModule;
         CUdeviceptr m_cudaPostProcessModuleLaunchParamsPtr;
         cudau::Kernel m_copyBuffers;
@@ -297,6 +309,31 @@ namespace vlr {
 
         void markShaderNodeDescriptorDirty(ShaderNode* node);
         void markSurfaceMaterialDescriptorDirty(SurfaceMaterial* mat);
+
+        void computeInstanceAABBs(
+            CUstream stream,
+            const uint32_t* instIndices, const uint32_t* itemOffsets,
+            shared::Instance* instances, const shared::GeometryInstance* geomInsts, uint32_t numItems) const {
+            m_computeInstanceAABBs(stream, m_computeInstanceAABBs.calcGridDim(numItems),
+                                   instIndices, itemOffsets,
+                                   instances, geomInsts, numItems);
+        }
+        void castInstanceAABBs(
+            CUstream stream,
+            shared::Instance* instances, uint32_t numInstances) const {
+            m_castInstanceAABBs(stream, m_castInstanceAABBs.calcGridDim(numInstances),
+                                instances, numInstances);
+        }
+        void computeSceneAABB(
+            CUstream stream,
+            const shared::Instance* instances, uint32_t numInstances,
+            BoundingBox3DAsOrderedInt* sceneAabbAsInt) const {
+            m_computeSceneAABB(stream, m_computeSceneAABB.calcGridDim(numInstances),
+                               instances, numInstances, sceneAabbAsInt);
+        }
+        void castSceneAABB(CUstream stream, BoundingBox3DAsOrderedInt* sceneAabb) const {
+            m_castSceneAABB(stream, m_computeSceneAABB.calcGridDim(1), sceneAabb);
+        }
     };
 
 

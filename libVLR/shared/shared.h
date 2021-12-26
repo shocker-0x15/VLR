@@ -319,6 +319,8 @@ namespace vlr {
                                 m_invMatrix.m01 * n.x + m_invMatrix.m11 * n.y + m_invMatrix.m21 * n.z,
                                 m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
             }
+            CUDA_DEVICE_FUNCTION BoundingBox3D operator*(const BoundingBox3D &b) const { return m_matrix * b; }
+
 
             CUDA_DEVICE_FUNCTION Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
             CUDA_DEVICE_FUNCTION Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
@@ -329,6 +331,7 @@ namespace vlr {
                                 m_matrix.m01 * n.x + m_matrix.m11 * n.y + m_matrix.m21 * n.z,
                                 m_matrix.m02 * n.x + m_matrix.m12 * n.y + m_matrix.m22 * n.z);
             }
+            CUDA_DEVICE_FUNCTION BoundingBox3D mulInv(const BoundingBox3D &b) const { return m_invMatrix * b; }
         };
 
 
@@ -849,12 +852,19 @@ namespace vlr {
 
 
 
+        enum GeometryType {
+            GeometryType_TriangleMesh = 0,
+            GeometryType_Points,
+            GeometryType_InfiniteSphere,
+        };
+        
         struct GeometryInstance {
             union {
                 struct {
                     const Vertex* vertexBuffer;
                     const Triangle* triangleBuffer;
                     DiscreteDistribution1D primDistribution;
+                    BoundingBox3D aabb;
                 } asTriMesh;
                 struct {
                     const Vertex* vertexBuffer;
@@ -875,6 +885,8 @@ namespace vlr {
             ShaderNodePlug nodeAlpha;
             uint32_t materialIndex;
             float importance;
+            unsigned int geomType : 2; // TriMesh: 0, Points: 1, InfSphere: 2
+            unsigned int isActive : 1;
 
             CUDA_DEVICE_FUNCTION GeometryInstance() {}
 
@@ -899,7 +911,10 @@ namespace vlr {
             };
             uint32_t* geomInstIndices;
             DiscreteDistribution1D lightGeomInstDistribution;
+            BoundingBox3D childAabb;
             float importance;
+            unsigned int aabbIsDirty : 1;
+            unsigned int isActive : 1;
 
             CUDA_DEVICE_FUNCTION Instance() {}
         };
@@ -930,16 +945,16 @@ namespace vlr {
 
             const GeometryInstance* geomInstBuffer;
             const Instance* instBuffer;
+            OptixTraversableHandle topGroup;
+            const BoundingBox3D* sceneAabb;
+            const uint32_t* instIndices;
+            DiscreteDistribution1D lightInstDist;
+            uint32_t envLightInstIndex;
 
             optixu::NativeBlockBuffer2D<KernelRNG> rngBuffer;
             optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer;
             DiscretizedSpectrum* accumAlbedoBuffer;
             Normal3D* accumNormalBuffer;
-
-            OptixTraversableHandle topGroup;
-            const uint32_t* instIndices;
-            DiscreteDistribution1D lightInstDist;
-            uint32_t envLightInstIndex;
 
             uint2 imageSize;
             uint32_t imageStrideInPixels;
@@ -987,11 +1002,11 @@ namespace vlr {
                 vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
             }
         };
-        static_assert(
+        static_assert( // Size consistency check between host and device side
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 520 &&
-#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
             sizeof(PipelineLaunchParameters) == 528 &&
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            sizeof(PipelineLaunchParameters) == 536 &&
 #endif
             alignof(PipelineLaunchParameters) == 8,
             "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
