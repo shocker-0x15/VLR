@@ -864,7 +864,7 @@ namespace vlr {
 
         static_assert(sizeof(BoundingBox3D) == sizeof(BoundingBox3DAsOrderedInt),
                       "sizeof(BoundingBox3D) and sizeof(BoundingBox3DAsOrderedInt) should match.");
-        CUDADRV_CHECK(cuMemAlloc(&m_sceneAabb, sizeof(BoundingBox3DAsOrderedInt)));
+        CUDADRV_CHECK(cuMemAlloc(&m_sceneBounds, sizeof(shared::SceneBounds)));
 
         // Environmental Light
         {
@@ -946,7 +946,7 @@ namespace vlr {
             m_geomInstBuffer.release(m_envGeomInstIndex);
         }
 
-        cuMemFree(m_sceneAabb);
+        cuMemFree(m_sceneBounds);
 
         m_optixScene.destroy();
 
@@ -1290,7 +1290,7 @@ namespace vlr {
                 m_computeInstAabbs_instIndices.getDevicePointer(), m_computeInstAabbs_itemOffsets.getDevicePointer(),
                 m_instBuffer.optixBuffer.getDevicePointer(), m_geomInstBuffer.optixBuffer.getDevicePointer(),
                 computeInstAabbs_itemOffset);
-            m_context.castInstanceAABBs(
+            m_context.finalizeInstanceAABBs(
                 stream,
                 m_instBuffer.optixBuffer.getDevicePointer(), m_instBuffer.optixBuffer.numElements());
         }
@@ -1326,20 +1326,27 @@ namespace vlr {
         // JP: シーンのインスタンスの重要度分布をセットアップしてGPUに転送する。
         // EN: Setup importance distribution of instances of the scene, then transfer to a GPU.
         if (instancesAreUpdated) {
-            BoundingBox3DAsOrderedInt initAabb;
-            CUDADRV_CHECK(cuMemcpyHtoDAsync(m_sceneAabb, &initAabb, sizeof(initAabb), stream));
+            shared::SceneBounds initSceneBounds;
+            initSceneBounds.aabbAsInt = BoundingBox3DAsOrderedInt();
+            initSceneBounds.center = Point3D(0.0f);
+            initSceneBounds.worldDiscArea = 0.0f;
+            CUDADRV_CHECK(cuMemcpyHtoDAsync(m_sceneBounds, &initSceneBounds, sizeof(initSceneBounds), stream));
             m_context.computeSceneAABB(
                 stream, m_instBuffer.optixBuffer.getDevicePointer(), m_instBuffer.optixBuffer.numElements(),
-                reinterpret_cast<BoundingBox3DAsOrderedInt*>(m_sceneAabb));
-            m_context.castSceneAABB(
-                stream, reinterpret_cast<BoundingBox3DAsOrderedInt*>(m_sceneAabb));
+                reinterpret_cast<shared::SceneBounds*>(m_sceneBounds));
+            m_context.finalizeSceneBounds(
+                stream, reinterpret_cast<shared::SceneBounds*>(m_sceneBounds));
 
             //CUDADRV_CHECK(cuStreamSynchronize(stream));
-            //BoundingBox3D sceneAabb;
-            //CUDADRV_CHECK(cuMemcpyDtoH(&sceneAabb, m_sceneAabb, sizeof(sceneAabb)));
-            //printf("Scene AABB: (%g, %g, %g) - (%g, %g, %g)\n",
-            //       sceneAabb.minP.x, sceneAabb.minP.y, sceneAabb.minP.z,
-            //       sceneAabb.maxP.x, sceneAabb.maxP.y, sceneAabb.maxP.z);
+            //shared::SceneBounds sceneBounds;
+            //CUDADRV_CHECK(cuMemcpyDtoH(&sceneBounds, m_sceneBounds, sizeof(sceneBounds)));
+            //printf("Scene AABB: (%g, %g, %g) - (%g, %g, %g)\n"
+            //       "      Center: (%g, %g, %g)\n"
+            //       "      DiscArea: %g\n",
+            //       sceneBounds.aabb.minP.x, sceneBounds.aabb.minP.y, sceneBounds.aabb.minP.z,
+            //       sceneBounds.aabb.maxP.x, sceneBounds.aabb.maxP.y, sceneBounds.aabb.maxP.z,
+            //       sceneBounds.center.x, sceneBounds.center.y, sceneBounds.center.z,
+            //       sceneBounds.worldDiscArea);
 
             std::vector<uint32_t> instIndices;
             instIndices.push_back(m_envInstIndex);
@@ -1359,7 +1366,7 @@ namespace vlr {
         launchParams->geomInstBuffer = m_geomInstBuffer.optixBuffer.getDevicePointer();
         launchParams->instBuffer = m_instBuffer.optixBuffer.getDevicePointer();
         launchParams->topGroup = m_ias.getHandle();
-        launchParams->sceneAabb = reinterpret_cast<BoundingBox3D*>(m_sceneAabb);
+        launchParams->sceneBounds = reinterpret_cast<shared::SceneBounds*>(m_sceneBounds);
         launchParams->instIndices = m_lightInstIndices.getDevicePointer();
         m_lightInstDist.getInternalType(&launchParams->lightInstDist);
         launchParams->envLightInstIndex = m_envInstIndex;

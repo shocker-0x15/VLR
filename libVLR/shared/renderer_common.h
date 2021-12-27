@@ -96,10 +96,18 @@ namespace vlr::shared {
 #define VLR_MAX_NUM_EDF_PARAMETER_SLOTS (8)
         uint32_t data[VLR_MAX_NUM_EDF_PARAMETER_SLOTS];
 
+        ProgSigEDFmatches progMatches;
+        ProgSigEDFSampleInternal progSampleInternal;
         ProgSigEDFEvaluateEmittanceInternal progEvaluateEmittanceInternal;
         ProgSigEDFEvaluateInternal progEvaluateInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
+            return progMatches(reinterpret_cast<const uint32_t*>(this), dirType);
+        }
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) {
+            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uComponent, uDir, result);
+        }
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
             return progEvaluateEmittanceInternal(reinterpret_cast<const uint32_t*>(this));
         }
@@ -120,6 +128,20 @@ namespace vlr::shared {
             progEvaluateInternal = static_cast<ProgSigEDFEvaluateInternal>(procSet.progEvaluateInternal);
         }
 
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) {
+            if (!matches(query.dirTypeFilter)) {
+                result->dirPDF = 0.0f;
+                result->sampledType = DirectionType();
+                return SampledSpectrum::Zero();
+            }
+            SampledSpectrum fe = sampleInternal(query, sample.uComponent, sample.uDir, result);
+            VLRAssert((result->dirPDF > 0 && fe.allPositiveFinite()) || result->dirPDF == 0,
+                      "Invalid EDF value.\nsample: (%g, %g, %g), dirPDF: %g",
+                      sample.uComponent, sample.uDir[0], sample.uDir[1],
+                      result->dirPDF);
+            return fe;
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() {
             SampledSpectrum Le0 = evaluateEmittanceInternal();
             return Le0;
@@ -134,12 +156,12 @@ namespace vlr::shared {
 
 
 
-    using ProgSigSampleLensPosition = optixu::DirectCallableProgramID<SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)>;
-    using ProgSigSampleIDF = optixu::DirectCallableProgramID<SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)>;
-
-    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<void(const HitPointParameter &, SurfacePoint*, float*)>;
-    using ProgSigFetchAlpha = optixu::DirectCallableProgramID<float(const TexCoord2D &)>;
-    using ProgSigFetchNormal = optixu::DirectCallableProgramID<Normal3D(const TexCoord2D &)>;
+    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<
+        void(const HitPointParameter &, SurfacePoint*, float*)>;
+    using ProgSigFetchAlpha = optixu::DirectCallableProgramID<
+        float(const TexCoord2D &)>;
+    using ProgSigFetchNormal = optixu::DirectCallableProgramID<
+        Normal3D(const TexCoord2D &)>;
 
 
 

@@ -467,7 +467,7 @@ namespace vlr {
 
         cudau::TypedBuffer<uint32_t> m_computeInstAabbs_instIndices;
         cudau::TypedBuffer<uint32_t> m_computeInstAabbs_itemOffsets;
-        CUdeviceptr m_sceneAabb;
+        CUdeviceptr m_sceneBounds;
         cudau::TypedBuffer<uint32_t> m_lightInstIndices;
         DiscreteDistribution1D m_lightInstDist;
 

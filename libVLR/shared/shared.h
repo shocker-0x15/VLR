@@ -484,8 +484,12 @@ namespace vlr {
         };
 
         struct EDFProcedureSet {
+            int32_t progMatches;
+            int32_t progSampleInternal;
             int32_t progEvaluateEmittanceInternal;
             int32_t progEvaluateInternal;
+            int32_t progEvaluatePDFInternal;
+            int32_t progWeightInternal;
         };
 
 
@@ -904,6 +908,17 @@ namespace vlr {
             }
         };
 
+        struct SceneBounds {
+            union {
+                BoundingBox3D aabb;
+                BoundingBox3DAsOrderedInt aabbAsInt;
+            };
+            Point3D center;
+            float worldDiscArea;
+
+            CUDA_DEVICE_FUNCTION SceneBounds() {}
+        };
+
         struct Instance {
             union {
                 StaticTransform transform;
@@ -946,7 +961,7 @@ namespace vlr {
             const GeometryInstance* geomInstBuffer;
             const Instance* instBuffer;
             OptixTraversableHandle topGroup;
-            const BoundingBox3D* sceneAabb;
+            const SceneBounds* sceneBounds;
             const uint32_t* instIndices;
             DiscreteDistribution1D lightInstDist;
             uint32_t envLightInstIndex;

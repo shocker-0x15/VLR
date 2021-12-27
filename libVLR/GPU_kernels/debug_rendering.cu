@@ -186,7 +186,7 @@ namespace vlr {
         WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
 
         ProgSigSampleLensPosition sampleLensPosition(plp.progSampleLensPosition);
-        ProgSigSampleIDF sampleIDF(plp.progSampleIDF);
+        ProgSigIDFSample sampleIDF(plp.progSampleIDF);
 
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;

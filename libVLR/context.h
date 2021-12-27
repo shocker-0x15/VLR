@@ -215,9 +215,9 @@ namespace vlr {
 
         CUmodule m_cudaSetupSceneModule;
         cudau::Kernel m_computeInstanceAABBs;
-        cudau::Kernel m_castInstanceAABBs;
+        cudau::Kernel m_finalizeInstanceAABBs;
         cudau::Kernel m_computeSceneAABB;
-        cudau::Kernel m_castSceneAABB;
+        cudau::Kernel m_finalizeSceneBounds;
 
         CUmodule m_cudaPostProcessModule;
         CUdeviceptr m_cudaPostProcessModuleLaunchParamsPtr;
@@ -318,21 +318,21 @@ namespace vlr {
                                    instIndices, itemOffsets,
                                    instances, geomInsts, numItems);
         }
-        void castInstanceAABBs(
+        void finalizeInstanceAABBs(
             CUstream stream,
             shared::Instance* instances, uint32_t numInstances) const {
-            m_castInstanceAABBs(stream, m_castInstanceAABBs.calcGridDim(numInstances),
-                                instances, numInstances);
+            m_finalizeInstanceAABBs(stream, m_finalizeInstanceAABBs.calcGridDim(numInstances),
+                                    instances, numInstances);
         }
         void computeSceneAABB(
             CUstream stream,
             const shared::Instance* instances, uint32_t numInstances,
-            BoundingBox3DAsOrderedInt* sceneAabbAsInt) const {
+            shared::SceneBounds* sceneAabbAsInt) const {
             m_computeSceneAABB(stream, m_computeSceneAABB.calcGridDim(numInstances),
                                instances, numInstances, sceneAabbAsInt);
         }
-        void castSceneAABB(CUstream stream, BoundingBox3DAsOrderedInt* sceneAabb) const {
-            m_castSceneAABB(stream, m_computeSceneAABB.calcGridDim(1), sceneAabb);
+        void finalizeSceneBounds(CUstream stream, shared::SceneBounds* sceneBounds) const {
+            m_finalizeSceneBounds(stream, m_finalizeSceneBounds.calcGridDim(1), sceneBounds);
         }
     };
 

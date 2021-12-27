@@ -247,48 +247,62 @@ namespace vlr {
 #define DEFINE_BSDF_INTERFACES(BSDF)\
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _getBaseColor)(\
         const uint32_t* params) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.getBaseColor();\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.getBaseColor();\
     }\
 \
     RT_CALLABLE_PROGRAM bool RT_DC_NAME(BSDF ## _matches)(\
         const uint32_t* params,\
         DirectionType flags) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.matches(flags);\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.matches(flags);\
     }\
 \
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleInternal)(\
         const uint32_t* params,\
         const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.sampleInternal(query, uComponent, uDir, result);\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.sampleInternal(query, uComponent, uDir, result);\
     }\
 \
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateInternal)(\
         const uint32_t* params,\
         const BSDFQuery &query, const Vector3D &dirLocal) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.evaluateInternal(query, dirLocal);\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.evaluateInternal(query, dirLocal);\
     }\
 \
     RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFInternal)(\
         const uint32_t* params,\
         const BSDFQuery &query, const Vector3D &dirLocal) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.evaluatePDFInternal(query, dirLocal);\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.evaluatePDFInternal(query, dirLocal);\
     }\
 \
     RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _weightInternal)(\
         const uint32_t* params,\
         const BSDFQuery &query) {\
-        auto &fs = *reinterpret_cast<const BSDF*>(params);\
-        return fs.weightInternal(query);\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.weightInternal(query);\
     }
 
 
 
 #define DEFINE_EDF_INTERFACES(EDF)\
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(EDF ## _matches)(\
+        const uint32_t* params,\
+        DirectionType flags) {\
+        auto &p = *reinterpret_cast<const EDF*>(params);\
+        return p.matches(flags);\
+    }\
+\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _sampleInternal)(\
+        const uint32_t* params,\
+        const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) {\
+        auto &p = *reinterpret_cast<const EDF*>(params);\
+        return p.sampleInternal(query, uComponent, uDir, result);\
+    }\
+\
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _evaluateEmittanceInternal)(\
         const uint32_t* params) {\
         auto &p = *reinterpret_cast<const EDF*>(params);\
@@ -299,6 +313,20 @@ namespace vlr {
         const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {\
         auto &p = *reinterpret_cast<const EDF*>(params);\
         return p.evaluateInternal(query, dirLocal);\
+    }\
+\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _evaluatePDFInternal)(\
+        const uint32_t* params,\
+        const EDFQuery &query, const Vector3D &dirLocal) {\
+        auto &p = *reinterpret_cast<const EDF*>(params);\
+        return p.evaluatePDFInternal(query, dirLocal);\
+    }\
+\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _weightInternal)(\
+        const uint32_t* params,\
+        const EDFQuery &query) {\
+        auto &p = *reinterpret_cast<const EDF*>(params);\
+        return p.weightInternal(query);\
     }
 
 
@@ -363,7 +391,6 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
-
             result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
             result->dirPDF = result->dirLocal.z / VLR_M_PI;
             result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
@@ -1525,6 +1552,15 @@ namespace vlr {
     public:
         CUDA_DEVICE_FUNCTION NullEDF() {}
 
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            return false;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            return SampledSpectrum::Zero();
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             return SampledSpectrum::Zero();
         }
@@ -1532,6 +1568,15 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum::Zero();
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            return 0.0f;
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            return 0.0f;
         }
     };
 
@@ -1551,6 +1596,21 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION DiffuseEDF(const SampledSpectrum &emittance) :
             m_emittance(emittance) {}
 
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
+            return dirType.matches(flags);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
+            result->dirPDF = result->dirLocal.z / VLR_M_PI;
+            result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
+            SampledSpectrum feValue = m_emittance / VLR_M_PI;
+
+            return feValue;
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             return m_emittance;
         }
@@ -1558,6 +1618,19 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            if (dirLocal.z <= 0.0f)
+                return 0.0f;
+            float pdfValue = dirLocal.z / VLR_M_PI;
+
+            return pdfValue;
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            return m_emittance.importance(query.wlHint);
         }
     };
 
@@ -1583,6 +1656,33 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION DirectionalEDF(const SampledSpectrum &emittance, const Vector3D &direction) :
             m_emittance(emittance), m_direction(direction) {}
 
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            DirectionType dirType;
+            if constexpr (usePathSpaceRegularization)
+                dirType = DirectionType::Emission() | DirectionType::HighFreq();
+            else
+                dirType = DirectionType::Emission() | DirectionType::Delta0D();
+            return dirType.matches(flags);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            float regFactor = 1.0f;
+            DirectionType dirType = DirectionType::Delta0D();
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                regFactor = computeRegularizationFactor(&cosEpsilon);
+                dirType = DirectionType::HighFreq();
+            }
+
+            result->dirLocal = Vector3D(0, 0, 1);
+            result->dirPDF = 1.0f;
+            result->sampledType = DirectionType::Emission() | dirType;
+            SampledSpectrum feValue = regFactor * m_emittance;
+
+            return feValue;
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             return m_emittance;
         }
@@ -1603,6 +1703,26 @@ namespace vlr {
             else {
                 return SampledSpectrum::Zero();
             }
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            if constexpr (usePathSpaceRegularization) {
+                float cosEpsilon;
+                float regFactor = computeRegularizationFactor(&cosEpsilon);
+
+                if (dot(dirLocal, m_direction) >= cosEpsilon)
+                    return regFactor;
+
+                return 0.0f;
+            }
+            else {
+                return 0.0f;
+            }
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            return m_emittance.importance(query.wlHint);
         }
     };
 
@@ -1628,6 +1748,21 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION PointEDF(const SampledSpectrum &intensity) :
             m_intensity(intensity) {}
 
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
+            return dirType.matches(flags);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            result->dirLocal = uniformSampleSphere(uDir[0], uDir[1]);
+            result->dirPDF = 1.0f / (4 * VLR_M_PI);
+            result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
+            SampledSpectrum feValue = m_intensity;
+
+            return feValue;
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             // power = intensity * (4 * Pi)
             // area = 4 * pi * r^2
@@ -1638,6 +1773,17 @@ namespace vlr {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return 1.0f / (4 * VLR_M_PI);
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            float pdfValue = 1.0f / (4 * VLR_M_PI);
+
+            return pdfValue;
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            return m_intensity.importance(query.wlHint);
         }
     };
 
@@ -1928,6 +2074,92 @@ namespace vlr {
             m_edf0(edf0), m_edf1(edf1), m_edf2(edf2), m_edf3(edf3),
             m_numEDFs(numEDFs) {}
 
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
+
+            for (int i = 0; i < m_numEDFs; ++i) {
+                const uint32_t* edf = getEDF(edfOffsets[i]);
+                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                auto matches = static_cast<ProgSigEDFmatches>(procSet.progMatches);
+
+                if (matches(edf + 1, flags))
+                    return true;
+            }
+
+            return false;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
+
+            float weights[4];
+            for (int i = 0; i < m_numEDFs; ++i) {
+                const uint32_t* edf = getEDF(edfOffsets[i]);
+                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                auto weightInternal = static_cast<ProgSigEDFWeightInternal>(procSet.progWeightInternal);
+
+                weights[i] = weightInternal(edf + 1, query);
+            }
+
+            // JP: 各EDFのウェイトに基づいて方向のサンプルを行うEDFを選択する。
+            // EN: Based on the weight of each EDF, select a EDF from which direction sampling.
+            float tempProb;
+            float sumWeights;
+            uint32_t idx = sampleDiscrete(weights, m_numEDFs, uComponent, &tempProb, &sumWeights, &uComponent);
+            if (sumWeights == 0.0f) {
+                result->dirPDF = 0.0f;
+                return SampledSpectrum::Zero();
+            }
+
+            const uint32_t* selectedEDF = getEDF(edfOffsets[idx]);
+            uint32_t selProcIdx = *reinterpret_cast<const uint32_t*>(selectedEDF);
+            const EDFProcedureSet selProcSet = plp.edfProcedureSetBuffer[selProcIdx];
+            auto sampleInternal = static_cast<ProgSigEDFSampleInternal>(selProcSet.progSampleInternal);
+
+            // JP: 選択したEDFから方向をサンプリングする。
+            // EN: sample a direction from the selected EDF.
+            SampledSpectrum value = sampleInternal(selectedEDF + 1, query, uComponent, uDir, result);
+            result->dirPDF *= weights[idx];
+            if (result->dirPDF == 0.0f) {
+                result->dirPDF = 0.0f;
+                return SampledSpectrum::Zero();
+            }
+
+            // JP: サンプルした方向に関するEDFの値の合計と、single-sample model MISに基づいた確率密度を計算する。
+            // EN: calculate the total of EDF values and a PDF based on the single-sample model MIS for the sampled direction.
+            if (!result->sampledType.isDelta()) {
+                for (int i = 0; i < m_numEDFs; ++i) {
+                    const uint32_t* edf = getEDF(edfOffsets[i]);
+                    uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);
+                    const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                    auto matches = static_cast<ProgSigEDFmatches>(procSet.progMatches);
+                    auto evaluatePDFInternal = static_cast<ProgSigEDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+
+                    if (i != idx && matches(edf + 1, query.dirTypeFilter))
+                        result->dirPDF += evaluatePDFInternal(edf + 1, query, result->dirLocal) * weights[i];
+                }
+
+                value = SampledSpectrum::Zero();
+                for (int i = 0; i < m_numEDFs; ++i) {
+                    const uint32_t* edf = getEDF(edfOffsets[i]);
+                    uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);
+                    const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                    auto matches = static_cast<ProgSigEDFmatches>(procSet.progMatches);
+                    auto evaluateInternal = static_cast<ProgSigEDFEvaluateInternal>(procSet.progEvaluateInternal);
+
+                    if (!matches(edf + 1, query.dirTypeFilter))
+                        continue;
+                    value += evaluateInternal(edf + 1, query, result->dirLocal);
+                }
+            }
+            result->dirPDF /= sumWeights;
+
+            return value;
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
@@ -1962,6 +2194,55 @@ namespace vlr {
                 ret += emittance * evaluateInternal(edf + 1, query, dirLocal);
             }
             ret.safeDivide(sumEmittance);
+
+            return ret;
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
+
+            float sumWeights = 0.0f;
+            float weights[4];
+            for (int i = 0; i < m_numEDFs; ++i) {
+                const uint32_t* edf = getEDF(edfOffsets[i]);
+                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);;
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                auto weightInternal = static_cast<ProgSigEDFWeightInternal>(procSet.progWeightInternal);
+
+                weights[i] = weightInternal(edf + 1, query);
+                sumWeights += weights[i];
+            }
+            if (sumWeights == 0.0f)
+                return 0.0f;
+
+            float retPDF = 0.0f;
+            for (int i = 0; i < m_numEDFs; ++i) {
+                const uint32_t* edf = getEDF(edfOffsets[i]);
+                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);;
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                auto evaluatePDFInternal = static_cast<ProgSigEDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+
+                if (weights[i] > 0)
+                    retPDF += evaluatePDFInternal(edf + 1, query, dirLocal) * weights[i];
+            }
+            retPDF /= sumWeights;
+
+            return retPDF;
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
+
+            float ret = 0.0f;
+            for (int i = 0; i < m_numEDFs; ++i) {
+                const uint32_t* edf = getEDF(edfOffsets[i]);
+                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(edf);;
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[procIdx];
+                auto weightInternal = static_cast<ProgSigEDFWeightInternal>(procSet.progWeightInternal);
+
+                ret += weightInternal(edf + 1, query);
+            }
 
             return ret;
         }
@@ -2002,10 +2283,26 @@ namespace vlr {
 
     class EnvironmentEDF {
         SampledSpectrum m_emittance;
+        float m_worldDiscArea;
 
     public:
-        CUDA_DEVICE_FUNCTION EnvironmentEDF(const SampledSpectrum &emittance) :
-            m_emittance(emittance) {}
+        CUDA_DEVICE_FUNCTION EnvironmentEDF(const SampledSpectrum &emittance, float worldDiscArea) :
+            m_emittance(emittance), m_worldDiscArea(worldDiscArea) {}
+
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+            DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
+            return dirType.matches(flags);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            result->dirLocal = Vector3D(0, 0, 1);
+            result->dirPDF = 1.0f / m_worldDiscArea;
+            result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
+            SampledSpectrum feValue = m_emittance / VLR_M_PI;
+
+            return feValue;
+        }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
             return VLR_M_PI * m_emittance;
@@ -2015,6 +2312,19 @@ namespace vlr {
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
         }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const EDFQuery &query, const Vector3D &dirLocal) const {
+            if (dirLocal.z <= 0.0f)
+                return 0.0f;
+            float pdfValue = 1.0f / m_worldDiscArea;
+
+            return pdfValue;
+        }
+
+        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+            return m_emittance.importance(query.wlHint);
+        }
     };
 
     RT_CALLABLE_PROGRAM uint32_t RT_DC_NAME(EnvironmentEmitterSurfaceMaterial_setupEDF)(
@@ -2022,7 +2332,8 @@ namespace vlr {
         auto &p = *reinterpret_cast<EnvironmentEDF*>(params);
         auto &mat = *reinterpret_cast<const EnvironmentEmitterSurfaceMaterial*>(matDesc);
 
-        p = EnvironmentEDF(calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls) * mat.immScale);
+        p = EnvironmentEDF(calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls) * mat.immScale,
+                           plp.sceneBounds->worldDiscArea);
 
         return sizeof(EnvironmentEDF) / 4;
     }

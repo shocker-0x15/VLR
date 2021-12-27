@@ -145,7 +145,7 @@ namespace vlr {
             p.pipeline.setPipelineOptions(
                 std::max(shared::PayloadSignature::numDwords,
                          shared::ShadowPayloadSignature::numDwords),
-                optixu::calcSumDwords<float2>(),
+                static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
                 false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
@@ -213,7 +213,7 @@ namespace vlr {
             p.pipeline = m_optix.context.createPipeline();
             p.pipeline.setPipelineOptions(
                 shared::DebugPayloadSignature::numDwords,
-                optixu::calcSumDwords<float2>(),
+                static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
                 false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
@@ -362,9 +362,9 @@ namespace vlr {
             CUDADRV_CHECK(cuModuleLoad(&m_cudaSetupSceneModule, (exeDir / "ptxes/setup_scene.ptx").string().c_str()));
 
             m_computeInstanceAABBs.set(m_cudaSetupSceneModule, "computeInstanceAABBs", cudau::dim3(32), 0);
-            m_castInstanceAABBs.set(m_cudaSetupSceneModule, "castInstanceAABBs", cudau::dim3(32), 0);
+            m_finalizeInstanceAABBs.set(m_cudaSetupSceneModule, "finalizeInstanceAABBs", cudau::dim3(32), 0);
             m_computeSceneAABB.set(m_cudaSetupSceneModule, "computeSceneAABB", cudau::dim3(256), 0);
-            m_castSceneAABB.set(m_cudaSetupSceneModule, "castSceneAABB", cudau::dim3(32), 0);
+            m_finalizeSceneBounds.set(m_cudaSetupSceneModule, "finalizeSceneBounds", cudau::dim3(32), 0);
         }
         
         {

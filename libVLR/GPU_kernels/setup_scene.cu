@@ -30,7 +30,7 @@ namespace vlr {
         atomicUnifyBoundingBox3D(&instAabbAsInt, geomInstAabbAsInt);
     }
 
-    CUDA_DEVICE_KERNEL void castInstanceAABBs(Instance* instances, uint32_t numInstances) {
+    CUDA_DEVICE_KERNEL void finalizeInstanceAABBs(Instance* instances, uint32_t numInstances) {
         uint32_t globalIndex = blockDim.x * blockIdx.x + threadIdx.x;
         if (globalIndex >= numInstances)
             return;
@@ -49,7 +49,7 @@ namespace vlr {
     }
 
     CUDA_DEVICE_KERNEL void computeSceneAABB(const Instance* instances, uint32_t numInstances,
-                                             BoundingBox3DAsOrderedInt* sceneAabbAsInt) {
+                                             SceneBounds* sceneBounds) {
         uint32_t globalIndex = blockDim.x * blockIdx.x + threadIdx.x;
         if (globalIndex >= numInstances)
             return;
@@ -74,16 +74,21 @@ namespace vlr {
         __syncthreads();
         atomicUnifyBoundingBox3D_block(&b_AabbAsInt, aabbAsInt);
         __syncthreads();
-        if (threadIdx.x == 0)
-            atomicUnifyBoundingBox3D(sceneAabbAsInt, b_AabbAsInt);
+        if (threadIdx.x == 0) {
+            atomicUnifyBoundingBox3D(&sceneBounds->aabbAsInt, b_AabbAsInt);
+        }
     }
 
-    CUDA_DEVICE_KERNEL void castSceneAABB(BoundingBox3DAsOrderedInt* sceneAabb) {
+    CUDA_DEVICE_KERNEL void finalizeSceneBounds(SceneBounds* sceneBounds) {
         uint32_t globalIndex = blockDim.x * blockIdx.x + threadIdx.x;
         if (globalIndex >= 1)
             return;
 
-        auto aabb = static_cast<BoundingBox3D>(*sceneAabb);
-        *sceneAabb = *reinterpret_cast<BoundingBox3DAsOrderedInt*>(&aabb);
+        BoundingBox3D sceneAabb = static_cast<BoundingBox3D>(sceneBounds->aabbAsInt);
+        sceneBounds->aabb = sceneAabb;
+        Point3D worldCenter = sceneAabb.centroid();
+        sceneBounds->center = worldCenter;
+        float worldRadius = (sceneAabb.maxP - worldCenter).length();
+        sceneBounds->worldDiscArea = VLR_M_PI * pow2(worldRadius);
     }
 }

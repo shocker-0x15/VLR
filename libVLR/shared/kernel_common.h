@@ -215,9 +215,30 @@ namespace vlr::shared {
 
 
     struct EDFQuery {
-        DirectionType flags;
+        DirectionType dirTypeFilter;
+        struct {
+            unsigned int wlHint : 6;
+        };
 
-        CUDA_DEVICE_FUNCTION EDFQuery(DirectionType f = DirectionType::All()) : flags(f) {}
+        CUDA_DEVICE_FUNCTION EDFQuery(DirectionType filter, const WavelengthSamples &wls) :
+            dirTypeFilter(filter), wlHint(wls.selectedLambdaIndex()) {}
+    };
+
+    struct EDFSample {
+        float uComponent;
+        float uDir[2];
+
+        CUDA_DEVICE_FUNCTION EDFSample() {}
+        CUDA_DEVICE_FUNCTION EDFSample(float uComp, float uDir0, float uDir1) :
+            uComponent(uComp), uDir{ uDir0, uDir1 } {}
+    };
+
+    struct EDFQueryResult {
+        Vector3D dirLocal;
+        float dirPDF;
+        DirectionType sampledType;
+
+        CUDA_DEVICE_FUNCTION EDFQueryResult() {}
     };
 
 
@@ -230,7 +251,8 @@ namespace vlr::shared {
             unsigned int wlHint : 6;
         };
 
-        CUDA_DEVICE_FUNCTION BSDFQuery(const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, const WavelengthSamples &wls) : 
+        CUDA_DEVICE_FUNCTION BSDFQuery(
+            const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, const WavelengthSamples &wls) : 
             dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter), wlHint(wls.selectedLambdaIndex()) {}
     };
 
@@ -284,7 +306,10 @@ namespace vlr::shared {
         uint32_t materialIndex;
     };
 
-    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<void(const Instance &, const GeometryInstance &geomInst, const SurfaceLightPosSample &, const Point3D &, SurfaceLightPosQueryResult*)>;
+    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<
+        void(const Instance &, const GeometryInstance &,
+             const SurfaceLightPosSample &, const Point3D &,
+             SurfaceLightPosQueryResult*)>;
 
     class SurfaceLight {
         Instance m_inst;
@@ -325,18 +350,46 @@ namespace vlr::shared {
 
 
 
-    using ProgSigSetupBSDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
-    using ProgSigSetupEDF = optixu::DirectCallableProgramID<uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
+    using ProgSigSetupBSDF = optixu::DirectCallableProgramID<
+        uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
+    using ProgSigSetupEDF = optixu::DirectCallableProgramID<
+        uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
 
-    using ProgSigBSDFGetBaseColor = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
-    using ProgSigBSDFmatches = optixu::DirectCallableProgramID<bool(const uint32_t*, DirectionType)>;
-    using ProgSigBSDFSampleInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)>;
-    using ProgSigBSDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
-    using ProgSigBSDFEvaluatePDFInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
-    using ProgSigBSDFWeightInternal = optixu::DirectCallableProgramID<float(const uint32_t*, const BSDFQuery &)>;
+    // BSDF callables
+    using ProgSigBSDFGetBaseColor = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*)>;
+    using ProgSigBSDFmatches = optixu::DirectCallableProgramID<
+        bool(const uint32_t*, DirectionType)>;
+    using ProgSigBSDFSampleInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)>;
+    using ProgSigBSDFEvaluateInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFEvaluatePDFInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFWeightInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const BSDFQuery &)>;
 
-    using ProgSigEDFEvaluateEmittanceInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*)>;
-    using ProgSigEDFEvaluateInternal = optixu::DirectCallableProgramID<SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)>;
+    // Emitter/EDF callables
+    using ProgSigEDFmatches = optixu::DirectCallableProgramID<
+        bool(const uint32_t*, DirectionType)>;
+    using ProgSigEDFSampleInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const EDFQuery &, float, const float[2], EDFQueryResult*)>;
+    using ProgSigEDFEvaluateEmittanceInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*)>;
+    using ProgSigEDFEvaluateInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const EDFQuery &, const Vector3D &)>;
+    using ProgSigEDFEvaluatePDFInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const EDFQuery &, const Vector3D &)>;
+    using ProgSigEDFWeightInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const EDFQuery &)>;
+
+    // Lens/IDF callables
+    using ProgSigSampleLensPosition = optixu::DirectCallableProgramID<
+        SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)>;
+    using ProgSigIDFSample = optixu::DirectCallableProgramID<
+        SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)>;
+    using ProgSigIDFEvaluate = optixu::DirectCallableProgramID<
+        SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const Vector3D &)>;
 
 
 

@@ -44,6 +44,27 @@ namespace vlr {
 
 
     class SurfaceMaterial : public Queryable {
+        enum BSDFCallableName {
+            BSDFCallableName_setupBSDF = 0,
+            BSDFCallableName_BSDF_getBaseColor,
+            BSDFCallableName_BSDF_matches,
+            BSDFCallableName_BSDF_sampleInternal,
+            BSDFCallableName_BSDF_evaluateInternal,
+            BSDFCallableName_BSDF_evaluatePDFInternal,
+            BSDFCallableName_BSDF_weightInternal,
+            NumBSDFCallableNames
+        };
+        enum EDFCallableName {
+            EDFCallableName_setupEDF,
+            EDFCallableName_EDF_matches,
+            EDFCallableName_EDF_sampleInternal,
+            EDFCallableName_EDF_evaluateEmittanceInternal,
+            EDFCallableName_EDF_evaluateInternal,
+            EDFCallableName_EDF_evaluatePDFInternal,
+            EDFCallableName_EDF_weightInternal,
+            NumEDFCallableNames
+        };
+
     protected:
         struct OptiXProgramSet {
             uint32_t dcSetupBSDF;
@@ -56,8 +77,12 @@ namespace vlr {
             uint32_t bsdfProcedureSetIndex;
 
             uint32_t dcSetupEDF;
+            uint32_t dcEDFmatches;
+            uint32_t dcEDFSampleInternal;
             uint32_t dcEDFEvaluateEmittanceInternal;
             uint32_t dcEDFEvaluateInternal;
+            uint32_t dcEDFEvaluatePDFInternal;
+            uint32_t dcEDFWeightInternal;
             uint32_t edfProcedureSetIndex;
 
             OptiXProgramSet() {
@@ -68,7 +93,9 @@ namespace vlr {
         uint32_t m_matIndex;
 
         static void commonInitializeProcedure(
-            Context &context, const char* identifiers[10], OptiXProgramSet* programSet);
+            Context &context,
+            const char* bsdfIDs[NumBSDFCallableNames], const char* edfIDs[NumEDFCallableNames],
+            OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(
             Context &context, OptiXProgramSet &programSet);
         static void setupMaterialDescriptorHead(

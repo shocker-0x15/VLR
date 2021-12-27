@@ -3,23 +3,25 @@
 namespace vlr {
     // static
     void SurfaceMaterial::commonInitializeProcedure(
-        Context &context, const char* identifiers[10], OptiXProgramSet* programSet) {
-        if (identifiers[0] && identifiers[1] && identifiers[2] && identifiers[3] && identifiers[4] && identifiers[5] && identifiers[6]) {
+        Context &context,
+        const char* bsdfIDs[NumBSDFCallableNames], const char* edfIDs[NumEDFCallableNames],
+        OptiXProgramSet* programSet) {
+        if (bsdfIDs) {
             programSet->dcSetupBSDF = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[0]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_setupBSDF]);
 
             programSet->dcBSDFGetBaseColor = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[1]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_getBaseColor]);
             programSet->dcBSDFmatches = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[2]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_matches]);
             programSet->dcBSDFSampleInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[3]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_sampleInternal]);
             programSet->dcBSDFEvaluateInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[4]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluateInternal]);
             programSet->dcBSDFEvaluatePDFInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[5]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluatePDFInternal]);
             programSet->dcBSDFWeightInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[6]);
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_weightInternal]);
 
             shared::BSDFProcedureSet bsdfProcSet;
             {
@@ -34,19 +36,31 @@ namespace vlr {
             context.updateBSDFProcedureSet(programSet->bsdfProcedureSetIndex, bsdfProcSet, 0);
         }
 
-        if (identifiers[7] && identifiers[8] && identifiers[9]) {
+        if (edfIDs) {
             programSet->dcSetupEDF = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[7]);
+                OptiXModule_Material, edfIDs[EDFCallableName_setupEDF]);
 
+            programSet->dcEDFmatches = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_matches]);
+            programSet->dcEDFSampleInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_sampleInternal]);
             programSet->dcEDFEvaluateEmittanceInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[8]);
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_evaluateEmittanceInternal]);
             programSet->dcEDFEvaluateInternal = context.createDirectCallableProgram(
-                OptiXModule_Material, identifiers[9]);
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_evaluateInternal]);
+            programSet->dcEDFEvaluatePDFInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_evaluatePDFInternal]);
+            programSet->dcEDFWeightInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_weightInternal]);
 
             shared::EDFProcedureSet edfProcSet;
             {
+                edfProcSet.progMatches = programSet->dcEDFmatches;
+                edfProcSet.progSampleInternal = programSet->dcEDFSampleInternal;
                 edfProcSet.progEvaluateEmittanceInternal = programSet->dcEDFEvaluateEmittanceInternal;
                 edfProcSet.progEvaluateInternal = programSet->dcEDFEvaluateInternal;
+                edfProcSet.progEvaluatePDFInternal = programSet->dcEDFEvaluatePDFInternal;
+                edfProcSet.progWeightInternal = programSet->dcEDFWeightInternal;
             }
             programSet->edfProcedureSetIndex = context.allocateEDFProcedureSet();
             context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet, 0);
@@ -180,12 +194,9 @@ namespace vlr {
             RT_DC_NAME_STR("MatteBRDF_evaluateInternal"),
             RT_DC_NAME_STR("MatteBRDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("MatteBRDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -299,12 +310,9 @@ namespace vlr {
             RT_DC_NAME_STR("SpecularBRDF_evaluateInternal"),
             RT_DC_NAME_STR("SpecularBRDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("SpecularBRDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -455,12 +463,9 @@ namespace vlr {
             RT_DC_NAME_STR("SpecularBSDF_evaluateInternal"),
             RT_DC_NAME_STR("SpecularBSDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("SpecularBSDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -614,12 +619,9 @@ namespace vlr {
             RT_DC_NAME_STR("MicrofacetBRDF_evaluateInternal"),
             RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("MicrofacetBRDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -826,12 +828,9 @@ namespace vlr {
             RT_DC_NAME_STR("MicrofacetBSDF_evaluateInternal"),
             RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("MicrofacetBSDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1051,12 +1050,9 @@ namespace vlr {
             RT_DC_NAME_STR("LambertianBSDF_evaluateInternal"),
             RT_DC_NAME_STR("LambertianBSDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("LambertianBSDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1216,12 +1212,9 @@ namespace vlr {
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1405,12 +1398,9 @@ namespace vlr {
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
-            nullptr,
-            nullptr,
-            nullptr
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, identifiers, nullptr, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1579,19 +1569,16 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
             RT_DC_NAME_STR("DiffuseEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("DiffuseEDF_matches"),
+            RT_DC_NAME_STR("DiffuseEDF_sampleInternal"),
             RT_DC_NAME_STR("DiffuseEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("DiffuseEDF_evaluateInternal")
+            RT_DC_NAME_STR("DiffuseEDF_evaluateInternal"),
+            RT_DC_NAME_STR("DiffuseEDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DiffuseEDF_weightInternal")
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, nullptr, identifiers, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1731,19 +1718,16 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
             RT_DC_NAME_STR("DirectionalEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("DirectionalEDF_matches"),
+            RT_DC_NAME_STR("DirectionalEDF_sampleInternal"),
             RT_DC_NAME_STR("DirectionalEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("DirectionalEDF_evaluateInternal")
+            RT_DC_NAME_STR("DirectionalEDF_evaluateInternal"),
+            RT_DC_NAME_STR("DirectionalEDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DirectionalEDF_weightInternal")
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, nullptr, identifiers, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -1921,19 +1905,16 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
             RT_DC_NAME_STR("PointEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("PointEDF_matches"),
+            RT_DC_NAME_STR("PointEDF_sampleInternal"),
             RT_DC_NAME_STR("PointEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("PointEDF_evaluateInternal")
+            RT_DC_NAME_STR("PointEDF_evaluateInternal"),
+            RT_DC_NAME_STR("PointEDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("PointEDF_weightInternal")
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, nullptr, identifiers, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -2073,7 +2054,7 @@ namespace vlr {
             std::copy_n(paramInfos, lengthof(paramInfos), ParameterInfos.data());
         }
 
-        const char* identifiers[] = {
+        const char* bsdfIDs[] = {
             RT_DC_NAME_STR("MultiSurfaceMaterial_setupBSDF"),
             RT_DC_NAME_STR("MultiBSDF_getBaseColor"),
             RT_DC_NAME_STR("MultiBSDF_matches"),
@@ -2081,12 +2062,18 @@ namespace vlr {
             RT_DC_NAME_STR("MultiBSDF_evaluateInternal"),
             RT_DC_NAME_STR("MultiBSDF_evaluatePDFInternal"),
             RT_DC_NAME_STR("MultiBSDF_weightInternal"),
+        };
+        const char* edfIDs[] = {
             RT_DC_NAME_STR("MultiSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("MultiEDF_matches"),
+            RT_DC_NAME_STR("MultiEDF_sampleInternal"),
             RT_DC_NAME_STR("MultiEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("MultiEDF_evaluateInternal")
+            RT_DC_NAME_STR("MultiEDF_evaluateInternal"),
+            RT_DC_NAME_STR("MultiEDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MultiEDF_weightInternal")
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, bsdfIDs, edfIDs, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }
@@ -2197,19 +2184,16 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
             RT_DC_NAME_STR("EnvironmentEmitterSurfaceMaterial_setupEDF"),
+            RT_DC_NAME_STR("EnvironmentEDF_matches"),
+            RT_DC_NAME_STR("EnvironmentEDF_sampleInternal"),
             RT_DC_NAME_STR("EnvironmentEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("EnvironmentEDF_evaluateInternal")
+            RT_DC_NAME_STR("EnvironmentEDF_evaluateInternal"),
+            RT_DC_NAME_STR("EnvironmentEDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("EnvironmentEDF_weightInternal")
         };
         OptiXProgramSet programSet;
-        commonInitializeProcedure(context, identifiers, &programSet);
+        commonInitializeProcedure(context, nullptr, identifiers, &programSet);
 
         s_optiXProgramSets[context.getID()] = programSet;
     }

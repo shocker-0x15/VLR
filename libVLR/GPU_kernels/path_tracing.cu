@@ -34,7 +34,8 @@ namespace vlr {
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
         if (spEmittance.hasNonZero()) {
-            SampledSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
+            EDFQuery feQuery(DirectionType::All(), wls);
+            SampledSpectrum Le = spEmittance * edf.evaluate(feQuery, dirOutLocal);
 
             float MISWeight = 1.0f;
             if (!roPayload->prevSampledType.isDelta() && roPayload->pathLength > 1) {
@@ -86,7 +87,8 @@ namespace vlr {
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
-                SampledSpectrum Le = M * ledf.evaluate(EDFQuery(), shadowRayDir_l);
+                EDFQuery feQuery(DirectionType::All(), wls);
+                SampledSpectrum Le = M * ledf.evaluate(feQuery, shadowRayDir_l);
                 float lightPDF = lightProb * lpResult.areaPDF;
 
                 SampledSpectrum fs = bsdf.evaluate(fsQuery, shadowRayDir_sn);
@@ -183,7 +185,8 @@ namespace vlr {
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
         if (spEmittance.hasNonZero()) {
-            SampledSpectrum Le = spEmittance * edf.evaluate(EDFQuery(), dirOutLocal);
+            EDFQuery feQuery(DirectionType::All(), roPayload->wls);
+            SampledSpectrum Le = spEmittance * edf.evaluate(feQuery, dirOutLocal);
 
             float MISWeight = 1.0f;
             if (!roPayload->prevSampledType.isDelta() && roPayload->pathLength > 1) {
@@ -215,7 +218,7 @@ namespace vlr {
         WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
 
         ProgSigSampleLensPosition sampleLensPosition(plp.progSampleLensPosition);
-        ProgSigSampleIDF sampleIDF(plp.progSampleIDF);
+        ProgSigIDFSample sampleIDF(plp.progSampleIDF);
 
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;
