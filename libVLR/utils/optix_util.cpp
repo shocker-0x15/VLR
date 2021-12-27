@@ -2081,21 +2081,6 @@ namespace optixu {
 
 
 
-    // static
-    PayloadType PayloadType::create(const uint32_t* payloadSizesInDwords,
-                                    const OptixPayloadSemantics* semantics,
-                                    uint32_t numPayloads) {
-        return (new _PayloadType(payloadSizesInDwords, semantics, numPayloads))->getPublicType();
-    }
-
-    void PayloadType::destroy() {
-        if (m)
-            delete m;
-        m = nullptr;
-    }
-
-
-
     Pipeline::Priv::~Priv() {
         if (pipelineLinked)
             optixPipelineDestroy(rawPipeline);
@@ -2259,12 +2244,10 @@ namespace optixu {
     Module Pipeline::createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,
                                                OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel,
                                                OptixModuleCompileBoundValueEntry* boundValues, uint32_t numBoundValues,
-                                               PayloadType* payloadTypes, uint32_t numPayloadTypes) const {
+                                               const PayloadType* payloadTypes, uint32_t numPayloadTypes) const {
         std::vector<OptixPayloadType> optixPayloadTypes(numPayloadTypes);
-        for (uint32_t i = 0; i < numPayloadTypes; ++i) {
-            const _PayloadType* _payloadType = extract(payloadTypes[i]);
-            optixPayloadTypes[i] = _payloadType->getRawPayloadType();
-        }
+        for (uint32_t i = 0; i < numPayloadTypes; ++i)
+            optixPayloadTypes[i] = payloadTypes[i].getRawType();
 
         OptixModuleCompileOptions moduleCompileOptions = {};
         moduleCompileOptions.maxRegisterCount = maxRegisterCount;
@@ -2331,7 +2314,7 @@ namespace optixu {
 
     ProgramGroup Pipeline::createMissProgram(
         Module module, const char* entryFunctionName,
-        PayloadType payloadType) const {
+        const PayloadType &payloadType) const {
         _Module* _module = extract(module);
         m->throwRuntimeError((_module != nullptr) == (entryFunctionName != nullptr),
                              "Either of Miss module or entry function name is not provided.");
@@ -2346,11 +2329,9 @@ namespace optixu {
         desc.miss.entryFunctionName = entryFunctionName;
 
         OptixProgramGroupOptions options = {};
-        OptixPayloadType optixPayloadType = {};
-        if (const _PayloadType* _payloadType = extract(payloadType); _payloadType) {
-            optixPayloadType = _payloadType->getRawPayloadType();
+        OptixPayloadType optixPayloadType = payloadType.getRawType();
+        if (payloadType.numDwords > 0)
             options.payloadType = &optixPayloadType;
-        }
 
         OptixProgramGroup group;
         m->createProgram(desc, options, &group);
@@ -2361,7 +2342,7 @@ namespace optixu {
     ProgramGroup Pipeline::createHitProgramGroupForTriangleIS(
         Module module_CH, const char* entryFunctionNameCH,
         Module module_AH, const char* entryFunctionNameAH,
-        PayloadType payloadType) const {
+        const PayloadType &payloadType) const {
         _Module* _module_CH = extract(module_CH);
         _Module* _module_AH = extract(module_AH);
         m->throwRuntimeError((_module_CH != nullptr) == (entryFunctionNameCH != nullptr),
@@ -2391,11 +2372,9 @@ namespace optixu {
         }
 
         OptixProgramGroupOptions options = {};
-        OptixPayloadType optixPayloadType = {};
-        if (const _PayloadType* _payloadType = extract(payloadType); _payloadType) {
-            optixPayloadType = _payloadType->getRawPayloadType();
+        OptixPayloadType optixPayloadType = payloadType.getRawType();
+        if (payloadType.numDwords > 0)
             options.payloadType = &optixPayloadType;
-        }
 
         OptixProgramGroup group;
         m->createProgram(desc, options, &group);
@@ -2408,7 +2387,7 @@ namespace optixu {
         Module module_CH, const char* entryFunctionNameCH,
         Module module_AH, const char* entryFunctionNameAH,
         ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess,
-        PayloadType payloadType) const {
+        const PayloadType &payloadType) const {
         m->throwRuntimeError(curveType != OPTIX_PRIMITIVE_TYPE_TRIANGLE && curveType != OPTIX_PRIMITIVE_TYPE_CUSTOM,
                              "Use the createHitProgramGroupForTriangleIS() or createHitProgramGroupForCustomIS() for triangles or custom primitives respectively.");
         _Module* _module_CH = extract(module_CH);
@@ -2444,11 +2423,9 @@ namespace optixu {
         desc.hitgroup.entryFunctionNameIS = nullptr;
 
         OptixProgramGroupOptions options = {};
-        OptixPayloadType optixPayloadType = {};
-        if (const _PayloadType* _payloadType = extract(payloadType); _payloadType) {
-            optixPayloadType = _payloadType->getRawPayloadType();
+        OptixPayloadType optixPayloadType = payloadType.getRawType();
+        if (payloadType.numDwords > 0)
             options.payloadType = &optixPayloadType;
-        }
 
         OptixProgramGroup group;
         m->createProgram(desc, options, &group);
@@ -2460,7 +2437,7 @@ namespace optixu {
         Module module_CH, const char* entryFunctionNameCH,
         Module module_AH, const char* entryFunctionNameAH,
         Module module_IS, const char* entryFunctionNameIS,
-        PayloadType payloadType) const {
+        const PayloadType &payloadType) const {
         _Module* _module_CH = extract(module_CH);
         _Module* _module_AH = extract(module_AH);
         _Module* _module_IS = extract(module_IS);
@@ -2498,11 +2475,9 @@ namespace optixu {
         desc.hitgroup.entryFunctionNameIS = entryFunctionNameIS;
 
         OptixProgramGroupOptions options = {};
-        OptixPayloadType optixPayloadType = {};
-        if (const _PayloadType* _payloadType = extract(payloadType); _payloadType) {
-            optixPayloadType = _payloadType->getRawPayloadType();
+        OptixPayloadType optixPayloadType = payloadType.getRawType();
+        if (payloadType.numDwords > 0)
             options.payloadType = &optixPayloadType;
-        }
 
         OptixProgramGroup group;
         m->createProgram(desc, options, &group);
@@ -2524,7 +2499,7 @@ namespace optixu {
     ProgramGroup Pipeline::createCallableProgramGroup(
         Module module_DC, const char* entryFunctionNameDC,
         Module module_CC, const char* entryFunctionNameCC,
-        PayloadType payloadType) const {
+        const PayloadType &payloadType) const {
         _Module* _module_DC = extract(module_DC);
         _Module* _module_CC = extract(module_CC);
         m->throwRuntimeError((_module_DC != nullptr) == (entryFunctionNameDC != nullptr),
@@ -2554,11 +2529,9 @@ namespace optixu {
         }
 
         OptixProgramGroupOptions options = {};
-        OptixPayloadType optixPayloadType = {};
-        if (const _PayloadType* _payloadType = extract(payloadType); _payloadType) {
-            optixPayloadType = _payloadType->getRawPayloadType();
+        OptixPayloadType optixPayloadType = payloadType.getRawType();
+        if (payloadType.numDwords > 0)
             options.payloadType = &optixPayloadType;
-        }
 
         OptixProgramGroup group;
         m->createProgram(desc, options, &group);

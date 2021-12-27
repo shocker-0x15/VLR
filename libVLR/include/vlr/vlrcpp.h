@@ -578,7 +578,7 @@ namespace vlr {
             auto rawChildren = new VLRNode[numChildren];
             errorCheck(vlrParentNodeGetChildren(getRaw<VLRParentNode>(), rawChildren));
 
-            for (int i = 0; i < numChildren; ++i) {
+            for (int i = 0; i < static_cast<int>(numChildren); ++i) {
                 VLRNode rawChild = rawChildren[i];
                 if (m_children.count(rawChild))
                     children[i] = m_children.at(rawChild);

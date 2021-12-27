@@ -107,7 +107,6 @@ namespace optixu {
 #define OPTIXU_PREPROCESS_OBJECT(Name) using _ ## Name = Name::Priv
     OPTIXU_PREPROCESS_OBJECTS();
 #undef OPTIXU_PREPROCESS_OBJECT
-    using _PayloadType = PayloadType::Priv;
 
 
 
@@ -1118,35 +1117,6 @@ namespace optixu {
 
         void packHeader(uint8_t* record) const {
             OPTIX_CHECK(optixSbtRecordPackHeader(rawGroup, record));
-        }
-    };
-
-
-
-    class PayloadType::Priv {
-        std::vector<OptixPayloadSemantics> semantics;
-
-    public:
-        OPTIXU_OPAQUE_BRIDGE(PayloadType);
-
-        Priv(const uint32_t* _payloadSizesInDwords,
-             const OptixPayloadSemantics* _semantics,
-             uint32_t numPayloads) {
-            for (uint32_t i = 0; i < numPayloads; ++i) {
-                uint32_t numDwords = _payloadSizesInDwords[i];
-                OptixPayloadSemantics perVarSem = _semantics[i];
-                for (uint32_t j = 0; j < numDwords; ++j)
-                    semantics.push_back(perVarSem);
-            }
-        }
-        ~Priv() {
-        }
-
-        OptixPayloadType getRawPayloadType() const {
-            OptixPayloadType ret;
-            ret.numPayloadValues = static_cast<uint32_t>(semantics.size());
-            ret.payloadSemantics = reinterpret_cast<const uint32_t*>(semantics.data());
-            return ret;
         }
     };
 

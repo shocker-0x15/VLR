@@ -21,10 +21,12 @@ namespace vlr {
 
         int32_t ui = static_cast<int32_t>(u);
         int32_t vi = static_cast<int32_t>(v);
-        VLRAssert(ui < GridWidth() && vi < GridHeight(), "out of grid: %d, %d", ui, vi);
+        VLRAssert(ui < static_cast<int32_t>(GridWidth()) &&
+                  vi < static_cast<int32_t>(GridHeight()), "out of grid: %d, %d", ui, vi);
 
         const int32_t cellIdx = ui + GridWidth() * vi;
-        VLRAssert(cellIdx >= 0 && cellIdx < GridWidth() * GridHeight(), "cellIdx is out of grid: %d", cellIdx);
+        VLRAssert(cellIdx >= 0 && cellIdx < static_cast<int32_t>(GridWidth() * GridHeight()),
+                  "cellIdx is out of grid: %d", cellIdx);
 
         const spectrum_grid_cell_t &cell = spectrum_grid[cellIdx];
         const uint8_t* indices = cell.idx;
@@ -402,7 +404,7 @@ namespace vlr {
                 continue;
             }
             int32_t bin = static_cast<int32_t>(binF);
-            VLRAssert(bin >= 0 && bin < m_numSamples - 1, "invalid bin index.");
+            VLRAssert(bin >= 0 && bin < static_cast<int32_t>(m_numSamples - 1), "invalid bin index.");
             RealType t = binF - bin;
             ret[i] = (1 - t) * m_values[bin] + t * m_values[bin + 1];
         }

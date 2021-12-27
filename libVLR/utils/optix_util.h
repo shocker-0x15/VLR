@@ -155,8 +155,6 @@ TODO:
   しかしビルドやアップデートを明示的にしているため結局ASであるということをユーザーが意識する必要がある。
 - ユーザーがあるSBTレコード中の各データのストライドを意識せずともそれぞれのオフセットを取得する関数。
   => オフセット値を読み取った後にデータを読み取るというindirectionになるため、そもそもあまり好ましくない気も。
-- setPayloads/getPayloadsなどで引数側が必要以上の引数を渡していてもエラーが出ない問題。
-  => 言語機能的に難しいか。
 - InstanceのsetChildはTraversal Graph Depthに影響しないので名前を変えるべき？setTraversable()?
   => GASのsetChildもDepthに影響しないことを考えるとこのままで良いかも。
 
@@ -857,7 +855,6 @@ namespace optixu {
 #define OPTIXU_PREPROCESS_OBJECT(Type) class Type
     OPTIXU_PREPROCESS_OBJECTS();
 #undef OPTIXU_PREPROCESS_OBJECT
-    class PayloadType;
 
     enum class GeometryType {
         Triangles = 0,
@@ -1323,26 +1320,39 @@ private: \
 
 
 
-    class PayloadType {
-        OPTIXU_PIMPL();
+    struct PayloadType {
+        OptixPayloadSemantics semantics[detail::maxNumPayloadsInDwords];
+        uint32_t numDwords;
 
-        static PayloadType create(const uint32_t* payloadSizesInDwords,
-                                  const OptixPayloadSemantics* semantics,
-                                  uint32_t numPayloads);
-    public:
-        template <typename PayloadSignatureType, uint32_t N>
-        static PayloadType create(const OptixPayloadSemantics (&semantics)[N]) {
-            // Nの代わりにsizeof...(PayloadTypes)を使った場合、渡された引数の数が足りない場合を検知できない。
-            static_assert(N == PayloadSignatureType::numParameters,
-                          "Number of semantics passed doesn't match to the number of payload parameters.");
-            return create(PayloadSignatureType::sizesInDwords, semantics, N);
+        PayloadType() : numDwords(0) {
+            for (uint32_t i = 0; i < detail::maxNumPayloadsInDwords; ++i)
+                semantics[i] = static_cast<OptixPayloadSemantics>(0);
         }
 
-        void destroy();
-        operator bool() const { return m; }
-        bool operator==(const PayloadType &r) const { return m == r.m; }
-        bool operator!=(const PayloadType &r) const { return m != r.m; }
-        bool operator<(const PayloadType &r) const { return m < r.m; }
+        OptixPayloadType getRawType() const {
+            OptixPayloadType ret;
+            ret.numPayloadValues = numDwords;
+            ret.payloadSemantics = reinterpret_cast<const uint32_t*>(semantics);
+            return ret;
+        }
+
+        template <typename PayloadSignatureType, uint32_t N>
+        static PayloadType create(const OptixPayloadSemantics (&varSemantics)[N]) {
+            static_assert(PayloadSignatureType::numParameters == N,
+                          "Number of semantics does not match to that of the signature.");
+            PayloadType ret;
+            ret.numDwords = PayloadSignatureType::numDwords;
+            uint32_t offset = 0;
+            for (uint32_t varIdx = 0; varIdx < PayloadSignatureType::numParameters; ++varIdx) {
+                const uint32_t sizeInDwords = PayloadSignatureType::sizesInDwords[varIdx];
+                OptixPayloadSemantics varSem = varSemantics[varIdx];
+                for (uint32_t dwIdx = 0; dwIdx < sizeInDwords; ++dwIdx)
+                    ret.semantics[offset + dwIdx] = varSem;
+                offset += sizeInDwords;
+            }
+
+            return ret;
+        }
     };
 
 
@@ -1365,7 +1375,7 @@ private: \
         Module createModuleFromPTXString(const std::string &ptxString, int32_t maxRegisterCount,
                                          OptixCompileOptimizationLevel optLevel, OptixCompileDebugLevel debugLevel,
                                          OptixModuleCompileBoundValueEntry* boundValues = nullptr, uint32_t numBoundValues = 0,
-                                         PayloadType* payloadTypes = nullptr, uint32_t numPayloadTypes = 0) const;
+                                         const PayloadType* payloadTypes = nullptr, uint32_t numPayloadTypes = 0) const;
 
         [[nodiscard]]
         ProgramGroup createRayGenProgram(Module module, const char* entryFunctionName) const;
@@ -1374,32 +1384,32 @@ private: \
         [[nodiscard]]
         ProgramGroup createMissProgram(
             Module module, const char* entryFunctionName,
-            PayloadType payloadType = PayloadType()) const;
+            const PayloadType &payloadType = PayloadType()) const;
         [[nodiscard]]
         ProgramGroup createHitProgramGroupForTriangleIS(
             Module module_CH, const char* entryFunctionNameCH,
             Module module_AH, const char* entryFunctionNameAH,
-            PayloadType payloadType = PayloadType()) const;
+            const PayloadType &payloadType = PayloadType()) const;
         [[nodiscard]]
         ProgramGroup createHitProgramGroupForCurveIS(
             OptixPrimitiveType curveType, OptixCurveEndcapFlags endcapFlags,
             Module module_CH, const char* entryFunctionNameCH,
             Module module_AH, const char* entryFunctionNameAH,
             ASTradeoff tradeoff, bool allowUpdate, bool allowCompaction, bool allowRandomVertexAccess,
-            PayloadType payloadType = PayloadType()) const;
+            const PayloadType &payloadType = PayloadType()) const;
         [[nodiscard]]
         ProgramGroup createHitProgramGroupForCustomIS(
             Module module_CH, const char* entryFunctionNameCH,
             Module module_AH, const char* entryFunctionNameAH,
             Module module_IS, const char* entryFunctionNameIS,
-            PayloadType payloadType = PayloadType()) const;
+            const PayloadType &payloadType = PayloadType()) const;
         [[nodiscard]]
         ProgramGroup createEmptyHitProgramGroup() const;
         [[nodiscard]]
         ProgramGroup createCallableProgramGroup(
             Module module_DC, const char* entryFunctionNameDC,
             Module module_CC, const char* entryFunctionNameCC,
-            PayloadType payloadType = PayloadType()) const;
+            const PayloadType &payloadType = PayloadType()) const;
 
         void link(uint32_t maxTraceDepth, OptixCompileDebugLevel debugLevel) const;
 

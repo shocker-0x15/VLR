@@ -797,8 +797,8 @@ namespace vlr {
         std::vector<uint8_t> data;
         data.resize(stride * width * height);
 
-        float deltaOrgX = orgWidth / width;
-        float deltaOrgY = orgHeight / height;
+        float deltaOrgX = static_cast<float>(orgWidth) / width;
+        float deltaOrgY = static_cast<float>(orgHeight) / height;
         for (int y = 0; y < static_cast<int>(height); ++y) {
             float top = deltaOrgY * y;
             float bottom = deltaOrgY * (y + 1);
@@ -861,7 +861,7 @@ namespace vlr {
                         sumA += weightB * float(pix.a);
                     }
                     if (rightPix > (leftPix + 1))
-                        sumWeight += 2 * (rightPix - leftPix - 1);
+                        sumWeight += static_cast<float>(2 * (rightPix - leftPix - 1));
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         pix = get<RGBA16Fx4>(leftPix, y);
                         float weightL = weightsEdges[1];
@@ -878,7 +878,7 @@ namespace vlr {
                         sumA += weightR * float(pix.a);
                     }
                     if (bottomPix > (topPix + 1))
-                        sumWeight += 2 * (bottomPix - topPix - 1);
+                        sumWeight += static_cast<float>(2 * (bottomPix - topPix - 1));
 
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
@@ -890,7 +890,7 @@ namespace vlr {
                         }
                     }
                     if (bottomPix > topPix && rightPix > leftPix)
-                        sumWeight += (bottomPix - topPix - 1) * (rightPix - leftPix - 1);
+                        sumWeight += static_cast<float>((bottomPix - topPix - 1) * (rightPix - leftPix - 1));
 
                     *(RGBA16Fx4*)&data[(y * width + x) * stride] = RGBA16Fx4{ half(sumR / sumWeight), half(sumG / sumWeight), half(sumB / sumWeight), half(sumA / sumWeight) };
                     break;
@@ -926,7 +926,7 @@ namespace vlr {
                         sumA += weightB * float(pix.a);
                     }
                     if (rightPix > (leftPix + 1))
-                        sumWeight += 2 * (rightPix - leftPix - 1);
+                        sumWeight += static_cast<float>(2 * (rightPix - leftPix - 1));
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         pix = get<uvsA16Fx4>(leftPix, y);
                         float weightL = weightsEdges[1];
@@ -943,7 +943,7 @@ namespace vlr {
                         sumA += weightR * float(pix.a);
                     }
                     if (bottomPix > (topPix + 1))
-                        sumWeight += 2 * (bottomPix - topPix - 1);
+                        sumWeight += static_cast<float>(2 * (bottomPix - topPix - 1));
 
                     for (uint32_t y = topPix + 1; y < bottomPix; ++y) {
                         for (uint32_t x = leftPix + 1; x < rightPix; ++x) {
@@ -955,9 +955,13 @@ namespace vlr {
                         }
                     }
                     if (bottomPix > topPix && rightPix > leftPix)
-                        sumWeight += (bottomPix - topPix - 1) * (rightPix - leftPix - 1);
+                        sumWeight += static_cast<float>((bottomPix - topPix - 1) * (rightPix - leftPix - 1));
 
-                    *reinterpret_cast<uvsA16Fx4*>(&data[(y * width + x) * stride]) = uvsA16Fx4{ half(sum_u / sumWeight), half(sum_v / sumWeight), half(sum_s / sumWeight), half(sumA / sumWeight) };
+                    *reinterpret_cast<uvsA16Fx4*>(&data[(y * width + x) * stride]) = uvsA16Fx4{
+                        half(sum_u / sumWeight),
+                        half(sum_v / sumWeight),
+                        half(sum_s / sumWeight),
+                        half(sumA / sumWeight) };
                     break;
                 }
                 default:
@@ -967,7 +971,8 @@ namespace vlr {
             }
         }
 
-        return new LinearImage2D(m_context, data.data(), width, height, getDataFormat(), getSpectrumType(), getColorSpace());
+        return new LinearImage2D(
+            m_context, data.data(), width, height, getDataFormat(), getSpectrumType(), getColorSpace());
     }
 
     Image2D* LinearImage2D::createLuminanceImage2D() const {
