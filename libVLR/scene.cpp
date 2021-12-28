@@ -674,6 +674,11 @@ namespace vlr {
         ParentNode(context, name, localToWorld) {
     }
 
+    InternalNode::~InternalNode() {
+        for (vlr::Node* child : m_orderedChildren)
+            child->removeParent(this);
+    }
+
     void InternalNode::transformAddEvent(const std::set<SHTransform*> &childDelta) {
         std::set<SHTransform*> delta;
         createConcatanatedTransforms(childDelta, &delta);
@@ -894,6 +899,9 @@ namespace vlr {
     }
 
     Scene::~Scene() {
+        for (vlr::Node* child : m_orderedChildren)
+            child->removeParent(this);
+
         if (m_envNode)
             delete m_envNode;
 

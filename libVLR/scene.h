@@ -148,6 +148,12 @@ namespace vlr {
         virtual void setName(const std::string &name) {
             m_name = name;
         }
+        virtual void addParent(ParentNode* parent) {
+            VLRAssert_ShouldNotBeCalled();
+        }
+        virtual void removeParent(ParentNode* parent) {
+            VLRAssert_ShouldNotBeCalled();
+        }
 
         const std::string &getName() const {
             return m_name;
@@ -172,8 +178,8 @@ namespace vlr {
                 removeParent(*m_parents.rbegin());
         }
 
-        virtual void addParent(ParentNode* parent);
-        virtual void removeParent(ParentNode* parent);
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
 
         virtual bool isIntersectable() const { return true; }
         virtual void setupData(
@@ -417,6 +423,7 @@ namespace vlr {
         VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
 
         InternalNode(Context &context, const std::string &name, const Transform* localToWorld);
+        ~InternalNode();
 
         void transformAddEvent(const std::set<SHTransform*> &childDelta) override;
         void transformRemoveEvent(const std::set<SHTransform*> &childDelta) override;
@@ -431,8 +438,8 @@ namespace vlr {
 
         void setTransform(const Transform* localToWorld) override;
 
-        void addParent(ParentNode* parent);
-        void removeParent(ParentNode* parent);
+        void addParent(ParentNode* parent) override;
+        void removeParent(ParentNode* parent) override;
     };
 
 
