@@ -538,6 +538,7 @@ namespace vlr {
             CameraCallableName_IDF_evaluateSpatialImportanceInternal,
             CameraCallableName_IDF_evaluateDirectionalImportanceInternal,
             CameraCallableName_IDF_evaluatePDFInternal,
+            CameraCallableName_IDF_backProjectDirection,
             NumCameraCallableNames
         };
 
@@ -549,6 +550,7 @@ namespace vlr {
             uint32_t dcIDFEvaluateSpatialImportanceInternal;
             uint32_t dcIDFEvaluateDirectionalImportanceInternal;
             uint32_t dcIDFEvaluatePDFInternal;
+            uint32_t dcIDFBackProjectDirectionInternal;
             uint32_t idfProcedureSetIndex;
         };
 

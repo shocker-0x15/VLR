@@ -421,6 +421,8 @@ namespace vlr::shared {
         SampledSpectrum(const uint32_t*, const IDFQuery &, const Vector3D &)>;
     using ProgSigIDFEvaluatePDFInternal = optixu::DirectCallableProgramID<
         float(const uint32_t*, const IDFQuery &, const Vector3D &)>;
+    using ProgSigIDFBackProjectDirectionInternal = optixu::DirectCallableProgramID<
+        float2(const uint32_t*, const IDFQuery &, const Vector3D &)>;
 
 
 

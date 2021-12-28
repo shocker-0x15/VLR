@@ -1400,6 +1400,8 @@ namespace vlr {
             OptiXModule_Camera, identifiers[CameraCallableName_IDF_evaluateDirectionalImportanceInternal]);
         programSet->dcIDFEvaluatePDFInternal = context.createDirectCallableProgram(
             OptiXModule_Camera, identifiers[CameraCallableName_IDF_evaluatePDFInternal]);
+        programSet->dcIDFBackProjectDirectionInternal = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_IDF_backProjectDirection]);
 
         shared::IDFProcedureSet idfProcSet;
         {
@@ -1407,6 +1409,7 @@ namespace vlr {
             idfProcSet.progEvaluateSpatialImportanceInternal = programSet->dcIDFEvaluateSpatialImportanceInternal;
             idfProcSet.progEvaluateDirectionalImportanceInternal = programSet->dcIDFEvaluateDirectionalImportanceInternal;
             idfProcSet.progEvaluatePDFInternal = programSet->dcIDFEvaluatePDFInternal;
+            idfProcSet.progBackProjectDirectionInternal = programSet->dcIDFBackProjectDirectionInternal;
         }
         programSet->idfProcedureSetIndex = context.allocateIDFProcedureSet();
         context.updateIDFProcedureSet(programSet->idfProcedureSetIndex, idfProcSet, 0);
@@ -1468,6 +1471,7 @@ namespace vlr {
             RT_DC_NAME_STR("PerspectiveCameraIDF_evaluateSpatialImportanceInternal"),
             RT_DC_NAME_STR("PerspectiveCameraIDF_evaluateDirectionalImportanceInternal"),
             RT_DC_NAME_STR("PerspectiveCameraIDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("PerspectiveCameraIDF_backProjectDirection"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -1657,6 +1661,7 @@ namespace vlr {
             RT_DC_NAME_STR("EquirectangularCameraIDF_evaluateSpatialImportanceInternal"),
             RT_DC_NAME_STR("EquirectangularCameraIDF_evaluateDirectionalImportanceInternal"),
             RT_DC_NAME_STR("EquirectangularCameraIDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("EquirectangularCameraIDF_backProjectDirection"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);

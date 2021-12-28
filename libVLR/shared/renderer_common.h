@@ -179,6 +179,7 @@ namespace vlr::shared {
         ProgSigIDFEvaluateSpatialImportanceInternal progEvaluateSpatialImportanceInternal;
         ProgSigIDFEvaluateDirectionalImportanceInternal progEvaluateDirectionalImportanceInternal;
         ProgSigIDFEvaluatePDFInternal progEvaluatePDFInternal;
+        ProgSigIDFBackProjectDirectionInternal progBackProjectDirectionInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
@@ -196,6 +197,9 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
+        CUDA_DEVICE_FUNCTION float2 backProjectDirectionInternal(const IDFQuery &query, const Vector3D &dirLocal) {
+            return progBackProjectDirectionInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
@@ -210,6 +214,7 @@ namespace vlr::shared {
             progEvaluateSpatialImportanceInternal = static_cast<ProgSigIDFEvaluateSpatialImportanceInternal>(procSet.progEvaluateSpatialImportanceInternal);
             progEvaluateDirectionalImportanceInternal = static_cast<ProgSigIDFEvaluateDirectionalImportanceInternal>(procSet.progEvaluateDirectionalImportanceInternal);
             progEvaluatePDFInternal = static_cast<ProgSigIDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+            progBackProjectDirectionInternal = static_cast<ProgSigIDFBackProjectDirectionInternal>(procSet.progBackProjectDirectionInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(const IDFQuery &query, const IDFSample &sample, IDFQueryResult* result) {
@@ -233,6 +238,11 @@ namespace vlr::shared {
 
         CUDA_DEVICE_FUNCTION float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) {
             float ret = evaluatePDFInternal(query, dirLocal);
+            return ret;
+        }
+
+        CUDA_DEVICE_FUNCTION float2 backProjectDirection(const IDFQuery &query, const Vector3D &dirLocal) {
+            float2 ret = backProjectDirectionInternal(query, dirLocal);
             return ret;
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)

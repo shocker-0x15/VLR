@@ -497,6 +497,7 @@ namespace vlr {
             int32_t progEvaluateSpatialImportanceInternal;
             int32_t progEvaluateDirectionalImportanceInternal;
             int32_t progEvaluatePDFInternal;
+            int32_t progBackProjectDirectionInternal;
         };
 
 

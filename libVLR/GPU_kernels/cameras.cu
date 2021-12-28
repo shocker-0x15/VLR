@@ -29,6 +29,13 @@ namespace vlr {
         const IDFQuery &query, const Vector3D &dirLocal) {\
         auto &p = *reinterpret_cast<const IDF*>(params);\
         return p.evaluatePDFInternal(query, dirLocal);\
+    }\
+\
+    RT_CALLABLE_PROGRAM float2 RT_DC_NAME(IDF ## _backProjectDirection)(\
+        const uint32_t* params,\
+        const IDFQuery &query, const Vector3D &dirLocal) {\
+        auto &p = *reinterpret_cast<const IDF*>(params);\
+        return p.backProjectDirection(query, dirLocal);\
     }
 
 
@@ -116,7 +123,7 @@ namespace vlr {
             float objPlaneZ = m_objPlaneDistance / dirLocal.z;
             Point3D pFocus = dirLocal * objPlaneZ + orgLocal;
             float uDir0 = -pFocus.x / m_opWidth + 0.5f;
-            float uDir1 = -pFocus.x / m_opHeight + 0.5f;
+            float uDir1 = -pFocus.y / m_opHeight + 0.5f;
             if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
                 return SampledSpectrum::Zero();
 
@@ -132,12 +139,28 @@ namespace vlr {
             float objPlaneZ = m_objPlaneDistance / dirLocal.z;
             Point3D pFocus = dirLocal * objPlaneZ + orgLocal;
             float uDir0 = -pFocus.x / m_opWidth + 0.5f;
-            float uDir1 = -pFocus.x / m_opHeight + 0.5f;
+            float uDir1 = -pFocus.y / m_opHeight + 0.5f;
             if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
                 return 0.0f;
 
             float density = pow2(m_imgPlaneDistance) / (pow3(dirLocal.z) * m_imgPlaneArea);
             return density;
+        }
+
+        CUDA_DEVICE_FUNCTION float2 backProjectDirection(
+            const IDFQuery &query, const Vector3D &dirLocal) const {
+            if (dirLocal.z <= 0.0f)
+                return make_float2(NAN, NAN);
+
+            Point3D orgLocal = Point3D(m_xOnLens, m_yOnLens, 0.0f);
+            float objPlaneZ = m_objPlaneDistance / dirLocal.z;
+            Point3D pFocus = dirLocal * objPlaneZ + orgLocal;
+            float uDir0 = -pFocus.x / m_opWidth + 0.5f;
+            float uDir1 = -pFocus.y / m_opHeight + 0.5f;
+            if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
+                return make_float2(NAN, NAN);
+
+            return make_float2(uDir0, uDir1);
         }
     };
 
@@ -238,6 +261,18 @@ namespace vlr {
             float sinTheta = std::sqrt(1.0f - pow2(dirLocal.y));
             float density = 1.0f / (m_phiAngle * m_thetaAngle * sinTheta);
             return density;
+        }
+
+        CUDA_DEVICE_FUNCTION float2 backProjectDirection(
+            const IDFQuery &query, const Vector3D &dirLocal) const {
+            float phi, theta;
+            dirLocal.toPolarYUp(&theta, &phi);
+            float uDir0 = phi / m_phiAngle + 0.5f;
+            float uDir1 = (theta - 0.5f * VLR_M_PI) / m_thetaAngle + 0.5f;
+            if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
+                return make_float2(NAN, NAN);
+
+            return make_float2(uDir0, uDir1);
         }
     };
 
