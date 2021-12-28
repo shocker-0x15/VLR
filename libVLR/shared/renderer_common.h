@@ -18,25 +18,28 @@ namespace vlr::shared {
         ProgSigBSDFEvaluatePDFInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
-            return progMatches(reinterpret_cast<const uint32_t*>(this), dirType);
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+            return progMatches(data, dirType);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {
-            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uComponent, uDir, result);
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            return progSampleInternal(data, query, uComponent, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluateInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluatePDFInternal(data, query, dirLocal);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION BSDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        CUDA_DEVICE_FUNCTION BSDF(
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
-            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
+            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
@@ -47,15 +50,16 @@ namespace vlr::shared {
             progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() {
-            return progGetBaseColor(reinterpret_cast<const uint32_t*>(this));
+        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+            return progGetBaseColor(data);
         }
 
-        CUDA_DEVICE_FUNCTION bool hasNonDelta() {
+        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
             return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+            const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) const {
             if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
                 result->sampledType = DirectionType();
@@ -72,7 +76,7 @@ namespace vlr::shared {
             return fs_sn * snCorrection;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
             float snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
             if (dirLocal.z == 0.0f)
@@ -80,7 +84,7 @@ namespace vlr::shared {
             return fs_sn * snCorrection;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) const {
             if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
@@ -103,28 +107,30 @@ namespace vlr::shared {
         ProgSigEDFEvaluatePDFInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
-            return progMatches(reinterpret_cast<const uint32_t*>(this), dirType);
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+            return progMatches(data, dirType);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) {
-            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uComponent, uDir, result);
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
+            return progSampleInternal(data, query, uComponent, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() {
-            return progEvaluateEmittanceInternal(reinterpret_cast<const uint32_t*>(this));
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+            return progEvaluateEmittanceInternal(data);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluateInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const EDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluatePDFInternal(data, query, dirLocal);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION EDF(const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        CUDA_DEVICE_FUNCTION EDF(
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
-            setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
+            setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
             const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
@@ -135,7 +141,8 @@ namespace vlr::shared {
             progEvaluatePDFInternal = static_cast<ProgSigEDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+            const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) const {
             if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
                 result->sampledType = DirectionType();
@@ -149,17 +156,17 @@ namespace vlr::shared {
             return fe;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() const {
             SampledSpectrum Le0 = evaluateEmittanceInternal();
             return Le0;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum Le1 = evaluateInternal(query, dirLocal);
             return Le1;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const EDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const EDFQuery &query, const Vector3D &dirLocal) const {
             if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
@@ -183,30 +190,31 @@ namespace vlr::shared {
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const IDFQuery &query, const float uDir[2], IDFQueryResult* result) {
-            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uDir, result);
+            const IDFQuery &query, const float uDir[2], IDFQueryResult* result) const {
+            return progSampleInternal(data, query, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() {
-            return progEvaluateSpatialImportanceInternal(reinterpret_cast<const uint32_t*>(this));
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() const {
+            return progEvaluateSpatialImportanceInternal(data);
         }
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
-            const IDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluateDirectionalImportanceInternal(
-                reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+            const IDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluateDirectionalImportanceInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) {
-            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) const {
+            return progEvaluatePDFInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float2 backProjectDirectionInternal(const IDFQuery &query, const Vector3D &dirLocal) {
-            return progBackProjectDirectionInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        CUDA_DEVICE_FUNCTION float2 backProjectDirectionInternal(
+            const IDFQuery &query, const Vector3D &dirLocal) const {
+            return progBackProjectDirectionInternal(data, query, dirLocal);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION IDF(const CameraDescriptor &camDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+        CUDA_DEVICE_FUNCTION IDF(
+            const CameraDescriptor &camDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupIDF = static_cast<ProgSigSetupIDF>(camDesc.progSetupIDF);
-            setupIDF(camDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
+            setupIDF(camDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
             const IDFProcedureSet procSet = plp.idfProcedureSetBuffer[camDesc.idfProcedureSetIndex];
 
@@ -217,7 +225,8 @@ namespace vlr::shared {
             progBackProjectDirectionInternal = static_cast<ProgSigIDFBackProjectDirectionInternal>(procSet.progBackProjectDirectionInternal);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const IDFQuery &query, const IDFSample &sample, IDFQueryResult* result) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+            const IDFQuery &query, const IDFSample &sample, IDFQueryResult* result) const {
             SampledSpectrum fi = sampleInternal(query, sample.uDir, result);
             VLRAssert((result->dirPDF > 0 && fi.allPositiveFinite()) || result->dirPDF == 0,
                       "Invalid IDF value.\nsample: (%g, %g), dirPDF: %g",
@@ -226,22 +235,23 @@ namespace vlr::shared {
             return fi;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportance() {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportance() const {
             SampledSpectrum We0 = evaluateSpatialImportanceInternal();
             return We0;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportance(const IDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportance(
+            const IDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum We1 = evaluateDirectionalImportanceInternal(query, dirLocal);
             return We1;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) const {
             float ret = evaluatePDFInternal(query, dirLocal);
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float2 backProjectDirection(const IDFQuery &query, const Vector3D &dirLocal) {
+        CUDA_DEVICE_FUNCTION float2 backProjectDirection(const IDFQuery &query, const Vector3D &dirLocal) const {
             float2 ret = backProjectDirectionInternal(query, dirLocal);
             return ret;
         }

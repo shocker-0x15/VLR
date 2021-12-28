@@ -479,7 +479,7 @@ namespace vlr {
         // JP: 削除する親にジオメトリインスタンスの削除を行わせる。
         // EN: Let the parent being removed remove geometry instances.
         parent->removeGeometryInstance(delta);
-    }    
+    }
 
     void InfiniteSphereSurfaceNode::setupData(
         uint32_t userData,
@@ -489,15 +489,13 @@ namespace vlr {
         m_material->getImportanceMap().getInternalType(&geomInst->asInfSphere.importanceMap);
         geomInst->progSample = progSet.dcSampleInfiniteSphere;
         geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere;
+        geomInst->nodeNormal = shared::ShaderNodePlug::Invalid();
+        geomInst->nodeTangent = shared::ShaderNodePlug::Invalid();
+        geomInst->nodeAlpha = shared::ShaderNodePlug::Invalid();
         geomInst->materialIndex = m_material->getMaterialIndex();
         geomInst->importance = m_material->isEmitting() ? 1.0f : 0.0f; // TODO
         geomInst->geomType = shared::GeometryType_InfiniteSphere;
         geomInst->isActive = true;
-
-        optixGeomInst->setNumMaterials(1, optixu::BufferView());
-        optixGeomInst->setMaterial(0, 0, m_context.getOptiXMaterialDefault());
-        optixGeomInst->setUserData(*geomInst);
-        optixGeomInst->setGeometryFlags(0, OPTIX_GEOMETRY_FLAG_NONE);
     }
 
 
@@ -828,29 +826,18 @@ namespace vlr {
 
 
 
-    std::unordered_map<uint32_t, Scene::OptiXProgramSet> Scene::s_optiXProgramSets;
-
     // static
     void Scene::initialize(Context &context) {
-        OptiXProgramSet programSet;
-        programSet.dcSampleInfiniteSphere = context.createDirectCallableProgram(
-            OptiXModule_InfiniteSphere, RT_DC_NAME_STR("sampleInfiniteSphere"));
-
-        s_optiXProgramSets[context.getID()] = programSet;
     }
 
     // static
     void Scene::finalize(Context &context) {
-        OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
-        context.destroyDirectCallableProgram(programSet.dcSampleInfiniteSphere);
-        s_optiXProgramSets.erase(context.getID());
     }
     
     Scene::Scene(Context &context, const Transform* localToWorld) :
         ParentNode(context, "Root", localToWorld),
         m_iasIsDirty(true),
-        m_matEnv(nullptr) {
-        const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
+        m_matEnv(nullptr), m_envNode(nullptr), m_envIsDirty(false) {
         CUcontext cuContext = m_context.getCUcontext();
 
         shared::GeometryInstance initialGeomInst = {};
@@ -866,32 +853,21 @@ namespace vlr {
                       "sizeof(BoundingBox3D) and sizeof(BoundingBox3DAsOrderedInt) should match.");
         CUDADRV_CHECK(cuMemAlloc(&m_sceneBounds, sizeof(shared::SceneBounds)));
 
-        // Environmental Light
         {
-            m_envGeomInstIndex = m_geomInstBuffer.allocate();
+            m_envGeomInst = {};
+            m_envGeomInst.geomInstIndex = m_geomInstBuffer.allocate();
+            m_envGeomInst.referenceCount = 1;
+            m_envGeomInst.data.isActive = false;
 
-            m_envGeomInstance.progSample = progSet.dcSampleInfiniteSphere;
-            m_envGeomInstance.progDecodeHitPoint = 0xFFFFFFFF;
-            m_envGeomInstance.nodeNormal = shared::ShaderNodePlug::Invalid();
-            m_envGeomInstance.nodeTangent = shared::ShaderNodePlug::Invalid();
-            m_envGeomInstance.nodeAlpha = shared::ShaderNodePlug::Invalid();
-            m_envGeomInstance.materialIndex = 0;
-            m_envGeomInstance.importance = 0.0f;
-            m_envGeomInstance.isActive = false;
+            m_envInst = {};
+            m_envInst.instIndex = m_instBuffer.allocate();
+            m_envInst.optixGeomInstIndices.initialize(cuContext, g_bufferType, 1, m_envGeomInst.geomInstIndex);
+            m_envInst.data.rotationPhi = 0.0f;
+            m_envInst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
+            m_envInst.data.geomInstIndices = m_envInst.optixGeomInstIndices.getDevicePointer();
+            m_envInst.data.isActive = false;
 
-            m_envInstIndex = m_instBuffer.allocate();
-
-            std::vector<uint32_t> envGeomInstIndices;
-            std::vector<float> envGeomInstImportanceValues;
-            envGeomInstIndices.push_back(m_envGeomInstIndex);
-            envGeomInstImportanceValues.push_back(1.0f);
-            m_envGeomInstIndices.initialize(cuContext, g_bufferType, envGeomInstIndices);
-            m_envLightGeomInstDistribution.initialize(
-                m_context, envGeomInstImportanceValues.data(), envGeomInstImportanceValues.size());
-
-            m_envInstance.geomInstIndices = m_envGeomInstIndices.getDevicePointer();
-            m_envLightGeomInstDistribution.getInternalType(&m_envInstance.lightGeomInstDistribution);
-            m_envInstance.rotationPhi = 0.0f;
+            m_envIsDirty = true;
         }
 
         // JP: ルートノード直属のインスタンスの初期化。
@@ -918,6 +894,9 @@ namespace vlr {
     }
 
     Scene::~Scene() {
+        if (m_envNode)
+            delete m_envNode;
+
         m_computeInstAabbs_instIndices.finalize();
         m_computeInstAabbs_itemOffsets.finalize();
 
@@ -940,10 +919,11 @@ namespace vlr {
         }
 
         {
-            m_envLightGeomInstDistribution.finalize(m_context);
-            m_envGeomInstIndices.finalize();
-            m_instBuffer.release(m_envInstIndex);
-            m_geomInstBuffer.release(m_envGeomInstIndex);
+            m_envInst.lightGeomInstDistribution.finalize(m_context);
+            m_envInst.optixGeomInstIndices.finalize();
+            m_instBuffer.release(m_envInst.instIndex);
+
+            m_geomInstBuffer.release(m_envGeomInst.geomInstIndex);
         }
 
         cuMemFree(m_sceneBounds);
@@ -968,6 +948,8 @@ namespace vlr {
             inst.instIndex = m_instBuffer.allocate();
             inst.optixInst = m_optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
+            inst.data.importance = 0.0f;
+            inst.data.isActive = false;
         }
     }
 
@@ -1107,8 +1089,15 @@ namespace vlr {
         // JP: トランスフォームパスに対応するインスタンスをIASから削除する。
         // EN: Remove the instance corresponding to the transform path from the IAS.
         const SHTransform* shtr = m_shTransforms.at(childTransform);
-        if (!isEmptyGeomGroup && numRemovedGeomInsts > 0)
+        if (numRemovedGeomInsts > 0) {
+            if (isEmptyGeomGroup) {
+                Instance &inst = m_instances.at(shtr);
+                uint32_t instIdxInIas = m_ias.findChildIndex(inst.optixInst);
+                if (instIdxInIas != 0xFFFFFFFF)
+                    m_ias.removeChildAt(instIdxInIas);
+            }
             m_dirtyInstances.insert(shtr);
+        }
 
         m_iasIsDirty = true;
     }
@@ -1136,6 +1125,11 @@ namespace vlr {
     void Scene::prepareSetup(size_t* asScratchSize, optixu::Scene* optixScene) {
         CUcontext cuContext = m_context.getCUcontext();
         *asScratchSize = 0;
+
+        if (m_envIsDirty) {
+            if (m_envNode)
+                m_envNode->setupData(0, nullptr, &m_envGeomInst.data);
+        }
 
         // JP: GPUに送るジオメトリインスタンスのデータをセットアップする。
         // EN: Setup the geometry instance data sent to a GPU.
@@ -1311,17 +1305,26 @@ namespace vlr {
 
         // JP: 環境光源に対応するジオメトリインスタンスとインスタンスをセットアップしてGPUに転送する。
         // EN: Setup the geometry instance and instance for the environmental light, then transfer to a GPU.
-        if (m_matEnv) {
-            m_matEnv->getImportanceMap().getInternalType(&m_envGeomInstance.asInfSphere.importanceMap);
-            m_envGeomInstance.materialIndex = m_matEnv->getMaterialIndex();
-            m_envGeomInstance.importance = 1.0f;
+        if (m_envIsDirty) {
+            if (m_envNode) {
+                float importance = m_envGeomInst.data.importance;
+                m_envInst.lightGeomInstDistribution.finalize(m_context);
+                m_envInst.lightGeomInstDistribution.initialize(m_context, &importance, 1);
+                m_envInst.lightGeomInstDistribution.getInternalType(&m_envInst.data.lightGeomInstDistribution);
+                m_envInst.data.importance = importance > 0.0f ? 1.0f : 0.0f; // TODO: 面積やEmitterの特性の考慮。
+                m_envInst.data.isActive = true;
+            }
+            else {
+                m_envGeomInst.data.importance = 0.0f;
+                m_envGeomInst.data.isActive = false;
+                m_envInst.data.importance = 0.0f;
+                m_envInst.data.isActive = false;
+            }
+            m_geomInstBuffer.update(m_envGeomInst.geomInstIndex, m_envGeomInst.data, stream);
+            m_instBuffer.update(m_envInst.instIndex, m_envInst.data, stream);
+            instancesAreUpdated = true;
         }
-        else {
-            m_envGeomInstance.materialIndex = 0xFFFFFFFF;
-            m_envGeomInstance.importance = 0.0f;
-        }
-        m_geomInstBuffer.update(m_envGeomInstIndex, m_envGeomInstance, stream);
-        m_instBuffer.update(m_envInstIndex, m_envInstance, stream);
+        m_envIsDirty = false;
 
         // JP: シーンのインスタンスの重要度分布をセットアップしてGPUに転送する。
         // EN: Setup importance distribution of instances of the scene, then transfer to a GPU.
@@ -1349,14 +1352,14 @@ namespace vlr {
             //       sceneBounds.worldDiscArea);
 
             std::vector<uint32_t> instIndices;
-            instIndices.push_back(m_envInstIndex);
+            instIndices.push_back(m_envInst.instIndex);
             for (auto &it : m_instances)
                 instIndices.push_back(it.second.instIndex);
             m_lightInstIndices.finalize();
             m_lightInstIndices.initialize(cuContext, g_bufferType, instIndices, stream);
 
             std::vector<float> lightImportances;
-            lightImportances.push_back(m_envInstance.importance);
+            lightImportances.push_back(m_envInst.data.importance);
             for (auto &it : m_instances)
                 lightImportances.push_back(it.second.data.importance);
             m_lightInstDist.finalize(m_context);
@@ -1369,16 +1372,20 @@ namespace vlr {
         launchParams->sceneBounds = reinterpret_cast<shared::SceneBounds*>(m_sceneBounds);
         launchParams->instIndices = m_lightInstIndices.getDevicePointer();
         m_lightInstDist.getInternalType(&launchParams->lightInstDist);
-        launchParams->envLightInstIndex = m_envInstIndex;
+        launchParams->envLightInstIndex = m_envInst.instIndex;
     }
 
     void Scene::setEnvironment(EnvironmentEmitterSurfaceMaterial* matEnv) {
         m_matEnv = matEnv;
-        m_envInstance.importance = matEnv ? 1.0f : 0.0f; // TODO: どこでImportance Map取得する？
+        if (m_envNode)
+            delete m_envNode;
+        m_envNode = new InfiniteSphereSurfaceNode(m_context, "Environment", matEnv);
+        m_envIsDirty = true;
     }
 
     void Scene::setEnvironmentRotation(float rotationPhi) {
-        m_envInstance.rotationPhi = rotationPhi;
+        m_envInst.data.rotationPhi = rotationPhi;
+        m_envIsDirty = true;
     }
 
 

@@ -339,6 +339,7 @@ namespace vlr {
         void addParent(ParentNode* parent) override;
         void removeParent(ParentNode* parent) override;
 
+        bool isIntersectable() const override { return false; }
         void setupData(
             uint32_t userData,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const override;
@@ -437,12 +438,6 @@ namespace vlr {
 
 
     class Scene : public ParentNode {
-        struct OptiXProgramSet {
-            uint32_t dcSampleInfiniteSphere;
-        };
-
-        static std::unordered_map<uint32_t, OptiXProgramSet> s_optiXProgramSets;
-
         optixu::Scene m_optixScene;
 
         std::unordered_set<SurfaceNode*> m_dirtySurfaceNodes;
@@ -451,15 +446,6 @@ namespace vlr {
 
         SlotBuffer<shared::GeometryInstance> m_geomInstBuffer;
         SlotBuffer<shared::Instance> m_instBuffer;
-
-        // Environmental Light
-        EnvironmentEmitterSurfaceMaterial* m_matEnv;
-        uint32_t m_envGeomInstIndex;
-        shared::GeometryInstance m_envGeomInstance;
-        uint32_t m_envInstIndex;
-        shared::Instance m_envInstance;
-        cudau::TypedBuffer<uint32_t> m_envGeomInstIndices;
-        DiscreteDistribution1D m_envLightGeomInstDistribution;
 
         optixu::InstanceAccelerationStructure m_ias;
         cudau::Buffer m_iasMem;
@@ -488,6 +474,14 @@ namespace vlr {
             DiscreteDistribution1D lightGeomInstDistribution;
             shared::Instance data;
         };
+
+        // Environmental Light
+        EnvironmentEmitterSurfaceMaterial* m_matEnv;
+        InfiniteSphereSurfaceNode* m_envNode;
+        GeometryInstance m_envGeomInst;
+        Instance m_envInst;
+        bool m_envIsDirty;
+
         std::unordered_map<const SHGeometryInstance*, GeometryInstance> m_geometryInstances;
         std::unordered_map<const SHGeometryGroup*, GeometryAS> m_geometryASes;
         std::unordered_map<const SHTransform*, Instance> m_instances;

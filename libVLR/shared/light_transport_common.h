@@ -9,7 +9,7 @@ namespace vlr::shared {
         float prevDirPDF;
         DirectionType prevSampledType;
         unsigned int pathLength : 16;
-        bool maxLengthTerminate : 1;
+        unsigned int maxLengthTerminate : 1;
     };
 
     struct WriteOnlyPayload {
@@ -17,7 +17,7 @@ namespace vlr::shared {
         Vector3D nextDirection;
         float dirPDF;
         DirectionType sampledType;
-        bool terminate : 1;
+        unsigned int terminate : 1;
     };
 
     struct ReadWritePayload {

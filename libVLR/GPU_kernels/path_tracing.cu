@@ -39,7 +39,8 @@ namespace vlr {
 
             float MISWeight = 1.0f;
             if (!roPayload->prevSampledType.isDelta() && roPayload->pathLength > 1) {
-                const Instance &inst = plp.instBuffer[optixGetInstanceId()];
+                uint32_t instIdx = optixGetInstanceId();
+                const Instance &inst = plp.instBuffer[instIdx];
                 float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
                 float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
 
