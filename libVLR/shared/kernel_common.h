@@ -214,6 +214,53 @@ namespace vlr::shared {
     };
 
 
+
+    struct SurfaceLightPosSample {
+        float uElem;
+        float uPos[2];
+
+        CUDA_DEVICE_FUNCTION SurfaceLightPosSample() {}
+        CUDA_DEVICE_FUNCTION SurfaceLightPosSample(float uEl, float uPos0, float uPos1) :
+            uElem(uEl), uPos{ uPos0, uPos1 } {}
+    };
+
+    struct SurfaceLightPosQueryResult {
+        SurfacePoint surfPt;
+        float areaPDF;
+        DirectionType posType;
+        uint32_t materialIndex;
+    };
+    
+    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<
+        void(uint32_t, uint32_t,
+             const SurfaceLightPosSample &, const Point3D &,
+             SurfaceLightPosQueryResult*)>;
+
+    class SurfaceLight {
+        uint32_t m_instIndex;
+        uint32_t m_geomInstIndex;
+        ProgSigSurfaceLight_sample m_progSample;
+
+    public:
+        CUDA_DEVICE_FUNCTION SurfaceLight() {}
+        CUDA_DEVICE_FUNCTION SurfaceLight(
+            uint32_t instIndex, uint32_t geomInstIndex, ProgSigSurfaceLight_sample progSample) :
+            m_instIndex(instIndex),
+            m_geomInstIndex(geomInstIndex),
+            m_progSample(progSample) {
+        }
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION void sample(
+            const SurfaceLightPosSample &posSample, const Point3D &shadingPoint,
+            SurfaceLightPosQueryResult* lpResult) const {
+            m_progSample(m_instIndex, m_geomInstIndex, posSample, shadingPoint, lpResult);
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    };
+
+
+    
     struct EDFQuery {
         DirectionType dirTypeFilter;
         struct {
@@ -275,6 +322,46 @@ namespace vlr::shared {
 
 
 
+    struct LensPosSample {
+        float uPos[2];
+
+        CUDA_DEVICE_FUNCTION LensPosSample() {}
+        CUDA_DEVICE_FUNCTION LensPosSample(float uPos0, float uPos1) :
+            uPos{ uPos0, uPos1 } {}
+    };
+
+    struct LensPosQueryResult {
+        SurfacePoint surfPt;
+        float areaPDF;
+        DirectionType posType;
+    };
+
+    using ProgSigCamera_sample = optixu::DirectCallableProgramID<
+        void(const LensPosSample &, LensPosQueryResult*)>;
+
+    struct Camera {
+        ProgSigCamera_sample m_progSample;
+
+    public:
+        CUDA_DEVICE_FUNCTION Camera() {}
+        CUDA_DEVICE_FUNCTION Camera(ProgSigCamera_sample progSample) :
+            m_progSample(progSample) {
+        }
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION void sample(
+            const LensPosSample &posSample, LensPosQueryResult* lpResult) const {
+            m_progSample(posSample, lpResult);
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    };
+
+
+    
+    struct IDFQuery {
+
+    };
+    
     struct IDFSample {
         float uDir[2];
 
@@ -290,70 +377,12 @@ namespace vlr::shared {
 
 
 
-    struct SurfaceLightPosSample {
-        float uElem;
-        float uPos[2];
-
-        CUDA_DEVICE_FUNCTION SurfaceLightPosSample() {}
-        CUDA_DEVICE_FUNCTION SurfaceLightPosSample(float uEl, float uPos0, float uPos1) :
-            uElem(uEl), uPos{ uPos0, uPos1 } {}
-    };
-
-    struct SurfaceLightPosQueryResult {
-        SurfacePoint surfPt;
-        float areaPDF;
-        DirectionType posType;
-        uint32_t materialIndex;
-    };
-
-    using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<
-        void(const Instance &, const GeometryInstance &,
-             const SurfaceLightPosSample &, const Point3D &,
-             SurfaceLightPosQueryResult*)>;
-
-    class SurfaceLight {
-        Instance m_inst;
-        GeometryInstance m_geomInst;
-
-    public:
-        CUDA_DEVICE_FUNCTION SurfaceLight() {}
-        CUDA_DEVICE_FUNCTION SurfaceLight(const Instance &inst, const GeometryInstance &geomInst) :
-            m_inst(inst), 
-            m_geomInst(geomInst) {
-        }
-
-#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION void sample(
-            const SurfaceLightPosSample &posSample, const Point3D &shadingPoint,
-            SurfaceLightPosQueryResult* lpResult) const {
-            auto sample = static_cast<ProgSigSurfaceLight_sample>(m_geomInst.progSample);
-            sample(m_inst, m_geomInst, posSample, shadingPoint, lpResult);
-        }
-#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-    };
-
-
-
-    struct LensPosSample {
-        float uPos[2];
-
-        CUDA_DEVICE_FUNCTION LensPosSample() {}
-        CUDA_DEVICE_FUNCTION LensPosSample(float uPos0, float uPos1) :
-            uPos{ uPos0, uPos1 } {}
-    };
-
-    struct LensPosQueryResult {
-        SurfacePoint surfPt;
-        float areaPDF;
-        DirectionType posType;
-    };
-
-
-
     using ProgSigSetupBSDF = optixu::DirectCallableProgramID<
         uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
     using ProgSigSetupEDF = optixu::DirectCallableProgramID<
         uint32_t(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
+    using ProgSigSetupIDF = optixu::DirectCallableProgramID<
+        void(const uint32_t*, const SurfacePoint &, const WavelengthSamples &, uint32_t*)>;
 
     // BSDF callables
     using ProgSigBSDFGetBaseColor = optixu::DirectCallableProgramID<
@@ -384,12 +413,14 @@ namespace vlr::shared {
         float(const uint32_t*, const EDFQuery &)>;
 
     // Lens/IDF callables
-    using ProgSigSampleLensPosition = optixu::DirectCallableProgramID<
-        SampledSpectrum(const WavelengthSamples &, const LensPosSample &, LensPosQueryResult*)>;
-    using ProgSigIDFSample = optixu::DirectCallableProgramID<
-        SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const IDFSample &, IDFQueryResult*)>;
-    using ProgSigIDFEvaluate = optixu::DirectCallableProgramID<
-        SampledSpectrum(const SurfacePoint &, const WavelengthSamples &, const Vector3D &)>;
+    using ProgSigIDFSampleInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const IDFQuery &, const float[2], IDFQueryResult*)>;
+    using ProgSigIDFEvaluateSpatialImportanceInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*)>;
+    using ProgSigIDFEvaluateDirectionalImportanceInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const IDFQuery &, const Vector3D &)>;
+    using ProgSigIDFEvaluatePDFInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const IDFQuery &, const Vector3D &)>;
 
 
 

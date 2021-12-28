@@ -80,7 +80,8 @@ namespace vlr::shared {
         uint32_t geomInstIndex = inst.geomInstIndices[inst.lightGeomInstDistribution.sample(uInst, &geomInstProb, uPrim)];
         //printf("%u, %g, %u, %g\n", instIndex, instProb, geomInstIndex, geomInstProb);
         const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
-        *light = SurfaceLight(inst, geomInst);
+        *light = SurfaceLight(instIndex, geomInstIndex,
+                              static_cast<ProgSigSurfaceLight_sample>(geomInst.progSample));
         *lightProb = instProb * geomInstProb;
     }
 

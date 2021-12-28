@@ -122,6 +122,7 @@ namespace vlr {
 
             SlotBuffer<shared::BSDFProcedureSet> bsdfProcedureSetBuffer;
             SlotBuffer<shared::EDFProcedureSet> edfProcedureSetBuffer;
+            SlotBuffer<shared::IDFProcedureSet> idfProcedureSetBuffer;
 
             SlotBuffer<shared::SurfaceMaterialDescriptor> surfaceMaterialDescriptorBuffer;
             std::unordered_set<SurfaceMaterial*> dirtySurfaceMaterials;
@@ -293,6 +294,10 @@ namespace vlr {
         uint32_t allocateEDFProcedureSet();
         void releaseEDFProcedureSet(uint32_t index);
         void updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet, CUstream stream);
+
+        uint32_t allocateIDFProcedureSet();
+        void releaseIDFProcedureSet(uint32_t index);
+        void updateIDFProcedureSet(uint32_t index, const shared::IDFProcedureSet &procSet, CUstream stream);
 
         uint32_t getOptixCallableProgramNullBSDF_setupBSDF() const {
             return m_optix.dcNullBSDF_setupBSDF;

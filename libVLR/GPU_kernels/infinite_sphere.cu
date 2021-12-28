@@ -39,10 +39,13 @@ namespace vlr {
 
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleInfiniteSphere)(
-        const Instance &inst, const GeometryInstance &geomInst,
+        uint32_t instIndex, uint32_t geomInstIndex,
         const SurfaceLightPosSample &sample, const Point3D &shadingPoint,
         SurfaceLightPosQueryResult* result) {
         (void)shadingPoint;
+
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
 
         float u, v;
         float uvPDF;

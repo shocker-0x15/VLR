@@ -4,10 +4,13 @@ namespace vlr {
     using namespace shared;
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(samplePoint)(
-        const Instance &inst, const GeometryInstance &geomInst,
+        uint32_t instIndex, uint32_t geomInstIndex,
         const SurfaceLightPosSample &sample, const Point3D &shadingPoint,
         SurfaceLightPosQueryResult* result) {
         (void)shadingPoint;
+
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
 
         float primProb;
         uint32_t primIdx = geomInst.asPoints.primDistribution.sample(sample.uElem, &primProb);

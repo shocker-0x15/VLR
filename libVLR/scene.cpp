@@ -1384,19 +1384,46 @@ namespace vlr {
 
 
     // static
-    void Camera::commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet) {
+    void Camera::commonInitializeProcedure(
+        Context& context, const char* identifiers[NumCameraCallableNames], OptiXProgramSet* programSet) {
         programSet->dcSampleLensPosition = context.createDirectCallableProgram(
-            OptiXModule_Camera, identifiers[0]);
-        programSet->dcSampleIDF = context.createDirectCallableProgram(
-            OptiXModule_Camera, identifiers[1]);
+            OptiXModule_Camera, identifiers[CameraCallableName_sample]);
+
+        programSet->dcSetupIDF = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_setupIDF]);
+
+        programSet->dcIDFSampleInternal = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_IDF_sampleInternal]);
+        programSet->dcIDFEvaluateSpatialImportanceInternal = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_IDF_evaluateSpatialImportanceInternal]);
+        programSet->dcIDFEvaluateDirectionalImportanceInternal = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_IDF_evaluateDirectionalImportanceInternal]);
+        programSet->dcIDFEvaluatePDFInternal = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_IDF_evaluatePDFInternal]);
+
+        shared::IDFProcedureSet idfProcSet;
+        {
+            idfProcSet.progSampleInternal = programSet->dcIDFSampleInternal;
+            idfProcSet.progEvaluateSpatialImportanceInternal = programSet->dcIDFEvaluateSpatialImportanceInternal;
+            idfProcSet.progEvaluateDirectionalImportanceInternal = programSet->dcIDFEvaluateDirectionalImportanceInternal;
+            idfProcSet.progEvaluatePDFInternal = programSet->dcIDFEvaluatePDFInternal;
+        }
+        programSet->idfProcedureSetIndex = context.allocateIDFProcedureSet();
+        context.updateIDFProcedureSet(programSet->idfProcedureSetIndex, idfProcSet, 0);
     }
 
     // static
     void Camera::commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet) {
-        if (programSet.dcSampleLensPosition) {
-            context.destroyDirectCallableProgram(programSet.dcSampleIDF);
-            context.destroyDirectCallableProgram(programSet.dcSampleLensPosition);
-        }
+        context.releaseIDFProcedureSet(programSet.idfProcedureSetIndex);
+
+        context.destroyDirectCallableProgram(programSet.dcIDFEvaluatePDFInternal);
+        context.destroyDirectCallableProgram(programSet.dcIDFEvaluateDirectionalImportanceInternal);
+        context.destroyDirectCallableProgram(programSet.dcIDFEvaluateSpatialImportanceInternal);
+        context.destroyDirectCallableProgram(programSet.dcIDFSampleInternal);
+
+        context.destroyDirectCallableProgram(programSet.dcSetupIDF);
+
+        context.destroyDirectCallableProgram(programSet.dcSampleLensPosition);
     }
     
     // static
@@ -1435,8 +1462,12 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            RT_DC_NAME_STR("PerspectiveCamera_sampleLensPosition"),
-            RT_DC_NAME_STR("PerspectiveCamera_sampleIDF")
+            RT_DC_NAME_STR("PerspectiveCamera_sample"),
+            RT_DC_NAME_STR("PerspectiveCamera_setupIDF"),
+            RT_DC_NAME_STR("PerspectiveCameraIDF_sampleInternal"),
+            RT_DC_NAME_STR("PerspectiveCameraIDF_evaluateSpatialImportanceInternal"),
+            RT_DC_NAME_STR("PerspectiveCameraIDF_evaluateDirectionalImportanceInternal"),
+            RT_DC_NAME_STR("PerspectiveCameraIDF_evaluatePDFInternal"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -1592,9 +1623,10 @@ namespace vlr {
 
     void PerspectiveCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
-        launchParams->perspectiveCamera = m_data;
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
-        launchParams->progSampleIDF = progSet.dcSampleIDF;
+        launchParams->cameraDescriptor.idfProcedureSetIndex = progSet.idfProcedureSetIndex;
+        launchParams->cameraDescriptor.progSetupIDF = progSet.dcSetupIDF;
+        std::memcpy(launchParams->cameraDescriptor.data, &m_data, sizeof(m_data));
     }
 
 
@@ -1619,8 +1651,12 @@ namespace vlr {
         }
 
         const char* identifiers[] = {
-            RT_DC_NAME_STR("EquirectangularCamera_sampleLensPosition"),
-            RT_DC_NAME_STR("EquirectangularCamera_sampleIDF")
+            RT_DC_NAME_STR("EquirectangularCamera_sample"),
+            RT_DC_NAME_STR("EquirectangularCamera_setupIDF"),
+            RT_DC_NAME_STR("EquirectangularCameraIDF_sampleInternal"),
+            RT_DC_NAME_STR("EquirectangularCameraIDF_evaluateSpatialImportanceInternal"),
+            RT_DC_NAME_STR("EquirectangularCameraIDF_evaluateDirectionalImportanceInternal"),
+            RT_DC_NAME_STR("EquirectangularCameraIDF_evaluatePDFInternal"),
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, &programSet);
@@ -1748,8 +1784,9 @@ namespace vlr {
 
     void EquirectangularCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
-        launchParams->equirectangularCamera = m_data;
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
-        launchParams->progSampleIDF = progSet.dcSampleIDF;
+        launchParams->cameraDescriptor.idfProcedureSetIndex = progSet.idfProcedureSetIndex;
+        launchParams->cameraDescriptor.progSetupIDF = progSet.dcSetupIDF;
+        std::memcpy(launchParams->cameraDescriptor.data, &m_data, sizeof(m_data));
     }
 }

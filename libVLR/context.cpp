@@ -122,12 +122,14 @@ namespace vlr {
         m_optix.largeNodeDescriptorBuffer.initialize(m_cuContext, 1024);
         m_optix.bsdfProcedureSetBuffer.initialize(m_cuContext, 64);
         m_optix.edfProcedureSetBuffer.initialize(m_cuContext, 64);
+        m_optix.idfProcedureSetBuffer.initialize(m_cuContext, 8);
         m_optix.launchParams.nodeProcedureSetBuffer = m_optix.nodeProcedureSetBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.smallNodeDescriptorBuffer = m_optix.smallNodeDescriptorBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.mediumNodeDescriptorBuffer = m_optix.mediumNodeDescriptorBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.largeNodeDescriptorBuffer = m_optix.largeNodeDescriptorBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.bsdfProcedureSetBuffer = m_optix.bsdfProcedureSetBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.edfProcedureSetBuffer = m_optix.edfProcedureSetBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.idfProcedureSetBuffer = m_optix.idfProcedureSetBuffer.optixBuffer.getDevicePointer();
 
         m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
         m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
@@ -480,6 +482,7 @@ namespace vlr {
 
         m_optix.surfaceMaterialDescriptorBuffer.finalize();
         
+        m_optix.idfProcedureSetBuffer.finalize();
         m_optix.edfProcedureSetBuffer.finalize();
         m_optix.bsdfProcedureSetBuffer.finalize();
         m_optix.largeNodeDescriptorBuffer.finalize();
@@ -976,6 +979,18 @@ namespace vlr {
     }
     void Context::updateEDFProcedureSet(uint32_t index, const shared::EDFProcedureSet &procSet, CUstream stream) {
         m_optix.edfProcedureSetBuffer.update(index, procSet, stream);
+    }
+
+
+
+    uint32_t Context::allocateIDFProcedureSet() {
+        return m_optix.idfProcedureSetBuffer.allocate();
+    }
+    void Context::releaseIDFProcedureSet(uint32_t index) {
+        m_optix.idfProcedureSetBuffer.release(index);
+    }
+    void Context::updateIDFProcedureSet(uint32_t index, const shared::IDFProcedureSet &procSet, CUstream stream) {
+        m_optix.idfProcedureSetBuffer.update(index, procSet, stream);
     }
 
 

@@ -27,6 +27,11 @@ namespace vlr {
         Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
         Normal3D shadingNormal = normalize(b0 * v0.normal + b1 * v1.normal + b2 * v2.normal);
         Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
+        if (!shadingNormal.allFinite() || !tc0Direction.allFinite()) {
+            Vector3D bitangent;
+            shadingNormal = geometricNormal;
+            shadingNormal.makeCoordinateSystem(&tc0Direction, &bitangent);
+        }
         TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
 
         // JP: 法線と接線が直交することを保証する。
@@ -50,10 +55,13 @@ namespace vlr {
 
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(sampleTriangleMesh)(
-        const Instance &inst, const GeometryInstance &geomInst,
+        uint32_t instIndex, uint32_t geomInstIndex,
         const SurfaceLightPosSample &sample, const Point3D &shadingPoint,
         SurfaceLightPosQueryResult* result) {
         (void)shadingPoint;
+
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
 
         float primProb;
         uint32_t primIdx = geomInst.asTriMesh.primDistribution.sample(sample.uElem, &primProb);

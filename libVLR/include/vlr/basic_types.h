@@ -89,8 +89,8 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { using std::fmax; return fmax(x, fmax(y, z)); }
         CUDA_DEVICE_FUNCTION RealType minValue() const { using std::fmin; return fmin(x, fmin(y, z)); }
-        CUDA_DEVICE_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
-        CUDA_DEVICE_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        CUDA_DEVICE_FUNCTION bool hasNaN() const { using vlr::isnan; return isnan(x) || isnan(y) || isnan(z); }
+        CUDA_DEVICE_FUNCTION bool hasInf() const { using vlr::isinf; return isinf(x) || isinf(y) || isinf(z); }
         CUDA_DEVICE_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
         }
@@ -189,8 +189,8 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { using std::fmax; return fmax(fmax(x, y), fmax(z, w)); }
         CUDA_DEVICE_FUNCTION RealType minValue() const { using std::fmin; return fmin(fmin(x, y), fmin(z, w)); }
-        CUDA_DEVICE_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z) || isnan(w); }
-        CUDA_DEVICE_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z) || isinf(w); }
+        CUDA_DEVICE_FUNCTION bool hasNaN() const { using vlr::isnan; return isnan(x) || isnan(y) || isnan(z) || isnan(w); }
+        CUDA_DEVICE_FUNCTION bool hasInf() const { using vlr::isinf; return isinf(x) || isinf(y) || isinf(z) || isinf(w); }
         CUDA_DEVICE_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
         }
@@ -305,8 +305,8 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { using std::fmax; return fmax(x, fmax(y, z)); }
         CUDA_DEVICE_FUNCTION RealType minValue() const { using std::fmin; return fmin(x, fmin(y, z)); }
-        CUDA_DEVICE_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
-        CUDA_DEVICE_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        CUDA_DEVICE_FUNCTION bool hasNaN() const { using vlr::isnan; return isnan(x) || isnan(y) || isnan(z); }
+        CUDA_DEVICE_FUNCTION bool hasInf() const { using vlr::isinf; return isinf(x) || isinf(y) || isinf(z); }
         CUDA_DEVICE_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
         }
@@ -433,8 +433,8 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { return std::fmax(x, std::fmax(y, z)); }
         CUDA_DEVICE_FUNCTION RealType minValue() const { return std::fmin(x, std::fmin(y, z)); }
-        CUDA_DEVICE_FUNCTION bool hasNaN() const { using std::isnan; return isnan(x) || isnan(y) || isnan(z); }
-        CUDA_DEVICE_FUNCTION bool hasInf() const { using std::isinf; return isinf(x) || isinf(y) || isinf(z); }
+        CUDA_DEVICE_FUNCTION bool hasNaN() const { using vlr::isnan; return isnan(x) || isnan(y) || isnan(z); }
+        CUDA_DEVICE_FUNCTION bool hasInf() const { using vlr::isinf; return isinf(x) || isinf(y) || isinf(z); }
         CUDA_DEVICE_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
         }
@@ -518,8 +518,8 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION RealType maxValue() const { return std::fmax(u, v); }
         CUDA_DEVICE_FUNCTION RealType minValue() const { return std::fmin(u, v); }
-        CUDA_DEVICE_FUNCTION bool hasNaN() const { using std::isnan; return isnan(u) || isnan(v); }
-        CUDA_DEVICE_FUNCTION bool hasInf() const { using std::isinf; return isinf(u) || isinf(v); }
+        CUDA_DEVICE_FUNCTION bool hasNaN() const { using vlr::isnan; return isnan(u) || isnan(v); }
+        CUDA_DEVICE_FUNCTION bool hasInf() const { using vlr::isinf; return isinf(u) || isinf(v); }
         CUDA_DEVICE_FUNCTION bool allFinite() const {
             return !hasNaN() && !hasInf();
         }

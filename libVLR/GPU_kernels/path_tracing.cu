@@ -217,16 +217,18 @@ namespace vlr {
         float selectWLPDF;
         WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
 
-        ProgSigSampleLensPosition sampleLensPosition(plp.progSampleLensPosition);
-        ProgSigIDFSample sampleIDF(plp.progSampleIDF);
-
+        Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;
-        SampledSpectrum We0 = sampleLensPosition(wls, We0Sample, &We0Result);
+        camera.sample(We0Sample, &We0Result);
+
+        IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
+
+        SampledSpectrum We0 = idf.evaluateSpatialImportance();
 
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
-        SampledSpectrum We1 = sampleIDF(We0Result.surfPt, wls, We1Sample, &We1Result);
+        SampledSpectrum We1 = idf.sample(IDFQuery(), We1Sample, &We1Result);
 
         Point3D rayOrg = We0Result.surfPt.position;
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);

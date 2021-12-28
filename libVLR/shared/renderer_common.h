@@ -100,6 +100,7 @@ namespace vlr::shared {
         ProgSigEDFSampleInternal progSampleInternal;
         ProgSigEDFEvaluateEmittanceInternal progEvaluateEmittanceInternal;
         ProgSigEDFEvaluateInternal progEvaluateInternal;
+        ProgSigEDFEvaluatePDFInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) {
@@ -114,6 +115,9 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) {
             return progEvaluateInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
         }
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const EDFQuery &query, const Vector3D &dirLocal) {
+            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
@@ -124,8 +128,11 @@ namespace vlr::shared {
 
             const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
+            progMatches = static_cast<ProgSigEDFmatches>(procSet.progMatches);
+            progSampleInternal = static_cast<ProgSigEDFSampleInternal>(procSet.progSampleInternal);
             progEvaluateEmittanceInternal = static_cast<ProgSigEDFEvaluateEmittanceInternal>(procSet.progEvaluateEmittanceInternal);
             progEvaluateInternal = static_cast<ProgSigEDFEvaluateInternal>(procSet.progEvaluateInternal);
+            progEvaluatePDFInternal = static_cast<ProgSigEDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) {
@@ -150,6 +157,83 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) {
             SampledSpectrum Le1 = evaluateInternal(query, dirLocal);
             return Le1;
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const EDFQuery &query, const Vector3D &dirLocal) {
+            if (!matches(query.dirTypeFilter)) {
+                return 0;
+            }
+            float ret = evaluatePDFInternal(query, dirLocal);
+            return ret;
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    };
+
+
+
+    class IDF {
+#define VLR_MAX_NUM_IDF_PARAMETER_SLOTS (8)
+        uint32_t data[VLR_MAX_NUM_IDF_PARAMETER_SLOTS];
+
+        ProgSigIDFSampleInternal progSampleInternal;
+        ProgSigIDFEvaluateSpatialImportanceInternal progEvaluateSpatialImportanceInternal;
+        ProgSigIDFEvaluateDirectionalImportanceInternal progEvaluateDirectionalImportanceInternal;
+        ProgSigIDFEvaluatePDFInternal progEvaluatePDFInternal;
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const IDFQuery &query, const float uDir[2], IDFQueryResult* result) {
+            return progSampleInternal(reinterpret_cast<const uint32_t*>(this), query, uDir, result);
+        }
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() {
+            return progEvaluateSpatialImportanceInternal(reinterpret_cast<const uint32_t*>(this));
+        }
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
+            const IDFQuery &query, const Vector3D &dirLocal) {
+            return progEvaluateDirectionalImportanceInternal(
+                reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        }
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) {
+            return progEvaluatePDFInternal(reinterpret_cast<const uint32_t*>(this), query, dirLocal);
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+
+    public:
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION IDF(const CameraDescriptor &camDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+            auto setupIDF = static_cast<ProgSigSetupIDF>(camDesc.progSetupIDF);
+            setupIDF(camDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(this));
+
+            const IDFProcedureSet procSet = plp.idfProcedureSetBuffer[camDesc.idfProcedureSetIndex];
+
+            progSampleInternal = static_cast<ProgSigIDFSampleInternal>(procSet.progSampleInternal);
+            progEvaluateSpatialImportanceInternal = static_cast<ProgSigIDFEvaluateSpatialImportanceInternal>(procSet.progEvaluateSpatialImportanceInternal);
+            progEvaluateDirectionalImportanceInternal = static_cast<ProgSigIDFEvaluateDirectionalImportanceInternal>(procSet.progEvaluateDirectionalImportanceInternal);
+            progEvaluatePDFInternal = static_cast<ProgSigIDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(const IDFQuery &query, const IDFSample &sample, IDFQueryResult* result) {
+            SampledSpectrum fi = sampleInternal(query, sample.uDir, result);
+            VLRAssert((result->dirPDF > 0 && fi.allPositiveFinite()) || result->dirPDF == 0,
+                      "Invalid IDF value.\nsample: (%g, %g), dirPDF: %g",
+                      sample.uDir[0], sample.uDir[1],
+                      result->dirPDF);
+            return fi;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportance() {
+            SampledSpectrum We0 = evaluateSpatialImportanceInternal();
+            return We0;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportance(const IDFQuery &query, const Vector3D &dirLocal) {
+            SampledSpectrum We1 = evaluateDirectionalImportanceInternal(query, dirLocal);
+            return We1;
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) {
+            float ret = evaluatePDFInternal(query, dirLocal);
+            return ret;
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     };

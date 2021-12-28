@@ -531,13 +531,29 @@ namespace vlr {
 
 
     class Camera : public Queryable {
+        enum CameraCallableName {
+            CameraCallableName_sample = 0,
+            CameraCallableName_setupIDF,
+            CameraCallableName_IDF_sampleInternal,
+            CameraCallableName_IDF_evaluateSpatialImportanceInternal,
+            CameraCallableName_IDF_evaluateDirectionalImportanceInternal,
+            CameraCallableName_IDF_evaluatePDFInternal,
+            NumCameraCallableNames
+        };
+
     protected:
         struct OptiXProgramSet {
             uint32_t dcSampleLensPosition;
-            uint32_t dcSampleIDF;
+            uint32_t dcSetupIDF;
+            uint32_t dcIDFSampleInternal;
+            uint32_t dcIDFEvaluateSpatialImportanceInternal;
+            uint32_t dcIDFEvaluateDirectionalImportanceInternal;
+            uint32_t dcIDFEvaluatePDFInternal;
+            uint32_t idfProcedureSetIndex;
         };
 
-        static void commonInitializeProcedure(Context& context, const char* identifiers[2], OptiXProgramSet* programSet);
+        static void commonInitializeProcedure(
+            Context& context, const char* identifiers[NumCameraCallableNames], OptiXProgramSet* programSet);
         static void commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet);
 
     public:

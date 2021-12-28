@@ -492,6 +492,13 @@ namespace vlr {
             int32_t progWeightInternal;
         };
 
+        struct IDFProcedureSet {
+            int32_t progSampleInternal;
+            int32_t progEvaluateSpatialImportanceInternal;
+            int32_t progEvaluateDirectionalImportanceInternal;
+            int32_t progEvaluatePDFInternal;
+        };
+
 
 
         struct SurfaceMaterialDescriptor {
@@ -499,8 +506,7 @@ namespace vlr {
             uint32_t bsdfProcedureSetIndex;
             int32_t progSetupEDF;
             uint32_t edfProcedureSetIndex;
-#define VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS (28)
-            uint32_t data[VLR_MAX_NUM_MATERIAL_DESCRIPTOR_SLOTS];
+            uint32_t data[28];
 
             template <typename T>
             T* getData() {
@@ -522,43 +528,10 @@ namespace vlr {
 
 
 
-        struct PerspectiveCamera {
-            Point3D position;
-            Quaternion orientation;
-
-            float sensitivity;
-            float aspect;
-            float fovY;
-            float lensRadius;
-            float imgPlaneDistance;
-            float objPlaneDistance;
-
-            float opWidth;
-            float opHeight;
-            float imgPlaneArea;
-
-            CUDA_DEVICE_FUNCTION PerspectiveCamera() {}
-
-            void setImagePlaneArea() {
-                opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
-                opWidth = opHeight * aspect;
-                imgPlaneDistance = 1.0f;
-                imgPlaneArea = 1;// opWidth * opHeight * pow2(imgPlaneDistance / objPlaneDistance);
-            }
-        };
-
-
-
-        struct EquirectangularCamera {
-            Point3D position;
-            Quaternion orientation;
-
-            float sensitivity;
-
-            float phiAngle;
-            float thetaAngle;
-
-            CUDA_DEVICE_FUNCTION EquirectangularCamera() {}
+        struct CameraDescriptor {
+            int32_t progSetupIDF;
+            uint32_t idfProcedureSetIndex;
+            uint32_t data[30];
         };
 
 
@@ -856,6 +829,51 @@ namespace vlr {
 
 
 
+        // ----------------------------------------------------------------
+        // Cameras
+        
+        struct PerspectiveCamera {
+            Point3D position;
+            Quaternion orientation;
+
+            float sensitivity;
+            float aspect;
+            float fovY;
+            float lensRadius;
+            float imgPlaneDistance;
+            float objPlaneDistance;
+
+            float opWidth;
+            float opHeight;
+            float imgPlaneArea;
+
+            CUDA_DEVICE_FUNCTION PerspectiveCamera() {}
+
+            void setImagePlaneArea() {
+                opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
+                opWidth = opHeight * aspect;
+                imgPlaneDistance = 1.0f;
+                imgPlaneArea = 1;// opWidth * opHeight * pow2(imgPlaneDistance / objPlaneDistance);
+            }
+        };
+
+        struct EquirectangularCamera {
+            Point3D position;
+            Quaternion orientation;
+
+            float sensitivity;
+
+            float phiAngle;
+            float thetaAngle;
+
+            CUDA_DEVICE_FUNCTION EquirectangularCamera() {}
+        };
+
+        // END: Camera
+        // ----------------------------------------------------------------
+
+
+
         enum GeometryType {
             GeometryType_TriangleMesh = 0,
             GeometryType_Points,
@@ -956,6 +974,7 @@ namespace vlr {
             const LargeNodeDescriptor* largeNodeDescriptorBuffer;
             const BSDFProcedureSet* bsdfProcedureSetBuffer;
             const EDFProcedureSet* edfProcedureSetBuffer;
+            const IDFProcedureSet* idfProcedureSetBuffer;
             const SurfaceMaterialDescriptor* materialDescriptorBuffer;
 
             const GeometryInstance* geomInstBuffer;
@@ -973,10 +992,8 @@ namespace vlr {
 
             uint2 imageSize;
             uint32_t imageStrideInPixels;
-            PerspectiveCamera perspectiveCamera;
-            EquirectangularCamera equirectangularCamera;
             int32_t progSampleLensPosition;
-            int32_t progSampleIDF;
+            CameraDescriptor cameraDescriptor;
             uint32_t numAccumFrames;
 
             DebugRenderingAttribute debugRenderingAttribute;
@@ -1011,7 +1028,6 @@ namespace vlr {
 
                 vlrprintf("imageSize: %ux%u\n", imageSize.x, imageSize.y);
                 vlrprintf("progSampleLensPosition: %d\n", progSampleLensPosition);
-                vlrprintf("progSampleIDF: %d\n", progSampleIDF);
                 vlrprintf("numAccumFrames: %u\n", numAccumFrames);
 
                 vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
@@ -1019,9 +1035,9 @@ namespace vlr {
         };
         static_assert( // Size consistency check between host and device side
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 528 &&
+            sizeof(PipelineLaunchParameters) == 552 &&
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 536 &&
+            sizeof(PipelineLaunchParameters) == 560 &&
 #endif
             alignof(PipelineLaunchParameters) == 8,
             "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
