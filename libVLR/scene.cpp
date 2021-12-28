@@ -975,11 +975,12 @@ namespace vlr {
             uint32_t instIdxInIas = m_ias.findChildIndex(inst.optixInst);
             if (instIdxInIas != 0xFFFFFFFF)
                 m_ias.removeChildAt(instIdxInIas);
+            uint32_t instIndex = inst.instIndex;
             inst.optixInst.destroy();
-            m_instBuffer.release(inst.instIndex);
+            m_instBuffer.release(instIndex);
             m_instances.erase(shtr);
             m_dirtyInstances.erase(shtr);
-            m_removedInstanceIndices.insert(inst.instIndex);
+            m_removedInstanceIndices.insert(instIndex);
         }
 
         for (auto it = concatDelta.cbegin(); it != concatDelta.cend(); ++it)
@@ -1025,7 +1026,8 @@ namespace vlr {
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASにジオメトリインスタンスを追加する。
         // EN: Add geometry instances to the GAS corresponding to a geometry group
         //     contained in the transform path.
-        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
+        const SHTransform* shtr = m_shTransforms.at(childTransform);
+        const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
         bool isNewGeomGroup = m_geometryASes.count(shGeomGroup) == 0;
         if (isNewGeomGroup) {
             GeometryAS &gas = m_geometryASes[shGeomGroup];
@@ -1045,7 +1047,6 @@ namespace vlr {
 
         // JP: トランスフォームパスに対応するインスタンスにGASをセット、IASにインスタンスを追加する。
         // EN: Set the GAS to the instance corresponding to the transform path, then add the instance to the IAS.
-        const SHTransform* shtr = m_shTransforms.at(childTransform);
         const Instance &inst = m_instances.at(shtr);
         inst.optixInst.setChild(m_geometryASes.at(shGeomGroup).optixGas);
         if (m_ias.findChildIndex(inst.optixInst) == 0xFFFFFFFF)
@@ -1057,7 +1058,8 @@ namespace vlr {
 
     void Scene::geometryRemoveEvent(const SHTransform* childTransform,
                                     const std::set<const SHGeometryInstance*> &childDelta) {
-        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
+        const SHTransform* shtr = m_shTransforms.at(childTransform);
+        const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
         GeometryAS &gas = m_geometryASes.at(shGeomGroup);
 
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASからジオメトリインスタンスを削除する。
@@ -1075,15 +1077,16 @@ namespace vlr {
             ++numRemovedGeomInsts;
 
             geomInst.optixGeomInst.destroy();
-            m_geomInstBuffer.release(geomInst.geomInstIndex);
+            uint32_t geomInstIndex = geomInst.geomInstIndex;
+            m_geomInstBuffer.release(geomInstIndex);
             m_geometryInstances.erase(shGeomInst);
             m_dirtyGeometryInstances.erase(shGeomInst);
-            m_removedGeometryInstanceIndices.insert(geomInst.geomInstIndex);
+            m_removedGeometryInstanceIndices.insert(geomInstIndex);
         }
 
         // JP: 空になったGASは削除する。
         // EN: Remove the GAS if empty.
-        bool isEmptyGeomGroup = shGeomGroup->getNumChildren() == 0;
+        bool isEmptyGeomGroup = gas.optixGas.getNumChildren() == 0;
         if (isEmptyGeomGroup) {
             gas.optixGasMem.finalize();
             gas.optixGas.destroy();
@@ -1096,7 +1099,6 @@ namespace vlr {
 
         // JP: トランスフォームパスに対応するインスタンスをIASから削除する。
         // EN: Remove the instance corresponding to the transform path from the IAS.
-        const SHTransform* shtr = m_shTransforms.at(childTransform);
         if (numRemovedGeomInsts > 0) {
             if (isEmptyGeomGroup) {
                 Instance &inst = m_instances.at(shtr);
@@ -1119,12 +1121,12 @@ namespace vlr {
 
         // JP: トランスフォームパスに含まれるジオメトリグループに対応するGASをdirtyとしてマークする。
         // EN: Mark the GAS corresponding to a geometry group contained in the transform path as dirty.
-        const SHGeometryGroup* shGeomGroup = childTransform->getGeometryDescendant();
+        const SHTransform* shtr = m_shTransforms.at(childTransform);
+        const SHGeometryGroup* shGeomGroup = shtr->getGeometryDescendant();
         m_dirtyGeometryASes.insert(shGeomGroup);
 
         // JP: トランスフォームパスに対応するインスタンスをdirtyとしてマークする。
         // EN: Mark the instance corresponding to the transform path as dirty.
-        const SHTransform* shtr = m_shTransforms.at(childTransform);
         m_dirtyInstances.insert(shtr);
 
         m_iasIsDirty = true;
