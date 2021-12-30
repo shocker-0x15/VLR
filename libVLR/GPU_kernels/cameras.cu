@@ -275,10 +275,16 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
             const IDFQuery &query, const float uDir[2], IDFQueryResult* result) const {
-            float phi = m_phiAngle * (uDir[0] - 0.5f);
+            float phi = VLR_M_PI + m_phiAngle * (uDir[0] - 0.5f);
             float theta = 0.5f * VLR_M_PI + m_thetaAngle * (uDir[1] - 0.5f);
-            result->dirLocal = Vector3D::fromPolarYUp(phi, theta);
-            float sinTheta = std::sqrt(1.0f - pow2(result->dirLocal.y));
+
+            float sinPhi, cosPhi;
+            float sinTheta, cosTheta;
+            ::vlr::sincos(phi, &sinPhi, &cosPhi);
+            ::vlr::sincos(theta, &sinTheta, &cosTheta);
+            Vector3D dirLocal(sinPhi * sinTheta, cosTheta, -cosPhi * sinTheta);
+
+            result->dirLocal = dirLocal;
             result->dirPDF = 1.0f / (m_phiAngle * m_thetaAngle * sinTheta);
             result->sampledType = DirectionType::Acquisition() | DirectionType::LowFreq();
 
@@ -291,9 +297,10 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
-            float phi, theta;
-            dirLocal.toPolarYUp(&theta, &phi);
-            float uDir0 = phi / m_phiAngle + 0.5f;
+            float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
+            float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,
+                                  2 * VLR_M_PI);
+            float uDir0 = (phi - VLR_M_PI) / m_phiAngle + 0.5f;
             float uDir1 = (theta - 0.5f * VLR_M_PI) / m_thetaAngle + 0.5f;
             if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
                 return SampledSpectrum::Zero();
@@ -303,9 +310,10 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
-            float phi, theta;
-            dirLocal.toPolarYUp(&theta, &phi);
-            float uDir0 = phi / m_phiAngle + 0.5f;
+            float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
+            float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,
+                                  2 * VLR_M_PI);
+            float uDir0 = (phi - VLR_M_PI) / m_phiAngle + 0.5f;
             float uDir1 = (theta - 0.5f * VLR_M_PI) / m_thetaAngle + 0.5f;
             if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
                 return 0.0f;
@@ -317,9 +325,10 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION float2 backProjectDirection(
             const IDFQuery &query, const Vector3D &dirLocal) const {
-            float phi, theta;
-            dirLocal.toPolarYUp(&theta, &phi);
-            float uDir0 = phi / m_phiAngle + 0.5f;
+            float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
+            float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,
+                                  2 * VLR_M_PI);
+            float uDir0 = (phi - VLR_M_PI) / m_phiAngle + 0.5f;
             float uDir1 = (theta - 0.5f * VLR_M_PI) / m_thetaAngle + 0.5f;
             if (uDir0 < 0.0f || uDir0 >= 1.0f || uDir1 < 0.0f || uDir1 >= 1.0f)
                 return make_float2(NAN, NAN);

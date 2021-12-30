@@ -85,9 +85,10 @@ namespace vlr {
                 float lensPDF = We0Result.areaPDF;
 
                 SampledSpectrum Le1 = edf.evaluate(feQuery, shadowRayDir_sn);
-                float cosLens = We0Result.surfPt.calcCosTerm(-shadowRayDir);
 
-                float G = fractionalVisibility * std::fabs(shadowRayDir_sn.z) * cosLens / squaredDistance;
+                float cosLens = We0Result.surfPt.calcCosTerm(-shadowRayDir);
+                float cosLight = Le0Result.surfPt.calcCosTerm(shadowRayDir);
+                float G = fractionalVisibility * cosLight * cosLens / squaredDistance;
                 float scalarCoeff = G / lensPDF;
                 SampledSpectrum contribution = alpha * We * Le1 * scalarCoeff;
                 atomicAddToBuffer(wls, contribution, pixel);
