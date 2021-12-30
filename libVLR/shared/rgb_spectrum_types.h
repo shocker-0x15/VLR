@@ -192,6 +192,19 @@ namespace vlr {
             transformFromRenderingRGB(SpectrumType::LightSource, RGB, XYZ);
         }
 
+        CUDA_DEVICE_FUNCTION RGBSpectrumTemplate &add(const RGBWavelengthSamplesTemplate<RealType> &wls, const RGBSpectrumTemplate<RealType> &val) {
+            *this += val;
+            return *this;
+        }
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION void atomicAdd(const RGBWavelengthSamplesTemplate<RealType> &wls, const RGBSpectrumTemplate<RealType> &val) {
+            ::atomicAdd(&r, val.r);
+            ::atomicAdd(&g, val.g);
+            ::atomicAdd(&b, val.b);
+        }
+#endif
+
 #if defined(VLR_Host)
         static void initialize() {}
 #endif
@@ -237,6 +250,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION RGBStorageTemplate &add(const RGBWavelengthSamplesTemplate<RealType> &wls, const RGBSpectrumTemplate<RealType> &val) {
+            value += val;
+            return *this;
+        }
+
+        CUDA_DEVICE_FUNCTION RGBStorageTemplate &add(const RGBSpectrumTemplate<RealType> &val) {
             value += val;
             return *this;
         }

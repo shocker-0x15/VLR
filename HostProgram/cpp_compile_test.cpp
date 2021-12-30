@@ -100,5 +100,5 @@ static void Cpp_CompileTest() {
 
     // Let's render the scene!
     context->setScene(scene);
-    context->render(cuStream, camera, true, 1, firstFrame, &numAccumFrames);
+    context->render(cuStream, camera, true, 1, firstFrame, 0, &numAccumFrames);
 }

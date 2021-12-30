@@ -3,15 +3,124 @@
 namespace vlr {
     using namespace shared;
 
+    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
+    CUDA_DEVICE_KERNEL void RT_AH_NAME(pathTracingAnyHitWithAlpha)() {
+        PTReadOnlyPayload* roPayload;
+        PTReadWritePayload* rwPayload;
+        PTPayloadSignature::get(&roPayload, nullptr, &rwPayload, nullptr);
+
+        float alpha = getAlpha(roPayload->wls);
+
+        // Stochastic Alpha Test
+        if (rwPayload->rng.getFloat0cTo1o() >= alpha)
+            optixIgnoreIntersection();
+    }
+
+
+
+    // Common Ray Generation Program for All Camera Types
+    CUDA_DEVICE_KERNEL void RT_RG_NAME(pathTracing)() {
+        uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
+
+        KernelRNG rng = plp.rngBuffer.read(launchIndex);
+
+        float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
+                               launchIndex.y + rng.getFloat0cTo1o());
+
+        float selectWLPDF;
+        WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
+
+        Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
+        LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
+        LensPosQueryResult We0Result;
+        camera.sample(We0Sample, &We0Result);
+
+        IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
+
+        SampledSpectrum We0 = idf.evaluateSpatialImportance();
+
+        IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
+        IDFQueryResult We1Result;
+        SampledSpectrum We1 = idf.sample(IDFQuery(), We1Sample, &We1Result);
+
+        Point3D rayOrg = We0Result.surfPt.position;
+        Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
+        SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) /
+                                               (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
+
+        PTReadOnlyPayload roPayload = {};
+        roPayload.initImportance = alpha.importance(wls.selectedLambdaIndex());
+        roPayload.wls = wls;
+        roPayload.pathLength = 0;
+        roPayload.maxLengthTerminate = false;
+        PTWriteOnlyPayload woPayload = {};
+        PTReadWritePayload rwPayload = {};
+        rwPayload.rng = rng;
+        rwPayload.alpha = alpha;
+        rwPayload.contribution = SampledSpectrum::Zero();
+        PTExtraPayload exPayload = {};
+        PTReadOnlyPayload* roPayloadPtr = &roPayload;
+        PTWriteOnlyPayload* woPayloadPtr = &woPayload;
+        PTReadWritePayload* rwPayloadPtr = &rwPayload;
+        PTExtraPayload* exPayloadPtr = &exPayload;
+
+        const uint32_t MaxPathLength = 25;
+        while (true) {
+            woPayload.terminate = true;
+            ++roPayload.pathLength;
+            if (roPayload.pathLength >= MaxPathLength)
+                roPayload.maxLengthTerminate = true;
+            optixu::trace<PTPayloadSignature>(
+                plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
+                0xFF, OPTIX_RAY_FLAG_NONE,
+                PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,
+                roPayloadPtr, woPayloadPtr, rwPayloadPtr, exPayloadPtr);
+            if (roPayload.pathLength == 1) {
+                uint32_t linearIndex = launchIndex.y * plp.imageStrideInPixels + launchIndex.x;
+                DiscretizedSpectrum &accumAlbedo = plp.accumAlbedoBuffer[linearIndex];
+                Normal3D &accumNormal = plp.accumNormalBuffer[linearIndex];
+                if (plp.numAccumFrames == 1) {
+                    accumAlbedo = DiscretizedSpectrum::Zero();
+                    accumNormal = Normal3D(0.0f, 0.0f, 0.0f);
+                }
+                TripletSpectrum whitePoint = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
+                                                                   1, 1, 1);
+                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo * whitePoint.evaluate(wls) / selectWLPDF);
+                accumNormal += exPayload.firstHitNormal;
+                exPayloadPtr = nullptr;
+            }
+
+            if (woPayload.terminate)
+                break;
+            VLRAssert(roPayload.pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
+
+            rayOrg = woPayload.nextOrigin;
+            rayDir = woPayload.nextDirection;
+            roPayload.prevDirPDF = woPayload.dirPDF;
+            roPayload.prevSampledType = woPayload.sampledType;
+        }
+        plp.rngBuffer.write(launchIndex, rwPayload.rng);
+        if (!rwPayload.contribution.allFinite()) {
+            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
+            return;
+        }
+
+        if (plp.numAccumFrames == 1)
+            plp.accumBuffer[launchIndex].reset();
+        plp.accumBuffer[launchIndex].add(wls, rwPayload.contribution);
+    }
+
+
+
     // Common Closest Hit Program for All Primitive Types and Materials
     CUDA_DEVICE_KERNEL void RT_CH_NAME(pathTracingIteration)() {
         const auto hp = HitPointParameter::get();
 
-        ReadOnlyPayload* roPayload;
-        WriteOnlyPayload* woPayload;
-        ReadWritePayload* rwPayload;
-        ExtraPayload* exPayload;
-        PayloadSignature::get(&roPayload, &woPayload, &rwPayload, &exPayload);
+        PTReadOnlyPayload* roPayload;
+        PTWriteOnlyPayload* woPayload;
+        PTReadWritePayload* rwPayload;
+        PTExtraPayload* exPayload;
+        PTPayloadSignature::get(&roPayload, &woPayload, &rwPayload, &exPayload);
 
         KernelRNG &rng = rwPayload->rng;
         WavelengthSamples &wls = roPayload->wls;
@@ -39,8 +148,7 @@ namespace vlr {
 
             float MISWeight = 1.0f;
             if (!roPayload->prevSampledType.isDelta() && roPayload->pathLength > 1) {
-                uint32_t instIdx = optixGetInstanceId();
-                const Instance &inst = plp.instBuffer[instIdx];
+                const Instance &inst = plp.instBuffer[surfPt.instanceIndex];
                 float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
                 float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
 
@@ -84,7 +192,8 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (M.hasNonZero() &&
-                testVisibility<PTRayType>(surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
+                testVisibility<PTRayType>(surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance,
+                                          &fractionalVisibility)) {
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
@@ -133,10 +242,10 @@ namespace vlr {
     //     が、OptiXのBVHビルダーがLBVHベースなので無限大のAABBを生成するのは危険。
     //     仕方なくMiss Programで環境光を処理する。
     CUDA_DEVICE_KERNEL void RT_MS_NAME(pathTracingMiss)() {
-        ReadOnlyPayload* roPayload;
-        ReadWritePayload* rwPayload;
-        ExtraPayload* exPayload;
-        PayloadSignature::get(&roPayload, nullptr, &rwPayload, &exPayload);
+        PTReadOnlyPayload* roPayload;
+        PTReadWritePayload* rwPayload;
+        PTExtraPayload* exPayload;
+        PTPayloadSignature::get(&roPayload, nullptr, &rwPayload, &exPayload);
 
         if (exPayload) {
             exPayload->firstHitAlbedo = SampledSpectrum::Zero();
@@ -202,98 +311,5 @@ namespace vlr {
 
             rwPayload->contribution += rwPayload->alpha * Le * MISWeight;
         }
-    }
-
-
-
-    // Common Ray Generation Program for All Camera Types
-    CUDA_DEVICE_KERNEL void RT_RG_NAME(pathTracing)() {
-        uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
-
-        KernelRNG rng = plp.rngBuffer.read(launchIndex);
-
-        float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
-                               launchIndex.y + rng.getFloat0cTo1o());
-
-        float selectWLPDF;
-        WavelengthSamples wls = WavelengthSamples::createWithEqualOffsets(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), &selectWLPDF);
-
-        Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
-        LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
-        LensPosQueryResult We0Result;
-        camera.sample(We0Sample, &We0Result);
-
-        IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
-
-        SampledSpectrum We0 = idf.evaluateSpatialImportance();
-
-        IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
-        IDFQueryResult We1Result;
-        SampledSpectrum We1 = idf.sample(IDFQuery(), We1Sample, &We1Result);
-
-        Point3D rayOrg = We0Result.surfPt.position;
-        Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
-        SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
-
-        ReadOnlyPayload roPayload = {};
-        roPayload.initImportance = alpha.importance(wls.selectedLambdaIndex());
-        roPayload.wls = wls;
-        roPayload.pathLength = 0;
-        roPayload.maxLengthTerminate = false;
-        WriteOnlyPayload woPayload = {};
-        ReadWritePayload rwPayload = {};
-        rwPayload.rng = rng;
-        rwPayload.alpha = alpha;
-        rwPayload.contribution = SampledSpectrum::Zero();
-        ExtraPayload exPayload = {};
-        ReadOnlyPayload* roPayloadPtr = &roPayload;
-        WriteOnlyPayload* woPayloadPtr = &woPayload;
-        ReadWritePayload* rwPayloadPtr = &rwPayload;
-        ExtraPayload* exPayloadPtr = &exPayload;
-
-        const uint32_t MaxPathLength = 25;
-        while (true) {
-            woPayload.terminate = true;
-            ++roPayload.pathLength;
-            if (roPayload.pathLength >= MaxPathLength)
-                roPayload.maxLengthTerminate = true;
-            optixu::trace<PayloadSignature>(
-                plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
-                0xFF, OPTIX_RAY_FLAG_NONE,
-                PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,
-                roPayloadPtr, woPayloadPtr, rwPayloadPtr, exPayloadPtr);
-            if (roPayload.pathLength == 1) {
-                uint32_t linearIndex = launchIndex.y * plp.imageStrideInPixels + launchIndex.x;
-                DiscretizedSpectrum &accumAlbedo = plp.accumAlbedoBuffer[linearIndex];
-                Normal3D &accumNormal = plp.accumNormalBuffer[linearIndex];
-                if (plp.numAccumFrames == 1) {
-                    accumAlbedo = DiscretizedSpectrum::Zero();
-                    accumNormal = Normal3D(0.0f, 0.0f, 0.0f);
-                }
-                TripletSpectrum whitePoint = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
-                                                                   1, 1, 1);
-                accumAlbedo += DiscretizedSpectrum(wls, exPayload.firstHitAlbedo * whitePoint.evaluate(wls) / selectWLPDF);
-                accumNormal += exPayload.firstHitNormal;
-                exPayloadPtr = nullptr;
-            }
-
-            if (woPayload.terminate)
-                break;
-            VLRAssert(roPayload.pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
-
-            rayOrg = woPayload.nextOrigin;
-            rayDir = woPayload.nextDirection;
-            roPayload.prevDirPDF = woPayload.dirPDF;
-            roPayload.prevSampledType = woPayload.sampledType;
-        }
-        plp.rngBuffer.write(launchIndex, rwPayload.rng);
-        if (!rwPayload.contribution.allFinite()) {
-            vlrprintf("Pass %u, (%u, %u): Not a finite value.\n", plp.numAccumFrames, launchIndex.x, launchIndex.y);
-            return;
-        }
-
-        if (plp.numAccumFrames == 1)
-            plp.accumBuffer[launchIndex].reset();
-        plp.accumBuffer[launchIndex].add(wls, rwPayload.contribution);
     }
 }

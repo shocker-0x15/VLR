@@ -151,6 +151,25 @@ namespace vlr {
                 cudau::Buffer hitGroupShaderBindingTable;
             } pathTracing;
 
+            struct LightTracing {
+                optixu::Pipeline pipeline;
+
+                std::vector<optixu::Module> modules;
+
+                optixu::ProgramGroup rayGeneration;
+                optixu::ProgramGroup miss;
+                optixu::ProgramGroup shadowMiss;
+                optixu::ProgramGroup hitGroupDefault;
+                optixu::ProgramGroup hitGroupWithAlpha;
+                optixu::ProgramGroup hitGroupShadowDefault;
+                optixu::ProgramGroup hitGroupShadowWithAlpha;
+                optixu::ProgramGroup emptyHitGroup;
+                std::vector<optixu::ProgramGroup> callablePrograms;
+
+                cudau::Buffer shaderBindingTable;
+                cudau::Buffer hitGroupShaderBindingTable;
+            } lightTracing;
+
             struct DebugRendering {
                 optixu::Pipeline pipeline;
 
@@ -206,6 +225,10 @@ namespace vlr {
 
             optixu::HostBlockBuffer2D<SpectrumStorage, 0> accumBuffer;
 
+            static constexpr uint32_t numLightPaths = 500000;
+            cudau::TypedBuffer<shared::KernelRNG> linearRngBuffer;
+            cudau::TypedBuffer<DiscretizedSpectrum> atomicAccumBuffer;
+
             cudau::Array outputBuffer;
             cudau::InteropSurfaceObjectHolder<2> outputBufferHolder;
             bool useGLTexture;
@@ -222,6 +245,8 @@ namespace vlr {
 
         CUmodule m_cudaPostProcessModule;
         CUdeviceptr m_cudaPostProcessModuleLaunchParamsPtr;
+        cudau::Kernel m_resetAtomicAccumBuffer;
+        cudau::Kernel m_accumulateFromAtomicAccumBuffer;
         cudau::Kernel m_copyBuffers;
         cudau::Kernel m_convertToRGB;
 
@@ -233,7 +258,8 @@ namespace vlr {
 
         void render(CUstream stream, const Camera* camera, bool denoise,
                     bool debugRender, VLRDebugRenderingMode renderMode,
-                    uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+                    uint32_t shrinkCoeff, bool firstFrame,
+                    uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 
     public:
         Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
@@ -250,9 +276,11 @@ namespace vlr {
 
         void setScene(Scene* scene);
         void render(CUstream stream, const Camera* camera, bool denoise,
-                    uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+                    uint32_t shrinkCoeff, bool firstFrame,
+                    uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
         void debugRender(CUstream stream, const Camera* camera, VLRDebugRenderingMode renderMode,
-                         uint32_t shrinkCoeff, bool firstFrame, uint32_t* numAccumFrames);
+                         uint32_t shrinkCoeff, bool firstFrame,
+                         uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 
         CUcontext getCUcontext() const {
             return m_cuContext;

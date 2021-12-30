@@ -731,16 +731,16 @@ namespace vlr {
         }
 
         void render(CUstream stream, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,
-                    bool firstFrame, uint32_t* numAccumFrames) const {
+                    bool firstFrame, uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) const {
             errorCheck(vlrContextRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), denoise,
-                                        shrinkCoeff, firstFrame, numAccumFrames));
+                                        shrinkCoeff, firstFrame, limitNumAccumFrames, numAccumFrames));
         }
 
         void debugRender(CUstream stream, const CameraRef &camera,
                          VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame,
-                         uint32_t* numAccumFrames) const {
+                         uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) const {
             errorCheck(vlrContextDebugRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), renderMode,
-                                             shrinkCoeff, firstFrame, numAccumFrames));
+                                             shrinkCoeff, firstFrame, limitNumAccumFrames, numAccumFrames));
         }
 
 

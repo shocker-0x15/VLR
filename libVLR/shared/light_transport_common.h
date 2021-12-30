@@ -3,7 +3,7 @@
 #include "renderer_common.h"
 
 namespace vlr::shared {
-    struct ReadOnlyPayload {
+    struct PTReadOnlyPayload {
         float initImportance;
         WavelengthSamples wls;
         float prevDirPDF;
@@ -12,7 +12,7 @@ namespace vlr::shared {
         unsigned int maxLengthTerminate : 1;
     };
 
-    struct WriteOnlyPayload {
+    struct PTWriteOnlyPayload {
         Point3D nextOrigin;
         Vector3D nextDirection;
         float dirPDF;
@@ -20,18 +20,41 @@ namespace vlr::shared {
         unsigned int terminate : 1;
     };
 
-    struct ReadWritePayload {
+    struct PTReadWritePayload {
         KernelRNG rng;
         SampledSpectrum alpha;
         SampledSpectrum contribution;
     };
 
-    struct ExtraPayload {
+    struct PTExtraPayload {
         SampledSpectrum firstHitAlbedo;
         Normal3D firstHitNormal;
     };
 
-    using PayloadSignature = optixu::PayloadSignature<ReadOnlyPayload*, WriteOnlyPayload*, ReadWritePayload*, ExtraPayload*>;
+    using PTPayloadSignature = optixu::PayloadSignature<PTReadOnlyPayload*, PTWriteOnlyPayload*, PTReadWritePayload*, PTExtraPayload*>;
+
+    struct LTReadOnlyPayload {
+        WavelengthSamples wls;
+        float prevDirPDF;
+        DirectionType prevSampledType;
+        unsigned int pathLength : 16;
+        unsigned int maxLengthTerminate : 1;
+    };
+
+    struct LTWriteOnlyPayload {
+        Point3D nextOrigin;
+        Vector3D nextDirection;
+        float dirPDF;
+        DirectionType sampledType;
+        unsigned int terminate : 1;
+    };
+
+    struct LTReadWritePayload {
+        KernelRNG rng;
+        SampledSpectrum alpha;
+    };
+
+    using LTPayloadSignature = optixu::PayloadSignature<LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
 
     using ShadowPayloadSignature = optixu::PayloadSignature<WavelengthSamples, float>;
 
@@ -94,19 +117,6 @@ namespace vlr::shared {
         float fractionalVisibility = 0.0f;
         ShadowPayloadSignature::set(nullptr, &fractionalVisibility);
         optixTerminateRay();
-    }
-
-    // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
-    CUDA_DEVICE_KERNEL void RT_AH_NAME(anyHitWithAlpha)() {
-        ReadOnlyPayload* roPayload;
-        ReadWritePayload* rwPayload;
-        PayloadSignature::get(&roPayload, nullptr, &rwPayload, nullptr);
-
-        float alpha = getAlpha(roPayload->wls);
-
-        // Stochastic Alpha Test
-        if (rwPayload->rng.getFloat0cTo1o() >= alpha)
-            optixIgnoreIntersection();
     }
 
     // Common Any Hit Program for All Primitive Types and Materials for shadow rays

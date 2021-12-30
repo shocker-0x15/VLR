@@ -73,6 +73,7 @@ namespace vlr {
 
         SurfacePoint &surfPt = result->surfPt;
 
+        surfPt.instanceIndex = instIndex;
         surfPt.position = position;
         surfPt.shadingFrame = shadingFrame;
         surfPt.isPoint = false;

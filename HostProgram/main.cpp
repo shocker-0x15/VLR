@@ -194,6 +194,43 @@ static void glfw_error_callback(int32_t error, const char* description) {
 
 
 
+namespace ImGui {
+    template <typename EnumType>
+    bool RadioButtonE(const char* label, EnumType* v, EnumType v_button) {
+        return RadioButton(label, reinterpret_cast<int*>(v), static_cast<int>(v_button));
+    }
+
+    bool InputLog2Int(const char* label, int* v, int max_v, int num_digits = 3) {
+        float buttonSize = GetFrameHeight();
+        float itemInnerSpacingX = GetStyle().ItemInnerSpacing.x;
+
+        BeginGroup();
+        PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        SetNextItemWidth(std::max(1.0f, CalcItemWidth() - (buttonSize + itemInnerSpacingX) * 2));
+        Text("%s: %*u", label, num_digits, 1 << *v);
+        bool changed = false;
+        SameLine(0, itemInnerSpacingX);
+        if (Button("-", ImVec2(buttonSize, buttonSize))) {
+            *v = std::max(*v - 1, 0);
+            changed = true;
+        }
+        SameLine(0, itemInnerSpacingX);
+        if (Button("+", ImVec2(buttonSize, buttonSize))) {
+            *v = std::min(*v + 1, max_v);
+            changed = true;
+        }
+
+        PopID();
+        EndGroup();
+
+        return changed;
+    }
+}
+
+
+
 class HostProgram {
     static constexpr GLenum s_frameBufferColorFormat = GL_SRGB8_ALPHA8/*GL_RGBA8*/;
 
@@ -306,6 +343,8 @@ class HostProgram {
     float m_phiAngle;
     float m_thetaAngle;
 
+    int32_t m_log2MaxNumAccums = 16;
+
     float m_environmentRotation;
 
     bool m_enableDenoiser;
@@ -404,11 +443,14 @@ class HostProgram {
             m_camera = m_equirectangularCamera;
         }
 
+        ImGui::InputLog2Int("#MaxNumAccum", &m_log2MaxNumAccums, 16, 5);
+
         cudau::Timer &renderTimer = m_renderTimer[m_frameIndex % 2];
         float renderTime = NAN;
         if (m_frameIndex >= 2)
             renderTime = renderTimer.report();
-        ImGui::Text("%u [spp], %.2f [ms/sample]", m_numAccumFrames, renderTime);
+        ImGui::Text("%u [spp], %.2f [ms/sample]",
+                    std::min(m_numAccumFrames, (1u << m_log2MaxNumAccums)), renderTime);
 
         ImGui::End();
     }
@@ -1139,14 +1181,15 @@ public:
                 if (m_frameIndex == 0)
                     firstFrame = true;
                 renderTimer.start(curStream);
+                uint32_t numAccumFramesLimit = 1u << m_log2MaxNumAccums;
                 if (m_enableDebugRendering)
                     m_context->debugRender(
                         curStream, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame,
-                        &m_numAccumFrames);
+                        numAccumFramesLimit, &m_numAccumFrames);
                 else
                     m_context->render(
                         curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
-                        &m_numAccumFrames);
+                        numAccumFramesLimit, &m_numAccumFrames);
                 renderTimer.stop(curStream);
 
                 m_operatedCameraOnPrevFrame = operatingCamera;
@@ -1309,7 +1352,7 @@ static int32_t mainFunc(int32_t argc, const char* argv[]) {
         uint32_t finishTime = 123 * 1000 - 3000;
         while (true) {
             context->render(cuStream, shot.viewpoints[0], true,
-                            1, numAccumFrames == 0 ? true : false, &numAccumFrames);
+                            1, numAccumFrames == 0 ? true : false, 0, &numAccumFrames);
             CUDADRV_CHECK(cuStreamSynchronize(cuStream));
 
             uint64_t elapsed = swGlobal.elapsed(StopWatch::Milliseconds);

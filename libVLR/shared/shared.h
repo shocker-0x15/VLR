@@ -547,6 +547,16 @@ namespace vlr {
             CUDA_DEVICE_FUNCTION constexpr PTRayType(Value v = Closest) : value(v) {}
         };
 
+        struct LTRayType {
+            enum Value {
+                Closest = 0,
+                Shadow,
+                NumTypes
+            } value;
+
+            CUDA_DEVICE_FUNCTION constexpr LTRayType(Value v = Closest) : value(v) {}
+        };
+
         struct DebugRayType {
             enum Value {
                 Primary,
@@ -854,7 +864,7 @@ namespace vlr {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
                 opWidth = opHeight * aspect;
                 imgPlaneDistance = 1.0f;
-                imgPlaneArea = 1;// opWidth * opHeight * pow2(imgPlaneDistance / objPlaneDistance);
+                imgPlaneArea = opWidth * opHeight * pow2(imgPlaneDistance / objPlaneDistance);
             }
         };
 
@@ -991,11 +1001,16 @@ namespace vlr {
             DiscretizedSpectrum* accumAlbedoBuffer;
             Normal3D* accumNormalBuffer;
 
+            KernelRNG* linearRngBuffer;
+            DiscretizedSpectrum* atomicAccumBuffer;
+            uint32_t numLightPaths;
+
             uint2 imageSize;
             uint32_t imageStrideInPixels;
             int32_t progSampleLensPosition;
             CameraDescriptor cameraDescriptor;
             uint32_t numAccumFrames;
+            uint32_t limitNumAccumFrames;
 
             DebugRenderingAttribute debugRenderingAttribute;
 
@@ -1036,9 +1051,9 @@ namespace vlr {
         };
         static_assert( // Size consistency check between host and device side
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 552 &&
+            sizeof(PipelineLaunchParameters) == 584 &&
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-            sizeof(PipelineLaunchParameters) == 560 &&
+            sizeof(PipelineLaunchParameters) == 592 &&
 #endif
             alignof(PipelineLaunchParameters) == 8,
             "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");

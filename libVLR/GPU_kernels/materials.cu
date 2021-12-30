@@ -1606,7 +1606,7 @@ namespace vlr {
             result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
             result->dirPDF = result->dirLocal.z / VLR_M_PI;
             result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
-            SampledSpectrum feValue = m_emittance / VLR_M_PI;
+            SampledSpectrum feValue(1.0f / VLR_M_PI);
 
             return feValue;
         }
@@ -1678,7 +1678,7 @@ namespace vlr {
             result->dirLocal = Vector3D(0, 0, 1);
             result->dirPDF = 1.0f;
             result->sampledType = DirectionType::Emission() | dirType;
-            SampledSpectrum feValue = regFactor * m_emittance;
+            SampledSpectrum feValue(regFactor);
 
             return feValue;
         }
@@ -2299,7 +2299,7 @@ namespace vlr {
             result->dirLocal = Vector3D(0, 0, 1);
             result->dirPDF = 1.0f / m_worldDiscArea;
             result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
-            SampledSpectrum feValue = m_emittance / VLR_M_PI;
+            SampledSpectrum feValue(1 / VLR_M_PI);
 
             return feValue;
         }

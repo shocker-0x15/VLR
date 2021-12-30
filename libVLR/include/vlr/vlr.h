@@ -94,12 +94,12 @@ VLR_API VLRResult vlrContextSetScene(
 VLR_API VLRResult vlrContextRender(
     VLRContext context,
     CUstream stream, VLRCameraConst camera, bool denoise, uint32_t shrinkCoeff, bool firstFrame,
-    uint32_t* numAccumFrames);
+    uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 VLR_API VLRResult vlrContextDebugRender(
     VLRContext context,
     CUstream stream, VLRCameraConst camera, VLRDebugRenderingMode renderMode,
     uint32_t shrinkCoeff, bool firstFrame,
-    uint32_t* numAccumFrames);
+    uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 
 
 

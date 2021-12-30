@@ -602,6 +602,27 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION void toXYZ(RealType XYZ[3]) const;
 
+        template <uint32_t N>
+        CUDA_DEVICE_FUNCTION DiscretizedSpectrumTemplate &add(const WavelengthSamplesTemplate<RealType, N> &wls, const SampledSpectrumTemplate<RealType, N> &val) {
+            const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
+            for (int i = 0; i < N; ++i) {
+                uint32_t sBin = ::vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                values[sBin] += val[i] * recBinWidth;
+            }
+            return *this;
+        }
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        template <uint32_t N>
+        CUDA_DEVICE_FUNCTION void atomicAdd(const WavelengthSamplesTemplate<RealType, N> &wls, const SampledSpectrumTemplate<RealType, N> &val) {
+            const RealType recBinWidth = NumStrataForStorage / (WavelengthHighBound - WavelengthLowBound);
+            for (int i = 0; i < N; ++i) {
+                uint32_t sBin = ::vlr::min<uint32_t>((wls[i] - WavelengthLowBound) / (WavelengthHighBound - WavelengthLowBound) * NumStrataForStorage, NumStrataForStorage - 1);
+                ::atomicAdd(&values[sBin], val[i] * recBinWidth);
+            }
+        }
+#endif
+
         CUDA_DEVICE_FUNCTION static constexpr uint32_t NumStrata() { return NumStrataForStorage; }
         CUDA_DEVICE_FUNCTION static constexpr DiscretizedSpectrumTemplate Zero() { return DiscretizedSpectrumTemplate(0.0f); }
         CUDA_DEVICE_FUNCTION static constexpr DiscretizedSpectrumTemplate One() { return DiscretizedSpectrumTemplate(1.0f); }
@@ -659,6 +680,11 @@ namespace vlr {
                 addend[sBin] += val[i] * recBinWidth;
             }
             value += addend;
+            return *this;
+        }
+
+        CUDA_DEVICE_FUNCTION SpectrumStorageTemplate &add(const ValueType &val) {
+            value += val;
             return *this;
         }
 
