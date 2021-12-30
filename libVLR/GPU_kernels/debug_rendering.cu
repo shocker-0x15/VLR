@@ -204,7 +204,7 @@ namespace vlr {
         SampledSpectrum value;
         optixu::trace<DebugPayloadSignature>(
             plp.topGroup, asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
-            0xFF, OPTIX_RAY_FLAG_NONE,
+            VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
             DebugRayType::Primary, MaxNumRayTypes, DebugRayType::Primary,
             rng, wls, value);
 

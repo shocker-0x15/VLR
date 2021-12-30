@@ -75,6 +75,52 @@ namespace vlr {
         result->posType = lensRadius > 0.0f ? DirectionType::LowFreq() : DirectionType::Delta0D();
     }
 
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(PerspectiveCamera_testIntersection)(
+        const Point3D &rayOrg, const Vector3D &rayDir,
+        SurfacePoint* surfPt, float* hypAreaPDF) {
+        auto &cam = reinterpret_cast<const PerspectiveCamera &>(plp.cameraDescriptor.data);
+        if (cam.lensRadius == 0.0f)
+            return false;
+
+        Matrix3x3 rotMat = cam.orientation.toMatrix3x3();
+
+        Normal3D geometricNormal = normalize(rotMat * Normal3D(0, 0, 1));
+
+        float perpDist = dot(geometricNormal, rayOrg - cam.position);
+        if (perpDist <= 0.0f)
+            return false;
+        float dirPerp = dot(geometricNormal, -rayDir);
+        if (dirPerp <= 0.0f)
+            return false;
+        Point3D pointOnPlane = rayOrg + rayDir * (perpDist / dirPerp);
+        if (sqDistance(pointOnPlane, cam.position) > pow2(cam.lensRadius))
+            return false;
+
+        Point3D orgLocal = transpose(rotMat) * (pointOnPlane - cam.position);
+        float lx = orgLocal.x / cam.lensRadius;
+        float ly = orgLocal.y / cam.lensRadius;
+
+        ReferenceFrame shadingFrame;
+        shadingFrame.z = static_cast<Vector3D>(geometricNormal);
+        shadingFrame.x = normalize(rotMat * Vector3D(1, 0, 0));
+        shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+
+        surfPt->position = pointOnPlane;
+        surfPt->shadingFrame = shadingFrame;
+        surfPt->isPoint = false;
+        surfPt->atInfinity = false;
+
+        surfPt->geometricNormal = geometricNormal;
+        surfPt->u = lx;
+        surfPt->v = ly;
+        surfPt->texCoord = TexCoord2D::Zero();
+        //surfPt.tc0Direction = Vector3D::Zero();
+
+        *hypAreaPDF = 1.0f / (VLR_M_PI * pow2(cam.lensRadius));
+
+        return true;
+    }
+
     class PerspectiveCameraIDF {
         float m_sensitivity;
         float m_xOnLens;
@@ -207,6 +253,12 @@ namespace vlr {
 
         result->areaPDF = 1.0f;
         result->posType = DirectionType::Delta0D();
+    }
+
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(EquirectangularCamera_testIntersection)(
+        const Point3D &rayOrg, const Vector3D &rayDir,
+        SurfacePoint* surfPt, float* hypAreaPDF) {
+        return false;
     }
 
     class EquirectangularCameraIDF {

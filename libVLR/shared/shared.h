@@ -1008,6 +1008,7 @@ namespace vlr {
             uint2 imageSize;
             uint32_t imageStrideInPixels;
             int32_t progSampleLensPosition;
+            int32_t progTestLensIntersection;
             CameraDescriptor cameraDescriptor;
             uint32_t numAccumFrames;
             uint32_t limitNumAccumFrames;

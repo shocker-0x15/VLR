@@ -267,6 +267,8 @@ namespace vlr::shared {
     using ProgSigFetchNormal = optixu::DirectCallableProgramID<
         Normal3D(const TexCoord2D &)>;
 
+    static constexpr uint32_t VisibilityGroup_Everything = 0b1111'1111;
+
 
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)

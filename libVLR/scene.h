@@ -534,6 +534,7 @@ namespace vlr {
     class Camera : public Queryable {
         enum CameraCallableName {
             CameraCallableName_sample = 0,
+            CameraCallableName_testIntersection,
             CameraCallableName_setupIDF,
             CameraCallableName_IDF_sampleInternal,
             CameraCallableName_IDF_evaluateSpatialImportanceInternal,
@@ -546,6 +547,7 @@ namespace vlr {
     protected:
         struct OptiXProgramSet {
             uint32_t dcSampleLensPosition;
+            uint32_t dcTestLensIntersection;
             uint32_t dcSetupIDF;
             uint32_t dcIDFSampleInternal;
             uint32_t dcIDFEvaluateSpatialImportanceInternal;

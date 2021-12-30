@@ -106,6 +106,8 @@ namespace vlr {
 
         LTReadOnlyPayload roPayload = {};
         roPayload.wls = wls;
+        roPayload.prevDirPDF = Le1Result.dirPDF;
+        roPayload.prevSampledType = Le1Result.sampledType;
         roPayload.pathLength = 0;
         roPayload.maxLengthTerminate = false;
         LTWriteOnlyPayload woPayload = {};
@@ -125,7 +127,7 @@ namespace vlr {
 
             optixu::trace<LTPayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
-                0xFF, OPTIX_RAY_FLAG_NONE,
+                shared::VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 LTRayType::Closest, MaxNumRayTypes, LTRayType::Closest,
                 roPayloadPtr, woPayloadPtr, rwPayloadPtr);
 
@@ -167,7 +169,6 @@ namespace vlr {
 
         const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
         BSDF bsdf(matDesc, surfPt, wls);
-        EDF edf(matDesc, surfPt, wls);
 
         Vector3D dirInLocal = surfPt.shadingFrame.toLocal(-asVector3D(optixGetWorldRayDirection()));
 

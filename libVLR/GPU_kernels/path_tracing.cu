@@ -51,6 +51,8 @@ namespace vlr {
         PTReadOnlyPayload roPayload = {};
         roPayload.initImportance = alpha.importance(wls.selectedLambdaIndex());
         roPayload.wls = wls;
+        roPayload.prevDirPDF = We1Result.dirPDF;
+        roPayload.prevSampledType = We1Result.sampledType;
         roPayload.pathLength = 0;
         roPayload.maxLengthTerminate = false;
         PTWriteOnlyPayload woPayload = {};
@@ -72,7 +74,7 @@ namespace vlr {
                 roPayload.maxLengthTerminate = true;
             optixu::trace<PTPayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
-                0xFF, OPTIX_RAY_FLAG_NONE,
+                VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,
                 roPayloadPtr, woPayloadPtr, rwPayloadPtr, exPayloadPtr);
             if (roPayload.pathLength == 1) {

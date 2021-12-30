@@ -339,6 +339,9 @@ namespace vlr::shared {
     using ProgSigCamera_sample = optixu::DirectCallableProgramID<
         void(const LensPosSample &, LensPosQueryResult*)>;
 
+    using ProgSigCamera_testLensIntersection = optixu::DirectCallableProgramID<
+        bool(const Point3D &, const Vector3D &, SurfacePoint*, float*)>;
+
     struct Camera {
         ProgSigCamera_sample m_progSample;
 

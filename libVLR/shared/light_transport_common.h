@@ -85,7 +85,7 @@ namespace vlr::shared {
         float plFracVis = 1.0f;
         optixu::trace<ShadowPayloadSignature>(
             plp.topGroup, asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), 0.0f, tmax, 0.0f,
-            0xFF, OPTIX_RAY_FLAG_NONE, RayType::Shadow, MaxNumRayTypes, RayType::Shadow,
+            VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE, RayType::Shadow, MaxNumRayTypes, RayType::Shadow,
             plWls, plFracVis);
 
         *fractionalVisibility = plFracVis;

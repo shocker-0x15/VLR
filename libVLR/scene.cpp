@@ -888,6 +888,7 @@ namespace vlr {
             inst.instIndex = m_instBuffer.allocate();
             inst.optixInst = m_optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
+            inst.optixInst.setVisibilityMask(shared::VisibilityGroup_Everything);
             inst.data.transform = shared::StaticTransform(Matrix4x4(mat), Matrix4x4(invMat));
             inst.data.lightGeomInstDistribution = shared::DiscreteDistribution1D();
             inst.data.geomInstIndices = nullptr;
@@ -956,6 +957,7 @@ namespace vlr {
             inst.instIndex = m_instBuffer.allocate();
             inst.optixInst = m_optixScene.createInstance();
             inst.optixInst.setID(inst.instIndex);
+            inst.optixInst.setVisibilityMask(shared::VisibilityGroup_Everything);
             inst.data.importance = 0.0f;
             inst.data.isActive = false;
         }
@@ -1405,6 +1407,8 @@ namespace vlr {
         Context& context, const char* identifiers[NumCameraCallableNames], OptiXProgramSet* programSet) {
         programSet->dcSampleLensPosition = context.createDirectCallableProgram(
             OptiXModule_Camera, identifiers[CameraCallableName_sample]);
+        programSet->dcTestLensIntersection = context.createDirectCallableProgram(
+            OptiXModule_Camera, identifiers[CameraCallableName_testIntersection]);
 
         programSet->dcSetupIDF = context.createDirectCallableProgram(
             OptiXModule_Camera, identifiers[CameraCallableName_setupIDF]);
@@ -1436,6 +1440,7 @@ namespace vlr {
     void Camera::commonFinalizeProcedure(Context& context, OptiXProgramSet& programSet) {
         context.releaseIDFProcedureSet(programSet.idfProcedureSetIndex);
 
+        context.destroyDirectCallableProgram(programSet.dcIDFBackProjectDirectionInternal);
         context.destroyDirectCallableProgram(programSet.dcIDFEvaluatePDFInternal);
         context.destroyDirectCallableProgram(programSet.dcIDFEvaluateDirectionalImportanceInternal);
         context.destroyDirectCallableProgram(programSet.dcIDFEvaluateSpatialImportanceInternal);
@@ -1443,6 +1448,7 @@ namespace vlr {
 
         context.destroyDirectCallableProgram(programSet.dcSetupIDF);
 
+        context.destroyDirectCallableProgram(programSet.dcTestLensIntersection);
         context.destroyDirectCallableProgram(programSet.dcSampleLensPosition);
     }
     
@@ -1483,6 +1489,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("PerspectiveCamera_sample"),
+            RT_DC_NAME_STR("PerspectiveCamera_testIntersection"),
             RT_DC_NAME_STR("PerspectiveCamera_setupIDF"),
             RT_DC_NAME_STR("PerspectiveCameraIDF_sampleInternal"),
             RT_DC_NAME_STR("PerspectiveCameraIDF_evaluateSpatialImportanceInternal"),
@@ -1645,6 +1652,7 @@ namespace vlr {
     void PerspectiveCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
+        launchParams->progTestLensIntersection = progSet.dcTestLensIntersection;
         launchParams->cameraDescriptor.idfProcedureSetIndex = progSet.idfProcedureSetIndex;
         launchParams->cameraDescriptor.progSetupIDF = progSet.dcSetupIDF;
         std::memcpy(launchParams->cameraDescriptor.data, &m_data, sizeof(m_data));
@@ -1673,6 +1681,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("EquirectangularCamera_sample"),
+            RT_DC_NAME_STR("EquirectangularCamera_testIntersection"),
             RT_DC_NAME_STR("EquirectangularCamera_setupIDF"),
             RT_DC_NAME_STR("EquirectangularCameraIDF_sampleInternal"),
             RT_DC_NAME_STR("EquirectangularCameraIDF_evaluateSpatialImportanceInternal"),
@@ -1807,6 +1816,7 @@ namespace vlr {
     void EquirectangularCamera::setup(shared::PipelineLaunchParameters* launchParams) const {
         OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         launchParams->progSampleLensPosition = progSet.dcSampleLensPosition;
+        launchParams->progTestLensIntersection = progSet.dcTestLensIntersection;
         launchParams->cameraDescriptor.idfProcedureSetIndex = progSet.idfProcedureSetIndex;
         launchParams->cameraDescriptor.progSetupIDF = progSet.dcSetupIDF;
         std::memcpy(launchParams->cameraDescriptor.data, &m_data, sizeof(m_data));
