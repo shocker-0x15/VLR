@@ -290,17 +290,25 @@ namespace vlr::shared {
 
 
 
+    enum class TransportMode {
+        Radiance = 0,
+        Importance = 1
+    };
+    
     struct BSDFQuery {
         Vector3D dirLocal;
         Normal3D geometricNormalLocal;
         DirectionType dirTypeFilter;
         struct {
+            unsigned int transportMode : 1;
             unsigned int wlHint : 6;
         };
 
         CUDA_DEVICE_FUNCTION BSDFQuery(
-            const Vector3D &dirL, const Normal3D &gNormL, DirectionType filter, const WavelengthSamples &wls) : 
-            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter), wlHint(wls.selectedLambdaIndex()) {}
+            const Vector3D &dirL, const Normal3D &gNormL, TransportMode transportMode,
+            DirectionType filter, const WavelengthSamples &wls) : 
+            dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter),
+            transportMode(static_cast<unsigned int>(transportMode)), wlHint(wls.selectedLambdaIndex()) {}
     };
 
     struct BSDFSample {
@@ -508,6 +516,21 @@ namespace vlr::shared {
                 return ret;
         }
         return defaultValue.evaluate(wls);
+    }
+
+
+
+    // References:
+    // - Path Space Regularization for Holistic and Robust Light Transport
+    // - Improving Robustness of Monte-Carlo Global Illumination with Directional Regularization
+    constexpr bool usePathSpaceRegularization = false;
+
+    CUDA_DEVICE_FUNCTION float computeRegularizationFactor(float* cosEpsilon) {
+        // Consider a distance-based adaptive initial value and two-vertex mollification.
+        const float epsilon = 0.04f * std::pow(static_cast<float>(plp.numAccumFrames), -1.0f / 6);
+        *cosEpsilon = std::cos(epsilon);
+        float regFactor = 1.0f / (2 * VLR_M_PI * (1 - *cosEpsilon));
+        return regFactor;
     }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 }

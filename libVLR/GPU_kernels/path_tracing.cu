@@ -132,7 +132,8 @@ namespace vlr {
         calcSurfacePoint(hp, wls, &surfPt, &hypAreaPDF);
 
         const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
-        BSDF bsdf(matDesc, surfPt, wls);
+        constexpr TransportMode transportMode = TransportMode::Radiance;
+        BSDF<transportMode> bsdf(matDesc, surfPt, wls);
         EDF edf(matDesc, surfPt, wls);
 
         if (exPayload) {
@@ -172,7 +173,7 @@ namespace vlr {
         rwPayload->alpha /= continueProb;
 
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
-        BSDFQuery fsQuery(dirOutLocal, geomNormalLocal, DirectionType::All(), wls);
+        BSDFQuery fsQuery(dirOutLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
         // Next Event Estimation (explicit light sampling)
         if (bsdf.hasNonDelta()) {

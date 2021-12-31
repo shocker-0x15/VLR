@@ -7,6 +7,7 @@ namespace vlr::shared {
 
 
 
+    template <TransportMode transportMode>
     class BSDF {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
@@ -66,22 +67,51 @@ namespace vlr::shared {
                 return SampledSpectrum::Zero();
             }
             SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
-            VLRAssert((result->dirPDF > 0 && fs_sn.allPositiveFinite()) || result->dirPDF == 0,
-                      "Invalid BSDF value.\ndirV: (%g, %g, %g), sample: (%g, %g, %g), dirPDF: %g",
-                      query.dirLocal.x, query.dirLocal.y, query.dirLocal.z, sample.uComponent, sample.uDir[0], sample.uDir[1],
-                      result->dirPDF);
-            float snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
-            if (result->dirLocal.z == 0.0f)
-                snCorrection = 0.0f;
-            return fs_sn * snCorrection;
+            float snCorrection;
+            if constexpr (transportMode == TransportMode::Radiance) {
+                snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
+                if (result->dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            else {
+                snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
+                if (query.dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            SampledSpectrum ret = fs_sn * snCorrection;
+            VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
+                      "sample: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), dirPDF: %g, "
+                      "snCorrection: %g",
+                      sample.uComponent, sample.uDir[0], sample.uDir[1],
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(result->dirLocal), result->dirPDF,
+                      snCorrection);
+            return ret;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
-            float snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
-            if (dirLocal.z == 0.0f)
-                snCorrection = 0.0f;
-            return fs_sn * snCorrection;
+            float snCorrection;
+            if constexpr (transportMode == TransportMode::Radiance) {
+                snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
+                if (dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            else {
+                snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
+                if (query.dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            SampledSpectrum ret = fs_sn * snCorrection;
+            VLRAssert(ret.allFinite() && !ret.hasNegative(),
+                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), "
+                      "snCorrection: %g",
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(dirLocal),
+                      snCorrection);
+            return ret;
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) const {
@@ -89,6 +119,11 @@ namespace vlr::shared {
                 return 0;
             }
             float ret = evaluatePDFInternal(query, dirLocal);
+            VLRAssert(vlr::isfinite(ret) && ret >= 0,
+                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), dirPDF: %g",
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(dirLocal), ret);
             return ret;
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)

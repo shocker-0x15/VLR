@@ -83,6 +83,8 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 #define VLRAssert_ShouldNotBeCalled() VLRAssert(false, "Should not be called!")
 #define VLRAssert_NotImplemented() VLRAssert(false, "Not implemented yet!")
 
+#define VLR3DPrint(v) v.x, v.y, v.z
+
 
 
 #if defined(VLR_Host)

@@ -109,7 +109,7 @@ namespace vlr {
         SampledSpectrum value;
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
-            BSDF bsdf(matDesc, surfPt, wls);
+            BSDF<TransportMode::Radiance> bsdf(matDesc, surfPt, wls);
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
             auto progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);

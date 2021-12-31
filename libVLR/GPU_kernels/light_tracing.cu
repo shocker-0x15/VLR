@@ -56,7 +56,7 @@ namespace vlr {
 
         SampledSpectrum Le0 = edf.evaluateEmittance();
         SampledSpectrum alpha = Le0 / (plp.numLightPaths * lightProb * Le0Result.areaPDF * selectWLPDF);
-        alpha *= (plp.imageSize.x * plp.imageSize.y);
+        alpha *= (plp.imageSize.x * plp.imageSize.y); // TODO: マテリアル側を修正してこの補正項を無くす。
 
         // Next Event Estimation (explicit lens sampling)
         EDFQuery feQuery(DirectionType::All(), wls);
@@ -169,12 +169,13 @@ namespace vlr {
         calcSurfacePoint(hp, wls, &surfPt, &hypAreaPDF);
 
         const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
-        BSDF bsdf(matDesc, surfPt, wls);
+        constexpr TransportMode transportMode = TransportMode::Importance;
+        BSDF<transportMode> bsdf(matDesc, surfPt, wls);
 
         Vector3D dirInLocal = surfPt.shadingFrame.toLocal(-asVector3D(optixGetWorldRayDirection()));
 
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
-        BSDFQuery fsQuery(dirInLocal, geomNormalLocal, DirectionType::All(), wls);
+        BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
         // Next Event Estimation (explicit lens sampling)
         if (bsdf.hasNonDelta()) {

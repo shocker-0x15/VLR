@@ -3,21 +3,6 @@
 namespace vlr {
     using namespace shared;
 
-    // References:
-    // - Path Space Regularization for Holistic and Robust Light Transport
-    // - Improving Robustness of Monte-Carlo Global Illumination with Directional Regularization
-    constexpr bool usePathSpaceRegularization = false;
-
-    CUDA_DEVICE_FUNCTION float computeRegularizationFactor(float* cosEpsilon) {
-        // Consider a distance-based adaptive initial value and two-vertex mollification.
-        const float epsilon = 0.04f * std::pow(static_cast<float>(plp.numAccumFrames), -1.0f / 6);
-        *cosEpsilon = std::cos(epsilon);
-        float regFactor = 1.0f / (2 * VLR_M_PI * (1 - *cosEpsilon));
-        return regFactor;
-    }
-
-
-
     CUDA_DEVICE_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
         bool reflect = dot(Vector3D(ng), d0) * dot(Vector3D(ng), d1) > 0;
         return DirectionType::AllFreq() | (reflect ? DirectionType::Reflection() : DirectionType::Transmission());
@@ -626,6 +611,8 @@ namespace vlr {
                 SampledSpectrum ret = SampledSpectrum::Zero();
                 ret[query.wlHint] = m_coeff[query.wlHint] *
                     (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
+                if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
+                    ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
 
                 return ret;
             }
@@ -667,6 +654,8 @@ namespace vlr {
                     SampledSpectrum ret = SampledSpectrum::Zero();
                     ret[query.wlHint] = m_coeff[query.wlHint] *
                         (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
+                    if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
+                        ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
                     return ret;
                 }
 
@@ -1024,8 +1013,9 @@ namespace vlr {
                     //          ret[wlIdx], F_wl, G_wl, D_wl, query.wlHint, dirV.toString().c_str());
                 }
                 ret /= std::fabs(dirV.z * dirL.z);
-                ret *= m_coeff * eEnter * eEnter;
-                //ret *= query.adjoint ? (eExit * eExit) : (eEnter * eEnter);// adjoint: need to cancel eEnter^2 / eExit^2 => eEnter^2 * (eExit^2 / eEnter^2)
+                ret *= m_coeff;
+                ret *= static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance ?
+                    pow2(eEnter) : pow2(eExit); // adjoint: need to cancel eEnter^2 / eExit^2 => eEnter^2 * (eExit^2 / eEnter^2)
 
                 //VLRAssert(ret.allFinite(), "fs: %s, wlIdx: %u, qDir: %s, rDir: %s",
                 //          ret.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
@@ -1077,8 +1067,9 @@ namespace vlr {
                     //          ret[wlIdx], F_wl, G_wl, D_wl, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
                 }
                 ret /= std::fabs(dotNVdotNL);
-                ret *= m_coeff * eEnter * eEnter;
-                //ret *= query.adjoint ? (eExit * eExit) : (eEnter * eEnter);// !adjoint: eExit^2 * (eEnter / eExit)^2
+                ret *= m_coeff;
+                ret *= static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance ?
+                    pow2(eEnter) : pow2(eExit); // !adjoint: eExit^2 * (eEnter / eExit)^2
 
                 //VLRAssert(ret.allFinite(), "fs: %s, wlIdx: %u, qDir: %s, dir: %s",
                 //          ret.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
@@ -1819,8 +1810,32 @@ namespace vlr {
         unsigned int m_bsdf3 : 6;
         unsigned int m_numBSDFs : 8;
 
-        CUDA_DEVICE_FUNCTION const uint32_t* getBSDF(uint32_t offset) const {
-            return reinterpret_cast<const uint32_t*>(this) + offset;
+        CUDA_DEVICE_FUNCTION BSDFProcedureSet getBSDFProcSet(uint32_t offset, const uint32_t** body) const {
+            const uint32_t* bsdf = reinterpret_cast<const uint32_t*>(this) + offset;
+            uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
+            *body = bsdf + 1;
+            return plp.bsdfProcedureSetBuffer[procIdx];
+        }
+
+        CUDA_DEVICE_FUNCTION float BSDFWeight(uint32_t offset, const BSDFQuery &query) const {
+            const uint32_t* body;
+            BSDFProcedureSet procSet = getBSDFProcSet(offset, &body);
+            auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+            auto weightInternal = static_cast<ProgSigBSDFWeightInternal>(procSet.progWeightInternal);
+            if (!matches(body, query.dirTypeFilter))
+                return 0.0f;
+            float weight_sn = weightInternal(body, query);
+            float snCorrection;
+            if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance) {
+                snCorrection = 1.0f;
+            }
+            else {
+                snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
+                if (query.dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            float ret = weight_sn * snCorrection;
+            return ret;
         }
 
     public:
@@ -1835,12 +1850,10 @@ namespace vlr {
 
             SampledSpectrum ret;
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
+                const uint32_t* bsdfBody;
+                BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                 auto getBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
-
-                ret += getBaseColor(bsdf + 1);
+                ret += getBaseColor(bsdfBody);
             }
 
             return ret;
@@ -1850,12 +1863,10 @@ namespace vlr {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
+                const uint32_t* bsdfBody;
+                BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                 auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
-
-                if (matches(bsdf + 1, flags))
+                if (matches(bsdfBody, flags))
                     return true;
             }
 
@@ -1867,14 +1878,8 @@ namespace vlr {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             float weights[4];
-            for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
-                auto weightInternal = static_cast<ProgSigBSDFWeightInternal>(procSet.progWeightInternal);
-
-                weights[i] = weightInternal(bsdf + 1, query);
-            }
+            for (int i = 0; i < m_numBSDFs; ++i)
+                weights[i] = BSDFWeight(bsdfOffsets[i], query);
 
             // JP: 各BSDFのウェイトに基づいて方向のサンプルを行うBSDFを選択する。
             // EN: Based on the weight of each BSDF, select a BSDF from which direction sampling.
@@ -1886,47 +1891,38 @@ namespace vlr {
                 return SampledSpectrum::Zero();
             }
 
-            const uint32_t* selectedBSDF = getBSDF(bsdfOffsets[idx]);
-            uint32_t selProcIdx = *reinterpret_cast<const uint32_t*>(selectedBSDF);
-            const BSDFProcedureSet selProcSet = plp.bsdfProcedureSetBuffer[selProcIdx];
+            const uint32_t* selectedBsdfBody;
+            BSDFProcedureSet selProcSet = getBSDFProcSet(bsdfOffsets[idx], &selectedBsdfBody);
             auto sampleInternal = static_cast<ProgSigBSDFSampleInternal>(selProcSet.progSampleInternal);
 
             // JP: 選択したBSDFから方向をサンプリングする。
             // EN: sample a direction from the selected BSDF.
-            SampledSpectrum value = sampleInternal(selectedBSDF + 1, query, uComponent, uDir, result);
+            SampledSpectrum value = sampleInternal(selectedBsdfBody, query, uComponent, uDir, result);
             result->dirPDF *= weights[idx];
-            if (result->dirPDF == 0.0f) {
-                result->dirPDF = 0.0f;
+            if (result->dirPDF == 0.0f)
                 return SampledSpectrum::Zero();
-            }
 
             // JP: サンプルした方向に関するBSDFの値の合計と、single-sample model MISに基づいた確率密度を計算する。
             // EN: calculate the total of BSDF values and a PDF based on the single-sample model MIS for the sampled direction.
             if (!result->sampledType.isDelta()) {
                 for (int i = 0; i < m_numBSDFs; ++i) {
-                    const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                    uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                    const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
-                    auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+                    const uint32_t* bsdfBody;
+                    BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                     auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
-
-                    if (i != idx && matches(bsdf + 1, query.dirTypeFilter))
-                        result->dirPDF += evaluatePDFInternal(bsdf + 1, query, result->dirLocal) * weights[i];
+                    if (i != idx && weights[i] > 0.0f)
+                        result->dirPDF += evaluatePDFInternal(bsdfBody, query, result->dirLocal) * weights[i];
                 }
 
                 BSDFQuery mQuery = query;
                 mQuery.dirTypeFilter &= sideTest(query.geometricNormalLocal, query.dirLocal, result->dirLocal);
                 value = SampledSpectrum::Zero();
                 for (int i = 0; i < m_numBSDFs; ++i) {
-                    const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                    uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                    const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
-                    auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+                    const uint32_t* bsdfBody;
+                    BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                     auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
-
-                    if (!matches(bsdf + 1, mQuery.dirTypeFilter))
+                    if (weights[i] == 0.0f)
                         continue;
-                    value += evaluateInternal(bsdf + 1, mQuery, result->dirLocal);
+                    value += evaluateInternal(bsdfBody, mQuery, result->dirLocal);
                 }
             }
             result->dirPDF /= sumWeights;
@@ -1940,15 +1936,13 @@ namespace vlr {
 
             SampledSpectrum retValue = SampledSpectrum::Zero();
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
+                const uint32_t* bsdfBody;
+                BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                 auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
                 auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
-
-                if (!matches(bsdf + 1, query.dirTypeFilter))
+                if (!matches(bsdfBody, query.dirTypeFilter))
                     continue;
-                retValue += evaluateInternal(bsdf + 1, query, dirLocal);
+                retValue += evaluateInternal(bsdfBody, query, dirLocal);
             }
             return retValue;
         }
@@ -1960,12 +1954,7 @@ namespace vlr {
             float sumWeights = 0.0f;
             float weights[4];
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);;
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
-                auto weightInternal = static_cast<ProgSigBSDFWeightInternal>(procSet.progWeightInternal);
-
-                weights[i] = weightInternal(bsdf + 1, query);
+                weights[i] = BSDFWeight(bsdfOffsets[i], query);
                 sumWeights += weights[i];
             }
             if (sumWeights == 0.0f)
@@ -1973,13 +1962,12 @@ namespace vlr {
 
             float retPDF = 0.0f;
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);;
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
+                const uint32_t* bsdfBody;
+                BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                 auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
 
                 if (weights[i] > 0)
-                    retPDF += evaluatePDFInternal(bsdf + 1, query, dirLocal) * weights[i];
+                    retPDF += evaluatePDFInternal(bsdfBody, query, dirLocal) * weights[i];
             }
             retPDF /= sumWeights;
 
@@ -1991,12 +1979,13 @@ namespace vlr {
 
             float ret = 0.0f;
             for (int i = 0; i < m_numBSDFs; ++i) {
-                const uint32_t* bsdf = getBSDF(bsdfOffsets[i]);
-                uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);;
-                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[procIdx];
+                const uint32_t* bsdfBody;
+                BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
+                auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
                 auto weightInternal = static_cast<ProgSigBSDFWeightInternal>(procSet.progWeightInternal);
-
-                ret += weightInternal(bsdf + 1, query);
+                if (!matches(bsdfBody, query.dirTypeFilter))
+                    continue;
+                ret += weightInternal(bsdfBody, query);
             }
 
             return ret;
