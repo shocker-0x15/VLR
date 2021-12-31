@@ -953,10 +953,11 @@ namespace vlr {
         optixScene.generateShaderBindingTableLayout(&sbtSize);
         m_scene->setup(stream, m_optix.asScratchMem, &m_optix.launchParams);
 
+        if (m_renderer == VLRRenderer_DebugRendering)
+            denoise = false;
+
         // JP: パイプラインのヒットグループ用シェーダーバインディングテーブルをセットアップする。
-        //     デノイザー用のバッファーをデバッグ表示したい場合は通常のパイプラインを実行する必要がある。
         // EN: Setup the hit group shader binding table for the pipeline.
-        //     It needs to run the normal pipeline when debug-visualizing denoiser-related buffers.
         optixu::Pipeline primaryPipeline;
         optixu::Pipeline lightPathPipeline;
         if (m_renderer == VLRRenderer_DebugRendering) {

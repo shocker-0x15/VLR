@@ -93,42 +93,48 @@ namespace vlr {
             return;
 
         float RGB[3];
-        if (useDenoiser) {
+        if (debugRender &&
+            (debugAttr == DebugRenderingAttribute::DenoiserAlbedo ||
+             debugAttr == DebugRenderingAttribute::DenoiserNormal)) {
             uint32_t linearIndex = launchIndex.y * imageStrideInPixels + launchIndex.x;
             float4 value;
-            if (debugRender) {
-                switch (debugAttr) {
-                case DebugRenderingAttribute::DenoiserAlbedo:
-                    value = linearAlbedoBuffer[linearIndex];
-                    break;
-                case DebugRenderingAttribute::DenoiserNormal:
-                    value = linearNormalBuffer[linearIndex];
-                    value = make_float4(0.5f * value.x + 0.5f,
-                                        0.5f * value.y + 0.5f,
-                                        0.5f * value.z + 0.5f,
-                                        value.w);
-                    break;
-                }
-            }
-            else {
-                value = linearDenoisedColorBuffer[linearIndex];
+            switch (debugAttr) {
+            case DebugRenderingAttribute::DenoiserAlbedo:
+                value = linearAlbedoBuffer[linearIndex];
+                break;
+            case DebugRenderingAttribute::DenoiserNormal:
+                value = linearNormalBuffer[linearIndex];
+                value = make_float4(0.5f * value.x + 0.5f,
+                                    0.5f * value.y + 0.5f,
+                                    0.5f * value.z + 0.5f,
+                                    value.w);
+                break;
             }
             RGB[0] = value.x;
             RGB[1] = value.y;
             RGB[2] = value.z;
         }
         else {
-            const DiscretizedSpectrum &spectrum = accumBuffer[launchIndex].getValue().result;
-            float XYZ[3];
-            spectrum.toXYZ(XYZ);
-            float recNumAccums = 1.0f / numAccumFrames;
-            XYZ[0] *= recNumAccums;
-            XYZ[1] *= recNumAccums;
-            XYZ[2] *= recNumAccums;
-            VLRAssert(XYZ[0] >= 0.0f && XYZ[1] >= 0.0f && XYZ[2] >= 0.0f,
-                      "each value of XYZ must not be negative (%g, %g, %g).",
-                      XYZ[0], XYZ[1], XYZ[2]);
-            transformTristimulus(mat_XYZ_to_Rec709_D65, XYZ, RGB);
+            if (useDenoiser) {
+                uint32_t linearIndex = launchIndex.y * imageStrideInPixels + launchIndex.x;
+                float4 value = linearDenoisedColorBuffer[linearIndex];
+                RGB[0] = value.x;
+                RGB[1] = value.y;
+                RGB[2] = value.z;
+            }
+            else {
+                const DiscretizedSpectrum &spectrum = accumBuffer[launchIndex].getValue().result;
+                float XYZ[3];
+                spectrum.toXYZ(XYZ);
+                float recNumAccums = 1.0f / numAccumFrames;
+                XYZ[0] *= recNumAccums;
+                XYZ[1] *= recNumAccums;
+                XYZ[2] *= recNumAccums;
+                VLRAssert(XYZ[0] >= 0.0f && XYZ[1] >= 0.0f && XYZ[2] >= 0.0f,
+                          "each value of XYZ must not be negative (%g, %g, %g).",
+                          XYZ[0], XYZ[1], XYZ[2]);
+                transformTristimulus(mat_XYZ_to_Rec709_D65, XYZ, RGB);
+            }
         }
 
         outputBuffer.write(launchIndex, make_float4(RGB[0], RGB[1], RGB[2], 1.0f)); // not clamp out of gamut color.
