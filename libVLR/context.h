@@ -12,25 +12,51 @@ namespace vlr {
 
 
 
-    enum class TextureFilter {
-        Nearest = 0,
-        Linear,
-        None
+    class ClassIdentifier {
+        ClassIdentifier &operator=(const ClassIdentifier &) = delete;
+
+        const ClassIdentifier* m_baseClass;
+
+    public:
+        ClassIdentifier(const ClassIdentifier* baseClass) : m_baseClass(baseClass) {}
+
+        const ClassIdentifier* getBaseClass() const {
+            return m_baseClass;
+        }
     };
 
-    enum class TextureWrapMode {
-        Repeat = 0,
-        ClampToEdge,
-        Mirror,
-        ClampToBorder,
+
+
+    class TypeAwareClass {
+    public:
+        virtual const char* getType() const = 0;
+        static const ClassIdentifier ClassID;
+        virtual const ClassIdentifier& getClass() const { return ClassID; }
+
+        template <class T>
+        constexpr bool is() const {
+            return &getClass() == &T::ClassID;
+        }
+
+        template <class T>
+        constexpr bool belongsTo() const {
+            const ClassIdentifier* curClass = &getClass();
+            while (curClass) {
+                if (curClass == &T::ClassID)
+                    return true;
+                curClass = curClass->getBaseClass();
+            }
+            return false;
+        }
     };
 
+#define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
+    static const char* const TypeName; \
+    virtual const char* getType() const override { return TypeName; } \
+    static const ClassIdentifier ClassID; \
+    virtual const ClassIdentifier &getClass() const override { return ClassID; }
 
 
-    class Scene;
-    class Camera;
-    class ShaderNode;
-    class SurfaceMaterial;
 
     template <typename InternalType>
     struct SlotBuffer {
@@ -103,7 +129,12 @@ namespace vlr {
 
 
 
-    class Context {
+    class Scene;
+    class Camera;
+    class ShaderNode;
+    class SurfaceMaterial;
+
+    class Context : public TypeAwareClass {
         static uint32_t NextID;
         static uint32_t getInstanceID() {
             return NextID++;
@@ -280,6 +311,8 @@ namespace vlr {
                     uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 
     public:
+        VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE();
+
         Context(CUcontext cuContext, bool logging, uint32_t maxCallableDepth);
         ~Context();
 
@@ -389,52 +422,6 @@ namespace vlr {
             m_finalizeSceneBounds(stream, m_finalizeSceneBounds.calcGridDim(1), sceneBounds);
         }
     };
-
-
-
-    class ClassIdentifier {
-        ClassIdentifier &operator=(const ClassIdentifier &) = delete;
-
-        const ClassIdentifier* m_baseClass;
-
-    public:
-        ClassIdentifier(const ClassIdentifier* baseClass) : m_baseClass(baseClass) {}
-
-        const ClassIdentifier* getBaseClass() const {
-            return m_baseClass;
-        }
-    };
-
-
-
-    class TypeAwareClass {
-    public:
-        virtual const char* getType() const = 0;
-        static const ClassIdentifier ClassID;
-        virtual const ClassIdentifier& getClass() const { return ClassID; }
-
-        template <class T>
-        constexpr bool is() const {
-            return &getClass() == &T::ClassID;
-        }
-
-        template <class T>
-        constexpr bool belongsTo() const {
-            const ClassIdentifier* curClass = &getClass();
-            while (curClass) {
-                if (curClass == &T::ClassID)
-                    return true;
-                curClass = curClass->getBaseClass();
-            }
-            return false;
-        }
-    };
-
-#define VLR_DECLARE_TYPE_AWARE_CLASS_INTERFACE() \
-    static const char* const TypeName; \
-    virtual const char* getType() const { return TypeName; } \
-    static const ClassIdentifier ClassID; \
-    virtual const ClassIdentifier &getClass() const override { return ClassID; }
 
 
 

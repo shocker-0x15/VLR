@@ -82,6 +82,7 @@ VLR_API VLRResult vlrCreateContext(
 VLR_API VLRResult vlrDestroyContext(
     VLRContext context) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         delete context;
 
         return VLRResult_NoError;
@@ -93,6 +94,7 @@ VLR_API VLRResult vlrContextGetCUcontext(
     VLRContext context,
     CUcontext* cuContext) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         *cuContext = context->getCUcontext();
 
         return VLRResult_NoError;
@@ -106,6 +108,7 @@ VLR_API VLRResult vlrContextBindOutputBuffer(
     VLRContext context,
     uint32_t width, uint32_t height, uint32_t glTexID) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         context->bindOutputBuffer(width, height, glTexID);
 
         return VLRResult_NoError;
@@ -117,6 +120,7 @@ VLR_API VLRResult vlrContextGetOutputBufferSize(
     VLRContext context,
     uint32_t* width, uint32_t* height) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         if (width == nullptr || height == nullptr)
             return VLRResult_InvalidArgument;
 
@@ -131,6 +135,7 @@ VLR_API VLRResult vlrContextGetOutputBuffer(
     VLRContext context,
     CUarray* array) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         if (array == nullptr)
             return VLRResult_InvalidArgument;
 
@@ -146,6 +151,7 @@ VLR_API VLRResult vlrContextReadOutputBuffer(
     VLRContext context,
     float* data) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         if (data == nullptr)
             return VLRResult_InvalidArgument;
 
@@ -160,6 +166,7 @@ VLR_API VLRResult vlrContextSetScene(
     VLRContext context,
     VLRScene scene) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         if (!scene->is<vlr::Scene>())
             return VLRResult_InvalidArgument;
 
@@ -174,6 +181,7 @@ VLR_API VLRResult vlrContextSetRenderer(
     VLRContext context,
     VLRRenderer renderer) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         context->setRenderer(renderer);
 
         return VLRResult_NoError;
@@ -185,6 +193,7 @@ VLR_API VLRResult vlrContextSetDebugRenderingAttribute(
     VLRContext context,
     VLRDebugRenderingMode attr) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         context->setDebugRenderingAttribute(attr);
 
         return VLRResult_NoError;
@@ -198,6 +207,7 @@ VLR_API VLRResult vlrContextRender(
     uint32_t shrinkCoeff, bool firstFrame,
     uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) {
     try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
         if (!camera->belongsTo<vlr::Camera>() || numAccumFrames == nullptr)
             return VLRResult_InvalidArgument;
 

@@ -32,6 +32,7 @@ namespace vlr {
 
     const ClassIdentifier TypeAwareClass::ClassID = ClassIdentifier(nullptr);
 
+    VLR_DEFINE_CLASS_ID(TypeAwareClass, Context);
     VLR_DEFINE_CLASS_ID(TypeAwareClass, Object);
 
     VLR_DEFINE_CLASS_ID(Object, Queryable);

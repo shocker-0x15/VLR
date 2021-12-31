@@ -7,6 +7,21 @@ namespace vlr {
 
 
 
+    enum class TextureFilter {
+        Nearest = 0,
+        Linear,
+        None
+    };
+
+    enum class TextureWrapMode {
+        Repeat = 0,
+        ClampToEdge,
+        Mirror,
+        ClampToBorder,
+    };
+
+
+
     struct ParameterInfo {
         const char* name;
         VLRParameterFormFlag formFlags;

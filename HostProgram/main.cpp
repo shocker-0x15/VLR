@@ -337,7 +337,7 @@ class HostProgram {
     float m_persSensitivity;
     float m_fovYInDeg;
     float m_lensRadius;
-    float m_objPlaneDistance;
+    float m_focusDistance;
 
     float m_equiSensitivity;
     float m_phiAngle;
@@ -410,6 +410,7 @@ class HostProgram {
         };
         bool rendererChanged = ImGui::Combo("Renderer", (int32_t*)&m_renderer, renderers, lengthof(renderers));
         rendererChanged |= ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
+        rendererChanged |= ImGui::Combo("Mode", (int32_t*)&m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
         if (rendererChanged) {
             if (m_enableDebugRendering) {
                 ImGui::GetStyle() = m_guiStyle;
@@ -422,7 +423,6 @@ class HostProgram {
             }
         }
         m_cameraSettingsChanged |= rendererChanged;
-        m_cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)&m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
         ImGui::SliderFloat("Brightness", &m_brightnessCoeff, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
         if (ImGui::InputInt("Viewport", &m_presetViewportIndex)) {
@@ -443,7 +443,7 @@ class HostProgram {
         if (m_cameraTypeIndex == 0) {
             m_cameraSettingsChanged |= ImGui::SliderFloat("fov Y", &m_fovYInDeg, 1, 179, "%.3f", ImGuiSliderFlags_Logarithmic);
             m_cameraSettingsChanged |= ImGui::SliderFloat("Lens Radius", &m_lensRadius, 0.0f, 0.15f, "%.3f", ImGuiSliderFlags_Logarithmic);
-            m_cameraSettingsChanged |= ImGui::SliderFloat("Object Plane Distance", &m_objPlaneDistance, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+            m_cameraSettingsChanged |= ImGui::SliderFloat("Focus Distance", &m_focusDistance, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
             m_persSensitivity = m_lensRadius == 0.0f ? 1.0f : 1.0f / (M_PI * m_lensRadius * m_lensRadius);
 
@@ -706,7 +706,7 @@ class HostProgram {
             camera->get("sensitivity", &m_persSensitivity);
             camera->get("fovy", &m_fovYInDeg);
             camera->get("lens radius", &m_lensRadius);
-            camera->get("op distance", &m_objPlaneDistance);
+            camera->get("op distance", &m_focusDistance);
 
             m_perspectiveCamera->set("position", m_cameraPosition);
             m_perspectiveCamera->set("orientation", m_cameraOrientation);
@@ -714,7 +714,7 @@ class HostProgram {
             m_perspectiveCamera->set("sensitivity", m_persSensitivity);
             m_perspectiveCamera->set("fovy", m_fovYInDeg);
             m_perspectiveCamera->set("lens radius", m_lensRadius);
-            m_perspectiveCamera->set("op distance", m_objPlaneDistance);
+            m_perspectiveCamera->set("op distance", m_focusDistance);
 
             m_fovYInDeg *= 180 / M_PI;
 
@@ -1005,7 +1005,7 @@ public:
             m_persSensitivity = 1.0f;
             m_fovYInDeg = 45;
             m_lensRadius = 0.0f;
-            m_objPlaneDistance = 1.0f;
+            m_focusDistance = 1.0f;
         }
         {
             m_equirectangularCamera = m_context->createCamera("Equirectangular");
@@ -1171,7 +1171,7 @@ public:
                         m_perspectiveCamera->set("sensitivity", m_persSensitivity);
                         m_perspectiveCamera->set("fovy", m_fovYInDeg * M_PI / 180);
                         m_perspectiveCamera->set("lens radius", m_lensRadius);
-                        m_perspectiveCamera->set("op distance", m_objPlaneDistance);
+                        m_perspectiveCamera->set("op distance", m_focusDistance);
                     }
                 }
                 else if (m_cameraTypeIndex == 1) {
