@@ -2272,11 +2272,13 @@ namespace vlr {
 
     class EnvironmentEDF {
         SampledSpectrum m_emittance;
+        float m_worldRadius;
         float m_worldDiscArea;
 
     public:
-        CUDA_DEVICE_FUNCTION EnvironmentEDF(const SampledSpectrum &emittance, float worldDiscArea) :
-            m_emittance(emittance), m_worldDiscArea(worldDiscArea) {}
+        CUDA_DEVICE_FUNCTION EnvironmentEDF(
+            const SampledSpectrum &emittance, float worldRadius, float worldDiscArea) :
+            m_emittance(emittance), m_worldRadius(worldRadius), m_worldDiscArea(worldDiscArea) {}
 
         CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
             DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
@@ -2285,7 +2287,11 @@ namespace vlr {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
-            result->dirLocal = Vector3D(0, 0, 1);
+            float dx, dy;
+            concentricSampleDisk(uDir[0], uDir[1], &dx, &dy);
+
+            // encode the projected position as the xy components.
+            result->dirLocal = Vector3D(m_worldRadius * dx, m_worldRadius * dy, 1);
             result->dirPDF = 1.0f / m_worldDiscArea;
             result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
             SampledSpectrum feValue(1 / VLR_M_PI);
@@ -2322,7 +2328,7 @@ namespace vlr {
         auto &mat = *reinterpret_cast<const EnvironmentEmitterSurfaceMaterial*>(matDesc);
 
         p = EnvironmentEDF(calcNode(mat.nodeEmittance, mat.immEmittance, surfPt, wls) * mat.immScale,
-                           plp.sceneBounds->worldDiscArea);
+                           plp.sceneBounds->worldRadius, plp.sceneBounds->worldDiscArea);
 
         return sizeof(EnvironmentEDF) / 4;
     }

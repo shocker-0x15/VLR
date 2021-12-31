@@ -1344,6 +1344,7 @@ namespace vlr {
             shared::SceneBounds initSceneBounds;
             initSceneBounds.aabbAsInt = BoundingBox3DAsOrderedInt();
             initSceneBounds.center = Point3D(0.0f);
+            initSceneBounds.worldRadius = 0.0f;
             initSceneBounds.worldDiscArea = 0.0f;
             CUDADRV_CHECK(cuMemcpyHtoDAsync(m_sceneBounds, &initSceneBounds, sizeof(initSceneBounds), stream));
             m_context.computeSceneAABB(

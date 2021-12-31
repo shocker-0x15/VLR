@@ -943,6 +943,7 @@ namespace vlr {
                 BoundingBox3DAsOrderedInt aabbAsInt;
             };
             Point3D center;
+            float worldRadius;
             float worldDiscArea;
 
             CUDA_DEVICE_FUNCTION SceneBounds() {}

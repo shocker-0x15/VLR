@@ -73,10 +73,10 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (We0.hasNonZero() &&
-                testVisibility<LTRayType>(Le0Result.surfPt, We0Result.surfPt,
+                testVisibility<LTRayType>(We0Result.surfPt, Le0Result.surfPt,
                                           wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
-                Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(-shadowRayDir);
-                Vector3D shadowRayDir_sn = Le0Result.surfPt.toLocal(shadowRayDir);
+                Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(shadowRayDir);
+                Vector3D shadowRayDir_sn = Le0Result.surfPt.toLocal(-shadowRayDir);
 
                 IDFQuery fiQuery;
                 SampledSpectrum We = We0 * idf.evaluateDirectionalImportance(fiQuery, shadowRayDir_lens);
@@ -86,8 +86,8 @@ namespace vlr {
 
                 SampledSpectrum Le1 = edf.evaluate(feQuery, shadowRayDir_sn);
 
-                float cosLens = We0Result.surfPt.calcCosTerm(-shadowRayDir);
-                float cosLight = Le0Result.surfPt.calcCosTerm(shadowRayDir);
+                float cosLens = We0Result.surfPt.calcCosTerm(shadowRayDir);
+                float cosLight = Le0Result.surfPt.calcCosTerm(-shadowRayDir);
                 float G = fractionalVisibility * cosLight * cosLens / squaredDistance;
                 float scalarCoeff = G / lensPDF;
                 SampledSpectrum contribution = alpha * We * Le1 * scalarCoeff;
@@ -100,6 +100,14 @@ namespace vlr {
         SampledSpectrum Le1 = edf.sample(feQuery, Le1Sample, &Le1Result);
 
         Point3D rayOrg = offsetRayOrigin(Le0Result.surfPt.position, Le0Result.surfPt.geometricNormal);
+        if (Le0Result.surfPt.atInfinity) {
+            rayOrg = plp.sceneBounds->center +
+                1.1f * plp.sceneBounds->worldRadius * Le0Result.surfPt.position +
+                Le0Result.surfPt.shadingFrame.x * Le1Result.dirLocal.x +
+                Le0Result.surfPt.shadingFrame.y * Le1Result.dirLocal.y;
+            Le1Result.dirLocal.x = 0;
+            Le1Result.dirLocal.y = 0;
+        }
         Vector3D rayDir = Le0Result.surfPt.fromLocal(Le1Result.dirLocal);
         alpha *= Le1 * (Le0Result.surfPt.calcCosTerm(rayDir) / Le1Result.dirPDF);
 
@@ -191,10 +199,10 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (We0.hasNonZero() &&
-                testVisibility<LTRayType>(surfPt, We0Result.surfPt, wls, &shadowRayDir, &squaredDistance,
+                testVisibility<LTRayType>(We0Result.surfPt, surfPt, wls, &shadowRayDir, &squaredDistance,
                                           &fractionalVisibility)) {
-                Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(-shadowRayDir);
-                Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
+                Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(shadowRayDir);
+                Vector3D shadowRayDir_sn = surfPt.toLocal(-shadowRayDir);
 
                 IDFQuery fiQuery;
                 SampledSpectrum We = We0 * idf.evaluateDirectionalImportance(fiQuery, shadowRayDir_lens);
@@ -203,7 +211,7 @@ namespace vlr {
                 float lensPDF = We0Result.areaPDF;
 
                 SampledSpectrum fs = bsdf.evaluate(fsQuery, shadowRayDir_sn);
-                float cosLens = We0Result.surfPt.calcCosTerm(-shadowRayDir);
+                float cosLens = We0Result.surfPt.calcCosTerm(shadowRayDir);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLens / squaredDistance;
                 float scalarCoeff = G / lensPDF; // 直接contributionの計算式に入れるとCUDAのバグなのかおかしな結果になる。

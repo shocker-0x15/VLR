@@ -86,9 +86,8 @@ namespace vlr {
 
         BoundingBox3D sceneAabb = static_cast<BoundingBox3D>(sceneBounds->aabbAsInt);
         sceneBounds->aabb = sceneAabb;
-        Point3D worldCenter = sceneAabb.centroid();
-        sceneBounds->center = worldCenter;
-        float worldRadius = (sceneAabb.maxP - worldCenter).length();
-        sceneBounds->worldDiscArea = VLR_M_PI * pow2(worldRadius);
+        sceneBounds->center = sceneAabb.centroid();
+        sceneBounds->worldRadius = (sceneAabb.maxP - sceneBounds->center).length();
+        sceneBounds->worldDiscArea = VLR_M_PI * pow2(sceneBounds->worldRadius);
     }
 }
