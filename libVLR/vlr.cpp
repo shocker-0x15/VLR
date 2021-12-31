@@ -170,6 +170,28 @@ VLR_API VLRResult vlrContextSetScene(
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrContextSetRenderer(
+    VLRContext context,
+    VLRRenderer renderer) {
+    try {
+        context->setRenderer(renderer);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
+VLR_API VLRResult vlrContextSetDebugRenderingAttribute(
+    VLRContext context,
+    VLRDebugRenderingMode attr) {
+    try {
+        context->setDebugRenderingAttribute(attr);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 VLR_API VLRResult vlrContextRender(
     VLRContext context,
     CUstream stream, VLRCameraConst camera, bool denoise,
@@ -181,23 +203,6 @@ VLR_API VLRResult vlrContextRender(
 
         context->render(stream, camera, denoise, shrinkCoeff, firstFrame,
                         limitNumAccumFrames, numAccumFrames);
-
-        return VLRResult_NoError;
-    }
-    VLR_RETURN_INTERNAL_ERROR();
-}
-
-VLR_API VLRResult vlrContextDebugRender(
-    VLRContext context,
-    CUstream stream, VLRCameraConst camera, VLRDebugRenderingMode renderMode,
-    uint32_t shrinkCoeff, bool firstFrame,
-    uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) {
-    try {
-        if (!camera->belongsTo<vlr::Camera>() || numAccumFrames == nullptr)
-            return VLRResult_InvalidArgument;
-
-        context->debugRender(stream, camera, renderMode, shrinkCoeff, firstFrame,
-                             limitNumAccumFrames, numAccumFrames);
 
         return VLRResult_NoError;
     }

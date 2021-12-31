@@ -730,17 +730,18 @@ namespace vlr {
             errorCheck(vlrContextSetScene(m_rawContext, scene->getRaw<VLRScene>()));
         }
 
+        void setRenderer(VLRRenderer renderer) {
+            errorCheck(vlrContextSetRenderer(m_rawContext, renderer));
+        }
+
+        void setDebugRenderingAttribute(VLRDebugRenderingMode attr) {
+            errorCheck(vlrContextSetDebugRenderingAttribute(m_rawContext, attr));
+        }
+
         void render(CUstream stream, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,
                     bool firstFrame, uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) const {
             errorCheck(vlrContextRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), denoise,
                                         shrinkCoeff, firstFrame, limitNumAccumFrames, numAccumFrames));
-        }
-
-        void debugRender(CUstream stream, const CameraRef &camera,
-                         VLRDebugRenderingMode renderMode, uint32_t shrinkCoeff, bool firstFrame,
-                         uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) const {
-            errorCheck(vlrContextDebugRender(m_rawContext, stream, camera->getRaw<VLRCamera>(), renderMode,
-                                             shrinkCoeff, firstFrame, limitNumAccumFrames, numAccumFrames));
         }
 
 

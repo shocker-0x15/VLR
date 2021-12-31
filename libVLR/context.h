@@ -170,6 +170,22 @@ namespace vlr {
                 cudau::Buffer hitGroupShaderBindingTable;
             } lightTracing;
 
+            struct AuxBufferGenerator {
+                optixu::Pipeline pipeline;
+
+                std::vector<optixu::Module> modules;
+
+                optixu::ProgramGroup rayGeneration;
+                optixu::ProgramGroup miss;
+                optixu::ProgramGroup hitGroupDefault;
+                optixu::ProgramGroup hitGroupWithAlpha;
+                optixu::ProgramGroup emptyHitGroup;
+                std::vector<optixu::ProgramGroup> callablePrograms;
+
+                cudau::Buffer shaderBindingTable;
+                cudau::Buffer hitGroupShaderBindingTable;
+            } auxBufferGenerator;
+
             struct DebugRendering {
                 optixu::Pipeline pipeline;
 
@@ -255,6 +271,8 @@ namespace vlr {
         uint32_t m_width;
         uint32_t m_height;
         uint32_t m_numAccumFrames;
+        VLRRenderer m_renderer;
+        VLRDebugRenderingMode m_debugRenderingAttribute;
 
         void render(CUstream stream, const Camera* camera, bool denoise,
                     bool debugRender, VLRDebugRenderingMode renderMode,
@@ -275,12 +293,15 @@ namespace vlr {
         void readOutputBuffer(float* data);
 
         void setScene(Scene* scene);
+        void setRenderer(VLRRenderer renderer) {
+            m_renderer = renderer;
+        }
+        void setDebugRenderingAttribute(VLRDebugRenderingMode attr) {
+            m_debugRenderingAttribute = attr;
+        }
         void render(CUstream stream, const Camera* camera, bool denoise,
                     uint32_t shrinkCoeff, bool firstFrame,
                     uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
-        void debugRender(CUstream stream, const Camera* camera, VLRDebugRenderingMode renderMode,
-                         uint32_t shrinkCoeff, bool firstFrame,
-                         uint32_t limitNumAccumFrames, uint32_t* numAccumFrames);
 
         CUcontext getCUcontext() const {
             return m_cuContext;

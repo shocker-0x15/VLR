@@ -1473,7 +1473,7 @@ namespace vlr {
 
             float sumWeights = diffuseWeight + specularWeight;
 
-            float diffuseDirPDF = dirL.z / VLR_M_PI;
+            float diffuseDirPDF = vlr::max(dirL.z / VLR_M_PI, 0.0f);
             float specularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirV, m);
 
             float ret = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;

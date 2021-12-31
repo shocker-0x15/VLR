@@ -34,6 +34,12 @@ struct VLRShaderNodePlug {
 
 
 
+enum VLRRenderer {
+    VLRRenderer_PathTracing = 0,
+    VLRRenderer_LightTracing,
+    VLRRenderer_DebugRendering,
+};
+
 enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_BaseColor = 0,
     VLRDebugRenderingMode_GeometricNormal,
@@ -53,6 +59,7 @@ typedef enum VLRParameterFormFlag VLRParameterFormFlag;
 typedef enum VLRShaderNodePlugType VLRShaderNodePlugType;
 typedef struct VLRShaderNodePlug VLRShaderNodePlug;
 typedef enum VLRDebugRenderingMode VLRDebugRenderingMode;
+typedef enum VLRRenderer VLRRenderer;
 #endif
 
 

@@ -56,6 +56,8 @@ namespace vlr::shared {
 
     using LTPayloadSignature = optixu::PayloadSignature<LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
 
+    using AuxBufGenPayloadSignature = optixu::PayloadSignature<WavelengthSamples, KernelRNG, SampledSpectrum, Normal3D>;
+
     using ShadowPayloadSignature = optixu::PayloadSignature<WavelengthSamples, float>;
 
 

@@ -348,6 +348,7 @@ class HostProgram {
     float m_environmentRotation;
 
     bool m_enableDenoiser;
+    VLRRenderer m_renderer;
     bool m_enableDebugRendering;
     VLRDebugRenderingMode m_debugRenderingMode;
 
@@ -390,22 +391,36 @@ class HostProgram {
 
         ImGui::Checkbox("Denoiser", &m_enableDenoiser);
 
-        static constexpr const char* debugRenderModes[] = {
-            "BaseColor",
-            "GeometricNormal",
-            "ShadingTangent",
-            "ShadingBitangent",
-            "ShadingNormal",
-            "TextureCoordinates",
-            "GeometricVsShadingNormal",
-            "ShadingFrameLengths",
-            "ShadingFrameOrthogonality",
-            "DenoiserAlbedo",
-            "DenoiserNormal",
+        static constexpr const char* renderers[] = {
+            "Path Tracing",
+            "Light Tracing",
         };
-        bool rendererChanged = ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
-        if (rendererChanged)
-            ImGui::GetStyle() = m_enableDebugRendering ? m_guiStyle : m_guiStyleWithGamma;
+        static constexpr const char* debugRenderModes[] = {
+            "Base Color",
+            "Geometric Normal",
+            "Shading Tangent",
+            "Shading Bitangent",
+            "Shading Normal",
+            "Texture Coordinates",
+            "Geometric vs ShadingNormal",
+            "Shading Frame Lengths",
+            "Shading Frame Orthogonality",
+            "Denoiser Albedo",
+            "Denoiser Normal",
+        };
+        bool rendererChanged = ImGui::Combo("Renderer", (int32_t*)&m_renderer, renderers, lengthof(renderers));
+        rendererChanged |= ImGui::Checkbox("Debug Render", &m_enableDebugRendering);
+        if (rendererChanged) {
+            if (m_enableDebugRendering) {
+                ImGui::GetStyle() = m_guiStyle;
+                m_context->setRenderer(VLRRenderer_DebugRendering);
+                m_context->setDebugRenderingAttribute(m_debugRenderingMode);
+            }
+            else {
+                ImGui::GetStyle() = m_guiStyleWithGamma;
+                m_context->setRenderer(m_renderer);
+            }
+        }
         m_cameraSettingsChanged |= rendererChanged;
         m_cameraSettingsChanged |= ImGui::Combo("Mode", (int32_t*)&m_debugRenderingMode, debugRenderModes, lengthof(debugRenderModes));
         ImGui::SliderFloat("Brightness", &m_brightnessCoeff, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
@@ -825,6 +840,9 @@ public:
         m_renderTargetSizeY = initWindowSizeY;
 
         m_enableDenoiser = true;
+        m_renderer = VLRRenderer_PathTracing;
+        m_enableDebugRendering = false;
+        m_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
 
         constexpr bool enableGLDebugCallback = true;
 
@@ -1005,11 +1023,6 @@ public:
         m_environmentRotation = shot.environmentRotation * 180 / M_PI;
         m_environmentRotation = m_environmentRotation - std::floor(m_environmentRotation / 360) * 360;
 
-        m_enableDebugRendering = false;
-        m_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
-
-
-
         m_requestedSize[0] = m_renderTargetSizeX;
         m_requestedSize[1] = m_renderTargetSizeY;
         m_resizeRequested = true;
@@ -1182,14 +1195,9 @@ public:
                     firstFrame = true;
                 renderTimer.start(curStream);
                 uint32_t numAccumFramesLimit = 1u << m_log2MaxNumAccums;
-                if (m_enableDebugRendering)
-                    m_context->debugRender(
-                        curStream, m_camera, m_debugRenderingMode, shrinkCoeff, firstFrame,
-                        numAccumFramesLimit, &m_numAccumFrames);
-                else
-                    m_context->render(
-                        curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
-                        numAccumFramesLimit, &m_numAccumFrames);
+                m_context->render(
+                    curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
+                    numAccumFramesLimit, &m_numAccumFrames);
                 renderTimer.stop(curStream);
 
                 m_operatedCameraOnPrevFrame = operatingCamera;

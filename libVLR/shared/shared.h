@@ -557,6 +557,15 @@ namespace vlr {
             CUDA_DEVICE_FUNCTION constexpr LTRayType(Value v = Closest) : value(v) {}
         };
 
+        struct AuxBufGenRayType {
+            enum Value {
+                Primary,
+                NumTypes
+            } value;
+
+            CUDA_DEVICE_FUNCTION constexpr AuxBufGenRayType(Value v = Primary) : value(v) {}
+        };
+
         struct DebugRayType {
             enum Value {
                 Primary,

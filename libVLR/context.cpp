@@ -277,6 +277,64 @@ namespace vlr {
             m_optix.materialWithAlpha.setHitGroup(shared::LTRayType::Shadow, p.hitGroupShadowWithAlpha);
         }
 
+        // Pipeline for Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
+
+            p.pipeline = m_optix.context.createPipeline();
+            p.pipeline.setPipelineOptions(
+                shared::AuxBufGenPayloadSignature::numDwords,
+                static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
+                "plp", sizeof(shared::PipelineLaunchParameters),
+                false,
+                OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
+                                 OPTIX_EXCEPTION_FLAG_DEBUG,
+                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
+            p.pipeline.setNumMissRayTypes(shared::AuxBufGenRayType::NumTypes);
+
+            p.modules.resize(NumOptiXModules);
+            p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
+                readTxtFile(exeDir / "ptxes/aux_buffer_generator.ptx"),
+                OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            for (int i = 0; i < static_cast<int>(lengthof(commonModulePaths)); ++i) {
+                p.modules[OptiXModule_ShaderNode + i] = p.pipeline.createModuleFromPTXString(
+                    readTxtFile(exeDir / commonModulePaths[i]),
+                    OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
+                    VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            }
+
+            p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
+
+            p.rayGeneration = p.pipeline.createRayGenProgram(
+                p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("auxBufferGenerator"));
+
+            p.miss = p.pipeline.createMissProgram(
+                p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("auxBufferGeneratorMiss"));
+
+            p.hitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("auxBufferGeneratorFirstHit"),
+                optixu::Module(), nullptr);
+            p.hitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("auxBufferGeneratorFirstHit"),
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("auxBufferGeneratorAnyHitWithAlpha"));
+
+            p.pipeline.setRayGenerationProgram(p.rayGeneration);
+            p.pipeline.setMissProgram(shared::AuxBufGenRayType::Primary, p.miss);
+
+            for (int rIdx = 0; rIdx < shared::MaxNumRayTypes; ++rIdx) {
+                m_optix.materialDefault.setHitGroup(rIdx, p.emptyHitGroup);
+                m_optix.materialWithAlpha.setHitGroup(rIdx, p.emptyHitGroup);
+            }
+            m_optix.materialDefault.setHitGroup(shared::AuxBufGenRayType::Primary, p.hitGroupDefault);
+            m_optix.materialWithAlpha.setHitGroup(shared::AuxBufGenRayType::Primary, p.hitGroupWithAlpha);
+        }
+
         // Pipeline for Debug Rendering
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
@@ -494,6 +552,23 @@ namespace vlr {
                                              p.shaderBindingTable.getMappedPointer());
         }
 
+        // Pipeline for Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
+
+            p.pipeline.link(1, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
+            for (int i = 0; i < p.callablePrograms.size(); ++i)
+                p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+
+            size_t sbtSize;
+            p.pipeline.generateShaderBindingTableLayout(&sbtSize);
+            p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
+            p.shaderBindingTable.setMappedMemoryPersistent(true);
+            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
+                                             p.shaderBindingTable.getMappedPointer());
+        }
+
         // Pipeline for Debug Rendering
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
@@ -510,6 +585,9 @@ namespace vlr {
             p.pipeline.setShaderBindingTable(p.shaderBindingTable,
                                              p.shaderBindingTable.getMappedPointer());
         }
+
+        m_renderer = VLRRenderer_PathTracing;
+        m_debugRenderingAttribute = VLRDebugRenderingMode_BaseColor;
 
         vlrprintf(" done.\n");
     }
@@ -538,21 +616,24 @@ namespace vlr {
         // Pipeline for Debug Rendering
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
+            p.shaderBindingTable.finalize();
+        }
 
+        // Pipeline for Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
             p.shaderBindingTable.finalize();
         }
 
         // Pipeline for Light Tracing
         {
             OptiX::LightTracing &p = m_optix.lightTracing;
-
             p.shaderBindingTable.finalize();
         }
 
         // Pipeline for Path Tracing
         {
             OptiX::PathTracing &p = m_optix.pathTracing;
-
             p.shaderBindingTable.finalize();
         }
 
@@ -619,6 +700,23 @@ namespace vlr {
         // Pipeline for Debug Rendering
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
+
+            p.emptyHitGroup.destroy();
+            p.hitGroupWithAlpha.destroy();
+            p.hitGroupDefault.destroy();
+            p.miss.destroy();
+            p.rayGeneration.destroy();
+
+            for (int i = static_cast<int>(lengthof(commonModulePaths)) - 1; i >= 0; --i)
+                p.modules[OptiXModule_ShaderNode + i].destroy();
+            p.modules[OptiXModule_LightTransport].destroy();
+
+            p.pipeline.destroy();
+        }
+
+        // Pipeline for Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
 
             p.emptyHitGroup.destroy();
             p.hitGroupWithAlpha.destroy();
@@ -827,7 +925,6 @@ namespace vlr {
     }
 
     void Context::render(CUstream stream, const Camera* camera, bool denoise,
-                         bool debugRender, VLRDebugRenderingMode renderMode,
                          uint32_t shrinkCoeff, bool firstFrame,
                          uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) {
         // JP: シェーダーノードのデータを転送する。
@@ -856,15 +953,56 @@ namespace vlr {
         optixScene.generateShaderBindingTableLayout(&sbtSize);
         m_scene->setup(stream, m_optix.asScratchMem, &m_optix.launchParams);
 
-#define USE_LIGHT_TRACING 0
-
         // JP: パイプラインのヒットグループ用シェーダーバインディングテーブルをセットアップする。
         //     デノイザー用のバッファーをデバッグ表示したい場合は通常のパイプラインを実行する必要がある。
         // EN: Setup the hit group shader binding table for the pipeline.
         //     It needs to run the normal pipeline when debug-visualizing denoiser-related buffers.
-        optixu::Pipeline pipeline;
-        if (debugRender && !denoise) {
-            OptiX::DebugRendering &p = m_optix.debugRendering;
+        optixu::Pipeline primaryPipeline;
+        optixu::Pipeline lightPathPipeline;
+        if (m_renderer == VLRRenderer_DebugRendering) {
+            if (m_debugRenderingAttribute < VLRDebugRenderingMode_DenoiserAlbedo) {
+                OptiX::DebugRendering &p = m_optix.debugRendering;
+
+                if (!p.hitGroupShaderBindingTable.isInitialized() ||
+                    p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                    p.hitGroupShaderBindingTable.finalize();
+                    p.hitGroupShaderBindingTable.initialize(
+                        m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
+                    p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+                }
+
+                if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
+                    p.pipeline.setScene(optixScene);
+                    p.pipeline.setHitGroupShaderBindingTable(
+                        p.hitGroupShaderBindingTable,
+                        p.hitGroupShaderBindingTable.getMappedPointer());
+                }
+
+                primaryPipeline = p.pipeline;
+            }
+            else {
+                OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
+
+                if (!p.hitGroupShaderBindingTable.isInitialized() ||
+                    p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                    p.hitGroupShaderBindingTable.finalize();
+                    p.hitGroupShaderBindingTable.initialize(
+                        m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
+                    p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+                }
+
+                if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
+                    p.pipeline.setScene(optixScene);
+                    p.pipeline.setHitGroupShaderBindingTable(
+                        p.hitGroupShaderBindingTable,
+                        p.hitGroupShaderBindingTable.getMappedPointer());
+                }
+
+                primaryPipeline = p.pipeline;
+            }
+        }
+        else if (m_renderer == VLRRenderer_PathTracing) {
+            OptiX::PathTracing &p = m_optix.pathTracing;
 
             if (!p.hitGroupShaderBindingTable.isInitialized() ||
                 p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
@@ -881,32 +1019,49 @@ namespace vlr {
                     p.hitGroupShaderBindingTable.getMappedPointer());
             }
 
-            pipeline = p.pipeline;
+            primaryPipeline = p.pipeline;
+        }
+        else if (m_renderer == VLRRenderer_LightTracing) {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
+
+            if (!p.hitGroupShaderBindingTable.isInitialized() ||
+                p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                p.hitGroupShaderBindingTable.finalize();
+                p.hitGroupShaderBindingTable.initialize(
+                    m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
+                p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            }
+
+            if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
+                p.pipeline.setScene(optixScene);
+                p.pipeline.setHitGroupShaderBindingTable(
+                    p.hitGroupShaderBindingTable,
+                    p.hitGroupShaderBindingTable.getMappedPointer());
+            }
+
+            primaryPipeline = p.pipeline;
+
+            OptiX::LightTracing &lpp = m_optix.lightTracing;
+
+            if (!lpp.hitGroupShaderBindingTable.isInitialized() ||
+                lpp.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
+                lpp.hitGroupShaderBindingTable.finalize();
+                lpp.hitGroupShaderBindingTable.initialize(
+                    m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
+                lpp.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
+            }
+
+            if (!sbtLayoutIsUpToDate || !lpp.pipeline.getScene()) {
+                lpp.pipeline.setScene(optixScene);
+                lpp.pipeline.setHitGroupShaderBindingTable(
+                    lpp.hitGroupShaderBindingTable,
+                    lpp.hitGroupShaderBindingTable.getMappedPointer());
+            }
+
+            lightPathPipeline = lpp.pipeline;
         }
         else {
-#if USE_LIGHT_TRACING
-            OptiX::LightTracing &p = m_optix.lightTracing;
-            denoise = false;
-#else
-            OptiX::PathTracing &p = m_optix.pathTracing;
-#endif
 
-            if (!p.hitGroupShaderBindingTable.isInitialized() ||
-                p.hitGroupShaderBindingTable.sizeInBytes() < sbtSize) {
-                p.hitGroupShaderBindingTable.finalize();
-                p.hitGroupShaderBindingTable.initialize(
-                    m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
-                p.hitGroupShaderBindingTable.setMappedMemoryPersistent(true);
-            }
-
-            if (!sbtLayoutIsUpToDate || !p.pipeline.getScene()) {
-                p.pipeline.setScene(optixScene);
-                p.pipeline.setHitGroupShaderBindingTable(
-                    p.hitGroupShaderBindingTable,
-                    p.hitGroupShaderBindingTable.getMappedPointer());
-            }
-
-            pipeline = p.pipeline;
         }
 
         uint2 imageSize = make_uint2(m_width / shrinkCoeff, m_height / shrinkCoeff);
@@ -919,7 +1074,8 @@ namespace vlr {
             m_numAccumFrames = 0;
         }
 
-        auto debugAttr = static_cast<shared::DebugRenderingAttribute>(renderMode);
+        bool debugRender = m_renderer == VLRRenderer_DebugRendering;
+        auto debugAttr = static_cast<shared::DebugRenderingAttribute>(m_debugRenderingAttribute);
 
         if (m_numAccumFrames + 1 <= limitNumAccumFrames) {
             ++m_numAccumFrames;
@@ -928,29 +1084,22 @@ namespace vlr {
             m_optix.launchParams.limitNumAccumFrames = limitNumAccumFrames;
             m_optix.launchParams.debugRenderingAttribute = debugAttr;
 
-#if USE_LIGHT_TRACING
-            m_resetAtomicAccumBuffer(
-                stream, m_resetAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
-                m_optix.atomicAccumBuffer.getDevicePointer(),
-                imageSize, imageStrideInPixels);
-#endif
-
             CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
                                             sizeof(m_optix.launchParams), stream));
-#if USE_LIGHT_TRACING
-            pipeline.launch(stream, m_optix.launchParamsOnDevice, OptiX::numLightPaths, 1, 1);
-#else
-            pipeline.launch(stream, m_optix.launchParamsOnDevice,
-                            imageSize.x, imageSize.y, 1);
-#endif
-
-#if USE_LIGHT_TRACING
-            m_accumulateFromAtomicAccumBuffer(
-                stream, m_accumulateFromAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
-                m_optix.atomicAccumBuffer.getDevicePointer(),
-                m_optix.accumBuffer.getBlockBuffer2D(),
-                imageSize, imageStrideInPixels, m_numAccumFrames);
-#endif
+            primaryPipeline.launch(stream, m_optix.launchParamsOnDevice,
+                                   imageSize.x, imageSize.y, 1);
+            if (m_renderer == VLRRenderer_LightTracing) {
+                m_resetAtomicAccumBuffer(
+                    stream, m_resetAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
+                    m_optix.atomicAccumBuffer.getDevicePointer(),
+                    imageSize, imageStrideInPixels);
+                lightPathPipeline.launch(stream, m_optix.launchParamsOnDevice, OptiX::numLightPaths, 1, 1);
+                m_accumulateFromAtomicAccumBuffer(
+                    stream, m_accumulateFromAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
+                    m_optix.atomicAccumBuffer.getDevicePointer(),
+                    m_optix.accumBuffer.getBlockBuffer2D(),
+                    imageSize, imageStrideInPixels, m_numAccumFrames);
+            }
 
             CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
                                             sizeof(m_optix.launchParams), stream));
@@ -1008,23 +1157,6 @@ namespace vlr {
             m_optix.outputBufferHolder.endCUDAAccess(stream);
     }
 
-    void Context::render(CUstream stream, const Camera* camera, bool denoise,
-                         uint32_t shrinkCoeff, bool firstFrame,
-                         uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) {
-        render(stream, camera, denoise, false, VLRDebugRenderingMode_BaseColor, shrinkCoeff, firstFrame,
-               limitNumAccumFrames, numAccumFrames);
-    }
-
-    void Context::debugRender(CUstream stream, const Camera* camera, VLRDebugRenderingMode renderMode,
-                              uint32_t shrinkCoeff, bool firstFrame,
-                              uint32_t limitNumAccumFrames, uint32_t* numAccumFrames) {
-        bool enableDenoiser =
-            renderMode == VLRDebugRenderingMode_DenoiserAlbedo ||
-            renderMode == VLRDebugRenderingMode_DenoiserNormal;
-        render(stream, camera, enableDenoiser, true, renderMode, shrinkCoeff, firstFrame,
-               limitNumAccumFrames, numAccumFrames);
-    }
-
 
 
     uint32_t Context::createDirectCallableProgram(OptiXModule mdl, const char* dcName) {
@@ -1046,6 +1178,16 @@ namespace vlr {
         // Light Tracing
         {
             OptiX::LightTracing &p = m_optix.lightTracing;
+
+            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+                p.modules[mdl], dcName,
+                optixu::Module(), nullptr);
+            p.callablePrograms.push_back(program);
+        }
+
+        // Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
 
             optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
@@ -1077,6 +1219,14 @@ namespace vlr {
         // Light Tracing
         {
             OptiX::LightTracing &p = m_optix.lightTracing;
+
+            VLRAssert(index < p.callablePrograms.size(), "DC program index is out of bounds");
+            p.callablePrograms[index].destroy();
+        }
+
+        // Aux Buffer Generator
+        {
+            OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
 
             VLRAssert(index < p.callablePrograms.size(), "DC program index is out of bounds");
             p.callablePrograms[index].destroy();
