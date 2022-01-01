@@ -245,9 +245,18 @@ namespace vlr {
 \
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleInternal)(\
         const uint32_t* params,\
-        const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) {\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result) {\
         auto &p = *reinterpret_cast<const BSDF*>(params);\
         return p.sampleInternal(query, uComponent, uDir, result);\
+    }\
+\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result, BSDFQueryReverseResult* revResult) {\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.sampleInternal(query, uComponent, uDir, result, revResult);\
     }\
 \
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateInternal)(\
@@ -257,11 +266,25 @@ namespace vlr {
         return p.evaluateInternal(query, dirLocal);\
     }\
 \
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue) {\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.evaluateInternal(query, dirLocal, revValue);\
+    }\
+\
     RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFInternal)(\
         const uint32_t* params,\
         const BSDFQuery &query, const Vector3D &dirLocal) {\
         auto &p = *reinterpret_cast<const BSDF*>(params);\
         return p.evaluatePDFInternal(query, dirLocal);\
+    }\
+\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue) {\
+        auto &p = *reinterpret_cast<const BSDF*>(params);\
+        return p.evaluatePDFInternal(query, dirLocal, revValue);\
     }\
 \
     RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _weightInternal)(\
@@ -329,17 +352,27 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            result->dirPDF = 0.0f;
+            if (revResult)
+                revResult->dirPDF = 0.0f;
             return SampledSpectrum::Zero();
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
+            if (revValue)
+                *revValue = SampledSpectrum::Zero();
             return SampledSpectrum::Zero();
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (*revValue)
+                *revValue = 0.0f;
             return 0.0f;
         }
 
@@ -375,32 +408,48 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
             result->dirPDF = result->dirLocal.z / VLR_M_PI;
             result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
             result->dirLocal.z *= query.dirLocal.z >= 0 ? 1 : -1;
             SampledSpectrum fsValue = m_albedo / VLR_M_PI;
+            if (revResult) {
+                revResult->value = fsValue;
+                revResult->dirPDF = std::fabs(query.dirLocal.z) / VLR_M_PI;
+            }
 
             return fsValue;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             if (query.dirLocal.z * dirLocal.z <= 0.0f) {
                 SampledSpectrum fs = SampledSpectrum::Zero();
+                if (revValue)
+                    *revValue = fs;
                 return fs;
             }
             SampledSpectrum fsValue = m_albedo / VLR_M_PI;
+            if (revValue)
+                *revValue = fsValue;
 
             return fsValue;
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
-            if (query.dirLocal.z * dirLocal.z <= 0.0f)
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (query.dirLocal.z * dirLocal.z <= 0.0f) {
+                if (revValue)
+                    *revValue = 0.0f;
                 return 0.0f;
+            }
             float pdfValue = std::fabs(dirLocal.z) / VLR_M_PI;
+            if (revValue)
+                *revValue = std::fabs(query.dirLocal.z) / VLR_M_PI;
 
             return pdfValue;
         }
@@ -448,7 +497,8 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             float regFactor = 1.0f;
             DirectionType dirType = DirectionType::Delta0D();
             if constexpr (usePathSpaceRegularization) {
@@ -465,41 +515,61 @@ namespace vlr {
             SampledSpectrum ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
                 (regFactor / std::fabs(query.dirLocal.z));
 
+            if (revResult) {
+                revResult->value = ret;
+                revResult->dirPDF = 1.0f;
+            }
+
             return ret;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
                 float cosEpsilon;
                 float regFactor = computeRegularizationFactor(&cosEpsilon);
 
+                SampledSpectrum ret = SampledSpectrum::Zero();
                 Vector3D dirReflected = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
                 if (dot(dirLocal, dirReflected) >= cosEpsilon) {
                     FresnelConductor fresnel(m_eta, m_k);
-                    SampledSpectrum ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
+                    ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
                         (regFactor / std::fabs(query.dirLocal.z));
                 }
 
-                return SampledSpectrum::Zero();
+                if (revValue)
+                    *revValue = ret;
+
+                return ret;
             }
             else {
+                if (revValue)
+                    *revValue = SampledSpectrum::Zero();
                 return SampledSpectrum::Zero();
             }
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
                 float cosEpsilon;
                 float regFactor = computeRegularizationFactor(&cosEpsilon);
 
+                float ret = 0.0f;
                 Vector3D dirReflected = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
                 if (dot(dirLocal, dirReflected) >= cosEpsilon)
-                    return regFactor;
+                    ret = regFactor;
 
-                return 0.0f;
+                if (revValue)
+                    *revValue = ret;
+
+                return ret;
             }
             else {
+                if (revValue)
+                    *revValue = 0.0f;
                 return 0.0f;
             }
         }
@@ -555,7 +625,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
@@ -589,6 +663,11 @@ namespace vlr {
                 result->sampledType = DirectionType::Reflection() | dirType;
                 SampledSpectrum ret = m_coeff * F * (regFactor / std::fabs(dirV.z));
 
+                if (revResult) {
+                    revResult->value = ret;
+                    revResult->dirPDF = 1.0f;
+                }
+
                 return ret;
             }
             else {
@@ -610,7 +689,18 @@ namespace vlr {
 
                 SampledSpectrum ret = SampledSpectrum::Zero();
                 ret[query.wlHint] = m_coeff[query.wlHint] *
-                    (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
+                    (1.0f - F[query.wlHint]) * regFactor;
+
+                if (revResult) {
+                    SampledSpectrum revRet = ret;
+                    revRet[query.wlHint] /= std::fabs(query.dirLocal.z);
+                    if (static_cast<TransportMode>(query.transportMode) == TransportMode::Importance)
+                        revRet[query.wlHint] *= pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                    revResult->value = revRet;
+                    revResult->dirPDF = result->dirPDF;
+                }
+
+                ret[query.wlHint] /= std::fabs(cosExit);
                 if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
                     ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
 
@@ -619,7 +709,8 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
                 bool entering = query.dirLocal.z >= 0.0f;
 
@@ -639,6 +730,8 @@ namespace vlr {
                     dirReflected = -dirReflected;
                 if (dot(dirLocal, dirReflected) >= cosEpsilon) {
                     SampledSpectrum ret = m_coeff * F * (regFactor / std::fabs(dirV.z));
+                    if (revValue)
+                        *revValue = ret;
                     return ret;
                 }
 
@@ -646,28 +739,47 @@ namespace vlr {
                 float recRelIOR = eEnter[query.wlHint] / eExit[query.wlHint];// reciprocal of relative IOR.
                 float sinExit2 = recRelIOR * recRelIOR * sinEnter2;
 
+                SampledSpectrum ret = SampledSpectrum::Zero();
                 float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
                 Vector3D dirRefracted = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
                 if (!entering)
                     dirRefracted = -dirRefracted;
                 if (dot(dirLocal, dirRefracted) >= cosEpsilon && cosExit != 0.0f) {
-                    SampledSpectrum ret = SampledSpectrum::Zero();
                     ret[query.wlHint] = m_coeff[query.wlHint] *
-                        (1.0f - F[query.wlHint]) * (regFactor / std::fabs(cosExit));
+                        (1.0f - F[query.wlHint]) * regFactor;
+
+                    if (revValue) {
+                        SampledSpectrum revRet = ret;
+                        revRet[query.wlHint] /= std::fabs(query.dirLocal.z);
+                        if (static_cast<TransportMode>(query.transportMode) == TransportMode::Importance)
+                            revRet[query.wlHint] *= pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                        *revValue = revRet;
+                    }
+
+                    ret[query.wlHint] /= std::fabs(cosExit);
                     if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
                         ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
-                    return ret;
+                }
+                else {
+                    if (revValue)
+                        *revValue = SampledSpectrum::Zero();
                 }
 
-                return SampledSpectrum::Zero();
+                return ret;
             }
             else {
+                if (revValue)
+                    *revValue = SampledSpectrum::Zero();
                 return SampledSpectrum::Zero();
             }
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
             if constexpr (usePathSpaceRegularization) {
                 bool entering = query.dirLocal.z >= 0.0f;
 
@@ -692,8 +804,12 @@ namespace vlr {
                 Vector3D dirReflected = Vector3D(-dirV.x, -dirV.y, dirV.z);
                 if (!entering)
                     dirReflected = -dirReflected;
-                if (dot(dirLocal, dirReflected) >= cosEpsilon)
-                    return reflectProb * regFactor;
+                if (dot(dirLocal, dirReflected) >= cosEpsilon) {
+                    float ret = reflectProb * regFactor;
+                    if (revValue)
+                        *revValue = ret;
+                    return ret;
+                }
 
                 float sinEnter2 = 1.0f - dirV.z * dirV.z;
                 float recRelIOR = eEnter[query.wlHint] / eExit[query.wlHint];// reciprocal of relative IOR.
@@ -701,14 +817,18 @@ namespace vlr {
 
                 if (sinExit2 >= 1.0f)
                     return 0.0f;
+                float ret = 0.0f;
                 float cosExit = std::sqrt(std::fmax(0.0f, 1.0f - sinExit2));
                 Vector3D dirRefracted = Vector3D(recRelIOR * -dirV.x, recRelIOR * -dirV.y, -cosExit);
                 if (!entering)
                     dirRefracted = -dirRefracted;
                 if (dot(dirLocal, dirRefracted) >= cosEpsilon)
-                    return (1.0f - reflectProb) * regFactor;
+                    ret = (1.0f - reflectProb) * regFactor;
 
-                return 0.0f;
+                if (revValue)
+                    *revValue = ret;
+
+                return ret;
             }
             else {
                 return 0.0f;
@@ -763,7 +883,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelConductor fresnel(m_eta, m_k);
@@ -798,6 +922,11 @@ namespace vlr {
             float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
             SampledSpectrum fs = F * D * G / (4 * dirV.z * dirL.z);
 
+            if (revResult) {
+                revResult->value = fs;
+                revResult->dirPDF = commonPDFTerm * ggx.evaluatePDF(dirL, m);
+            }
+
             //VLRAssert(fs.allFinite(), "fs: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, rDir: %s",
             //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
@@ -805,7 +934,8 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelConductor fresnel(m_eta, m_k);
@@ -827,6 +957,9 @@ namespace vlr {
             float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
             SampledSpectrum fs = F * D * G / (4 * dotNVdotNL);
 
+            if (revValue)
+                *revValue = fs;
+
             //VLRAssert(fs.allFinite(), "fs: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, dir: %s",
             //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
@@ -834,7 +967,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelConductor fresnel(m_eta, m_k);
@@ -856,6 +993,9 @@ namespace vlr {
             float mPDF = ggx.evaluatePDF(dirV, m);
             float commonPDFTerm = 1.0f / (4 * dotHV);
             float ret = commonPDFTerm * mPDF;
+
+            if (revValue)
+                *revValue = commonPDFTerm * ggx.evaluatePDF(dirL, m);
 
             //VLRAssert(std::isfinite(commonPDFTerm) && std::isfinite(mPDF),
             //          "commonPDFTerm: %g, mPDF: %g, wlIdx: %u, qDir: %s, dir: %s",
@@ -925,7 +1065,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
@@ -969,13 +1113,18 @@ namespace vlr {
                 result->sampledType = DirectionType::Reflection() | DirectionType::HighFreq();
 
                 float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
-                SampledSpectrum fs = m_coeff * F * D * G / (4 * dirV.z * dirL.z);
+                SampledSpectrum ret = m_coeff * F * D * G / (4 * dirV.z * dirL.z);
 
-                //VLRAssert(fs.allFinite(), "fs: %s, F: %g, %g, %g, G, %g, D: %g, wlIdx: %u, qDir: (%g, %g, %g), rDir: (%g, %g, %g)",
-                //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, 
+                if (revResult) {
+                    revResult->value = ret;
+                    revResult->dirPDF = commonPDFTerm * ggx.evaluatePDF(dirL, m);
+                }
+
+                //VLRAssert(ret.allFinite(), "ret: %s, F: %g, %g, %g, G, %g, D: %g, wlIdx: %u, qDir: (%g, %g, %g), rDir: (%g, %g, %g)",
+                //          ret.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, 
                 //          dirV.x, dirV.y, dirV.z, dirL.x, dirL.y, dirL.z);
 
-                return fs;
+                return ret;
             }
             else {
                 // JP: 最終的な方向サンプルを生成する。
@@ -994,7 +1143,7 @@ namespace vlr {
                 }
                 float dotHL = dot(dirL, m);
                 float commonPDFTerm = (1 - reflectProb) / pow2(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL);
-                result->dirPDF = commonPDFTerm * mPDF * eExit[query.wlHint] * eExit[query.wlHint] * std::fabs(dotHL);
+                result->dirPDF = commonPDFTerm * mPDF * pow2(eExit[query.wlHint]) * std::fabs(dotHL);
                 result->sampledType = DirectionType::Transmission() | DirectionType::HighFreq();
 
                 // JP: マイクロファセットBSDFの各項の値を波長成分ごとに計算する。
@@ -1017,6 +1166,12 @@ namespace vlr {
                 ret *= static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance ?
                     pow2(eEnter) : pow2(eExit); // adjoint: need to cancel eEnter^2 / eExit^2 => eEnter^2 * (eExit^2 / eEnter^2)
 
+                if (revResult) {
+                    SampledSpectrum revRet = ret;
+                    revResult->value = revRet;
+                    revResult->dirPDF = commonPDFTerm * ggx.evaluatePDF(dirL, m) * pow2(eEnter[query.wlHint]) * std::fabs(dotHV);
+                }
+
                 //VLRAssert(ret.allFinite(), "fs: %s, wlIdx: %u, qDir: %s, rDir: %s",
                 //          ret.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
@@ -1025,7 +1180,8 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
 
             const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
@@ -1045,12 +1201,15 @@ namespace vlr {
 
                 SampledSpectrum F = fresnel.evaluate(dotHV);
                 float G = ggx.evaluateSmithG1(dirV, m) * ggx.evaluateSmithG1(dirL, m);
-                SampledSpectrum fs = m_coeff * F * D * G / (4 * dotNVdotNL);
+                SampledSpectrum ret = m_coeff * F * D * G / (4 * dotNVdotNL);
 
-                //VLRAssert(fs.allFinite(), "fs: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, dir: %s",
-                //          fs.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
+                if (revValue)
+                    *revValue = ret;
 
-                return fs;
+                //VLRAssert(ret.allFinite(), "ret: %s, F: %s, G, %g, D: %g, wlIdx: %u, qDir: %s, dir: %s",
+                //          ret.toString().c_str(), F.toString().c_str(), G, D, query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
+
+                return ret;
             }
             else if (dotNVdotNL < 0 && query.dirTypeFilter.matches(DirectionType::Transmission() | DirectionType::AllFreq())) {
                 SampledSpectrum ret = SampledSpectrum::Zero();
@@ -1071,6 +1230,9 @@ namespace vlr {
                 ret *= static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance ?
                     pow2(eEnter) : pow2(eExit); // !adjoint: eExit^2 * (eEnter / eExit)^2
 
+                if (revValue)
+                    *revValue = ret;
+
                 //VLRAssert(ret.allFinite(), "fs: %s, wlIdx: %u, qDir: %s, dir: %s",
                 //          ret.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
@@ -1081,7 +1243,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             const SampledSpectrum &eEnter = entering ? m_etaExt : m_etaInt;
@@ -1115,6 +1281,9 @@ namespace vlr {
             if (dotNVdotNL > 0) {
                 float commonPDFTerm = reflectProb / (4 * dotHV);
 
+                if (revValue)
+                    *revValue = commonPDFTerm * ggx.evaluatePDF(dirL, m);
+
                 //VLRAssert(std::isfinite(commonPDFTerm) && std::isfinite(mPDF),
                 //          "commonPDFTerm: %g, mPDF: %g, F: %s, wlIdx: %u, qDir: %s, dir: %s",
                 //          commonPDFTerm, mPDF, F.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
@@ -1125,11 +1294,14 @@ namespace vlr {
                 float dotHL = dot(dirL, m);
                 float commonPDFTerm = (1 - reflectProb) / pow2(eEnter[query.wlHint] * dotHV + eExit[query.wlHint] * dotHL);
 
+                if (revValue)
+                    *revValue = commonPDFTerm * ggx.evaluatePDF(dirL, m) * pow2(eEnter[query.wlHint]) * std::fabs(dotHV);
+
                 //VLRAssert(std::isfinite(commonPDFTerm) && std::isfinite(mPDF),
                 //          "commonPDFTerm: %g, mPDF: %g, F: %s, wlIdx: %u, qDir: %s, dir: %s",
                 //          commonPDFTerm, mPDF, F.toString().c_str(), query.wlHint, dirV.toString().c_str(), dirL.toString().c_str());
 
-                return commonPDFTerm * mPDF * eExit[query.wlHint] * eExit[query.wlHint] * std::fabs(dotHL);
+                return commonPDFTerm * mPDF * pow2(eExit[query.wlHint]) * std::fabs(dotHL);
             }
         }
 
@@ -1183,7 +1355,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelSchlick fresnel(m_F0);
@@ -1202,23 +1378,34 @@ namespace vlr {
             if (uComponent < reflectProb) {
                 result->dirLocal = entering ? dirL : -dirL;
                 result->sampledType = DirectionType::Reflection() | DirectionType::LowFreq();
-                SampledSpectrum fs = F * m_coeff / VLR_M_PI;
+                SampledSpectrum ret = F * m_coeff / VLR_M_PI;
                 result->dirPDF *= reflectProb;
 
-                return fs;
+                if (revResult) {
+                    revResult->value = ret;
+                    revResult->dirPDF = reflectProb * dirV.z / VLR_M_PI;
+                }
+
+                return ret;
             }
             else {
                 result->dirLocal = entering ? -dirL : dirL;
                 result->sampledType = DirectionType::Transmission() | DirectionType::LowFreq();
-                SampledSpectrum fs = (SampledSpectrum::One() - F) * m_coeff / VLR_M_PI;
+                SampledSpectrum ret = (SampledSpectrum::One() - F) * m_coeff / VLR_M_PI;
                 result->dirPDF *= (1 - reflectProb);
 
-                return fs;
+                if (revResult) {
+                    revResult->value = ret;
+                    revResult->dirPDF = (1 - reflectProb) * dirV.z / VLR_M_PI;
+                }
+
+                return ret;
             }
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelSchlick fresnel(m_F0);
@@ -1229,17 +1416,25 @@ namespace vlr {
             SampledSpectrum F = fresnel.evaluate(query.dirLocal.z);
 
             if (dirV.z * dirL.z > 0.0f) {
-                SampledSpectrum fs = F * m_coeff / VLR_M_PI;
-                return fs;
+                SampledSpectrum ret = F * m_coeff / VLR_M_PI;
+                if (revValue)
+                    *revValue = ret;
+                return ret;
             }
             else {
-                SampledSpectrum fs = (SampledSpectrum::One() - F) * m_coeff / VLR_M_PI;
-                return fs;
+                SampledSpectrum ret = (SampledSpectrum::One() - F) * m_coeff / VLR_M_PI;
+                if (revValue)
+                    *revValue = ret;
+                return ret;
             }
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
             bool entering = query.dirLocal.z >= 0.0f;
 
             FresnelSchlick fresnel(m_F0);
@@ -1256,10 +1451,14 @@ namespace vlr {
 
             if (dirV.z * dirL.z > 0.0f) {
                 float dirPDF = reflectProb * dirL.z / VLR_M_PI;
+                if (revValue)
+                    *revValue = reflectProb * dirV.z / VLR_M_PI;
                 return dirPDF;
             }
             else {
                 float dirPDF = (1 - reflectProb) * std::fabs(dirL.z) / VLR_M_PI;
+                if (revValue)
+                    *revValue = (1 - reflectProb) * dirV.z / VLR_M_PI;
                 return dirPDF;
             }
         }
@@ -1307,18 +1506,22 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
-            float alpha = m_roughness * m_roughness;
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
+            float alpha = pow2(m_roughness);
             GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
             bool entering = query.dirLocal.z >= 0.0f;
             Vector3D dirL;
             Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
-            float expectedF_D90 = 0.5f * m_roughness + 2 * m_roughness * query.dirLocal.z * query.dirLocal.z;
+            float expectedF_D90 = 0.5f * m_roughness + 2 * m_roughness * pow2(query.dirLocal.z);
             float oneMinusDotVN5 = pow5(1 - dirV.z);
             float expectedDiffuseFresnel = lerp(1.0f, expectedF_D90, oneMinusDotVN5);
-            float iBaseColor = m_diffuseColor.importance(query.wlHint) * expectedDiffuseFresnel * expectedDiffuseFresnel * lerp(1.0f, 1.0f / 1.51f, m_roughness);
+            float iBaseColor = m_diffuseColor.importance(query.wlHint) * pow2(expectedDiffuseFresnel) * lerp(1.0f, 1.0f / 1.51f, m_roughness);
 
             float expectedOneMinusDotVH5 = pow5(1 - dirV.z);
             float iSpecularF0 = m_specularF0Color.importance(query.wlHint);
@@ -1402,17 +1605,39 @@ namespace vlr {
             // PDF based on the single-sample model MIS.
             result->dirPDF = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;
 
+            if (revResult) {
+                float revDiffuseDirPDF = dirV.z / VLR_M_PI;
+                float commonPDFTerm = 1.0f / (4 * dotLH);
+                float revSpecularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirL, m);
+
+                float revExpectedF_D90 = 0.5f * m_roughness + 2 * m_roughness * pow2(dirL.z);
+                float revOneMinusDotVN5 = pow5(1 - dirL.z);
+                float revExpectedDiffuseFresnel = lerp(1.0f, revExpectedF_D90, revOneMinusDotVN5);
+                float revIBaseColor = m_diffuseColor.importance(query.wlHint) * pow2(revExpectedDiffuseFresnel) * lerp(1.0f, 1.0f / 1.51f, m_roughness);
+
+                float revExpectedOneMinusDotVH5 = pow5(1 - dirL.z);
+                float revISpecularF0 = m_specularF0Color.importance(query.wlHint);
+
+                float revDiffuseWeight = revIBaseColor;
+                float revSpecularWeight = lerp(revISpecularF0, 1.0f, revExpectedOneMinusDotVH5);
+
+                revResult->value = ret;
+                revResult->dirPDF =
+                    (revDiffuseDirPDF * revDiffuseWeight + revSpecularDirPDF * revSpecularWeight) /
+                    (revDiffuseWeight + revSpecularWeight);
+            }
+
             return ret;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
-            float alpha = m_roughness * m_roughness;
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
+            float alpha = pow2(m_roughness);
             GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
-            if (dirLocal.z * query.dirLocal.z <= 0) {
+            if (dirLocal.z * query.dirLocal.z <= 0)
                 return SampledSpectrum::Zero();
-            }
 
             bool entering = query.dirLocal.z >= 0.0f;
             Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
@@ -1434,7 +1659,7 @@ namespace vlr {
             float microfacetDenom = 4 * dirL.z * dirV.z;
             SampledSpectrum specularValue = F * ((D * G) / microfacetDenom);
 
-            float F_D90 = 0.5f * m_roughness + 2 * m_roughness * dotLH * dotLH;
+            float F_D90 = 0.5f * m_roughness + 2 * m_roughness * pow2(dotLH);
             float oneMinusDotVN5 = pow5(1 - dirV.z);
             float oneMinusDotLN5 = pow5(1 - dirL.z);
             float diffuseFresnelOut = lerp(1.0f, F_D90, oneMinusDotVN5);
@@ -1444,12 +1669,19 @@ namespace vlr {
 
             SampledSpectrum ret = diffuseValue + specularValue;
 
+            if (revValue)
+                *revValue = ret;
+
             return ret;
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
-            float alpha = m_roughness * m_roughness;
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
+            float alpha = pow2(m_roughness);
             GGXMicrofacetDistribution ggx(alpha, alpha, 0.0f);
 
             bool entering = query.dirLocal.z >= 0.0f;
@@ -1477,6 +1709,27 @@ namespace vlr {
             float specularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirV, m);
 
             float ret = (diffuseDirPDF * diffuseWeight + specularDirPDF * specularWeight) / sumWeights;
+
+            if (revValue) {
+                float revDiffuseDirPDF = dirV.z / VLR_M_PI;
+                float commonPDFTerm = 1.0f / (4 * dotLH);
+                float revSpecularDirPDF = commonPDFTerm * ggx.evaluatePDF(dirL, m);
+
+                float revExpectedF_D90 = 0.5f * m_roughness + 2 * m_roughness * pow2(dirL.z);
+                float revOneMinusDotVN5 = pow5(1 - dirL.z);
+                float revExpectedDiffuseFresnel = lerp(1.0f, revExpectedF_D90, revOneMinusDotVN5);
+                float revIBaseColor = m_diffuseColor.importance(query.wlHint) * pow2(revExpectedDiffuseFresnel) * lerp(1.0f, 1.0f / 1.51f, m_roughness);
+
+                float revExpectedOneMinusDotVH5 = pow5(1 - dirL.z);
+                float revISpecularF0 = m_specularF0Color.importance(query.wlHint);
+
+                float revDiffuseWeight = revIBaseColor;
+                float revSpecularWeight = lerp(revISpecularF0, 1.0f, revExpectedOneMinusDotVH5);
+
+                *revValue =
+                    (revDiffuseDirPDF * revDiffuseWeight + revSpecularDirPDF * revSpecularWeight) /
+                    (revDiffuseWeight + revSpecularWeight);
+            }
 
             return ret;
         }
@@ -1874,7 +2127,11 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
-            const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
+            if (revResult)
+                revResult->dirPDF = 0.0f;
+
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             float weights[4];
@@ -1891,14 +2148,38 @@ namespace vlr {
                 return SampledSpectrum::Zero();
             }
 
-            const uint32_t* selectedBsdfBody;
-            BSDFProcedureSet selProcSet = getBSDFProcSet(bsdfOffsets[idx], &selectedBsdfBody);
-            auto sampleInternal = static_cast<ProgSigBSDFSampleInternal>(selProcSet.progSampleInternal);
-
             // JP: 選択したBSDFから方向をサンプリングする。
             // EN: sample a direction from the selected BSDF.
-            SampledSpectrum value = sampleInternal(selectedBsdfBody, query, uComponent, uDir, result);
+            SampledSpectrum value;
+            const uint32_t* selectedBsdfBody;
+            BSDFProcedureSet selProcSet = getBSDFProcSet(bsdfOffsets[idx], &selectedBsdfBody);
+            if (revResult) {
+                auto sampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(selProcSet.progSampleWithRevInternal);
+                value = sampleInternal(selectedBsdfBody, query, uComponent, uDir, result, revResult);
+            }
+            else {
+                auto sampleInternal = static_cast<ProgSigBSDFSampleInternal>(selProcSet.progSampleInternal);
+                value = sampleInternal(selectedBsdfBody, query, uComponent, uDir, result);
+            }
+
+            // JP: 逆方向の確率密度を求めるための諸量を計算する。
+            // EN: calculate quantities for reverse probability density.
+            float revWeights[4];
+            float sumRevWeights = 0;
+            if (revResult) {
+                BSDFQuery revQuery = query;// mQuery?
+                Vector3D revDirIn = result->dirLocal;
+                vlr::_swap(revQuery.dirLocal, revDirIn);
+                revQuery.transportMode ^= 0b1;
+                for (int i = 0; i < m_numBSDFs; ++i) {
+                    revWeights[i] = BSDFWeight(bsdfOffsets[i], revQuery);
+                    sumRevWeights += revWeights[i];
+                }
+            }
+
             result->dirPDF *= weights[idx];
+            if (revResult)
+                revResult->value *= revWeights[idx];
             if (result->dirPDF == 0.0f)
                 return SampledSpectrum::Zero();
 
@@ -1908,47 +2189,89 @@ namespace vlr {
                 for (int i = 0; i < m_numBSDFs; ++i) {
                     const uint32_t* bsdfBody;
                     BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
-                    auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
-                    if (i != idx && weights[i] > 0.0f)
-                        result->dirPDF += evaluatePDFInternal(bsdfBody, query, result->dirLocal) * weights[i];
+                    if (revResult) {
+                        auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+                        if (i != idx && weights[i] > 0.0f) {
+                            float revDirPDF;
+                            float dirPDF = evaluatePDFInternal(bsdfBody, query, result->dirLocal, &revDirPDF);
+                            result->dirPDF += dirPDF * weights[i];
+                            revResult->dirPDF += revDirPDF * revWeights[i];
+                        }
+                    }
+                    else {
+                        auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+                        if (i != idx && weights[i] > 0.0f)
+                            result->dirPDF += evaluatePDFInternal(bsdfBody, query, result->dirLocal) * weights[i];
+                    }
                 }
 
                 BSDFQuery mQuery = query;
                 mQuery.dirTypeFilter &= sideTest(query.geometricNormalLocal, query.dirLocal, result->dirLocal);
                 value = SampledSpectrum::Zero();
+                if (revResult)
+                    revResult->value = SampledSpectrum::Zero();
                 for (int i = 0; i < m_numBSDFs; ++i) {
                     const uint32_t* bsdfBody;
                     BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
-                    auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
-                    if (weights[i] == 0.0f)
-                        continue;
-                    value += evaluateInternal(bsdfBody, mQuery, result->dirLocal);
+                    if (revResult) {
+                        auto evaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
+                        if (weights[i] == 0.0f)
+                            continue;
+                        SampledSpectrum revValue;
+                        value += evaluateInternal(bsdfBody, mQuery, result->dirLocal, &revValue);
+                        revResult->value += revValue;
+                    }
+                    else {
+                        auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
+                        if (weights[i] == 0.0f)
+                            continue;
+                        value += evaluateInternal(bsdfBody, mQuery, result->dirLocal);
+                    }
                 }
             }
             result->dirPDF /= sumWeights;
+            if (revResult)
+                revResult->dirPDF /= sumRevWeights;
 
             return value;
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue = nullptr) const {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             SampledSpectrum retValue = SampledSpectrum::Zero();
+            if (revValue)
+                *revValue = SampledSpectrum::Zero();
             for (int i = 0; i < m_numBSDFs; ++i) {
                 const uint32_t* bsdfBody;
                 BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
                 auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
-                auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
-                if (!matches(bsdfBody, query.dirTypeFilter))
-                    continue;
-                retValue += evaluateInternal(bsdfBody, query, dirLocal);
+                if (revValue) {
+                    auto evaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
+                    if (!matches(bsdfBody, query.dirTypeFilter))
+                        continue;
+                    SampledSpectrum eRevValue;
+                    retValue += evaluateInternal(bsdfBody, query, dirLocal, &eRevValue);
+                    *revValue += eRevValue;
+                }
+                else {
+                    auto evaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
+                    if (!matches(bsdfBody, query.dirTypeFilter))
+                        continue;
+                    retValue += evaluateInternal(bsdfBody, query, dirLocal);
+                }
             }
             return retValue;
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
-            const BSDFQuery &query, const Vector3D &dirLocal) const {
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue = nullptr) const {
+            if (revValue)
+                *revValue = 0.0f;
+
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             float sumWeights = 0.0f;
@@ -1960,16 +2283,43 @@ namespace vlr {
             if (sumWeights == 0.0f)
                 return 0.0f;
 
+            float revWeights[4];
+            float sumRevWeights = 0;
+            if (revValue) {
+                BSDFQuery revQuery = query;// mQuery?
+                Vector3D revDirIn = dirLocal;
+                vlr::_swap(revQuery.dirLocal, revDirIn);
+                revQuery.transportMode ^= 0b1;
+                for (int i = 0; i < m_numBSDFs; ++i) {
+                    revWeights[i] = BSDFWeight(bsdfOffsets[i], revQuery);
+                    sumRevWeights += revWeights[i];
+                }
+            }
+
             float retPDF = 0.0f;
+            if (revValue)
+                *revValue = 0.0f;
             for (int i = 0; i < m_numBSDFs; ++i) {
                 const uint32_t* bsdfBody;
                 BSDFProcedureSet procSet = getBSDFProcSet(bsdfOffsets[i], &bsdfBody);
-                auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
-
-                if (weights[i] > 0)
-                    retPDF += evaluatePDFInternal(bsdfBody, query, dirLocal) * weights[i];
+                if (revValue) {
+                    auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+                    if (weights[i] > 0) {
+                        float revDirPDF;
+                        float dirPDF = evaluatePDFInternal(bsdfBody, query, dirLocal, &revDirPDF);
+                        retPDF += dirPDF * weights[i];
+                        *revValue += revDirPDF * revWeights[i];
+                    }
+                }
+                else {
+                    auto evaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+                    if (weights[i] > 0)
+                        retPDF += evaluatePDFInternal(bsdfBody, query, dirLocal) * weights[i];
+                }
             }
             retPDF /= sumWeights;
+            if (revValue)
+                *revValue /= sumRevWeights;
 
             return retPDF;
         }

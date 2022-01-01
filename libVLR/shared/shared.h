@@ -478,8 +478,11 @@ namespace vlr {
             int32_t progGetBaseColor;
             int32_t progMatches;
             int32_t progSampleInternal;
+            int32_t progSampleWithRevInternal;
             int32_t progEvaluateInternal;
+            int32_t progEvaluateWithRevInternal;
             int32_t progEvaluatePDFInternal;
+            int32_t progEvaluatePDFWithRevInternal;
             int32_t progWeightInternal;
         };
 

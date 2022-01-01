@@ -321,7 +321,8 @@ VLR_API VLRResult vlrStaticTransformGetArrays(
 
 
 // Node
-// TriangleMeshSurfaceNode, ParentNode, Scene
+// TriangleMeshSurfaceNode, PointSurfaceNode
+// ParentNode, Scene
     
 VLR_API VLRResult vlrNodeSetName(
     VLRNode node,

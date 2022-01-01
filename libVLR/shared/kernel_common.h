@@ -328,6 +328,11 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION BSDFQueryResult() {}
     };
 
+    struct BSDFQueryReverseResult {
+        SampledSpectrum value;
+        float dirPDF;
+    };
+
 
 
     struct LensPosSample {
@@ -402,10 +407,16 @@ namespace vlr::shared {
         bool(const uint32_t*, DirectionType)>;
     using ProgSigBSDFSampleInternal = optixu::DirectCallableProgramID<
         SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*)>;
+    using ProgSigBSDFSampleWithRevInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const BSDFQuery &, float, const float[2], BSDFQueryResult*, BSDFQueryReverseResult*)>;
     using ProgSigBSDFEvaluateInternal = optixu::DirectCallableProgramID<
         SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFEvaluateWithRevInternal = optixu::DirectCallableProgramID<
+        SampledSpectrum(const uint32_t*, const BSDFQuery &, const Vector3D &, SampledSpectrum*)>;
     using ProgSigBSDFEvaluatePDFInternal = optixu::DirectCallableProgramID<
         float(const uint32_t*, const BSDFQuery &, const Vector3D &)>;
+    using ProgSigBSDFEvaluatePDFWithRevInternal = optixu::DirectCallableProgramID<
+        float(const uint32_t*, const BSDFQuery &, const Vector3D &, float*)>;
     using ProgSigBSDFWeightInternal = optixu::DirectCallableProgramID<
         float(const uint32_t*, const BSDFQuery &)>;
 

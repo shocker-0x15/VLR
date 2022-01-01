@@ -16,10 +16,16 @@ namespace vlr {
                 OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_matches]);
             programSet->dcBSDFSampleInternal = context.createDirectCallableProgram(
                 OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_sampleInternal]);
+            programSet->dcBSDFSampleWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_sampleWithRevInternal]);
             programSet->dcBSDFEvaluateInternal = context.createDirectCallableProgram(
                 OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluateInternal]);
+            programSet->dcBSDFEvaluateWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluateWithRevInternal]);
             programSet->dcBSDFEvaluatePDFInternal = context.createDirectCallableProgram(
                 OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluatePDFInternal]);
+            programSet->dcBSDFEvaluatePDFWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_evaluatePDFWithRevInternal]);
             programSet->dcBSDFWeightInternal = context.createDirectCallableProgram(
                 OptiXModule_Material, bsdfIDs[BSDFCallableName_BSDF_weightInternal]);
 
@@ -28,8 +34,11 @@ namespace vlr {
                 bsdfProcSet.progGetBaseColor = programSet->dcBSDFGetBaseColor;
                 bsdfProcSet.progMatches = programSet->dcBSDFmatches;
                 bsdfProcSet.progSampleInternal = programSet->dcBSDFSampleInternal;
+                bsdfProcSet.progSampleWithRevInternal = programSet->dcBSDFSampleWithRevInternal;
                 bsdfProcSet.progEvaluateInternal = programSet->dcBSDFEvaluateInternal;
+                bsdfProcSet.progEvaluateWithRevInternal = programSet->dcBSDFEvaluateWithRevInternal;
                 bsdfProcSet.progEvaluatePDFInternal = programSet->dcBSDFEvaluatePDFInternal;
+                bsdfProcSet.progEvaluatePDFWithRevInternal = programSet->dcBSDFEvaluatePDFWithRevInternal;
                 bsdfProcSet.progWeightInternal = programSet->dcBSDFWeightInternal;
             }
             programSet->bsdfProcedureSetIndex = context.allocateBSDFProcedureSet();
@@ -191,8 +200,11 @@ namespace vlr {
             RT_DC_NAME_STR("MatteBRDF_getBaseColor"),
             RT_DC_NAME_STR("MatteBRDF_matches"),
             RT_DC_NAME_STR("MatteBRDF_sampleInternal"),
+            RT_DC_NAME_STR("MatteBRDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("MatteBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("MatteBRDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("MatteBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MatteBRDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("MatteBRDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -307,8 +319,11 @@ namespace vlr {
             RT_DC_NAME_STR("SpecularBRDF_getBaseColor"),
             RT_DC_NAME_STR("SpecularBRDF_matches"),
             RT_DC_NAME_STR("SpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("SpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("SpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("SpecularBRDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("SpecularBRDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -460,8 +475,11 @@ namespace vlr {
             RT_DC_NAME_STR("SpecularBSDF_getBaseColor"),
             RT_DC_NAME_STR("SpecularBSDF_matches"),
             RT_DC_NAME_STR("SpecularBSDF_sampleInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("SpecularBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("SpecularBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("SpecularBSDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("SpecularBSDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -616,8 +634,11 @@ namespace vlr {
             RT_DC_NAME_STR("MicrofacetBRDF_getBaseColor"),
             RT_DC_NAME_STR("MicrofacetBRDF_matches"),
             RT_DC_NAME_STR("MicrofacetBRDF_sampleInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBRDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -825,8 +846,11 @@ namespace vlr {
             RT_DC_NAME_STR("MicrofacetBSDF_getBaseColor"),
             RT_DC_NAME_STR("MicrofacetBSDF_matches"),
             RT_DC_NAME_STR("MicrofacetBSDF_sampleInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("MicrofacetBSDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -1047,8 +1071,11 @@ namespace vlr {
             RT_DC_NAME_STR("LambertianBSDF_getBaseColor"),
             RT_DC_NAME_STR("LambertianBSDF_matches"),
             RT_DC_NAME_STR("LambertianBSDF_sampleInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("LambertianBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("LambertianBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("LambertianBSDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("LambertianBSDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -1209,8 +1236,11 @@ namespace vlr {
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -1395,8 +1425,11 @@ namespace vlr {
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
         };
         OptiXProgramSet programSet;
@@ -2059,8 +2092,11 @@ namespace vlr {
             RT_DC_NAME_STR("MultiBSDF_getBaseColor"),
             RT_DC_NAME_STR("MultiBSDF_matches"),
             RT_DC_NAME_STR("MultiBSDF_sampleInternal"),
+            RT_DC_NAME_STR("MultiBSDF_sampleWithRevInternal"),
             RT_DC_NAME_STR("MultiBSDF_evaluateInternal"),
+            RT_DC_NAME_STR("MultiBSDF_evaluateWithRevInternal"),
             RT_DC_NAME_STR("MultiBSDF_evaluatePDFInternal"),
+            RT_DC_NAME_STR("MultiBSDF_evaluatePDFWithRevInternal"),
             RT_DC_NAME_STR("MultiBSDF_weightInternal"),
         };
         const char* edfIDs[] = {

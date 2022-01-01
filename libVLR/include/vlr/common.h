@@ -52,6 +52,7 @@
 #include <cstdint>
 #include <cmath>
 #include <cfloat>
+#include <utility>
 
 #if defined(DEBUG)
 #   define ENABLE_ASSERT
@@ -96,6 +97,14 @@ VLR_CPP_API void vlrprintf(const char* fmt, ...);
 #endif
 
 namespace vlr {
+    // Naming this function as "swap" causes a weird MSVC error C2668 (MSVC 16.11.8).
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr void _swap(T &a, T &b) {
+        T temp = std::move(a);
+        a = std::move(b);
+        b = std::move(temp);
+    }
+
     template <typename T>
     CUDA_DEVICE_FUNCTION constexpr T min(const T a, const T b) {
         return a < b ? a : b;

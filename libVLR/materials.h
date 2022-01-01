@@ -49,8 +49,11 @@ namespace vlr {
             BSDFCallableName_BSDF_getBaseColor,
             BSDFCallableName_BSDF_matches,
             BSDFCallableName_BSDF_sampleInternal,
+            BSDFCallableName_BSDF_sampleWithRevInternal,
             BSDFCallableName_BSDF_evaluateInternal,
+            BSDFCallableName_BSDF_evaluateWithRevInternal,
             BSDFCallableName_BSDF_evaluatePDFInternal,
+            BSDFCallableName_BSDF_evaluatePDFWithRevInternal,
             BSDFCallableName_BSDF_weightInternal,
             NumBSDFCallableNames
         };
@@ -71,8 +74,11 @@ namespace vlr {
             uint32_t dcBSDFGetBaseColor;
             uint32_t dcBSDFmatches;
             uint32_t dcBSDFSampleInternal;
+            uint32_t dcBSDFSampleWithRevInternal;
             uint32_t dcBSDFEvaluateInternal;
+            uint32_t dcBSDFEvaluateWithRevInternal;
             uint32_t dcBSDFEvaluatePDFInternal;
+            uint32_t dcBSDFEvaluatePDFWithRevInternal;
             uint32_t dcBSDFWeightInternal;
             uint32_t bsdfProcedureSetIndex;
 

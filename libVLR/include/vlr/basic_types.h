@@ -774,8 +774,8 @@ namespace vlr {
         }
 
         Matrix3x3Template& transpose() {
-            std::swap(m10, m01); std::swap(m20, m02);
-            std::swap(m21, m12);
+            vlr::_swap(m10, m01); vlr::_swap(m20, m02);
+            vlr::_swap(m21, m12);
             return *this;
         }
 
@@ -1065,14 +1065,9 @@ namespace vlr {
         }
 
         CUDA_DEVICE_FUNCTION Matrix4x4Template& transpose() {
-            auto swap = [](RealType* v0, RealType* v1) {
-                RealType temp = *v0;
-                *v0 = *v1;
-                *v1 = temp;
-            };
-            swap(&m10, &m01); swap(&m20, &m02); swap(&m30, &m03);
-            swap(&m21, &m12); swap(&m31, &m13);
-            swap(&m32, &m23);
+            vlr::_swap(&m10, &m01); vlr::_swap(&m20, &m02); vlr::_swap(&m30, &m03);
+            vlr::_swap(&m21, &m12); vlr::_swap(&m31, &m13);
+            vlr::_swap(&m32, &m23);
             return *this;
         }
 
