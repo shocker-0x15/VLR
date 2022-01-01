@@ -56,7 +56,7 @@ namespace vlr {
         const SurfacePoint &surfPt, const WavelengthSamples &wls) {
         auto &nodeData = *getData<TangentShaderNode>(plug.nodeDescIndex);
 
-        const Instance &inst = plp.instBuffer[surfPt.instanceIndex];
+        const Instance &inst = plp.instBuffer[surfPt.instIndex];
 
         // TODO: ? 同じGeometryGroup内でのstaticなtransformに関しても考慮する。
         Point3D localPosition = inst.transform.mulInv(surfPt.position);

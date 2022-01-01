@@ -346,12 +346,14 @@ namespace vlr::shared {
         SurfacePoint surfPt;
         float hypAreaPDF;
         ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        surfPt.instIndex = optixGetInstanceId();
+        surfPt.geomInstIndex = hp.sbtr->geomInst.geomInstIndex;
+        surfPt.geomInstIndex = hp.primIndex;
         decodeHitPoint(hp, &surfPt, &hypAreaPDF);
         surfPt.position = transform<TransformKind::ObjectToWorld>(surfPt.position);
         surfPt.shadingFrame = ReferenceFrame(normalize(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.x)),
                                              normalize(transform<TransformKind::ObjectToWorld>(surfPt.shadingFrame.z)));
         surfPt.geometricNormal = normalize(transform<TransformKind::ObjectToWorld>(surfPt.geometricNormal));
-        surfPt.instanceIndex = optixGetInstanceId();
 
         return calcNode(hp.sbtr->geomInst.nodeAlpha, 1.0f, surfPt, wls);
     }
@@ -418,12 +420,14 @@ namespace vlr::shared {
     CUDA_DEVICE_FUNCTION void calcSurfacePoint(
         const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
         ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        surfPt->instIndex = optixGetInstanceId();
+        surfPt->geomInstIndex = hp.sbtr->geomInst.geomInstIndex;
+        surfPt->primIndex = hp.primIndex;
         decodeHitPoint(hp, surfPt, hypAreaPDF);
         surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);
         surfPt->shadingFrame = ReferenceFrame(normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x)),
                                               normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z)));
         surfPt->geometricNormal = normalize(transform<TransformKind::ObjectToWorld>(surfPt->geometricNormal));
-        surfPt->instanceIndex = optixGetInstanceId();
 
         Normal3D localNormal = calcNode(hp.sbtr->geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
         applyBumpMapping(localNormal, surfPt);

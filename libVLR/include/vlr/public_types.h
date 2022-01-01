@@ -37,6 +37,7 @@ struct VLRShaderNodePlug {
 enum VLRRenderer {
     VLRRenderer_PathTracing = 0,
     VLRRenderer_LightTracing,
+    VLRRenderer_BPT,
     VLRRenderer_DebugRendering,
 };
 

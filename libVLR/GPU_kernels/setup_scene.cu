@@ -1,5 +1,5 @@
 #define RT_PIPELINE_LAUNCH_PARAMETERS extern "C" __constant__
-#include "../shared/shared.h"
+#include "../shared/kernel_common.h"
 
 namespace vlr {
     using namespace shared;

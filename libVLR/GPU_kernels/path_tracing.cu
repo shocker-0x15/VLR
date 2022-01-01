@@ -151,7 +151,7 @@ namespace vlr {
 
             float MISWeight = 1.0f;
             if (!roPayload->prevSampledType.isDelta() && roPayload->pathLength > 1) {
-                const Instance &inst = plp.instBuffer[surfPt.instanceIndex];
+                const Instance &inst = plp.instBuffer[surfPt.instIndex];
                 float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
                 float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
 

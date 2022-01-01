@@ -31,7 +31,8 @@ namespace vlr::shared {
         Normal3D firstHitNormal;
     };
 
-    using PTPayloadSignature = optixu::PayloadSignature<PTReadOnlyPayload*, PTWriteOnlyPayload*, PTReadWritePayload*, PTExtraPayload*>;
+    using PTPayloadSignature = optixu::PayloadSignature<
+        PTReadOnlyPayload*, PTWriteOnlyPayload*, PTReadWritePayload*, PTExtraPayload*>;
 
     struct LTReadOnlyPayload {
         WavelengthSamples wls;
@@ -54,11 +55,38 @@ namespace vlr::shared {
         SampledSpectrum alpha;
     };
 
-    using LTPayloadSignature = optixu::PayloadSignature<LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
+    using LTPayloadSignature = optixu::PayloadSignature<
+        LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
 
-    using AuxBufGenPayloadSignature = optixu::PayloadSignature<WavelengthSamples, KernelRNG, SampledSpectrum, Normal3D>;
+    struct LVCBPTLightPathReadOnlyPayload {
+        WavelengthSamples wls;
+        float prevDirPDF;
+        DirectionType prevSampledType;
+        unsigned int pathLength : 16;
+        unsigned int maxLengthTerminate : 1;
+    };
 
-    using ShadowPayloadSignature = optixu::PayloadSignature<WavelengthSamples, float>;
+    struct LVCBPTLightPathWriteOnlyPayload {
+        Point3D nextOrigin;
+        Vector3D nextDirection;
+        float dirPDF;
+        DirectionType sampledType;
+        unsigned int terminate : 1;
+    };
+
+    struct LVCBPTLightPathReadWritePayload {
+        KernelRNG rng;
+        SampledSpectrum alpha;
+    };
+
+    using LVCBPTLightPathPayloadSignature = optixu::PayloadSignature<
+        LVCBPTLightPathReadOnlyPayload*, LVCBPTLightPathWriteOnlyPayload*, LVCBPTLightPathReadWritePayload*>;
+
+    using AuxBufGenPayloadSignature = optixu::PayloadSignature<
+        WavelengthSamples, KernelRNG, SampledSpectrum, Normal3D>;
+
+    using ShadowPayloadSignature = optixu::PayloadSignature<
+        WavelengthSamples, float>;
 
 
 

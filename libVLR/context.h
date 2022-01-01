@@ -201,6 +201,29 @@ namespace vlr {
                 cudau::Buffer hitGroupShaderBindingTable;
             } lightTracing;
 
+            struct LVCBPT {
+                optixu::Pipeline pipeline;
+
+                std::vector<optixu::Module> modules;
+
+                optixu::ProgramGroup lightPathRayGen;
+                optixu::ProgramGroup eyePathRayGen;
+                optixu::ProgramGroup lightPathMiss;
+                optixu::ProgramGroup eyePathMiss;
+                optixu::ProgramGroup connectionMiss;
+                optixu::ProgramGroup lightPathHitGroupDefault;
+                optixu::ProgramGroup lightPathHitGroupWithAlpha;
+                optixu::ProgramGroup eyePathHitGroupDefault;
+                optixu::ProgramGroup eyePathHitGroupWithAlpha;
+                optixu::ProgramGroup connectionHitGroupDefault;
+                optixu::ProgramGroup connectionHitGroupWithAlpha;
+                optixu::ProgramGroup emptyHitGroup;
+                std::vector<optixu::ProgramGroup> callablePrograms;
+
+                cudau::Buffer shaderBindingTable;
+                cudau::Buffer hitGroupShaderBindingTable;
+            } lvcbpt;
+
             struct AuxBufferGenerator {
                 optixu::Pipeline pipeline;
 
@@ -258,6 +281,11 @@ namespace vlr {
             cudau::TypedBuffer<UpsampledSpectrum::PolynomialCoefficients> UpsampledSpectrum_coefficients_sRGB_E;
 #endif
 
+            static constexpr uint32_t numLightPaths = 500000;
+            cudau::TypedBuffer<shared::KernelRNG> linearRngBuffer;
+            cudau::TypedBuffer<shared::LightPathVertex> lightVertexCache;
+            CUdeviceptr numLightVertices;
+
             optixu::Denoiser denoiser;
             CUdeviceptr hdrIntensity;
             cudau::Buffer denoiserStateBuffer;
@@ -272,8 +300,6 @@ namespace vlr {
 
             optixu::HostBlockBuffer2D<SpectrumStorage, 0> accumBuffer;
 
-            static constexpr uint32_t numLightPaths = 500000;
-            cudau::TypedBuffer<shared::KernelRNG> linearRngBuffer;
             cudau::TypedBuffer<DiscretizedSpectrum> atomicAccumBuffer;
 
             cudau::Array outputBuffer;

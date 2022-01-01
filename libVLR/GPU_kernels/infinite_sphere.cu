@@ -73,12 +73,14 @@ namespace vlr {
 
         SurfacePoint &surfPt = result->surfPt;
 
-        surfPt.instanceIndex = instIndex;
+        surfPt.instIndex = instIndex;
+        surfPt.geomInstIndex = geomInstIndex;
+        surfPt.primIndex = 0;
+
         surfPt.position = position;
         surfPt.shadingFrame = shadingFrame;
         surfPt.isPoint = false;
         surfPt.atInfinity = true;
-
         surfPt.geometricNormal = geometricNormal;
         surfPt.u = posPhi;
         surfPt.v = theta;

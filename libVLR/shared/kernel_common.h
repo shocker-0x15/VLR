@@ -42,6 +42,77 @@ namespace vlr::shared {
 
 
 
+    enum GeometryType {
+        GeometryType_TriangleMesh = 0,
+        GeometryType_Points,
+        GeometryType_InfiniteSphere,
+    };
+
+    struct GeometryInstance {
+        union {
+            struct {
+                const Vertex* vertexBuffer;
+                const Triangle* triangleBuffer;
+                DiscreteDistribution1D primDistribution;
+                BoundingBox3D aabb;
+            } asTriMesh;
+            struct {
+                const Vertex* vertexBuffer;
+                const uint32_t* indexBuffer;
+                DiscreteDistribution1D primDistribution;
+            } asPoints;
+            struct {
+                RegularConstantContinuousDistribution2D importanceMap;
+            } asInfSphere;
+        };
+
+        uint32_t geomInstIndex;
+
+        // TODO: これらは関数ポインターに相当するのでインスタンス変数的に扱われるのはおかしい。
+        uint32_t progSample;
+        uint32_t progDecodeHitPoint;
+
+        ShaderNodePlug nodeNormal;
+        ShaderNodePlug nodeTangent;
+        ShaderNodePlug nodeAlpha;
+        uint32_t materialIndex;
+        float importance;
+        unsigned int geomType : 2; // TriMesh: 0, Points: 1, InfSphere: 2
+        unsigned int isActive : 1;
+
+        CUDA_DEVICE_FUNCTION GeometryInstance() {}
+
+        CUDA_DEVICE_FUNCTION void print() const {
+            vlrprintf("progSample: %u\n", progSample);
+            vlrprintf("progDecodeHitPoint: %u\n", progDecodeHitPoint);
+            vlrprintf("nodeNormal: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                      nodeNormal.nodeType, nodeNormal.plugType, nodeNormal.nodeDescIndex, nodeNormal.option);
+            vlrprintf("nodeTangent: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                      nodeTangent.nodeType, nodeTangent.plugType, nodeTangent.nodeDescIndex, nodeTangent.option);
+            vlrprintf("nodeAlpha: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
+                      nodeAlpha.nodeType, nodeAlpha.plugType, nodeAlpha.nodeDescIndex, nodeAlpha.option);
+            vlrprintf("materialIndex: %u\n", materialIndex);
+            vlrprintf("importance: %g\n", importance);
+        }
+    };
+
+    struct Instance {
+        union {
+            StaticTransform transform;
+            float rotationPhi;
+        };
+        uint32_t* geomInstIndices;
+        DiscreteDistribution1D lightGeomInstDistribution;
+        BoundingBox3D childAabb;
+        float importance;
+        unsigned int aabbIsDirty : 1;
+        unsigned int isActive : 1;
+
+        CUDA_DEVICE_FUNCTION Instance() {}
+    };
+
+
+
     struct HitGroupSBTRecordData {
         GeometryInstance geomInst;
     };
@@ -98,11 +169,13 @@ namespace vlr::shared {
     };
 
     struct SurfacePoint {
-        uint32_t instanceIndex;
+        uint32_t instIndex;
+        uint32_t geomInstIndex;
+        uint32_t primIndex;
+        float u, v; // Parameters used to identify the point on a surface, not texture coordinates.
         Point3D position;
         Normal3D geometricNormal;
         ReferenceFrame shadingFrame;
-        float u, v; // Parameters used to identify the point on a surface, not texture coordinates.
         TexCoord2D texCoord;
         struct {
             bool isPoint : 1;
@@ -448,6 +521,134 @@ namespace vlr::shared {
 
 
 
+    struct LightPathVertex {
+        uint32_t instIndex;
+        uint32_t geomInstIndex;
+        uint32_t primIndex;
+        float u, v;
+        SampledSpectrum flux;
+        Vector3D dirIn;
+        DirectionType sampledType;
+    };
+
+
+
+    struct SceneBounds {
+        union {
+            BoundingBox3D aabb;
+            BoundingBox3DAsOrderedInt aabbAsInt;
+        };
+        Point3D center;
+        float worldRadius;
+        float worldDiscArea;
+
+        CUDA_DEVICE_FUNCTION SceneBounds() {}
+    };
+
+    using KernelRNG = PCG32RNG;
+
+    struct PipelineLaunchParameters {
+        DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_xbar;
+        DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_ybar;
+        DiscretizedSpectrumAlwaysSpectral::CMF DiscretizedSpectrum_zbar;
+        float DiscretizedSpectrum_integralCMF;
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+        const UpsampledSpectrum::spectrum_grid_cell_t* UpsampledSpectrum_spectrum_grid;
+        const UpsampledSpectrum::spectrum_data_point_t* UpsampledSpectrum_spectrum_data_points;
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+        const float* UpsampledSpectrum_maxBrightnesses;
+        const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_D65;
+        const UpsampledSpectrum::PolynomialCoefficients* UpsampledSpectrum_coefficients_sRGB_E;
+#endif
+
+        const NodeProcedureSet* nodeProcedureSetBuffer;
+        const SmallNodeDescriptor* smallNodeDescriptorBuffer;
+        const MediumNodeDescriptor* mediumNodeDescriptorBuffer;
+        const LargeNodeDescriptor* largeNodeDescriptorBuffer;
+        const BSDFProcedureSet* bsdfProcedureSetBuffer;
+        const EDFProcedureSet* edfProcedureSetBuffer;
+        const IDFProcedureSet* idfProcedureSetBuffer;
+        const SurfaceMaterialDescriptor* materialDescriptorBuffer;
+
+        const GeometryInstance* geomInstBuffer;
+        const Instance* instBuffer;
+        OptixTraversableHandle topGroup;
+        const SceneBounds* sceneBounds;
+        const uint32_t* instIndices;
+        DiscreteDistribution1D lightInstDist;
+        uint32_t envLightInstIndex;
+
+        optixu::NativeBlockBuffer2D<KernelRNG> rngBuffer;
+        optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer;
+        DiscretizedSpectrum* accumAlbedoBuffer;
+        Normal3D* accumNormalBuffer;
+
+        KernelRNG* linearRngBuffer;
+        DiscretizedSpectrum* atomicAccumBuffer;
+        LightPathVertex* lightVertexCache;
+        uint32_t* numLightVertices;
+        uint32_t numLightPaths;
+
+        uint2 imageSize;
+        uint32_t imageStrideInPixels;
+        int32_t progSampleLensPosition;
+        int32_t progTestLensIntersection;
+        CameraDescriptor cameraDescriptor;
+        uint32_t numAccumFrames;
+        uint32_t limitNumAccumFrames;
+
+        DebugRenderingAttribute debugRenderingAttribute;
+
+        CUDA_DEVICE_FUNCTION void print() const {
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+            vlrprintf("UpsampledSpectrum_spectrum_grid: 0x%p\n", UpsampledSpectrum_spectrum_grid);
+            vlrprintf("UpsampledSpectrum_spectrum_data_points: 0x%p\n", UpsampledSpectrum_spectrum_data_points);
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+            vlrprintf("UpsampledSpectrum_maxBrightnesses: 0x%p\n", UpsampledSpectrum_maxBrightnesses);
+            vlrprintf("UpsampledSpectrum_coefficients_sRGB_D65: 0x%p\n", UpsampledSpectrum_coefficients_sRGB_D65);
+            vlrprintf("UpsampledSpectrum_coefficients_sRGB_E: 0x%p\n", UpsampledSpectrum_coefficients_sRGB_E);
+#endif
+
+            vlrprintf("nodeProcedureSetBuffer: 0x%p\n", nodeProcedureSetBuffer);
+            vlrprintf("smallNodeDescriptorBuffer: 0x%p\n", smallNodeDescriptorBuffer);
+            vlrprintf("mediumNodeDescriptorBuffer: 0x%p\n", mediumNodeDescriptorBuffer);
+            vlrprintf("largeNodeDescriptorBuffer: 0x%p\n", largeNodeDescriptorBuffer);
+            vlrprintf("bsdfProcedureSetBuffer: 0x%p\n", bsdfProcedureSetBuffer);
+            vlrprintf("edfProcedureSetBuffer: 0x%p\n", edfProcedureSetBuffer);
+            vlrprintf("materialDescriptorBuffer: 0x%p\n", materialDescriptorBuffer);
+
+            vlrprintf("geomInstBuffer: 0x%p\n", geomInstBuffer);
+            vlrprintf("instBuffer: 0x%p\n", instBuffer);
+
+            vlrprintf("accumAlbedoBuffer: 0x%p\n", accumAlbedoBuffer);
+            vlrprintf("accumNormalBuffer: 0x%p\n", accumNormalBuffer);
+
+            vlrprintf("topGroup: 0x%p\n", topGroup);
+            vlrprintf("instIndices: 0x%p\n", instIndices);
+            vlrprintf("envLightInstIndex: %u\n", envLightInstIndex);
+
+            vlrprintf("imageSize: %ux%u\n", imageSize.x, imageSize.y);
+            vlrprintf("progSampleLensPosition: %d\n", progSampleLensPosition);
+            vlrprintf("numAccumFrames: %u\n", numAccumFrames);
+
+            vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
+        }
+    };
+    static_assert( // Size consistency check between host and device side
+#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
+                  sizeof(PipelineLaunchParameters) == 600 &&
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+                  sizeof(PipelineLaunchParameters) == 608 &&
+#endif
+                  alignof(PipelineLaunchParameters) == 8,
+                  "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;
+#endif
+
+
+
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     template <typename T>
     CUDA_DEVICE_FUNCTION T calcNode(ShaderNodePlug plug, const T &defaultValue,
@@ -545,3 +746,7 @@ namespace vlr::shared {
     }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 }
+
+#if defined(VLR_Device)
+#include "spectrum_types.cpp"
+#endif

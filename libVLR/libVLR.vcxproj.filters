@@ -166,6 +166,9 @@
     <CudaCompile Include="GPU_kernels\aux_buffer_generator.cu">
       <Filter>GPU Kernels</Filter>
     </CudaCompile>
+    <CudaCompile Include="GPU_kernels\lvc_bpt.cu">
+      <Filter>GPU Kernels</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_E.coeff">

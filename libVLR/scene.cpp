@@ -862,6 +862,7 @@ namespace vlr {
             m_envGeomInst = {};
             m_envGeomInst.geomInstIndex = m_geomInstBuffer.allocate();
             m_envGeomInst.referenceCount = 1;
+            m_envGeomInst.data.geomInstIndex = m_envGeomInst.geomInstIndex;
             m_envGeomInst.data.isActive = false;
 
             m_envInst = {};
@@ -1148,6 +1149,7 @@ namespace vlr {
         for (const SHGeometryInstance* shGeomInst : m_dirtyGeometryInstances) {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
             shGeomInst->surfNode->setupData(shGeomInst->userData, &geomInst.optixGeomInst, &geomInst.data);
+            geomInst.data.geomInstIndex = geomInst.geomInstIndex;
         }
 
         // JP: GASのメモリを初期化していない、もしくはサイズが足りない場合にのみ確保を行う。
