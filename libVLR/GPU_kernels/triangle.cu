@@ -3,7 +3,7 @@
 namespace vlr {
     using namespace shared;
 
-    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeLocalHitPointForTriangle)(
         const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
         const GeometryInstance &geomInst = param.sbtr->geomInst;
 
@@ -44,6 +44,62 @@ namespace vlr {
         surfPt->position = position;
         surfPt->shadingFrame.x = tc0Direction;
         surfPt->shadingFrame.z = shadingNormal;
+        surfPt->isPoint = false;
+        surfPt->atInfinity = false;
+        surfPt->geometricNormal = geometricNormal;
+        surfPt->u = b0;
+        surfPt->v = b1;
+        surfPt->texCoord = texCoord;
+    }
+
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForTriangle)(
+        uint32_t instIndex, uint32_t geomInstIndex, uint32_t primIndex,
+        float u, float v,
+        SurfacePoint* surfPt) {
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
+
+        const Triangle &triangle = geomInst.asTriMesh.triangleBuffer[primIndex];
+        const Vertex &v0 = geomInst.asTriMesh.vertexBuffer[triangle.index0];
+        const Vertex &v1 = geomInst.asTriMesh.vertexBuffer[triangle.index1];
+        const Vertex &v2 = geomInst.asTriMesh.vertexBuffer[triangle.index2];
+
+        const StaticTransform &transform = inst.transform;
+
+        Vector3D e1 = transform * (v1.position - v0.position);
+        Vector3D e2 = transform * (v2.position - v0.position);
+        Normal3D geometricNormal = cross(e1, e2);
+        float area = geometricNormal.length() / 2; // TODO: スケーリングの考慮。
+        geometricNormal /= 2 * area;
+
+        float b0 = u, b1 = v, b2 = 1.0f - u - v;
+        Point3D position = b0 * v0.position + b1 * v1.position + b2 * v2.position;
+        Normal3D shadingNormal = b0 * v0.normal + b1 * v1.normal + b2 * v2.normal;
+        Vector3D tc0Direction = b0 * v0.tc0Direction + b1 * v1.tc0Direction + b2 * v2.tc0Direction;
+        TexCoord2D texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
+
+        position = transform * position;
+        shadingNormal = normalize(transform * shadingNormal);
+        tc0Direction = transform * tc0Direction;
+        if (!shadingNormal.allFinite() || !tc0Direction.allFinite()) {
+            Vector3D bitangent;
+            shadingNormal = geometricNormal;
+            shadingNormal.makeCoordinateSystem(&tc0Direction, &bitangent);
+        }
+
+        // JP: 法線と接線が直交することを保証する。
+        //     直交性の消失は重心座標補間によっておこる？
+        // EN: guarantee the orthogonality between the normal and tangent.
+        //     Orthogonality break might be caused by barycentric interpolation?
+        float dotNT = dot(shadingNormal, tc0Direction);
+        tc0Direction = tc0Direction - dotNT * shadingNormal;
+
+        surfPt->instIndex = instIndex;
+        surfPt->geomInstIndex = geomInstIndex;
+        surfPt->primIndex = primIndex;
+
+        surfPt->position = position;
+        surfPt->shadingFrame = ReferenceFrame(tc0Direction, shadingNormal);
         surfPt->isPoint = false;
         surfPt->atInfinity = false;
         surfPt->geometricNormal = geometricNormal;

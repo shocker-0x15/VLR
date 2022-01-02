@@ -7,8 +7,42 @@ namespace vlr::shared {
 
 
 
+    enum class BSDFTier {
+        Debug = 0,
+        Unidirectional,
+        Bidirectional,
+    };
+
+    template <TransportMode transportMode, BSDFTier tier = BSDFTier::Unidirectional>
+    class BSDF;
+
     template <TransportMode transportMode>
-    class BSDF {
+    class BSDF<transportMode, BSDFTier::Debug> {
+#define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
+        uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
+
+        ProgSigBSDFGetBaseColor progGetBaseColor;
+
+    public:
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION BSDF(
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+            auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
+            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
+
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+
+            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+            return progGetBaseColor(data);
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    };
+    
+    template <TransportMode transportMode>
+    class BSDF<transportMode, BSDFTier::Unidirectional> {
 #define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
         uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
 
@@ -119,6 +153,137 @@ namespace vlr::shared {
                 return 0;
             }
             float ret = evaluatePDFInternal(query, dirLocal);
+            VLRAssert(vlr::isfinite(ret) && ret >= 0,
+                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), dirPDF: %g",
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(dirLocal), ret);
+            return ret;
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+    };
+
+    template <TransportMode transportMode>
+    class BSDF<transportMode, BSDFTier::Bidirectional> {
+#define VLR_MAX_NUM_BSDF_PARAMETER_SLOTS (32)
+        uint32_t data[VLR_MAX_NUM_BSDF_PARAMETER_SLOTS];
+
+        ProgSigBSDFGetBaseColor progGetBaseColor;
+        ProgSigBSDFmatches progMatches;
+        ProgSigBSDFSampleWithRevInternal progSampleInternal;
+        ProgSigBSDFEvaluateWithRevInternal progEvaluateInternal;
+        ProgSigBSDFEvaluatePDFWithRevInternal progEvaluatePDFInternal;
+
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+            return progMatches(data, dirType);
+        }
+        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+            const BSDFQuery &query, float uComponent, const float uDir[2],
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult) const {
+            return progSampleInternal(data, query, uComponent, uDir, result, revResult);
+        }
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue) const {
+            return progEvaluateInternal(data, query, dirLocal, revValue);
+        }
+        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue) const {
+            return progEvaluatePDFInternal(data, query, dirLocal, revValue);
+        }
+#endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+
+    public:
+#if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
+        CUDA_DEVICE_FUNCTION BSDF(
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
+            auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
+            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
+
+            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+
+            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+            progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+            progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternal);
+            progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
+            progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+            return progGetBaseColor(data);
+        }
+
+        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
+            return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+            const BSDFQuery &query, const BSDFSample &sample,
+            BSDFQueryResult* result, BSDFQueryReverseResult* revResult) const {
+            if (!matches(query.dirTypeFilter)) {
+                result->dirPDF = 0.0f;
+                result->sampledType = DirectionType();
+                return SampledSpectrum::Zero();
+            }
+            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
+            float snCorrection;
+            if constexpr (transportMode == TransportMode::Radiance) {
+                snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
+                if (result->dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            else {
+                snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
+                if (query.dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            SampledSpectrum ret = fs_sn * snCorrection;
+            VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
+                      "sample: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), dirPDF: %g, "
+                      "snCorrection: %g",
+                      sample.uComponent, sample.uDir[0], sample.uDir[1],
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(result->dirLocal), result->dirPDF,
+                      snCorrection);
+            return ret;
+        }
+
+        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            SampledSpectrum* revValue) const {
+            SampledSpectrum fs_sn = evaluateInternal(query, dirLocal, revValue);
+            float snCorrection;
+            if constexpr (transportMode == TransportMode::Radiance) {
+                snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
+                if (dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            else {
+                snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
+                if (query.dirLocal.z == 0.0f)
+                    snCorrection = 0.0f;
+            }
+            SampledSpectrum ret = fs_sn * snCorrection;
+            VLRAssert(ret.allFinite() && !ret.hasNegative(),
+                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "rDir: (%g, %g, %g), "
+                      "snCorrection: %g",
+                      VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
+                      VLR3DPrint(dirLocal),
+                      snCorrection);
+            return ret;
+        }
+
+        CUDA_DEVICE_FUNCTION float evaluatePDF(
+            const BSDFQuery &query, const Vector3D &dirLocal,
+            float* revValue) const {
+            if (!matches(query.dirTypeFilter)) {
+                return 0;
+            }
+            float ret = evaluatePDFInternal(query, dirLocal, revValue);
             VLRAssert(vlr::isfinite(ret) && ret >= 0,
                       "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g",
@@ -295,8 +460,12 @@ namespace vlr::shared {
 
 
 
-    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<
+    using ProgSigDecodeLocalHitPoint = optixu::DirectCallableProgramID<
         void(const HitPointParameter &, SurfacePoint*, float*)>;
+    using ProgSigDecodeHitPoint = optixu::DirectCallableProgramID<
+        void(uint32_t instIndex, uint32_t geomInstIndex, uint32_t primIndex,
+             float u, float v,
+             SurfacePoint* surfPt)>;
     using ProgSigFetchAlpha = optixu::DirectCallableProgramID<
         float(const TexCoord2D &)>;
     using ProgSigFetchNormal = optixu::DirectCallableProgramID<
@@ -345,7 +514,7 @@ namespace vlr::shared {
 
         SurfacePoint surfPt;
         float hypAreaPDF;
-        ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        ProgSigDecodeLocalHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeLocalHitPoint);
         surfPt.instIndex = optixGetInstanceId();
         surfPt.geomInstIndex = hp.sbtr->geomInst.geomInstIndex;
         surfPt.geomInstIndex = hp.primIndex;
@@ -419,7 +588,7 @@ namespace vlr::shared {
 
     CUDA_DEVICE_FUNCTION void calcSurfacePoint(
         const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
-        ProgSigDecodeHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeHitPoint);
+        ProgSigDecodeLocalHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeLocalHitPoint);
         surfPt->instIndex = optixGetInstanceId();
         surfPt->geomInstIndex = hp.sbtr->geomInst.geomInstIndex;
         surfPt->primIndex = hp.primIndex;

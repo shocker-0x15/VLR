@@ -116,6 +116,8 @@ namespace vlr {
     // static
     void TriangleMeshSurfaceNode::initialize(Context &context) {
         OptiXProgramSet programSet;
+        programSet.dcDecodeLocalHitPointForTriangle = context.createDirectCallableProgram(
+            OptiXModule_Triangle, RT_DC_NAME_STR("decodeLocalHitPointForTriangle"));
         programSet.dcDecodeHitPointForTriangle = context.createDirectCallableProgram(
             OptiXModule_Triangle, RT_DC_NAME_STR("decodeHitPointForTriangle"));
         programSet.dcSampleTriangleMesh = context.createDirectCallableProgram(
@@ -129,6 +131,7 @@ namespace vlr {
         OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         context.destroyDirectCallableProgram(programSet.dcSampleTriangleMesh);
         context.destroyDirectCallableProgram(programSet.dcDecodeHitPointForTriangle);
+        context.destroyDirectCallableProgram(programSet.dcDecodeLocalHitPointForTriangle);
         s_optiXProgramSets.erase(context.getID());
     }
 
@@ -261,7 +264,7 @@ namespace vlr {
     }
 
     void TriangleMeshSurfaceNode::setupData(
-        uint32_t userData,
+        uint32_t userData, uint32_t geomInstIndex,
         optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const {
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         const MaterialGroup &matGroup = m_materialGroups[userData];
@@ -270,7 +273,9 @@ namespace vlr {
         geomInst->asTriMesh.triangleBuffer = matGroup.optixIndexBuffer.getDevicePointer();
         matGroup.primDist.getInternalType(&geomInst->asTriMesh.primDistribution);
         geomInst->asTriMesh.aabb = matGroup.aabb;
+        geomInst->geomInstIndex = geomInstIndex;
         geomInst->progSample = progSet.dcSampleTriangleMesh;
+        geomInst->progDecodeLocalHitPoint = progSet.dcDecodeLocalHitPointForTriangle;
         geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForTriangle;
         geomInst->nodeNormal = matGroup.nodeNormal.getSharedType();
         geomInst->nodeTangent = matGroup.nodeTangent.getSharedType();
@@ -298,6 +303,8 @@ namespace vlr {
     // static
     void PointSurfaceNode::initialize(Context &context) {
         OptiXProgramSet programSet;
+        programSet.dcDecodeHitPointForPoint = context.createDirectCallableProgram(
+            OptiXModule_Point, RT_DC_NAME_STR("decodeHitPointForPoint"));
         programSet.dcSamplePoint = context.createDirectCallableProgram(
             OptiXModule_Point, RT_DC_NAME_STR("samplePoint"));
 
@@ -308,6 +315,7 @@ namespace vlr {
     void PointSurfaceNode::finalize(Context &context) {
         OptiXProgramSet &programSet = s_optiXProgramSets.at(context.getID());
         context.destroyDirectCallableProgram(programSet.dcSamplePoint);
+        context.destroyDirectCallableProgram(programSet.dcDecodeHitPointForPoint);
         s_optiXProgramSets.erase(context.getID());
     }
 
@@ -405,7 +413,7 @@ namespace vlr {
     }
 
     void PointSurfaceNode::setupData(
-        uint32_t userData,
+        uint32_t userData, uint32_t geomInstIndex,
         optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const {
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
         const MaterialGroup &matGroup = m_materialGroups[userData];
@@ -413,8 +421,10 @@ namespace vlr {
         geomInst->asPoints.vertexBuffer = m_optixVertexBuffer.getDevicePointer();
         geomInst->asPoints.indexBuffer = matGroup.optixIndexBuffer.getDevicePointer();
         matGroup.primDist.getInternalType(&geomInst->asPoints.primDistribution);
+        geomInst->geomInstIndex = geomInstIndex;
         geomInst->progSample = progSet.dcSamplePoint;
-        geomInst->progDecodeHitPoint = 0;
+        geomInst->progDecodeLocalHitPoint = 0;
+        geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForPoint;
         geomInst->nodeNormal = shared::ShaderNodePlug::Invalid();
         geomInst->nodeTangent = shared::ShaderNodePlug::Invalid();
         geomInst->nodeAlpha = shared::ShaderNodePlug::Invalid();
@@ -482,12 +492,14 @@ namespace vlr {
     }
 
     void InfiniteSphereSurfaceNode::setupData(
-        uint32_t userData,
+        uint32_t userData, uint32_t geomInstIndex,
         optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const {
         const OptiXProgramSet &progSet = s_optiXProgramSets.at(m_context.getID());
 
         m_material->getImportanceMap().getInternalType(&geomInst->asInfSphere.importanceMap);
+        geomInst->geomInstIndex = geomInstIndex;
         geomInst->progSample = progSet.dcSampleInfiniteSphere;
+        geomInst->progDecodeLocalHitPoint = 0;
         geomInst->progDecodeHitPoint = progSet.dcDecodeHitPointForInfiniteSphere;
         geomInst->nodeNormal = shared::ShaderNodePlug::Invalid();
         geomInst->nodeTangent = shared::ShaderNodePlug::Invalid();
@@ -862,7 +874,6 @@ namespace vlr {
             m_envGeomInst = {};
             m_envGeomInst.geomInstIndex = m_geomInstBuffer.allocate();
             m_envGeomInst.referenceCount = 1;
-            m_envGeomInst.data.geomInstIndex = m_envGeomInst.geomInstIndex;
             m_envGeomInst.data.isActive = false;
 
             m_envInst = {};
@@ -1141,15 +1152,15 @@ namespace vlr {
 
         if (m_envIsDirty) {
             if (m_envNode)
-                m_envNode->setupData(0, nullptr, &m_envGeomInst.data);
+                m_envNode->setupData(0, m_envGeomInst.geomInstIndex, nullptr, &m_envGeomInst.data);
         }
 
         // JP: GPUに送るジオメトリインスタンスのデータをセットアップする。
         // EN: Setup the geometry instance data sent to a GPU.
         for (const SHGeometryInstance* shGeomInst : m_dirtyGeometryInstances) {
             GeometryInstance &geomInst = m_geometryInstances.at(shGeomInst);
-            shGeomInst->surfNode->setupData(shGeomInst->userData, &geomInst.optixGeomInst, &geomInst.data);
-            geomInst.data.geomInstIndex = geomInst.geomInstIndex;
+            shGeomInst->surfNode->setupData(
+                shGeomInst->userData, geomInst.geomInstIndex, &geomInst.optixGeomInst, &geomInst.data);
         }
 
         // JP: GASのメモリを初期化していない、もしくはサイズが足りない場合にのみ確保を行う。

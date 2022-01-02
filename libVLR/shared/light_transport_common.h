@@ -59,28 +59,71 @@ namespace vlr::shared {
         LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
 
     struct LVCBPTLightPathReadOnlyPayload {
-        WavelengthSamples wls;
         float prevDirPDF;
+        float prevCosTerm;
+        float prevRevAreaPDF;
         DirectionType prevSampledType;
-        unsigned int pathLength : 16;
-        unsigned int maxLengthTerminate : 1;
     };
 
     struct LVCBPTLightPathWriteOnlyPayload {
         Point3D nextOrigin;
         Vector3D nextDirection;
         float dirPDF;
+        float cosTerm;
+        float revAreaPDF;
         DirectionType sampledType;
-        unsigned int terminate : 1;
     };
 
     struct LVCBPTLightPathReadWritePayload {
         KernelRNG rng;
         SampledSpectrum alpha;
+        float totalPowerProbDensity;
+        float prevTotalPowerProbDensity;
+        float prevSumPowerProbDensities;
+        unsigned int singleIsSelected : 1;
+        unsigned int pathLength : 16;
+        unsigned int maxLengthTerminate : 1;
+        unsigned int terminate : 1;
+    };
+
+    struct LVCBPTEyePathReadOnlyPayload {
+        float prevDirPDF;
+        float prevCosTerm;
+        float prevRevAreaPDF;
+        DirectionType prevSampledType;
+    };
+
+    struct LVCBPTEyePathWriteOnlyPayload {
+        Point3D nextOrigin;
+        Vector3D nextDirection;
+        float dirPDF;
+        float cosTerm;
+        float revAreaPDF;
+        DirectionType sampledType;
+    };
+
+    struct LVCBPTEyePathReadWritePayload {
+        KernelRNG rng;
+        SampledSpectrum alpha;
+        SampledSpectrum contribution;
+        float totalPowerProbDensity;
+        float prevTotalPowerProbDensity;
+        float prevSumPowerProbDensities;
+        unsigned int singleIsSelected : 1;
+        unsigned int pathLength : 16;
+        unsigned int maxLengthTerminate : 1;
+        unsigned int terminate : 1;
+    };
+
+    struct LVCBPTEyePathExtraPayload {
+        SampledSpectrum firstHitAlbedo;
+        Normal3D firstHitNormal;
     };
 
     using LVCBPTLightPathPayloadSignature = optixu::PayloadSignature<
         LVCBPTLightPathReadOnlyPayload*, LVCBPTLightPathWriteOnlyPayload*, LVCBPTLightPathReadWritePayload*>;
+    using LVCBPTEyePathPayloadSignature = optixu::PayloadSignature<
+        LVCBPTEyePathReadOnlyPayload*, LVCBPTEyePathWriteOnlyPayload*, LVCBPTEyePathReadWritePayload*, LVCBPTEyePathExtraPayload*>;
 
     using AuxBufGenPayloadSignature = optixu::PayloadSignature<
         WavelengthSamples, KernelRNG, SampledSpectrum, Normal3D>;
@@ -134,7 +177,7 @@ namespace vlr::shared {
         //printf("%u, %g, %u, %g\n", instIndex, instProb, geomInstIndex, geomInstProb);
         const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
         *light = SurfaceLight(instIndex, geomInstIndex,
-                              static_cast<ProgSigSurfaceLight_sample>(geomInst.progSample));
+                              ProgSigSurfaceLight_sample(geomInst.progSample));
         *lightProb = instProb * geomInstProb;
     }
 

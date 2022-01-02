@@ -109,14 +109,11 @@ namespace vlr {
         SampledSpectrum value;
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor) {
             const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
-            BSDF<TransportMode::Radiance> bsdf(matDesc, surfPt, wls);
-
-            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
-            auto progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+            BSDF<TransportMode::Radiance, BSDFTier::Debug> bsdf(matDesc, surfPt, wls);
 
             TripletSpectrum whitePoint = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
                                                                1, 1, 1);
-            value = progGetBaseColor(reinterpret_cast<const uint32_t*>(&bsdf)) * whitePoint.evaluate(wls);
+            value = bsdf.getBaseColor() * whitePoint.evaluate(wls);
         }
         else {
             value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);

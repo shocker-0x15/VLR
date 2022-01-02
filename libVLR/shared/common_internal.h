@@ -67,6 +67,7 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <algorithm>
 #include <memory>
 #include <functional>
+#include <random>
 
 #include <immintrin.h>
 

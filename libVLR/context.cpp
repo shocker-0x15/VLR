@@ -286,6 +286,7 @@ namespace vlr {
             p.pipeline.setPipelineOptions(
                 std::max({
                     shared::LVCBPTLightPathPayloadSignature::numDwords,
+                    shared::LVCBPTEyePathPayloadSignature::numDwords,
                     shared::ShadowPayloadSignature::numDwords
                          }),
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
@@ -315,13 +316,13 @@ namespace vlr {
 
             p.lightPathRayGen = p.pipeline.createRayGenProgram(
                 p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("lvcbptLightPath"));
-            //p.eyePathRayGen = p.pipeline.createRayGenProgram(
-            //    p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("lvcbptEyePath"));
+            p.eyePathRayGen = p.pipeline.createRayGenProgram(
+                p.modules[OptiXModule_LightTransport], RT_RG_NAME_STR("lvcbptEyePath"));
 
             p.lightPathMiss = p.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
-            //p.eyePathMiss = p.pipeline.createMissProgram(
-            //    p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("lvcbptEyePath"));
+            p.eyePathMiss = p.pipeline.createMissProgram(
+                p.modules[OptiXModule_LightTransport], RT_MS_NAME_STR("lvcbptEyePath"));
             p.connectionMiss = p.pipeline.createMissProgram(
                 optixu::Module(), nullptr);
 
@@ -331,12 +332,12 @@ namespace vlr {
             p.lightPathHitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
                 p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("lvcbptLightPath"),
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("lvcbptAnyHitWithAlpha"));
-            //p.eyePathHitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
-            //    p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("lvcbptEyePath"),
-            //    optixu::Module(), nullptr);
-            //p.eyePathHitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
-            //    p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("lvcbptEyePath"),
-            //    p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("lvcbptAnyHitWithAlpha"));
+            p.eyePathHitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("lvcbptEyePath"),
+                optixu::Module(), nullptr);
+            p.eyePathHitGroupWithAlpha = p.pipeline.createHitProgramGroupForTriangleIS(
+                p.modules[OptiXModule_LightTransport], RT_CH_NAME_STR("lvcbptEyePath"),
+                p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("lvcbptAnyHitWithAlpha"));
             p.connectionHitGroupDefault = p.pipeline.createHitProgramGroupForTriangleIS(
                 optixu::Module(), nullptr,
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitDefault"));
@@ -345,10 +346,8 @@ namespace vlr {
                 p.modules[OptiXModule_LightTransport], RT_AH_NAME_STR("shadowAnyHitWithAlpha"));
             p.emptyHitGroup = p.pipeline.createEmptyHitProgramGroup();
 
-            p.pipeline.setRayGenerationProgram(p.lightPathRayGen);
-            //p.pipeline.setRayGenerationProgram(p.eyePathRayGen);
             p.pipeline.setMissProgram(shared::LVCBPTRayType::LightPath, p.lightPathMiss);
-            //p.pipeline.setMissProgram(shared::LVCBPTRayType::EyePath, p.eyePathMiss);
+            p.pipeline.setMissProgram(shared::LVCBPTRayType::EyePath, p.eyePathMiss);
             p.pipeline.setMissProgram(shared::LVCBPTRayType::Connection, p.connectionMiss);
 
             for (int rIdx = 0; rIdx < shared::MaxNumRayTypes; ++rIdx) {
@@ -357,10 +356,12 @@ namespace vlr {
             }
             m_optix.materialDefault.setHitGroup(shared::LVCBPTRayType::LightPath, p.lightPathHitGroupDefault);
             m_optix.materialWithAlpha.setHitGroup(shared::LVCBPTRayType::LightPath, p.lightPathHitGroupWithAlpha);
-            //m_optix.materialDefault.setHitGroup(shared::LVCBPTRayType::EyePath, p.eyePathHitGroupDefault);
-            //m_optix.materialWithAlpha.setHitGroup(shared::LVCBPTRayType::EyePath, p.eyePathHitGroupWithAlpha);
+            m_optix.materialDefault.setHitGroup(shared::LVCBPTRayType::EyePath, p.eyePathHitGroupDefault);
+            m_optix.materialWithAlpha.setHitGroup(shared::LVCBPTRayType::EyePath, p.eyePathHitGroupWithAlpha);
             m_optix.materialDefault.setHitGroup(shared::LVCBPTRayType::Connection, p.connectionHitGroupDefault);
             m_optix.materialWithAlpha.setHitGroup(shared::LVCBPTRayType::Connection, p.connectionHitGroupWithAlpha);
+
+            p.rng = std::mt19937(1731230721);
         }
 
         // Pipeline for Aux Buffer Generator
@@ -578,7 +579,9 @@ namespace vlr {
         m_optix.launchParams.linearRngBuffer = m_optix.linearRngBuffer.getDevicePointer();
 
         m_optix.lightVertexCache.initialize(m_cuContext, g_bufferType, OptiX::numLightPaths * 10);
+        m_optix.launchParams.lightVertexCache = m_optix.lightVertexCache.getDevicePointer();
         CUDADRV_CHECK(cuMemAlloc(&m_optix.numLightVertices, sizeof(shared::LightPathVertex)));
+        m_optix.launchParams.numLightVertices = reinterpret_cast<uint32_t*>(m_optix.numLightVertices);
 
 
 
@@ -1232,15 +1235,18 @@ namespace vlr {
             m_optix.launchParams.limitNumAccumFrames = limitNumAccumFrames;
             m_optix.launchParams.debugRenderingAttribute = debugAttr;
 
-            CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
-                                            sizeof(m_optix.launchParams), stream));
-
             if (m_renderer == VLRRenderer_PathTracing) {
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                                sizeof(m_optix.launchParams), stream));
+
                 m_optix.pathTracing.pipeline.launch(
                     stream, m_optix.launchParamsOnDevice,
                     imageSize.x, imageSize.y, 1);
             }
             else if (m_renderer == VLRRenderer_LightTracing) {
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                                sizeof(m_optix.launchParams), stream));
+
                 m_optix.auxBufferGenerator.pipeline.launch(
                     stream, m_optix.launchParamsOnDevice,
                     imageSize.x, imageSize.y, 1);
@@ -1255,9 +1261,50 @@ namespace vlr {
                     stream, m_accumulateFromAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
                     m_optix.atomicAccumBuffer.getDevicePointer(),
                     m_optix.accumBuffer.getBlockBuffer2D(),
-                    imageSize, imageStrideInPixels, m_numAccumFrames);
+                    imageSize, imageStrideInPixels, static_cast<uint32_t>(firstFrame));
+            }
+            else if (m_renderer == VLRRenderer_BPT) {
+                std::uniform_real_distribution<float> u01;
+                WavelengthSamples commonWls = WavelengthSamples::createWithEqualOffsets(
+                    u01(m_optix.lvcbpt.rng), u01(m_optix.lvcbpt.rng),
+                    &m_optix.launchParams.wavelengthProbability);
+                m_optix.launchParams.commonWavelengthSamples = commonWls;
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                                sizeof(m_optix.launchParams), stream));
+
+                uint32_t numLightVertices = 0;
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(
+                    m_optix.numLightVertices, &numLightVertices, sizeof(numLightVertices), stream));
+
+                m_optix.lvcbpt.pipeline.setRayGenerationProgram(m_optix.lvcbpt.lightPathRayGen);
+                m_optix.lvcbpt.pipeline.launch(
+                    stream, m_optix.launchParamsOnDevice, OptiX::numLightPaths, 1, 1);
+
+                m_resetAtomicAccumBuffer(
+                    stream, m_resetAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
+                    m_optix.atomicAccumBuffer.getDevicePointer(),
+                    imageSize, imageStrideInPixels);
+                m_optix.lvcbpt.pipeline.setRayGenerationProgram(m_optix.lvcbpt.eyePathRayGen);
+                m_optix.lvcbpt.pipeline.launch(
+                    stream, m_optix.launchParamsOnDevice,
+                    imageSize.x, imageSize.y, 1);
+                m_accumulateFromAtomicAccumBuffer(
+                    stream, m_accumulateFromAtomicAccumBuffer.calcGridDim(imageSize.x, imageSize.y),
+                    m_optix.atomicAccumBuffer.getDevicePointer(),
+                    m_optix.accumBuffer.getBlockBuffer2D(),
+                    imageSize, imageStrideInPixels, 0u);
+
+                CUDADRV_CHECK(cuStreamSynchronize(stream));
+                CUDADRV_CHECK(cuMemcpyDtoH(
+                    &numLightVertices, m_optix.numLightVertices, sizeof(numLightVertices)));
+                sizeof(shared::LightPathVertex);
+                std::vector<shared::LightPathVertex> lightPathCache = m_optix.lightVertexCache;
+                printf("");
             }
             else if (m_renderer == VLRRenderer_DebugRendering) {
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                                                sizeof(m_optix.launchParams), stream));
+
                 if (m_debugRenderingAttribute < VLRDebugRenderingMode_DenoiserAlbedo) {
                     m_optix.debugRendering.pipeline.launch(
                         stream, m_optix.launchParamsOnDevice,

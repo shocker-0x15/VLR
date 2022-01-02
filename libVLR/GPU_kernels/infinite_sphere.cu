@@ -15,25 +15,44 @@ namespace vlr {
 
 
     RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForInfiniteSphere)(
-        const HitPointParameter &param, SurfacePoint* surfPt, float* hypAreaPDF) {
-        Vector3D direction = Vector3D::fromPolarYUp(param.phi, param.theta);
-        float sinPhi, cosPhi;
-        ::vlr::sincos(param.phi, &sinPhi, &cosPhi);
-        Vector3D texCoord0Dir = Vector3D(-cosPhi, 0.0f, -sinPhi);
+        uint32_t instIndex, uint32_t geomInstIndex, uint32_t primIndex,
+        float u, float v,
+        SurfacePoint* surfPt) {
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
 
-        surfPt->position = Point3D(direction.x, direction.y, direction.z);
-        surfPt->shadingFrame.x = texCoord0Dir;
-        surfPt->shadingFrame.z = -direction;
+        float posPhi = u;
+        float theta = v;
+        float phi = posPhi + inst.rotationPhi;
+        phi = phi - ::vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+
+        Vector3D direction = Vector3D::fromPolarYUp(posPhi, theta);
+        Point3D position = Point3D(direction.x, direction.y, direction.z);
+
+        float sinPhi, cosPhi;
+        ::vlr::sincos(posPhi, &sinPhi, &cosPhi);
+        Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
+
+        Normal3D geometricNormal = -static_cast<Vector3D>(position);
+
+        ReferenceFrame shadingFrame;
+        shadingFrame.x = texCoord0Dir;
+        shadingFrame.z = geometricNormal;
+        shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+        VLRAssert(absDot(shadingFrame.z, shadingFrame.x) < 0.01f, "shading normal and tangent must be orthogonal.");
+
+        surfPt->instIndex = instIndex;
+        surfPt->geomInstIndex = geomInstIndex;
+        surfPt->primIndex = 0;
+
+        surfPt->position = position;
+        surfPt->shadingFrame = shadingFrame;
         surfPt->isPoint = false;
         surfPt->atInfinity = true;
-
-        surfPt->geometricNormal = -direction;
-        surfPt->u = param.phi;
-        surfPt->v = param.theta;
-        surfPt->texCoord = TexCoord2D(param.phi / (2 * VLR_M_PI), param.theta / VLR_M_PI);
-
-        // calculate a hypothetical area PDF value in the case where the program sample this point as light.
-        *hypAreaPDF = 0;
+        surfPt->geometricNormal = geometricNormal;
+        surfPt->u = posPhi;
+        surfPt->v = theta;
+        surfPt->texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
     }
 
 

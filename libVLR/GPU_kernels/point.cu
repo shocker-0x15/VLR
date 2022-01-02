@@ -3,6 +3,38 @@
 namespace vlr {
     using namespace shared;
 
+    RT_CALLABLE_PROGRAM void RT_DC_NAME(decodeHitPointForPoint)(
+        uint32_t instIndex, uint32_t geomInstIndex, uint32_t primIndex,
+        float u, float v,
+        SurfacePoint* surfPt) {
+        const Instance &inst = plp.instBuffer[instIndex];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
+
+        uint32_t pointIndex = geomInst.asPoints.indexBuffer[primIndex];
+        const Vertex &vertex = geomInst.asTriMesh.vertexBuffer[pointIndex];
+
+        const StaticTransform &transform = inst.transform;
+
+        Point3D position = transform * vertex.position;
+        Normal3D shadingNormal = normalize(transform * vertex.normal);
+        Vector3D tc0Direction = normalize(transform * vertex.tc0Direction);
+
+        surfPt->instIndex = instIndex;
+        surfPt->geomInstIndex = geomInstIndex;
+        surfPt->primIndex = primIndex;
+
+        surfPt->position = position;
+        surfPt->shadingFrame = ReferenceFrame(tc0Direction, shadingNormal);
+        surfPt->isPoint = true;
+        surfPt->atInfinity = false;
+        surfPt->geometricNormal = shadingNormal;
+        surfPt->u = u;
+        surfPt->v = v;
+        surfPt->texCoord = TexCoord2D(0.0f, 0.0f);
+    }
+
+
+
     RT_CALLABLE_PROGRAM void RT_DC_NAME(samplePoint)(
         uint32_t instIndex, uint32_t geomInstIndex,
         const SurfaceLightPosSample &sample, const Point3D &shadingPoint,

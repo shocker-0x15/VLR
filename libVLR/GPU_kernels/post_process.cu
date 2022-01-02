@@ -18,14 +18,14 @@ namespace vlr {
     CUDA_DEVICE_KERNEL void accumulateFromAtomicAccumBuffer(
         const DiscretizedSpectrum* atomicAccumBuffer,
         optixu::BlockBuffer2D<SpectrumStorage, 0> accumBuffer,
-        uint2 imageSize, uint32_t imageStrideInPixels, uint32_t numAccumFrames) {
+        uint2 imageSize, uint32_t imageStrideInPixels, uint32_t reset) {
         uint2 launchIndex = make_uint2(blockDim.x * blockIdx.x + threadIdx.x,
                                        blockDim.y * blockIdx.y + threadIdx.y);
         if (launchIndex.x >= imageSize.x || launchIndex.y >= imageSize.y)
             return;
         uint32_t linearIndex = launchIndex.y * imageStrideInPixels + launchIndex.x;
         const DiscretizedSpectrum &srcValue = atomicAccumBuffer[linearIndex];
-        if (numAccumFrames == 1)
+        if (reset)
             accumBuffer[launchIndex].reset();
         accumBuffer[launchIndex].add(srcValue);
     }

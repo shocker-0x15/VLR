@@ -183,7 +183,7 @@ namespace vlr {
 
         virtual bool isIntersectable() const { return true; }
         virtual void setupData(
-            uint32_t userData,
+            uint32_t userData, uint32_t geomInstIndex,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const = 0;
     };
 
@@ -191,6 +191,7 @@ namespace vlr {
 
     class TriangleMeshSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
+            uint32_t dcDecodeLocalHitPointForTriangle;
             uint32_t dcDecodeHitPointForTriangle;
             uint32_t dcSampleTriangleMesh;
         };
@@ -256,7 +257,7 @@ namespace vlr {
             const ShaderNodePlug &nodeNormal, const ShaderNodePlug& nodeTangent, const ShaderNodePlug &nodeAlpha);
 
         void setupData(
-            uint32_t userData,
+            uint32_t userData, uint32_t geomInstIndex,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const;
     };
 
@@ -264,6 +265,7 @@ namespace vlr {
 
     class PointSurfaceNode : public SurfaceNode {
         struct OptiXProgramSet {
+            uint32_t dcDecodeHitPointForPoint;
             uint32_t dcSamplePoint;
         };
 
@@ -316,7 +318,7 @@ namespace vlr {
 
         bool isIntersectable() const override { return false; }
         void setupData(
-            uint32_t userData,
+            uint32_t userData, uint32_t geomInstIndex,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const override;
     };
 
@@ -347,7 +349,7 @@ namespace vlr {
 
         bool isIntersectable() const override { return false; }
         void setupData(
-            uint32_t userData,
+            uint32_t userData, uint32_t geomInstIndex,
             optixu::GeometryInstance* optixGeomInst, shared::GeometryInstance* geomInst) const override;
     };
 

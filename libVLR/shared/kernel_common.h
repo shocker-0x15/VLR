@@ -70,6 +70,7 @@ namespace vlr::shared {
 
         // TODO: これらは関数ポインターに相当するのでインスタンス変数的に扱われるのはおかしい。
         uint32_t progSample;
+        uint32_t progDecodeLocalHitPoint;
         uint32_t progDecodeHitPoint;
 
         ShaderNodePlug nodeNormal;
@@ -84,6 +85,7 @@ namespace vlr::shared {
 
         CUDA_DEVICE_FUNCTION void print() const {
             vlrprintf("progSample: %u\n", progSample);
+            vlrprintf("progDecodeLocalHitPoint: %u\n", progDecodeLocalHitPoint);
             vlrprintf("progDecodeHitPoint: %u\n", progDecodeHitPoint);
             vlrprintf("nodeNormal: nodeType: %u, plugType: %u, descIndex: %u, option: %u\n",
                       nodeNormal.nodeType, nodeNormal.plugType, nodeNormal.nodeDescIndex, nodeNormal.option);
@@ -526,9 +528,13 @@ namespace vlr::shared {
         uint32_t geomInstIndex;
         uint32_t primIndex;
         float u, v;
+        float powerProbDensity;
+        float prevPowerProbDensity;
+        float prevSumPowerProbDensities;
         SampledSpectrum flux;
         Vector3D dirIn;
         DirectionType sampledType;
+        unsigned int wlSelected : 1;
     };
 
 
@@ -588,6 +594,8 @@ namespace vlr::shared {
         LightPathVertex* lightVertexCache;
         uint32_t* numLightVertices;
         uint32_t numLightPaths;
+        WavelengthSamples commonWavelengthSamples;
+        float wavelengthProbability;
 
         uint2 imageSize;
         uint32_t imageStrideInPixels;
@@ -636,9 +644,9 @@ namespace vlr::shared {
     };
     static_assert( // Size consistency check between host and device side
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-                  sizeof(PipelineLaunchParameters) == 600 &&
-#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
                   sizeof(PipelineLaunchParameters) == 608 &&
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+                  sizeof(PipelineLaunchParameters) == 616 &&
 #endif
                   alignof(PipelineLaunchParameters) == 8,
                   "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");

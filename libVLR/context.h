@@ -222,6 +222,8 @@ namespace vlr {
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
+
+                std::mt19937 rng;
             } lvcbpt;
 
             struct AuxBufferGenerator {

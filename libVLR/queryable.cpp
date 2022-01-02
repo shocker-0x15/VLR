@@ -146,6 +146,35 @@ namespace vlr {
     }
 
     template <typename EnumType>
+    static EnumType getEnumValueFromMember(const std::string &enumStr, const char* member) {
+        if (!s_enumTableInitialized)
+            initializeEnumTables();
+
+        if (s_enumNameToIntTables.count(enumStr) == 0)
+            return static_cast<EnumType>(0xFFFFFFFF);
+
+        const auto& table = s_enumNameToIntTables.at(enumStr);
+        if (table.count(member) == 0)
+            return static_cast<EnumType>(0xFFFFFFFF);
+
+        return static_cast<EnumType>(table.at(member));
+    }
+    template <typename EnumType>
+    static const char* getEnumMemberFromValue(const std::string &enumStr, EnumType value) {
+        if (!s_enumTableInitialized)
+            initializeEnumTables();
+
+        if (s_enumIntToNameTables.count(enumStr) == 0)
+            return nullptr;
+
+        const auto& table = s_enumIntToNameTables.at(enumStr);
+        if (table.count(static_cast<uint32_t>(value)) == 0)
+            return nullptr;
+
+        return table.at(static_cast<uint32_t>(value)).c_str();
+    }
+
+    template <typename EnumType>
     EnumType getEnumValueFromMember(const char* member) {
         VLRAssert_ShouldNotBeCalled();
         return static_cast<EnumType>(0xFFFFFFFF);
@@ -159,34 +188,14 @@ namespace vlr {
 #define VLR_DEFINE_GET_ENUM_VALUE_FROM_MEMBER(EnumType) \
     template <> \
     EnumType getEnumValueFromMember(const char* member) { \
-        if (!s_enumTableInitialized) \
-            initializeEnumTables(); \
- \
-        if (s_enumNameToIntTables.count(Enum ## EnumType) == 0) \
-            return static_cast<EnumType>(0xFFFFFFFF); \
- \
-        const auto& table = s_enumNameToIntTables.at(Enum ## EnumType); \
-        if (table.count(member) == 0) \
-            return static_cast<EnumType>(0xFFFFFFFF); \
- \
-        return static_cast<EnumType>(table.at(member)); \
+        return getEnumValueFromMember<EnumType>(Enum ## EnumType, member); \
     } \
     template EnumType getEnumValueFromMember<EnumType>(const char* member)
 
 #define VLR_DEFINE_GET_ENUM_MEMBER_FROM_VALUE(EnumType) \
     template <> \
     const char* getEnumMemberFromValue(EnumType value) { \
-        if (!s_enumTableInitialized) \
-            initializeEnumTables(); \
- \
-        if (s_enumIntToNameTables.count(Enum ## EnumType) == 0) \
-            return nullptr; \
- \
-        const auto& table = s_enumIntToNameTables.at(Enum ## EnumType); \
-        if (table.count(static_cast<uint32_t>(value)) == 0) \
-            return nullptr; \
- \
-        return table.at(static_cast<uint32_t>(value)).c_str(); \
+        return getEnumMemberFromValue<EnumType>(Enum ## EnumType, value); \
     } \
     template const char* getEnumMemberFromValue<EnumType>(EnumType value)
 
