@@ -73,8 +73,9 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (We0.hasNonZero() &&
-                testVisibility<LTRayType>(We0Result.surfPt, Le0Result.surfPt,
-                                          wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
+                testVisibility<LTRayType::Shadow>(
+                    We0Result.surfPt, Le0Result.surfPt,
+                    wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
                 Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(shadowRayDir);
                 Vector3D shadowRayDir_sn = Le0Result.surfPt.toLocal(-shadowRayDir);
 
@@ -199,8 +200,9 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (We0.hasNonZero() &&
-                testVisibility<LTRayType>(We0Result.surfPt, surfPt, wls, &shadowRayDir, &squaredDistance,
-                                          &fractionalVisibility)) {
+                testVisibility<LTRayType::Shadow>(
+                    We0Result.surfPt, surfPt, wls, &shadowRayDir, &squaredDistance,
+                    &fractionalVisibility)) {
                 Vector3D shadowRayDir_lens = We0Result.surfPt.toLocal(shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(-shadowRayDir);
 

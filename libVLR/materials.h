@@ -65,6 +65,15 @@ namespace vlr {
             EDFCallableName_EDF_evaluateInternal,
             EDFCallableName_EDF_evaluatePDFInternal,
             EDFCallableName_EDF_weightInternal,
+            EDFCallableName_EDF_as_BSDF_getBaseColor,
+            EDFCallableName_EDF_as_BSDF_matches,
+            EDFCallableName_EDF_as_BSDF_sampleInternal,
+            EDFCallableName_EDF_as_BSDF_sampleWithRevInternal,
+            EDFCallableName_EDF_as_BSDF_evaluateInternal,
+            EDFCallableName_EDF_as_BSDF_evaluateWithRevInternal,
+            EDFCallableName_EDF_as_BSDF_evaluatePDFInternal,
+            EDFCallableName_EDF_as_BSDF_evaluatePDFWithRevInternal,
+            EDFCallableName_EDF_as_BSDF_weightInternal,
             NumEDFCallableNames
         };
 
@@ -89,6 +98,15 @@ namespace vlr {
             uint32_t dcEDFEvaluateInternal;
             uint32_t dcEDFEvaluatePDFInternal;
             uint32_t dcEDFWeightInternal;
+            uint32_t dcEDFAsBSDFGetBaseColor;
+            uint32_t dcEDFAsBSDFmatches;
+            uint32_t dcEDFAsBSDFSampleInternal;
+            uint32_t dcEDFAsBSDFSampleWithRevInternal;
+            uint32_t dcEDFAsBSDFEvaluateInternal;
+            uint32_t dcEDFAsBSDFEvaluateWithRevInternal;
+            uint32_t dcEDFAsBSDFEvaluatePDFInternal;
+            uint32_t dcEDFAsBSDFEvaluatePDFWithRevInternal;
+            uint32_t dcEDFAsBSDFWeightInternal;
             uint32_t edfProcedureSetIndex;
 
             OptiXProgramSet() {

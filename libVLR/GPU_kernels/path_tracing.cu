@@ -195,8 +195,10 @@ namespace vlr {
             float squaredDistance;
             float fractionalVisibility;
             if (M.hasNonZero() &&
-                testVisibility<PTRayType>(surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance,
-                                          &fractionalVisibility)) {
+                testVisibility<PTRayType::Shadow>(
+                    surfPt, lpResult.surfPt, wls, &shadowRayDir, &squaredDistance,
+                    &fractionalVisibility)) {
+                float recSquaredDistance = 1.0f / squaredDistance;
                 Vector3D shadowRayDir_l = lpResult.surfPt.toLocal(-shadowRayDir);
                 Vector3D shadowRayDir_sn = surfPt.toLocal(shadowRayDir);
 
@@ -206,13 +208,13 @@ namespace vlr {
 
                 SampledSpectrum fs = bsdf.evaluate(fsQuery, shadowRayDir_sn);
                 float cosLight = lpResult.surfPt.calcCosTerm(-shadowRayDir);
-                float bsdfPDF = bsdf.evaluatePDF(fsQuery, shadowRayDir_sn) * cosLight / squaredDistance;
+                float bsdfPDF = bsdf.evaluatePDF(fsQuery, shadowRayDir_sn) * cosLight * recSquaredDistance;
 
                 float MISWeight = 1.0f;
                 if (!lpResult.posType.isDelta() && !::vlr::isinf(lightPDF))
                     MISWeight = (lightPDF * lightPDF) / (lightPDF * lightPDF + bsdfPDF * bsdfPDF);
 
-                float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight / squaredDistance;
+                float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLight * recSquaredDistance;
                 float scalarCoeff = G * MISWeight / lightPDF; // 直接contributionの計算式に入れるとCUDAのバグなのかおかしな結果になる。
                 rwPayload->contribution += rwPayload->alpha * Le * fs * scalarCoeff;
             }

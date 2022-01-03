@@ -344,6 +344,8 @@ namespace vlr::shared {
 
         CUDA_DEVICE_FUNCTION EDFQuery(DirectionType filter, const WavelengthSamples &wls) :
             dirTypeFilter(filter), wlHint(wls.selectedLambdaIndex()) {}
+        CUDA_DEVICE_FUNCTION EDFQuery(DirectionType filter, uint32_t _wlHint) :
+            dirTypeFilter(filter), wlHint(_wlHint) {}
     };
 
     struct EDFSample {
@@ -450,7 +452,6 @@ namespace vlr::shared {
 
     
     struct IDFQuery {
-
     };
     
     struct IDFSample {
@@ -528,13 +529,15 @@ namespace vlr::shared {
         uint32_t geomInstIndex;
         uint32_t primIndex;
         float u, v;
-        float powerProbDensity;
-        float prevPowerProbDensity;
+        float totalPowerProbDensity;
+        float prevTotalPowerProbDensity;
         float prevSumPowerProbDensities;
+        float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirIn;
         DirectionType sampledType;
         unsigned int wlSelected : 1;
+        unsigned int isFirstVertex : 1;
     };
 
 

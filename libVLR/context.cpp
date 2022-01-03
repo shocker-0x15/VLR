@@ -782,7 +782,7 @@ namespace vlr {
 
 
 
-        CUDADRV_CHECK(cuMemFree(m_optix.numLightVertices));
+        cuMemFree(m_optix.numLightVertices);
         m_optix.linearRngBuffer.finalize();
 
 

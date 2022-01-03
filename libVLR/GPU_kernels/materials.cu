@@ -229,112 +229,303 @@ namespace vlr {
 
 
 
-#define DEFINE_BSDF_INTERFACES(BSDF)\
-    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _getBaseColor)(\
-        const uint32_t* params) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.getBaseColor();\
-    }\
-\
-    RT_CALLABLE_PROGRAM bool RT_DC_NAME(BSDF ## _matches)(\
-        const uint32_t* params,\
-        DirectionType flags) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.matches(flags);\
-    }\
-\
-    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, float uComponent, const float uDir[2],\
-        BSDFQueryResult* result) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.sampleInternal(query, uComponent, uDir, result);\
-    }\
-\
-    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleWithRevInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, float uComponent, const float uDir[2],\
-        BSDFQueryResult* result, BSDFQueryReverseResult* revResult) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.sampleInternal(query, uComponent, uDir, result, revResult);\
-    }\
-\
-    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, const Vector3D &dirLocal) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.evaluateInternal(query, dirLocal);\
-    }\
-\
-    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateWithRevInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.evaluateInternal(query, dirLocal, revValue);\
-    }\
-\
-    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, const Vector3D &dirLocal) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.evaluatePDFInternal(query, dirLocal);\
-    }\
-\
-    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFWithRevInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.evaluatePDFInternal(query, dirLocal, revValue);\
-    }\
-\
-    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _weightInternal)(\
-        const uint32_t* params,\
-        const BSDFQuery &query) {\
-        auto &p = *reinterpret_cast<const BSDF*>(params);\
-        return p.weightInternal(query);\
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_getBaseColor(
+        const uint32_t* params) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.getBaseColor();
+    }
+
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION bool BSDF_matches(
+        const uint32_t* params,
+        DirectionType flags) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.matches(flags);
+    }
+
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_sampleInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, float uComponent, const float uDir[2],
+        BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.sampleInternal(query, uComponent, uDir, result, revResult);
+    }
+
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_evaluateInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue = nullptr) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.evaluateInternal(query, dirLocal, revValue);
+    }
+
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION float BSDF_evaluatePDFInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue = nullptr) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.evaluatePDFInternal(query, dirLocal, revValue);
+    }
+
+    template <typename BSDFType>
+    CUDA_DEVICE_FUNCTION float BSDF_weightInternal(
+        const uint32_t* params,
+        const BSDFQuery &query) {
+        auto &p = *reinterpret_cast<const BSDFType*>(params);
+        return p.weightInternal(query);
     }
 
 
 
-#define DEFINE_EDF_INTERFACES(EDF)\
+#define DEFINE_BSDF_CALLABLE_PROGRAMS(BSDF)\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _getBaseColor)(\
+        const uint32_t* params) {\
+        return BSDF_getBaseColor<BSDF>(params);\
+    }\
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(BSDF ## _matches)(\
+        const uint32_t* params,\
+        DirectionType flags) {\
+        return BSDF_matches<BSDF>(params, flags);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result) {\
+        return BSDF_sampleInternal<BSDF>(params, query, uComponent, uDir, result);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _sampleWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result, BSDFQueryReverseResult* revResult) {\
+        return BSDF_sampleInternal<BSDF>(params, query, uComponent, uDir, result, revResult);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal) {\
+        return BSDF_evaluateInternal<BSDF>(params, query, dirLocal);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(BSDF ## _evaluateWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue) {\
+        return BSDF_evaluateInternal<BSDF>(params, query, dirLocal, revValue);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal) {\
+        return BSDF_evaluatePDFInternal<BSDF>(params, query, dirLocal);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _evaluatePDFWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue) {\
+        return BSDF_evaluatePDFInternal<BSDF>(params, query, dirLocal, revValue);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(BSDF ## _weightInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query) {\
+        return BSDF_weightInternal<BSDF>(params, query);\
+    }
+
+
+
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION bool EDF_matches(
+        const uint32_t* params,
+        DirectionType flags) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.matches(flags);
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_sampleInternal(
+        const uint32_t* params,
+        const EDFQuery &query, float uComponent, const float uDir[2],
+        EDFQueryResult* result) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.sampleInternal(query, uComponent, uDir, result);
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_evaluateEmittanceInternal(
+        const uint32_t* params) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.evaluateEmittanceInternal();
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_evaluateInternal(
+        const uint32_t* params,
+        const EDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.evaluateInternal(query, dirLocal);
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION float EDF_evaluatePDFInternal(
+        const uint32_t* params,
+        const EDFQuery &query, const Vector3D &dirLocal) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.evaluatePDFInternal(query, dirLocal);
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION float EDF_weightInternal(
+        const uint32_t* params,
+        const EDFQuery &query) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.weightInternal(query);
+    }
+
+
+
+#define DEFINE_EDF_CALLABLE_PROGRAMS(EDF)\
     RT_CALLABLE_PROGRAM bool RT_DC_NAME(EDF ## _matches)(\
         const uint32_t* params,\
         DirectionType flags) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.matches(flags);\
+        return EDF_matches<EDF>(params, flags);\
     }\
-\
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _sampleInternal)(\
         const uint32_t* params,\
         const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.sampleInternal(query, uComponent, uDir, result);\
+        return EDF_sampleInternal<EDF>(params, query, uComponent, uDir, result);\
     }\
-\
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _evaluateEmittanceInternal)(\
         const uint32_t* params) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.evaluateEmittanceInternal();\
+        return EDF_evaluateEmittanceInternal<EDF>(params);\
     }\
-\
     RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _evaluateInternal)(\
         const uint32_t* params, const EDFQuery &query, const Vector3D &dirLocal) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.evaluateInternal(query, dirLocal);\
+        return EDF_evaluateInternal<EDF>(params, query, dirLocal);\
     }\
-\
     RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _evaluatePDFInternal)(\
         const uint32_t* params,\
         const EDFQuery &query, const Vector3D &dirLocal) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.evaluatePDFInternal(query, dirLocal);\
+        return EDF_evaluatePDFInternal<EDF>(params, query, dirLocal);\
     }\
-\
     RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _weightInternal)(\
         const uint32_t* params,\
         const EDFQuery &query) {\
-        auto &p = *reinterpret_cast<const EDF*>(params);\
-        return p.weightInternal(query);\
+        return EDF_weightInternal<EDF>(params, query);\
+    }
+
+
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_getBaseColor(
+        const uint32_t* params) {
+        return SampledSpectrum::Zero();
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION bool EDF_as_BSDF_matches(
+        const uint32_t* params,
+        DirectionType flags) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        return p.matches(flags);
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_sampleInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, float uComponent, const float uDir[2],
+        BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        EDFQuery edfQuery(query.dirTypeFilter, query.wlHint);
+        EDFQueryResult edfResult;
+        SampledSpectrum ret = p.sampleInternal(edfQuery, uComponent, uDir, &edfResult);
+        result->dirLocal = edfResult.dirLocal;
+        result->dirPDF = edfResult.dirPDF;
+        result->sampledType = edfResult.sampledType;
+        if (revResult) {
+            revResult->value = SampledSpectrum::Zero();
+            revResult->dirPDF = 0.0f;
+        }
+        return ret;
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_evaluateInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue = nullptr) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        EDFQuery edfQuery(query.dirTypeFilter, query.wlHint);
+        SampledSpectrum ret = p.evaluateInternal(edfQuery, dirLocal);
+        if (revValue)
+            *revValue = SampledSpectrum::Zero();
+        return ret;
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION float EDF_as_BSDF_evaluatePDFInternal(
+        const uint32_t* params,
+        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue = nullptr) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        EDFQuery edfQuery(query.dirTypeFilter, query.wlHint);
+        float ret = p.evaluatePDFInternal(edfQuery, dirLocal);
+        if (revValue)
+            *revValue = 0.0f;
+        return ret;
+    }
+
+    template <typename EDFType>
+    CUDA_DEVICE_FUNCTION float EDF_as_BSDF_weightInternal(
+        const uint32_t* params,
+        const BSDFQuery &query) {
+        auto &p = *reinterpret_cast<const EDFType*>(params);
+        EDFQuery edfQuery(query.dirTypeFilter, query.wlHint);
+        return p.weightInternal(edfQuery);
+    }
+
+
+
+#define DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(EDF)\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _as_BSDF_getBaseColor)(\
+        const uint32_t* params) {\
+        return EDF_as_BSDF_getBaseColor<EDF>(params);\
+    }\
+    RT_CALLABLE_PROGRAM bool RT_DC_NAME(EDF ## _as_BSDF_matches)(\
+        const uint32_t* params,\
+        DirectionType flags) {\
+        return EDF_as_BSDF_matches<EDF>(params, flags);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _as_BSDF_sampleInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result) {\
+        return EDF_as_BSDF_sampleInternal<EDF>(params, query, uComponent, uDir, result);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _as_BSDF_sampleWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, float uComponent, const float uDir[2],\
+        BSDFQueryResult* result, BSDFQueryReverseResult* revResult) {\
+        return EDF_as_BSDF_sampleInternal<EDF>(params, query, uComponent, uDir, result, revResult);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _as_BSDF_evaluateInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal) {\
+        return EDF_as_BSDF_evaluateInternal<EDF>(params, query, dirLocal);\
+    }\
+    RT_CALLABLE_PROGRAM SampledSpectrum RT_DC_NAME(EDF ## _as_BSDF_evaluateWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue) {\
+        return EDF_as_BSDF_evaluateInternal<EDF>(params, query, dirLocal, revValue);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _as_BSDF_evaluatePDFInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal) {\
+        return EDF_as_BSDF_evaluatePDFInternal<EDF>(params, query, dirLocal);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _as_BSDF_evaluatePDFWithRevInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query, const Vector3D &dirLocal, float* revValue) {\
+        return EDF_as_BSDF_evaluatePDFInternal<EDF>(params, query, dirLocal, revValue);\
+    }\
+    RT_CALLABLE_PROGRAM float RT_DC_NAME(EDF ## _as_BSDF_weightInternal)(\
+        const uint32_t* params,\
+        const BSDFQuery &query) {\
+        return EDF_as_BSDF_weightInternal<EDF>(params, query);\
     }
 
 
@@ -386,7 +577,7 @@ namespace vlr {
         return 0;
     }
 
-    DEFINE_BSDF_INTERFACES(NullBSDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(NullBSDF)
 
 
 
@@ -469,7 +660,7 @@ namespace vlr {
         return sizeof(MatteBRDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(MatteBRDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(MatteBRDF)
 
 
 
@@ -595,7 +786,7 @@ namespace vlr {
         return sizeof(SpecularBRDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(SpecularBRDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(SpecularBRDF)
 
 
 
@@ -854,7 +1045,7 @@ namespace vlr {
         return sizeof(SpecularBSDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(SpecularBSDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(SpecularBSDF)
 
 
 
@@ -1036,7 +1227,7 @@ namespace vlr {
         return sizeof(MicrofacetBRDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(MicrofacetBRDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(MicrofacetBRDF)
 
 
 
@@ -1332,7 +1523,7 @@ namespace vlr {
         return sizeof(MicrofacetBSDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(MicrofacetBSDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(MicrofacetBSDF)
 
 
 
@@ -1480,7 +1671,7 @@ namespace vlr {
         return sizeof(LambertianBSDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(LambertianBSDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(LambertianBSDF)
 
 
 
@@ -1788,7 +1979,7 @@ namespace vlr {
         return sizeof(DiffuseAndSpecularBRDF) / 4;
     }
 
-    DEFINE_BSDF_INTERFACES(DiffuseAndSpecularBRDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(DiffuseAndSpecularBRDF)
 
 
 
@@ -1829,7 +2020,8 @@ namespace vlr {
         return 0;
     }
 
-    DEFINE_EDF_INTERFACES(NullEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(NullEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(NullEDF)
 
 
 
@@ -1888,7 +2080,8 @@ namespace vlr {
         return sizeof(DiffuseEDF) / 4;
     }
 
-    DEFINE_EDF_INTERFACES(DiffuseEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(DiffuseEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(DiffuseEDF)
 
 
 
@@ -1981,7 +2174,8 @@ namespace vlr {
         return sizeof(DirectionalEDF) / 4;
     }
 
-    DEFINE_EDF_INTERFACES(DirectionalEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(DirectionalEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(DirectionalEDF)
 
 
 
@@ -2041,7 +2235,8 @@ namespace vlr {
         return sizeof(PointEDF) / 4;
     }
 
-    DEFINE_EDF_INTERFACES(PointEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(PointEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(PointEDF)
 
 
 
@@ -2385,7 +2580,7 @@ namespace vlr {
         return baseIndex;
     }
 
-    DEFINE_BSDF_INTERFACES(MultiBSDF)
+    DEFINE_BSDF_CALLABLE_PROGRAMS(MultiBSDF)
 
     // edf0-3: param offsets
     // numEDFs
@@ -2613,7 +2808,8 @@ namespace vlr {
         return baseIndex;
     }
 
-    DEFINE_EDF_INTERFACES(MultiEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(MultiEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(MultiEDF)
 
     // END: MultiBSDF / MultiEDF
     // ----------------------------------------------------------------
@@ -2683,5 +2879,6 @@ namespace vlr {
         return sizeof(EnvironmentEDF) / 4;
     }
 
-    DEFINE_EDF_INTERFACES(EnvironmentEDF)
+    DEFINE_EDF_CALLABLE_PROGRAMS(EnvironmentEDF)
+    DEFINE_EDF_AS_BSDF_CALLABLE_PROGRAMS(EnvironmentEDF)
 }

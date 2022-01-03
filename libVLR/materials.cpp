@@ -1,6 +1,34 @@
 ﻿#include "materials.h"
 
 namespace vlr {
+#define BSDF_CALLABLE_NAMES(BSDFNameStr) \
+    RT_DC_NAME_STR(BSDFNameStr "_getBaseColor"),\
+    RT_DC_NAME_STR(BSDFNameStr "_matches"),\
+    RT_DC_NAME_STR(BSDFNameStr "_sampleInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_sampleWithRevInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_evaluateInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_evaluateWithRevInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_evaluatePDFInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_evaluatePDFWithRevInternal"),\
+    RT_DC_NAME_STR(BSDFNameStr "_weightInternal"),
+
+#define EDF_CALLABLE_NAMES(EDFNameStr) \
+    RT_DC_NAME_STR(EDFNameStr "_matches"),\
+    RT_DC_NAME_STR(EDFNameStr "_sampleInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_evaluateEmittanceInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_evaluateInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_evaluatePDFInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_weightInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_getBaseColor"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_matches"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_sampleInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_sampleWithRevInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_evaluateInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_evaluateWithRevInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_evaluatePDFInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_evaluatePDFWithRevInternal"),\
+    RT_DC_NAME_STR(EDFNameStr "_as_BSDF_weightInternal"),
+
     // static
     void SurfaceMaterial::commonInitializeProcedure(
         Context &context,
@@ -62,6 +90,25 @@ namespace vlr {
             programSet->dcEDFWeightInternal = context.createDirectCallableProgram(
                 OptiXModule_Material, edfIDs[EDFCallableName_EDF_weightInternal]);
 
+            programSet->dcEDFAsBSDFGetBaseColor = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_getBaseColor]);
+            programSet->dcEDFAsBSDFmatches = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_matches]);
+            programSet->dcEDFAsBSDFSampleInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_sampleInternal]);
+            programSet->dcEDFAsBSDFSampleWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_sampleWithRevInternal]);
+            programSet->dcEDFAsBSDFEvaluateInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_evaluateInternal]);
+            programSet->dcEDFAsBSDFEvaluateWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_evaluateWithRevInternal]);
+            programSet->dcEDFAsBSDFEvaluatePDFInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_evaluatePDFInternal]);
+            programSet->dcEDFAsBSDFEvaluatePDFWithRevInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_evaluatePDFWithRevInternal]);
+            programSet->dcEDFAsBSDFWeightInternal = context.createDirectCallableProgram(
+                OptiXModule_Material, edfIDs[EDFCallableName_EDF_as_BSDF_weightInternal]);
+
             shared::EDFProcedureSet edfProcSet;
             {
                 edfProcSet.progMatches = programSet->dcEDFmatches;
@@ -70,6 +117,16 @@ namespace vlr {
                 edfProcSet.progEvaluateInternal = programSet->dcEDFEvaluateInternal;
                 edfProcSet.progEvaluatePDFInternal = programSet->dcEDFEvaluatePDFInternal;
                 edfProcSet.progWeightInternal = programSet->dcEDFWeightInternal;
+
+                edfProcSet.progGetBaseColorAsBSDF = programSet->dcEDFAsBSDFGetBaseColor;
+                edfProcSet.progMatchesAsBSDF = programSet->dcEDFAsBSDFmatches;
+                edfProcSet.progSampleInternalAsBSDF = programSet->dcEDFAsBSDFSampleInternal;
+                edfProcSet.progSampleWithRevInternalAsBSDF = programSet->dcEDFAsBSDFSampleWithRevInternal;
+                edfProcSet.progEvaluateInternalAsBSDF = programSet->dcEDFAsBSDFEvaluateInternal;
+                edfProcSet.progEvaluateWithRevInternalAsBSDF = programSet->dcEDFAsBSDFEvaluateWithRevInternal;
+                edfProcSet.progEvaluatePDFInternalAsBSDF = programSet->dcEDFAsBSDFEvaluatePDFInternal;
+                edfProcSet.progEvaluatePDFWithRevInternalAsBSDF = programSet->dcEDFAsBSDFEvaluatePDFWithRevInternal;
+                edfProcSet.progWeightInternalAsBSDF = programSet->dcEDFAsBSDFWeightInternal;
             }
             programSet->edfProcedureSetIndex = context.allocateEDFProcedureSet();
             context.updateEDFProcedureSet(programSet->edfProcedureSetIndex, edfProcSet, 0);
@@ -197,15 +254,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("MatteSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("MatteBRDF_getBaseColor"),
-            RT_DC_NAME_STR("MatteBRDF_matches"),
-            RT_DC_NAME_STR("MatteBRDF_sampleInternal"),
-            RT_DC_NAME_STR("MatteBRDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("MatteBRDF_evaluateInternal"),
-            RT_DC_NAME_STR("MatteBRDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("MatteBRDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("MatteBRDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("MatteBRDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("MatteBRDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -316,15 +365,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("SpecularReflectionSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("SpecularBRDF_getBaseColor"),
-            RT_DC_NAME_STR("SpecularBRDF_matches"),
-            RT_DC_NAME_STR("SpecularBRDF_sampleInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_evaluateInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBRDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("SpecularBRDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -472,15 +513,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("SpecularScatteringSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("SpecularBSDF_getBaseColor"),
-            RT_DC_NAME_STR("SpecularBSDF_matches"),
-            RT_DC_NAME_STR("SpecularBSDF_sampleInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_evaluateInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("SpecularBSDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("SpecularBSDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -631,15 +664,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("MicrofacetReflectionSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("MicrofacetBRDF_getBaseColor"),
-            RT_DC_NAME_STR("MicrofacetBRDF_matches"),
-            RT_DC_NAME_STR("MicrofacetBRDF_sampleInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_evaluateInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBRDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("MicrofacetBRDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -843,15 +868,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("MicrofacetScatteringSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("MicrofacetBSDF_getBaseColor"),
-            RT_DC_NAME_STR("MicrofacetBSDF_matches"),
-            RT_DC_NAME_STR("MicrofacetBSDF_sampleInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_evaluateInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("MicrofacetBSDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("MicrofacetBSDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -1068,15 +1085,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("LambertianScatteringSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("LambertianBSDF_getBaseColor"),
-            RT_DC_NAME_STR("LambertianBSDF_matches"),
-            RT_DC_NAME_STR("LambertianBSDF_sampleInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_evaluateInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("LambertianBSDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("LambertianBSDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -1233,15 +1242,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("UE4SurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("DiffuseAndSpecularBRDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -1422,15 +1423,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("OldStyleSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_getBaseColor"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_matches"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("DiffuseAndSpecularBRDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("DiffuseAndSpecularBRDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, identifiers, nullptr, &programSet);
@@ -1603,12 +1596,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("DiffuseEmitterSurfaceMaterial_setupEDF"),
-            RT_DC_NAME_STR("DiffuseEDF_matches"),
-            RT_DC_NAME_STR("DiffuseEDF_sampleInternal"),
-            RT_DC_NAME_STR("DiffuseEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("DiffuseEDF_evaluateInternal"),
-            RT_DC_NAME_STR("DiffuseEDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("DiffuseEDF_weightInternal")
+            EDF_CALLABLE_NAMES("DiffuseEDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, nullptr, identifiers, &programSet);
@@ -1752,12 +1740,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("DirectionalEmitterSurfaceMaterial_setupEDF"),
-            RT_DC_NAME_STR("DirectionalEDF_matches"),
-            RT_DC_NAME_STR("DirectionalEDF_sampleInternal"),
-            RT_DC_NAME_STR("DirectionalEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("DirectionalEDF_evaluateInternal"),
-            RT_DC_NAME_STR("DirectionalEDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("DirectionalEDF_weightInternal")
+            EDF_CALLABLE_NAMES("DirectionalEDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, nullptr, identifiers, &programSet);
@@ -1939,12 +1922,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("PointEmitterSurfaceMaterial_setupEDF"),
-            RT_DC_NAME_STR("PointEDF_matches"),
-            RT_DC_NAME_STR("PointEDF_sampleInternal"),
-            RT_DC_NAME_STR("PointEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("PointEDF_evaluateInternal"),
-            RT_DC_NAME_STR("PointEDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("PointEDF_weightInternal")
+            EDF_CALLABLE_NAMES("PointEDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, nullptr, identifiers, &programSet);
@@ -2089,24 +2067,11 @@ namespace vlr {
 
         const char* bsdfIDs[] = {
             RT_DC_NAME_STR("MultiSurfaceMaterial_setupBSDF"),
-            RT_DC_NAME_STR("MultiBSDF_getBaseColor"),
-            RT_DC_NAME_STR("MultiBSDF_matches"),
-            RT_DC_NAME_STR("MultiBSDF_sampleInternal"),
-            RT_DC_NAME_STR("MultiBSDF_sampleWithRevInternal"),
-            RT_DC_NAME_STR("MultiBSDF_evaluateInternal"),
-            RT_DC_NAME_STR("MultiBSDF_evaluateWithRevInternal"),
-            RT_DC_NAME_STR("MultiBSDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("MultiBSDF_evaluatePDFWithRevInternal"),
-            RT_DC_NAME_STR("MultiBSDF_weightInternal"),
+            BSDF_CALLABLE_NAMES("MultiBSDF")
         };
         const char* edfIDs[] = {
             RT_DC_NAME_STR("MultiSurfaceMaterial_setupEDF"),
-            RT_DC_NAME_STR("MultiEDF_matches"),
-            RT_DC_NAME_STR("MultiEDF_sampleInternal"),
-            RT_DC_NAME_STR("MultiEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("MultiEDF_evaluateInternal"),
-            RT_DC_NAME_STR("MultiEDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("MultiEDF_weightInternal")
+            EDF_CALLABLE_NAMES("MultiEDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, bsdfIDs, edfIDs, &programSet);
@@ -2221,12 +2186,7 @@ namespace vlr {
 
         const char* identifiers[] = {
             RT_DC_NAME_STR("EnvironmentEmitterSurfaceMaterial_setupEDF"),
-            RT_DC_NAME_STR("EnvironmentEDF_matches"),
-            RT_DC_NAME_STR("EnvironmentEDF_sampleInternal"),
-            RT_DC_NAME_STR("EnvironmentEDF_evaluateEmittanceInternal"),
-            RT_DC_NAME_STR("EnvironmentEDF_evaluateInternal"),
-            RT_DC_NAME_STR("EnvironmentEDF_evaluatePDFInternal"),
-            RT_DC_NAME_STR("EnvironmentEDF_weightInternal")
+            EDF_CALLABLE_NAMES("EnvironmentEDF")
         };
         OptiXProgramSet programSet;
         commonInitializeProcedure(context, nullptr, identifiers, &programSet);
@@ -2380,4 +2340,7 @@ namespace vlr {
 
         return m_importanceMap;
     }
+
+#undef EDF_CALLABLE_NAMES
+#undef BSDF_CALLABLE_NAMES
 }

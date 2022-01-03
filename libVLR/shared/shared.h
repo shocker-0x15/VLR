@@ -493,6 +493,16 @@ namespace vlr {
             int32_t progEvaluateInternal;
             int32_t progEvaluatePDFInternal;
             int32_t progWeightInternal;
+
+            int32_t progGetBaseColorAsBSDF;
+            int32_t progMatchesAsBSDF;
+            int32_t progSampleInternalAsBSDF;
+            int32_t progSampleWithRevInternalAsBSDF;
+            int32_t progEvaluateInternalAsBSDF;
+            int32_t progEvaluateWithRevInternalAsBSDF;
+            int32_t progEvaluatePDFInternalAsBSDF;
+            int32_t progEvaluatePDFWithRevInternalAsBSDF;
+            int32_t progWeightInternalAsBSDF;
         };
 
         struct IDFProcedureSet {

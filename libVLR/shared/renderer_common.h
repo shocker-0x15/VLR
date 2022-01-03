@@ -198,17 +198,31 @@ namespace vlr::shared {
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION BSDF(
-            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
-            auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
-            setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, bool fromEDF = false) {
+            if (fromEDF) {
+                auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
+                setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
-            const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+                const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
-            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
-            progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
-            progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternal);
-            progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
-            progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+                progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColorAsBSDF);
+                progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatchesAsBSDF);
+                progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternalAsBSDF);
+                progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternalAsBSDF);
+                progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternalAsBSDF);
+            }
+            else {
+                auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
+                setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
+
+                const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
+
+                progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+                progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
+                progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternal);
+                progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
+                progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+            }
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
