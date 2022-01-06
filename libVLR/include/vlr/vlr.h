@@ -97,6 +97,9 @@ VLR_API VLRResult vlrContextSetRenderer(
 VLR_API VLRResult vlrContextSetDebugRenderingAttribute(
     VLRContext context,
     VLRDebugRenderingMode attr);
+VLR_API VLRResult vlrContextSetProbePixel(
+    VLRContext context,
+    int32_t x, int32_t y);
 VLR_API VLRResult vlrContextRender(
     VLRContext context,
     CUstream stream, VLRCameraConst camera, bool denoise, uint32_t shrinkCoeff, bool firstFrame,

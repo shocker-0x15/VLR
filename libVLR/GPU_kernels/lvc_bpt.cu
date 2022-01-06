@@ -29,7 +29,6 @@ namespace vlr {
                           plp.numAccumFrames, optixGetLaunchIndex().x, ipx, ipy);
                 return;
             }
-            contribution *= (plp.imageSize.x * plp.imageSize.y); // TODO: マテリアル側を修正してこの補正項を無くす。
             plp.atomicAccumBuffer[ipy * plp.imageStrideInPixels + ipx].atomicAdd(wls, contribution);
         }
     }
@@ -37,8 +36,8 @@ namespace vlr {
     CUDA_DEVICE_FUNCTION void storeLightVertex(
         float totalPowerProbDensity, float prevTotalPowerProbDensity, float prevSumPowerProbDensities,
         float backwardConversionFactor,
-        const SampledSpectrum &flux, const Vector3D &dirIn, DirectionType sampledType, bool wlSelected,
-        const SurfacePoint &surfPt, bool isFirstVertex) {
+        const SampledSpectrum &flux, const Vector3D &dirInLocal, DirectionType sampledType, bool wlSelected,
+        const SurfacePoint &surfPt, uint32_t pathLength) {
         LightPathVertex lightVertex = {};
         lightVertex.instIndex = surfPt.instIndex;
         lightVertex.geomInstIndex = surfPt.geomInstIndex;
@@ -50,10 +49,10 @@ namespace vlr {
         lightVertex.prevSumPowerProbDensities = prevSumPowerProbDensities;
         lightVertex.backwardConversionFactor = backwardConversionFactor;
         lightVertex.flux = flux;
-        lightVertex.dirIn = dirIn;
+        lightVertex.dirInLocal = dirInLocal;
         lightVertex.sampledType = sampledType;
         lightVertex.wlSelected = wlSelected;
-        lightVertex.isFirstVertex = isFirstVertex;
+        lightVertex.pathLength = pathLength;
         uint32_t cacheIndex = atomicAdd(plp.numLightVertices, 1u);
         plp.lightVertexCache[cacheIndex] = lightVertex;
     }
@@ -83,11 +82,11 @@ namespace vlr {
         SampledSpectrum alpha = Le0 / probDensity0;
 
         float powerProbDensities0 = pow2(probDensity0);
-        float prevPowerProbDensity0 = 1;
+        float prevPowerProbDensity0 = pow2(1);
         float prevSumPowerProbDensities0 = 0;
         storeLightVertex(powerProbDensities0, prevPowerProbDensity0, prevSumPowerProbDensities0, 0,
-                         alpha, Vector3D(NAN, NAN, NAN), Le0Result.posType, false,
-                         Le0Result.surfPt, false);
+                         alpha, Vector3D(0, 0, 1), Le0Result.posType, false,
+                         Le0Result.surfPt, 0);
 
         EDFQuery edfQuery(DirectionType::All(), plp.commonWavelengthSamples);
         EDFSample Le1Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
@@ -121,7 +120,6 @@ namespace vlr {
         rwPayload.prevSumPowerProbDensities = prevSumPowerProbDensities0;
         rwPayload.singleIsSelected = false;
         rwPayload.pathLength = 0;
-        rwPayload.maxLengthTerminate = false;
         LVCBPTLightPathReadOnlyPayload* roPayloadPtr = &roPayload;
         LVCBPTLightPathWriteOnlyPayload* woPayloadPtr = &woPayload;
         LVCBPTLightPathReadWritePayload* rwPayloadPtr = &rwPayload;
@@ -130,8 +128,6 @@ namespace vlr {
         while (true) {
             rwPayload.terminate = true;
             ++rwPayload.pathLength;
-            if (rwPayload.pathLength >= MaxPathLength)
-                break;
 
             optixu::trace<LVCBPTLightPathPayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
@@ -139,9 +135,10 @@ namespace vlr {
                 LVCBPTRayType::LightPath, MaxNumRayTypes, LVCBPTRayType::LightPath,
                 roPayloadPtr, woPayloadPtr, rwPayloadPtr);
 
+            if (rwPayload.pathLength >= MaxPathLength)
+                rwPayload.terminate = true;
             if (rwPayload.terminate)
                 break;
-            VLRAssert(rwPayload.pathLength < MaxPathLength, "Path should be terminated... Something went wrong...");
 
             rayOrg = woPayload.nextOrigin;
             rayDir = woPayload.nextDirection;
@@ -182,20 +179,22 @@ namespace vlr {
 
         rwPayload->prevSumPowerProbDensities =
             rwPayload->prevTotalPowerProbDensity +
-            roPayload->prevRevAreaPDF * rwPayload->prevSumPowerProbDensities;
+            pow2(roPayload->prevRevAreaPDF) * rwPayload->prevSumPowerProbDensities;
         rwPayload->prevTotalPowerProbDensity = rwPayload->totalPowerProbDensity;
 
-        float lastDist2 = surfPt.atInfinity ?
-            1.0f :
-            sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPt.position);
+        float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPt.position);
         float probDensity = roPayload->prevDirPDF * absDot(dirInLocal, geomNormalLocal) / lastDist2;
+        //if (!vlr::isinf(rwPayload->totalPowerProbDensity) &&
+        //    vlr::isinf(rwPayload->totalPowerProbDensity * pow2(probDensity))) {
+        //    printf("LightPath: %g, %g\n", rwPayload->totalPowerProbDensity, pow2(probDensity));
+        //}
         rwPayload->totalPowerProbDensity *= pow2(probDensity);
 
         storeLightVertex(rwPayload->totalPowerProbDensity,
                          rwPayload->prevTotalPowerProbDensity, rwPayload->prevSumPowerProbDensities,
                          roPayload->prevCosTerm / lastDist2,
-                         rwPayload->alpha, dirIn,
-                         roPayload->prevSampledType, rwPayload->singleIsSelected, surfPt, false);
+                         rwPayload->alpha, dirInLocal,
+                         roPayload->prevSampledType, rwPayload->singleIsSelected, surfPt, rwPayload->pathLength);
 
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
@@ -228,6 +227,8 @@ namespace vlr {
 
 
 
+    static constexpr int32_t debugPathLength = 0;
+
     CUDA_DEVICE_KERNEL void RT_RG_NAME(lvcbptEyePath)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
 
@@ -236,6 +237,7 @@ namespace vlr {
         float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
                                launchIndex.y + rng.getFloat0cTo1o());
 
+        float resCorrection = plp.imageSize.x * plp.imageSize.y;
         WavelengthSamples wls = plp.commonWavelengthSamples;
 
         Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
@@ -245,12 +247,11 @@ namespace vlr {
 
         IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
 
-        float probDensity0 = We0Result.areaPDF;
         SampledSpectrum We0 = idf.evaluateSpatialImportance();
         SampledSpectrum alpha = We0 / We0Result.areaPDF;
 
-        float powerProbDensities0 = pow2(probDensity0);
-        float prevPowerProbDensity0 = 1;
+        float powerProbDensities0 = pow2(We0Result.areaPDF);
+        float prevPowerProbDensity0 = pow2(1);
         float prevSumPowerProbDensities0 = 0;
 
         IDFQuery idfQuery;
@@ -264,15 +265,16 @@ namespace vlr {
                 *plp.numLightVertices * rng.getFloat0cTo1o(),
                 *plp.numLightVertices - 1);
             const LightPathVertex &vertex = plp.lightVertexCache[lightVertexIndex];
+            float vertexProb = 1.0f / *plp.numLightVertices;
 
             SurfacePoint surfPtL;
             uint32_t matIndexL;
             {
-                ProgSigDecodeHitPoint decodeHitPoint(vertex.geomInstIndex);
+                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
+                ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
                 decodeHitPoint(vertex.instIndex, vertex.geomInstIndex, vertex.primIndex,
                                vertex.u, vertex.v, &surfPtL);
 
-                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
                 Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPtL, wls);
                 applyBumpMapping(localNormal, &surfPtL);
 
@@ -285,14 +287,15 @@ namespace vlr {
             Vector3D conRayDir;
             float squaredConDist;
             float fractionalVisibility;
-            if (testVisibility<LVCBPTRayType::Connection>(
-                surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
+            if ((debugPathLength == 0 || (vertex.pathLength + 1) == debugPathLength) &&
+                testVisibility<LVCBPTRayType::Connection>(
+                    surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
                 float recSquaredConDist = 1.0f / squaredConDist;
 
                 const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
-                BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.isFirstVertex);
-                Vector3D dirInLocalL = surfPtL.toLocal(vertex.dirIn);
+                BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
+                Vector3D dirInLocalL = vertex.dirInLocal;
                 Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
                 BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
 
@@ -306,8 +309,8 @@ namespace vlr {
                 SampledSpectrum backwardFsL;
                 SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
                 float backwardDirDensityL;
-                float forwardDirDensityL = bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
-                float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
+                /*float forwardDirDensityL = */bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
+                //float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
                 float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
                 float partialDenomMisWeightL = vertex.prevTotalPowerProbDensity +
                     pow2(backwardAreaDensityL) * vertex.prevSumPowerProbDensities; // extend eye subpath, shorten light subpath.
@@ -315,18 +318,25 @@ namespace vlr {
                 SampledSpectrum backwardFsE;
                 SampledSpectrum forwardFsE = idf.evaluateDirectionalImportance(idfQuery, conRayDirLocalE);
                 float forwardDirDensityE = idf.evaluatePDF(idfQuery, conRayDirLocalE);
+                forwardDirDensityE *= resCorrection;
                 float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
                 float2 posInScreen = idf.backProjectDirection(idfQuery, conRayDirLocalE);
                 float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
 
-                SampledSpectrum conTerm = forwardFsL * G * fractionalVisibility * forwardFsE;
+                // JP: ライトトレーシングをピクセル数実行することに等しいので確率密度がピクセル数倍になる。
+                float scalarTerm = G * fractionalVisibility /
+                    (vertexProb * resCorrection * plp.wavelengthProbability);
+                if (vertex.wlSelected)
+                    scalarTerm *= SampledSpectrum::NumComponents();
+                SampledSpectrum conTerm = forwardFsL * scalarTerm * forwardFsE;
                 SampledSpectrum unweightedContribution = vertex.flux * conTerm * alpha;
 
-                float numMisWeight = powerProbDensities0 * vertex.totalPowerProbDensity;
+                float numMisWeight = powerProbDensities0 * pow2(resCorrection) * vertex.totalPowerProbDensity;
                 float denomMisWeight = numMisWeight;
+                // extend eye subpath, shorten light subpath.
                 denomMisWeight += powerProbDensities0 * pow2(forwardAreaDensityE) * partialDenomMisWeightL;
 
-                float misWeight = numMisWeight / denomMisWeight;
+                float misWeight = 10 * numMisWeight / denomMisWeight;
                 SampledSpectrum contribution = misWeight * unweightedContribution;
                 atomicAddToBuffer(wls, contribution, pixel);
             }
@@ -335,6 +345,7 @@ namespace vlr {
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
         SampledSpectrum We1 = idf.sample(idfQuery, We1Sample, &We1Result);
+        We1Result.dirPDF *= resCorrection;
 
         Point3D rayOrg = We0Result.surfPt.position;
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
@@ -356,7 +367,6 @@ namespace vlr {
         rwPayload.prevSumPowerProbDensities = prevSumPowerProbDensities0;
         rwPayload.singleIsSelected = false;
         rwPayload.pathLength = 0;
-        rwPayload.maxLengthTerminate = false;
         LVCBPTEyePathExtraPayload exPayload = {};
         LVCBPTEyePathReadOnlyPayload* roPayloadPtr = &roPayload;
         LVCBPTEyePathWriteOnlyPayload* woPayloadPtr = &woPayload;
@@ -367,7 +377,9 @@ namespace vlr {
         while (true) {
             rwPayload.terminate = true;
             ++rwPayload.pathLength;
-            if (rwPayload.pathLength >= MaxPathLength)
+
+            if (debugPathLength != 0 &&
+                rwPayload.pathLength > debugPathLength)
                 break;
 
             optixu::trace<LVCBPTEyePathPayloadSignature>(
@@ -390,6 +402,18 @@ namespace vlr {
                 accumNormal += exPayload.firstHitNormal;
                 exPayloadPtr = nullptr;
             }
+
+            if (rwPayload.pathLength >= MaxPathLength)
+                rwPayload.terminate = true;
+            if (rwPayload.terminate)
+                break;
+
+            rayOrg = woPayload.nextOrigin;
+            rayDir = woPayload.nextDirection;
+            roPayload.prevDirPDF = woPayload.dirPDF;
+            roPayload.prevCosTerm = woPayload.cosTerm;
+            roPayload.prevRevAreaPDF = woPayload.revAreaPDF;
+            roPayload.prevSampledType = woPayload.sampledType;
         }
         plp.rngBuffer.write(launchIndex, rwPayload.rng);
         if (!rwPayload.contribution.allFinite()) {
@@ -438,52 +462,67 @@ namespace vlr {
 
         rwPayload->prevSumPowerProbDensities =
             rwPayload->prevTotalPowerProbDensity +
-            roPayload->prevRevAreaPDF * rwPayload->prevSumPowerProbDensities;
+            pow2(roPayload->prevRevAreaPDF) * rwPayload->prevSumPowerProbDensities;
         rwPayload->prevTotalPowerProbDensity = rwPayload->totalPowerProbDensity;
+        if (rwPayload->pathLength == 1) {
+            // Ignore the strategy with zero eye vertices.
+            rwPayload->prevSumPowerProbDensities = 0;
+            // 
+            float resCorrection = plp.imageSize.x * plp.imageSize.y;
+            rwPayload->prevTotalPowerProbDensity *= pow2(resCorrection);
+        }
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPtE.position);
         float probDensity = roPayload->prevDirPDF * absDot(dirOutLocalE, geomNormalLocalE) / lastDist2;
+        //if (!vlr::isinf(rwPayload->totalPowerProbDensity) &&
+        //    vlr::isinf(rwPayload->totalPowerProbDensity * pow2(probDensity))) {
+        //    printf("EyePath: %g, %g\n", rwPayload->totalPowerProbDensity, pow2(probDensity));
+        //}
         rwPayload->totalPowerProbDensity *= pow2(probDensity);
 
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
-        if (spEmittance.hasNonZero()) {
+        if ((debugPathLength == 0 || rwPayload->pathLength == debugPathLength) &&
+            spEmittance.hasNonZero()) {
             EDFQuery edfQuery(DirectionType::All(), wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(edfQuery, dirOutLocalE);
             SampledSpectrum unweightedContribution = rwPayload->alpha * Le;
+
+            const Instance &inst = plp.instBuffer[surfPtE.instIndex];
+            float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
+            float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
+            float forwardAreaDensityL = plp.numLightPaths * instProb * geomInstProb * hypAreaPDF;
 
             float backwardDirDensityE = edf.evaluatePDF(edfQuery, dirOutLocalE);
             float backwardAreaDensityE = backwardDirDensityE * roPayload->prevCosTerm / lastDist2;
             float partialDenomMisWeightE = rwPayload->prevTotalPowerProbDensity +
                 pow2(backwardAreaDensityE) * rwPayload->prevSumPowerProbDensities; // extend light subpath, shorten eye subpath.
 
-            const Instance &inst = plp.instBuffer[surfPtE.instIndex];
-            float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
-            float geomInstProb = hp.sbtr->geomInst.importance / inst.lightGeomInstDistribution.integral();
-
             float numMisWeight = rwPayload->totalPowerProbDensity;
             float denomMisWeight = numMisWeight;
-            denomMisWeight += pow2(instProb * geomInstProb * hypAreaPDF) * partialDenomMisWeightE;
+            // extend light subpath, shorten eye subpath.
+            denomMisWeight += pow2(forwardAreaDensityL) * partialDenomMisWeightE;
 
-            float misWeight = numMisWeight / denomMisWeight;
+            float misWeight = 10 * numMisWeight / denomMisWeight;
             rwPayload->contribution += misWeight * unweightedContribution;
         }
 
         // Connect with a randomly chosen light vertex.
-        {
+        if (bsdfE.hasNonDelta()) {
             uint32_t lightVertexIndex = vlr::min<uint32_t>(
                 *plp.numLightVertices * rng.getFloat0cTo1o(),
                 *plp.numLightVertices - 1);
             const LightPathVertex &vertex = plp.lightVertexCache[lightVertexIndex];
+            float vertexProb = 1.0f / *plp.numLightVertices;
 
             SurfacePoint surfPtL;
             uint32_t matIndexL;
             {
-                ProgSigDecodeHitPoint decodeHitPoint(vertex.geomInstIndex);
+                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
+                ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
                 decodeHitPoint(vertex.instIndex, vertex.geomInstIndex, vertex.primIndex,
                                vertex.u, vertex.v, &surfPtL);
 
-                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
                 Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPtL, wls);
                 applyBumpMapping(localNormal, &surfPtL);
 
@@ -493,17 +532,27 @@ namespace vlr {
                 matIndexL = geomInst.materialIndex;
             }
 
+            //printf("SurfPtL: p: (%g, %g, %g), frame: (%g, %g, %g), (%g, %g, %g), (%g, %g, %g), "
+            //       "gn: (%g, %g, %g), %u - %u - %u - %g, %g, tc: %g, %g, inf: %u, point: %u\n",
+            //       VLR3DPrint(surfPtL.position),
+            //       VLR3DPrint(surfPtL.shadingFrame.x), VLR3DPrint(surfPtL.shadingFrame.y), VLR3DPrint(surfPtL.shadingFrame.z),
+            //       VLR3DPrint(surfPtL.geometricNormal),
+            //       surfPtL.instIndex, surfPtL.geomInstIndex, surfPtL.primIndex, surfPtL.u, surfPtL.v,
+            //       surfPtL.texCoord.u, surfPtL.texCoord.v,
+            //       surfPtL.atInfinity, surfPtL.isPoint);
+
             Vector3D conRayDir;
             float squaredConDist;
             float fractionalVisibility;
-            if (testVisibility<LVCBPTRayType::Connection>(
-                surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
+            if ((debugPathLength == 0 || (rwPayload->pathLength + vertex.pathLength + 1) == debugPathLength) &&
+                testVisibility<LVCBPTRayType::Connection>(
+                    surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
                 float recSquaredConDist = 1.0f / squaredConDist;
 
                 const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
-                BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.isFirstVertex);
-                Vector3D dirInLocalL = surfPtL.toLocal(vertex.dirIn);
+                BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
+                Vector3D dirInLocalL = vertex.dirInLocal;
                 Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
                 BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
 
@@ -532,16 +581,30 @@ namespace vlr {
                 float partialDenomMisWeightE = rwPayload->prevTotalPowerProbDensity +
                     pow2(backwardAreaDensityE) * rwPayload->prevSumPowerProbDensities; // extend light subpath, shorten eye subpath.
 
-                SampledSpectrum conTerm = forwardFsL * G * fractionalVisibility * forwardFsE;
+                float scalarTerm = G * fractionalVisibility /
+                    (vertexProb * plp.wavelengthProbability);
+                if (vertex.wlSelected || rwPayload->singleIsSelected)
+                    scalarTerm *= SampledSpectrum::NumComponents();
+                SampledSpectrum conTerm = forwardFsL * scalarTerm * forwardFsE;
                 SampledSpectrum unweightedContribution = vertex.flux * conTerm * rwPayload->alpha;
 
                 float numMisWeight = rwPayload->totalPowerProbDensity * vertex.totalPowerProbDensity;
                 float denomMisWeight = numMisWeight;
+                // extend eye subpath, shorten light subpath.
                 denomMisWeight += rwPayload->totalPowerProbDensity * pow2(forwardAreaDensityE) * partialDenomMisWeightL;
+                // extend light subpath, shorten eye subpath.
                 denomMisWeight += vertex.totalPowerProbDensity * pow2(forwardAreaDensityL) * partialDenomMisWeightE;
 
-                float misWeight = numMisWeight / denomMisWeight;
+                float misWeight = 10 * numMisWeight / denomMisWeight;
                 rwPayload->contribution += misWeight * unweightedContribution;
+
+                //if (!vlr::isfinite(misWeight) || !unweightedContribution.allFinite()) {
+                //    printf("%g (%g, %g), (%g, %g), (%g, %g, %g, %g), (%g, %g, %g)\n",
+                //           misWeight, numMisWeight, denomMisWeight,
+                //           rwPayload->totalPowerProbDensity, vertex.totalPowerProbDensity,
+                //           probDensity, roPayload->prevDirPDF, absDot(dirOutLocalE, geomNormalLocalE), lastDist2,
+                //           unweightedContribution.r, unweightedContribution.g, unweightedContribution.b);
+                //}
             }
         }
 
@@ -577,6 +640,14 @@ namespace vlr {
 
 
     CUDA_DEVICE_KERNEL void RT_MS_NAME(lvcbptEyePath)() {
+        LVCBPTEyePathReadOnlyPayload* roPayload;
+        LVCBPTEyePathReadWritePayload* rwPayload;
+        LVCBPTEyePathExtraPayload* exPayload;
+        LVCBPTEyePathPayloadSignature::get(&roPayload, nullptr, &rwPayload, &exPayload);
 
+        if (exPayload) {
+            exPayload->firstHitAlbedo = SampledSpectrum::Zero();
+            exPayload->firstHitNormal = Normal3D(0.0f, 0.0f, 0.0f);
+        }
     }
 }

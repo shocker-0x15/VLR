@@ -262,13 +262,30 @@ namespace vlr {
             uint32_t dcNullBSDF_getBaseColor;
             uint32_t dcNullBSDF_matches;
             uint32_t dcNullBSDF_sampleInternal;
+            uint32_t dcNullBSDF_sampleWithRevInternal;
             uint32_t dcNullBSDF_evaluateInternal;
+            uint32_t dcNullBSDF_evaluateWithRevInternal;
             uint32_t dcNullBSDF_evaluatePDFInternal;
+            uint32_t dcNullBSDF_evaluatePDFWithRevInternal;
             uint32_t dcNullBSDF_weightInternal;
             uint32_t nullBSDFProcedureSetIndex;
+
             uint32_t dcNullEDF_setupEDF;
+            uint32_t dcNullEDF_matches;
+            uint32_t dcNullEDF_sampleInternal;
             uint32_t dcNullEDF_evaluateEmittanceInternal;
             uint32_t dcNullEDF_evaluateInternal;
+            uint32_t dcNullEDF_evaluatePDFInternal;
+            uint32_t dcNullEDF_weightInternal;
+            uint32_t dcNullEDF_as_BSDF_getBaseColor;
+            uint32_t dcNullEDF_as_BSDF_matches;
+            uint32_t dcNullEDF_as_BSDF_sampleInternal;
+            uint32_t dcNullEDF_as_BSDF_sampleWithRevInternal;
+            uint32_t dcNullEDF_as_BSDF_evaluateInternal;
+            uint32_t dcNullEDF_as_BSDF_evaluateWithRevInternal;
+            uint32_t dcNullEDF_as_BSDF_evaluatePDFInternal;
+            uint32_t dcNullEDF_as_BSDF_evaluatePDFWithRevInternal;
+            uint32_t dcNullEDF_as_BSDF_weightInternal;
             uint32_t nullEDFProcedureSetIndex;
 
             shared::PipelineLaunchParameters launchParams;
@@ -332,6 +349,8 @@ namespace vlr {
         uint32_t m_numAccumFrames;
         VLRRenderer m_renderer;
         VLRDebugRenderingMode m_debugRenderingAttribute;
+        int32_t m_probePixX;
+        int32_t m_probePixY;
 
         void render(CUstream stream, const Camera* camera, bool denoise,
                     bool debugRender, VLRDebugRenderingMode renderMode,
@@ -359,6 +378,10 @@ namespace vlr {
         }
         void setDebugRenderingAttribute(VLRDebugRenderingMode attr) {
             m_debugRenderingAttribute = attr;
+        }
+        void setProbePixel(int32_t x, int32_t y) {
+            m_probePixX = x;
+            m_probePixY = y;
         }
         void render(CUstream stream, const Camera* camera, bool denoise,
                     uint32_t shrinkCoeff, bool firstFrame,

@@ -18,6 +18,8 @@ namespace vlr {
 
 
 
+    static constexpr int32_t debugPathLength = 0;
+
     // Common Ray Generation Program for All Camera Types
     CUDA_DEVICE_KERNEL void RT_RG_NAME(pathTracing)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
@@ -42,6 +44,7 @@ namespace vlr {
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
         SampledSpectrum We1 = idf.sample(IDFQuery(), We1Sample, &We1Result);
+        We1Result.dirPDF *= plp.imageSize.x * plp.imageSize.y;
 
         Point3D rayOrg = We0Result.surfPt.position;
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
@@ -72,11 +75,17 @@ namespace vlr {
             ++roPayload.pathLength;
             if (roPayload.pathLength >= MaxPathLength)
                 roPayload.maxLengthTerminate = true;
+
+            if (debugPathLength != 0 &&
+                roPayload.pathLength > debugPathLength)
+                break;
+
             optixu::trace<PTPayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,
                 roPayloadPtr, woPayloadPtr, rwPayloadPtr, exPayloadPtr);
+
             if (roPayload.pathLength == 1) {
                 uint32_t linearIndex = launchIndex.y * plp.imageStrideInPixels + launchIndex.x;
                 DiscretizedSpectrum &accumAlbedo = plp.accumAlbedoBuffer[linearIndex];
@@ -145,7 +154,8 @@ namespace vlr {
 
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
-        if (spEmittance.hasNonZero()) {
+        if ((debugPathLength == 0 || roPayload->pathLength == debugPathLength) &&
+            spEmittance.hasNonZero()) {
             EDFQuery feQuery(DirectionType::All(), wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(feQuery, dirOutLocal);
 
@@ -176,7 +186,8 @@ namespace vlr {
         BSDFQuery fsQuery(dirOutLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
         // Next Event Estimation (explicit light sampling)
-        if (bsdf.hasNonDelta()) {
+        if ((debugPathLength == 0 || (roPayload->pathLength + 1) == debugPathLength) &&
+            bsdf.hasNonDelta()) {
             float uLight = rng.getFloat0cTo1o();
             SurfaceLight light;
             float lightProb;

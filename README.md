@@ -33,6 +33,7 @@ VLR is a GPU Monte Carlo ray tracing renderer using NVIDIA OptiX 7.
 * Light Transport Algorithms
     * Path Tracing \[Kajiya1986\] with MIS
     * Light Tracing
+    * Light Vertex Cache Bidirectional Path Tracing \[Davidovi&#269;2014\]
 * Correct handling of non-symmetric scattering due to shading normals \[Veach1997\]
 
 ## 構成要素 / Components
@@ -147,6 +148,7 @@ It requires the following libraries.
 There are some scene files loading model data and textures, but those assets are NOT included in this repository.
 
 ## 参考文献 / References
+[Davidovi&#269;2014] "Progressive Light Transport Simulation on the GPU: Survey and Improvements"\
 [Kajiya1986] "THE RENDERING EQUATION"\
 [Karis2013] "Real Shading in Unreal Engine 4"\
 [Lagarde2014] "Moving Frostbite to Physically Based Rendering 3.0"\

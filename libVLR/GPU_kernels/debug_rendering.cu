@@ -189,14 +189,12 @@ namespace vlr {
 
         IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
 
-        SampledSpectrum We0 = idf.evaluateSpatialImportance();
+        idf.evaluateSpatialImportance();
 
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
-        SampledSpectrum We1 = idf.sample(IDFQuery(), We1Sample, &We1Result);
-
+        idf.sample(IDFQuery(), We1Sample, &We1Result);
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
-        SampledSpectrum alpha = (We0 * We1) * (We0Result.surfPt.calcCosTerm(rayDir) / (We0Result.areaPDF * We1Result.dirPDF * selectWLPDF));
 
         SampledSpectrum value;
         optixu::trace<DebugPayloadSignature>(

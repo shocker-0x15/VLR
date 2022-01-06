@@ -92,7 +92,7 @@ namespace vlr {
         // EN: guarantee the orthogonality between the normal and tangent.
         //     Orthogonality break might be caused by barycentric interpolation?
         float dotNT = dot(shadingNormal, tc0Direction);
-        tc0Direction = tc0Direction - dotNT * shadingNormal;
+        tc0Direction = normalize(tc0Direction - dotNT * shadingNormal);
 
         surfPt->instIndex = instIndex;
         surfPt->geomInstIndex = geomInstIndex;

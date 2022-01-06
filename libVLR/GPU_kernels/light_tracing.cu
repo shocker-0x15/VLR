@@ -33,6 +33,8 @@ namespace vlr {
 
 
 
+    static constexpr int32_t debugPathLength = 0;
+
     CUDA_DEVICE_KERNEL void RT_RG_NAME(lightTracing)() {
         uint32_t launchIndex = optixGetLaunchIndex().x;
 
@@ -56,7 +58,6 @@ namespace vlr {
 
         SampledSpectrum Le0 = edf.evaluateEmittance();
         SampledSpectrum alpha = Le0 / (plp.numLightPaths * lightProb * Le0Result.areaPDF * selectWLPDF);
-        alpha *= (plp.imageSize.x * plp.imageSize.y); // TODO: マテリアル側を修正してこの補正項を無くす。
 
         // Next Event Estimation (explicit lens sampling)
         EDFQuery feQuery(DirectionType::All(), wls);
@@ -72,7 +73,8 @@ namespace vlr {
             Vector3D shadowRayDir;
             float squaredDistance;
             float fractionalVisibility;
-            if (We0.hasNonZero() &&
+            if ((debugPathLength == 0 || debugPathLength == 1) &&
+                We0.hasNonZero() &&
                 testVisibility<LTRayType::Shadow>(
                     We0Result.surfPt, Le0Result.surfPt,
                     wls, &shadowRayDir, &squaredDistance, &fractionalVisibility)) {
@@ -135,6 +137,10 @@ namespace vlr {
             if (roPayload.pathLength >= MaxPathLength)
                 break;
 
+            if (debugPathLength != 0 &&
+                roPayload.pathLength + 1 > debugPathLength)
+                break;
+
             optixu::trace<LTPayloadSignature>(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 shared::VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
@@ -187,7 +193,8 @@ namespace vlr {
         BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
         // Next Event Estimation (explicit lens sampling)
-        if (bsdf.hasNonDelta()) {
+        if ((debugPathLength == 0 || (roPayload->pathLength + 1) == debugPathLength) &&
+            bsdf.hasNonDelta()) {
             Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
             LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
             LensPosQueryResult We0Result;

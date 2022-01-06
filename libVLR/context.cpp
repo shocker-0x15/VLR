@@ -486,16 +486,23 @@ namespace vlr {
         {
             m_optix.dcNullBSDF_setupBSDF = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_setupBSDF"));
+
             m_optix.dcNullBSDF_getBaseColor = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_getBaseColor"));
             m_optix.dcNullBSDF_matches = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_matches"));
             m_optix.dcNullBSDF_sampleInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_sampleInternal"));
+            m_optix.dcNullBSDF_sampleWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_sampleWithRevInternal"));
             m_optix.dcNullBSDF_evaluateInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluateInternal"));
+            m_optix.dcNullBSDF_evaluateWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluateWithRevInternal"));
             m_optix.dcNullBSDF_evaluatePDFInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluatePDFInternal"));
+            m_optix.dcNullBSDF_evaluatePDFWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_evaluatePDFWithRevInternal"));
             m_optix.dcNullBSDF_weightInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullBSDF_weightInternal"));
 
@@ -504,8 +511,11 @@ namespace vlr {
                 bsdfProcSet.progGetBaseColor = m_optix.dcNullBSDF_getBaseColor;
                 bsdfProcSet.progMatches = m_optix.dcNullBSDF_matches;
                 bsdfProcSet.progSampleInternal = m_optix.dcNullBSDF_sampleInternal;
+                bsdfProcSet.progSampleWithRevInternal = m_optix.dcNullBSDF_sampleWithRevInternal;
                 bsdfProcSet.progEvaluateInternal = m_optix.dcNullBSDF_evaluateInternal;
+                bsdfProcSet.progEvaluateWithRevInternal = m_optix.dcNullBSDF_evaluateWithRevInternal;
                 bsdfProcSet.progEvaluatePDFInternal = m_optix.dcNullBSDF_evaluatePDFInternal;
+                bsdfProcSet.progEvaluatePDFWithRevInternal = m_optix.dcNullBSDF_evaluatePDFWithRevInternal;
                 bsdfProcSet.progWeightInternal = m_optix.dcNullBSDF_weightInternal;
             }
             m_optix.nullBSDFProcedureSetIndex = allocateBSDFProcedureSet();
@@ -515,15 +525,57 @@ namespace vlr {
 
             m_optix.dcNullEDF_setupEDF = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullEDF_setupEDF"));
+
+            m_optix.dcNullEDF_matches = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_matches"));
+            m_optix.dcNullEDF_sampleInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_sampleInternal"));
             m_optix.dcNullEDF_evaluateEmittanceInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullEDF_evaluateEmittanceInternal"));
             m_optix.dcNullEDF_evaluateInternal = createDirectCallableProgram(
                 OptiXModule_Material, RT_DC_NAME_STR("NullEDF_evaluateInternal"));
+            m_optix.dcNullEDF_evaluatePDFInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_evaluatePDFInternal"));
+            m_optix.dcNullEDF_weightInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_weightInternal"));
+
+            m_optix.dcNullEDF_as_BSDF_getBaseColor = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_getBaseColor"));
+            m_optix.dcNullEDF_as_BSDF_matches = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_matches"));
+            m_optix.dcNullEDF_as_BSDF_sampleInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_sampleInternal"));
+            m_optix.dcNullEDF_as_BSDF_sampleWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_sampleWithRevInternal"));
+            m_optix.dcNullEDF_as_BSDF_evaluateInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_evaluateInternal"));
+            m_optix.dcNullEDF_as_BSDF_evaluateWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_evaluateWithRevInternal"));
+            m_optix.dcNullEDF_as_BSDF_evaluatePDFInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_evaluatePDFInternal"));
+            m_optix.dcNullEDF_as_BSDF_evaluatePDFWithRevInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_evaluatePDFWithRevInternal"));
+            m_optix.dcNullEDF_as_BSDF_weightInternal = createDirectCallableProgram(
+                OptiXModule_Material, RT_DC_NAME_STR("NullEDF_as_BSDF_weightInternal"));
 
             shared::EDFProcedureSet edfProcSet;
             {
+                edfProcSet.progMatches = m_optix.dcNullEDF_matches;
+                edfProcSet.progSampleInternal = m_optix.dcNullEDF_sampleInternal;
                 edfProcSet.progEvaluateEmittanceInternal = m_optix.dcNullEDF_evaluateEmittanceInternal;
                 edfProcSet.progEvaluateInternal = m_optix.dcNullEDF_evaluateInternal;
+                edfProcSet.progEvaluatePDFInternal = m_optix.dcNullEDF_evaluatePDFInternal;
+                edfProcSet.progWeightInternal = m_optix.dcNullEDF_weightInternal;
+
+                edfProcSet.progGetBaseColorAsBSDF = m_optix.dcNullEDF_as_BSDF_getBaseColor;
+                edfProcSet.progMatchesAsBSDF = m_optix.dcNullEDF_as_BSDF_matches;
+                edfProcSet.progSampleInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_sampleInternal;
+                edfProcSet.progSampleWithRevInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_sampleWithRevInternal;
+                edfProcSet.progEvaluateInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_evaluateInternal;
+                edfProcSet.progEvaluateWithRevInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_evaluateWithRevInternal;
+                edfProcSet.progEvaluatePDFInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_evaluatePDFInternal;
+                edfProcSet.progEvaluatePDFWithRevInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_evaluatePDFWithRevInternal;
+                edfProcSet.progWeightInternalAsBSDF = m_optix.dcNullEDF_as_BSDF_weightInternal;
             }
             m_optix.nullEDFProcedureSetIndex = allocateEDFProcedureSet();
             updateEDFProcedureSet(m_optix.nullEDFProcedureSetIndex, edfProcSet, 0);
@@ -814,14 +866,30 @@ namespace vlr {
         // Null BSDF/EDF
         {
             releaseEDFProcedureSet(m_optix.nullEDFProcedureSetIndex);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_weightInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_evaluatePDFWithRevInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_evaluatePDFInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_evaluateWithRevInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_evaluateInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_sampleWithRevInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_sampleInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_matches);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_as_BSDF_getBaseColor);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_weightInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_evaluatePDFInternal);
             destroyDirectCallableProgram(m_optix.dcNullEDF_evaluateInternal);
             destroyDirectCallableProgram(m_optix.dcNullEDF_evaluateEmittanceInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_sampleInternal);
+            destroyDirectCallableProgram(m_optix.dcNullEDF_matches);
             destroyDirectCallableProgram(m_optix.dcNullEDF_setupEDF);
 
             releaseBSDFProcedureSet(m_optix.nullBSDFProcedureSetIndex);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_weightInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluatePDFWithRevInternal);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluatePDFInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluateWithRevInternal);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_evaluateInternal);
+            destroyDirectCallableProgram(m_optix.dcNullBSDF_sampleWithRevInternal);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_sampleInternal);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_matches);
             destroyDirectCallableProgram(m_optix.dcNullBSDF_getBaseColor);
@@ -1234,6 +1302,8 @@ namespace vlr {
             m_optix.launchParams.numAccumFrames = m_numAccumFrames;
             m_optix.launchParams.limitNumAccumFrames = limitNumAccumFrames;
             m_optix.launchParams.debugRenderingAttribute = debugAttr;
+            m_optix.launchParams.probePixX = m_probePixX;
+            m_optix.launchParams.probePixY = m_probePixY;
 
             if (m_renderer == VLRRenderer_PathTracing) {
                 CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
@@ -1294,12 +1364,19 @@ namespace vlr {
                     m_optix.accumBuffer.getBlockBuffer2D(),
                     imageSize, imageStrideInPixels, 0u);
 
-                CUDADRV_CHECK(cuStreamSynchronize(stream));
-                CUDADRV_CHECK(cuMemcpyDtoH(
-                    &numLightVertices, m_optix.numLightVertices, sizeof(numLightVertices)));
-                sizeof(shared::LightPathVertex);
-                std::vector<shared::LightPathVertex> lightPathCache = m_optix.lightVertexCache;
-                printf("");
+                //CUDADRV_CHECK(cuStreamSynchronize(stream));
+                //CUDADRV_CHECK(cuMemcpyDtoH(
+                //    &numLightVertices, m_optix.numLightVertices, sizeof(numLightVertices)));
+                //sizeof(shared::LightPathVertex);
+                //std::vector<shared::LightPathVertex> lightPathCache = m_optix.lightVertexCache;
+                //std::vector<uint32_t> perLengthCounts;
+                //for (int i = 0; i < numLightVertices; ++i) {
+                //    const shared::LightPathVertex &vertex = lightPathCache[i];
+                //    if (perLengthCounts.size() < vertex.pathLength + 1)
+                //        perLengthCounts.resize(vertex.pathLength + 1, 0);
+                //    ++perLengthCounts[vertex.pathLength];
+                //}
+                //printf("");
             }
             else if (m_renderer == VLRRenderer_DebugRendering) {
                 CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
@@ -1320,21 +1397,21 @@ namespace vlr {
             CUDADRV_CHECK(cuMemcpyHtoDAsync(m_cudaPostProcessModuleLaunchParamsPtr, &m_optix.launchParams,
                                             sizeof(m_optix.launchParams), stream));
 
+            Quaternion camOri;
+            camera->get("orientation", &camOri);
+            Quaternion invCamOri = conjugate(camOri);
+
+            m_copyBuffers(stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
+                          m_optix.accumBuffer.getBlockBuffer2D(),
+                          m_optix.accumAlbedoBuffer.getDevicePointer(),
+                          m_optix.accumNormalBuffer.getDevicePointer(),
+                          invCamOri,
+                          imageSize, imageStrideInPixels, m_numAccumFrames,
+                          m_optix.linearColorBuffer.getDevicePointer(),
+                          m_optix.linearAlbedoBuffer.getDevicePointer(),
+                          m_optix.linearNormalBuffer.getDevicePointer());
+
             if (denoise) {
-                Quaternion camOri;
-                camera->get("orientation", &camOri);
-                Quaternion invCamOri = conjugate(camOri);
-
-                m_copyBuffers(stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
-                              m_optix.accumBuffer.getBlockBuffer2D(),
-                              m_optix.accumAlbedoBuffer.getDevicePointer(),
-                              m_optix.accumNormalBuffer.getDevicePointer(),
-                              invCamOri,
-                              imageSize, imageStrideInPixels, m_numAccumFrames,
-                              m_optix.linearColorBuffer.getDevicePointer(),
-                              m_optix.linearAlbedoBuffer.getDevicePointer(),
-                              m_optix.linearNormalBuffer.getDevicePointer());
-
                 m_optix.denoiser.computeIntensity(
                     stream,
                     m_optix.linearColorBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,

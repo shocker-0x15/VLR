@@ -82,7 +82,6 @@ namespace vlr::shared {
         float prevSumPowerProbDensities;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;
-        unsigned int maxLengthTerminate : 1;
         unsigned int terminate : 1;
     };
 
@@ -111,7 +110,6 @@ namespace vlr::shared {
         float prevSumPowerProbDensities;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;
-        unsigned int maxLengthTerminate : 1;
         unsigned int terminate : 1;
     };
 
@@ -146,13 +144,18 @@ namespace vlr::shared {
 
         *shadowRayDir = lightSurfacePoint.calcDirectionFrom(shadingSurfacePoint.position, squaredDistance);
 
-        const Normal3D &geomNormal = shadingSurfacePoint.geometricNormal;
-        bool isFrontSide = dot(geomNormal, *shadowRayDir) > 0;
-        Point3D shadingPoint = offsetRayOrigin(shadingSurfacePoint.position, isFrontSide ? geomNormal : -geomNormal);
+        const Normal3D &spGeomNormal = shadingSurfacePoint.geometricNormal;
+        bool isFrontSide = dot(spGeomNormal, *shadowRayDir) > 0;
+        Point3D shadingPoint = offsetRayOrigin(
+            shadingSurfacePoint.position, isFrontSide ? spGeomNormal : -spGeomNormal);
+        const Normal3D &lpGeomNormal = lightSurfacePoint.geometricNormal;
+        isFrontSide = -dot(lpGeomNormal, *shadowRayDir) > 0;
+        Point3D lightPoint = offsetRayOrigin(
+            lightSurfacePoint.position, isFrontSide ? lpGeomNormal : -lpGeomNormal);
 
         float tmax = FLT_MAX;
         if (!lightSurfacePoint.atInfinity)
-            tmax = std::sqrt(*squaredDistance) * 0.9999f;
+            tmax = distance(lightPoint, shadingPoint) * 0.9999f; // TODO: アドホックな調整ではなくoffsetRayOriginと一貫性のある形に。
 
         WavelengthSamples plWls = wls;
         float plFracVis = 1.0f;

@@ -57,6 +57,15 @@ namespace vlr {
                   "each value of color XYZ must not be negative.");
         float colorRGB[3];
         transformTristimulus(mat_XYZ_to_Rec709_D65, colorXYZ, colorRGB);
+        // JP: 同じセンサーサイズ設定で解像度を変えるとピクセル辺りの積分値の大きさが変わって(=明るさが変わって)
+        //     使いづらいのでキャンセルする補正項をかける。
+        // EN: Changing the resolution while keeping the sensor size causes difference in the magnitude of
+        //     per-pixel integrated value (i.e. difference in brightness), making it difficult to use,
+        //     so multiply a correction factor.
+        float resCorrection = imageSize.x * imageSize.y;
+        colorRGB[0] *= resCorrection;
+        colorRGB[1] *= resCorrection;
+        colorRGB[2] *= resCorrection;
 
         const DiscretizedSpectrum &albedo = accumAlbedoBuffer[linearIndex];
         float albedoXYZ[3];
@@ -65,7 +74,8 @@ namespace vlr {
         albedoXYZ[1] *= recNumAccums;
         albedoXYZ[2] *= recNumAccums;
         VLRAssert(albedoXYZ[0] >= 0.0f && albedoXYZ[1] >= 0.0f && albedoXYZ[2] >= 0.0f,
-                  "each value of albedo XYZ must not be negative.");
+                  "Pixel %u, %u: (%g, %g, %g), each value of albedo XYZ must not be negative.",
+                  launchIndex.x, launchIndex.y, albedoXYZ[0], albedoXYZ[1], albedoXYZ[2]);
         float albedoRGB[3];
         transformTristimulus(mat_XYZ_to_Rec709_D65, albedoXYZ, albedoRGB);
 
@@ -134,6 +144,18 @@ namespace vlr {
                           "each value of XYZ must not be negative (%g, %g, %g).",
                           XYZ[0], XYZ[1], XYZ[2]);
                 transformTristimulus(mat_XYZ_to_Rec709_D65, XYZ, RGB);
+
+                if (!debugRender) {
+                    // JP: 同じセンサーサイズ設定で解像度を変えるとピクセル辺りの積分値の大きさが変わって(=明るさが変わって)
+                    //     使いづらいのでキャンセルする補正項をかける。
+                    // EN: Changing the resolution while keeping the sensor size causes difference in the magnitude of
+                    //     per-pixel integrated value (i.e. difference in brightness), making it difficult to use,
+                    //     so multiply a correction factor.
+                    float resCorrection = imageSize.x * imageSize.y;
+                    RGB[0] *= resCorrection;
+                    RGB[1] *= resCorrection;
+                    RGB[2] *= resCorrection;
+                }
             }
         }
 

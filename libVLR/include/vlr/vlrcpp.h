@@ -730,12 +730,16 @@ namespace vlr {
             errorCheck(vlrContextSetScene(m_rawContext, scene->getRaw<VLRScene>()));
         }
 
-        void setRenderer(VLRRenderer renderer) {
+        void setRenderer(VLRRenderer renderer) const {
             errorCheck(vlrContextSetRenderer(m_rawContext, renderer));
         }
 
-        void setDebugRenderingAttribute(VLRDebugRenderingMode attr) {
+        void setDebugRenderingAttribute(VLRDebugRenderingMode attr) const {
             errorCheck(vlrContextSetDebugRenderingAttribute(m_rawContext, attr));
+        }
+
+        void setProbePixel(int32_t x, int32_t y) const {
+            errorCheck(vlrContextSetProbePixel(m_rawContext, x, y));
         }
 
         void render(CUstream stream, const CameraRef &camera, bool denoise, uint32_t shrinkCoeff,

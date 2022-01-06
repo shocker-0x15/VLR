@@ -201,6 +201,19 @@ VLR_API VLRResult vlrContextSetDebugRenderingAttribute(
     VLR_RETURN_INTERNAL_ERROR();
 }
 
+VLR_API VLRResult vlrContextSetProbePixel(
+    VLRContext context,
+    int32_t x, int32_t y) {
+    try {
+        VLR_RETURN_INVALID_INSTANCE(context, vlr::Context);
+
+        context->setProbePixel(x, y);
+
+        return VLRResult_NoError;
+    }
+    VLR_RETURN_INTERNAL_ERROR();
+}
+
 VLR_API VLRResult vlrContextRender(
     VLRContext context,
     CUstream stream, VLRCameraConst camera, bool denoise,

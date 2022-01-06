@@ -534,10 +534,10 @@ namespace vlr::shared {
         float prevSumPowerProbDensities;
         float backwardConversionFactor;
         SampledSpectrum flux;
-        Vector3D dirIn;
+        Vector3D dirInLocal;
         DirectionType sampledType;
         unsigned int wlSelected : 1;
-        unsigned int isFirstVertex : 1;
+        unsigned int pathLength : 16;
     };
 
 
@@ -609,6 +609,8 @@ namespace vlr::shared {
         uint32_t limitNumAccumFrames;
 
         DebugRenderingAttribute debugRenderingAttribute;
+        int32_t probePixX;
+        int32_t probePixY;
 
         CUDA_DEVICE_FUNCTION void print() const {
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
@@ -647,9 +649,9 @@ namespace vlr::shared {
     };
     static_assert( // Size consistency check between host and device side
 #if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-                  sizeof(PipelineLaunchParameters) == 608 &&
-#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
                   sizeof(PipelineLaunchParameters) == 616 &&
+#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
+                  sizeof(PipelineLaunchParameters) == 624 &&
 #endif
                   alignof(PipelineLaunchParameters) == 8,
                   "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");

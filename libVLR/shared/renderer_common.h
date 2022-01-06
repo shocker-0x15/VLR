@@ -32,7 +32,7 @@ namespace vlr::shared {
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
-            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
+            progGetBaseColor = ProgSigBSDFGetBaseColor(procSet.progGetBaseColor);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
@@ -78,11 +78,11 @@ namespace vlr::shared {
 
             const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
-            progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
-            progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
-            progSampleInternal = static_cast<ProgSigBSDFSampleInternal>(procSet.progSampleInternal);
-            progEvaluateInternal = static_cast<ProgSigBSDFEvaluateInternal>(procSet.progEvaluateInternal);
-            progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+            progGetBaseColor = ProgSigBSDFGetBaseColor(procSet.progGetBaseColor);
+            progMatches = ProgSigBSDFmatches(procSet.progMatches);
+            progSampleInternal = ProgSigBSDFSampleInternal(procSet.progSampleInternal);
+            progEvaluateInternal = ProgSigBSDFEvaluateInternal(procSet.progEvaluateInternal);
+            progEvaluatePDFInternal = ProgSigBSDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
@@ -114,7 +114,7 @@ namespace vlr::shared {
             }
             SampledSpectrum ret = fs_sn * snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
-                      "sample: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g, "
                       "snCorrection: %g",
                       sample.uComponent, sample.uDir[0], sample.uDir[1],
@@ -139,7 +139,7 @@ namespace vlr::shared {
             }
             SampledSpectrum ret = fs_sn * snCorrection;
             VLRAssert(ret.allFinite() && !ret.hasNegative(),
-                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "evalBSDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), "
                       "snCorrection: %g",
                       VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
@@ -154,7 +154,7 @@ namespace vlr::shared {
             }
             float ret = evaluatePDFInternal(query, dirLocal);
             VLRAssert(vlr::isfinite(ret) && ret >= 0,
-                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "evalBSDF_PDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g",
                       VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
                       VLR3DPrint(dirLocal), ret);
@@ -198,30 +198,31 @@ namespace vlr::shared {
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
         CUDA_DEVICE_FUNCTION BSDF(
-            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls, bool fromEDF = false) {
+            const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls,
+            bool fromEDF = false) {
             if (fromEDF) {
                 auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
                 setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
                 const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
-                progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColorAsBSDF);
-                progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatchesAsBSDF);
-                progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternalAsBSDF);
-                progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternalAsBSDF);
-                progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternalAsBSDF);
+                progGetBaseColor = ProgSigBSDFGetBaseColor(procSet.progGetBaseColorAsBSDF);
+                progMatches = ProgSigBSDFmatches(procSet.progMatchesAsBSDF);
+                progSampleInternal = ProgSigBSDFSampleWithRevInternal(procSet.progSampleWithRevInternalAsBSDF);
+                progEvaluateInternal = ProgSigBSDFEvaluateWithRevInternal(procSet.progEvaluateWithRevInternalAsBSDF);
+                progEvaluatePDFInternal = ProgSigBSDFEvaluatePDFWithRevInternal(procSet.progEvaluatePDFWithRevInternalAsBSDF);
             }
             else {
-                auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
+                auto setupBSDF = ProgSigSetupBSDF(matDesc.progSetupBSDF);
                 setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
 
                 const BSDFProcedureSet procSet = plp.bsdfProcedureSetBuffer[matDesc.bsdfProcedureSetIndex];
 
-                progGetBaseColor = static_cast<ProgSigBSDFGetBaseColor>(procSet.progGetBaseColor);
-                progMatches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
-                progSampleInternal = static_cast<ProgSigBSDFSampleWithRevInternal>(procSet.progSampleWithRevInternal);
-                progEvaluateInternal = static_cast<ProgSigBSDFEvaluateWithRevInternal>(procSet.progEvaluateWithRevInternal);
-                progEvaluatePDFInternal = static_cast<ProgSigBSDFEvaluatePDFWithRevInternal>(procSet.progEvaluatePDFWithRevInternal);
+                progGetBaseColor = ProgSigBSDFGetBaseColor(procSet.progGetBaseColor);
+                progMatches = ProgSigBSDFmatches(procSet.progMatches);
+                progSampleInternal = ProgSigBSDFSampleWithRevInternal(procSet.progSampleWithRevInternal);
+                progEvaluateInternal = ProgSigBSDFEvaluateWithRevInternal(procSet.progEvaluateWithRevInternal);
+                progEvaluatePDFInternal = ProgSigBSDFEvaluatePDFWithRevInternal(procSet.progEvaluatePDFWithRevInternal);
             }
         }
 
@@ -255,7 +256,7 @@ namespace vlr::shared {
             }
             SampledSpectrum ret = fs_sn * snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
-                      "sample: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g, "
                       "snCorrection: %g",
                       sample.uComponent, sample.uDir[0], sample.uDir[1],
@@ -282,7 +283,7 @@ namespace vlr::shared {
             }
             SampledSpectrum ret = fs_sn * snCorrection;
             VLRAssert(ret.allFinite() && !ret.hasNegative(),
-                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "evalBSDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), "
                       "snCorrection: %g",
                       VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
@@ -299,7 +300,7 @@ namespace vlr::shared {
             }
             float ret = evaluatePDFInternal(query, dirLocal, revValue);
             VLRAssert(vlr::isfinite(ret) && ret >= 0,
-                      "qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
+                      "evalBSDF_PDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g",
                       VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
                       VLR3DPrint(dirLocal), ret);
@@ -348,11 +349,11 @@ namespace vlr::shared {
 
             const EDFProcedureSet procSet = plp.edfProcedureSetBuffer[matDesc.edfProcedureSetIndex];
 
-            progMatches = static_cast<ProgSigEDFmatches>(procSet.progMatches);
-            progSampleInternal = static_cast<ProgSigEDFSampleInternal>(procSet.progSampleInternal);
-            progEvaluateEmittanceInternal = static_cast<ProgSigEDFEvaluateEmittanceInternal>(procSet.progEvaluateEmittanceInternal);
-            progEvaluateInternal = static_cast<ProgSigEDFEvaluateInternal>(procSet.progEvaluateInternal);
-            progEvaluatePDFInternal = static_cast<ProgSigEDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
+            progMatches = ProgSigEDFmatches(procSet.progMatches);
+            progSampleInternal = ProgSigEDFSampleInternal(procSet.progSampleInternal);
+            progEvaluateEmittanceInternal = ProgSigEDFEvaluateEmittanceInternal(procSet.progEvaluateEmittanceInternal);
+            progEvaluateInternal = ProgSigEDFEvaluateInternal(procSet.progEvaluateInternal);
+            progEvaluatePDFInternal = ProgSigEDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(
@@ -432,11 +433,11 @@ namespace vlr::shared {
 
             const IDFProcedureSet procSet = plp.idfProcedureSetBuffer[camDesc.idfProcedureSetIndex];
 
-            progSampleInternal = static_cast<ProgSigIDFSampleInternal>(procSet.progSampleInternal);
-            progEvaluateSpatialImportanceInternal = static_cast<ProgSigIDFEvaluateSpatialImportanceInternal>(procSet.progEvaluateSpatialImportanceInternal);
-            progEvaluateDirectionalImportanceInternal = static_cast<ProgSigIDFEvaluateDirectionalImportanceInternal>(procSet.progEvaluateDirectionalImportanceInternal);
-            progEvaluatePDFInternal = static_cast<ProgSigIDFEvaluatePDFInternal>(procSet.progEvaluatePDFInternal);
-            progBackProjectDirectionInternal = static_cast<ProgSigIDFBackProjectDirectionInternal>(procSet.progBackProjectDirectionInternal);
+            progSampleInternal = ProgSigIDFSampleInternal(procSet.progSampleInternal);
+            progEvaluateSpatialImportanceInternal = ProgSigIDFEvaluateSpatialImportanceInternal(procSet.progEvaluateSpatialImportanceInternal);
+            progEvaluateDirectionalImportanceInternal = ProgSigIDFEvaluateDirectionalImportanceInternal(procSet.progEvaluateDirectionalImportanceInternal);
+            progEvaluatePDFInternal = ProgSigIDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
+            progBackProjectDirectionInternal = ProgSigIDFBackProjectDirectionInternal(procSet.progBackProjectDirectionInternal);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(
@@ -602,11 +603,11 @@ namespace vlr::shared {
 
     CUDA_DEVICE_FUNCTION void calcSurfacePoint(
         const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
-        ProgSigDecodeLocalHitPoint decodeHitPoint(hp.sbtr->geomInst.progDecodeLocalHitPoint);
+        ProgSigDecodeLocalHitPoint decodeLocalHitPoint(hp.sbtr->geomInst.progDecodeLocalHitPoint);
         surfPt->instIndex = optixGetInstanceId();
         surfPt->geomInstIndex = hp.sbtr->geomInst.geomInstIndex;
         surfPt->primIndex = hp.primIndex;
-        decodeHitPoint(hp, surfPt, hypAreaPDF);
+        decodeLocalHitPoint(hp, surfPt, hypAreaPDF);
         surfPt->position = transform<TransformKind::ObjectToWorld>(surfPt->position);
         surfPt->shadingFrame = ReferenceFrame(normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.x)),
                                               normalize(transform<TransformKind::ObjectToWorld>(surfPt->shadingFrame.z)));
