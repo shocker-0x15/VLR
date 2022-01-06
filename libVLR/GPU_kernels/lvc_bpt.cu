@@ -6,6 +6,9 @@
 namespace vlr {
     using namespace shared;
 
+    static constexpr bool includeRRProbability = true;
+    static constexpr int32_t debugPathLength = 0;
+
     CUDA_DEVICE_KERNEL void RT_AH_NAME(lvcbptAnyHitWithAlpha)() {
         LTReadOnlyPayload* roPayload;
         LTReadWritePayload* rwPayload;
@@ -219,11 +222,16 @@ namespace vlr {
         woPayload->cosTerm = std::fabs(cosTerm);
         woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->prevCosTerm / lastDist2;
         woPayload->sampledType = fsResult.sampledType;
+        if constexpr (includeRRProbability) {
+            woPayload->dirPDF *= continueProb;
+            SampledSpectrum revThroughput =
+                fsRevResult.value * absDot(fsQuery.dirLocal, geomNormalLocal) / fsRevResult.dirPDF;
+            float revContinueProb = std::fmin(revThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
+            woPayload->revAreaPDF *= revContinueProb;
+        }
     }
 
 
-
-    static constexpr int32_t debugPathLength = 0;
 
     CUDA_DEVICE_KERNEL void RT_RG_NAME(lvcbptEyePath)() {
         uint2 launchIndex = make_uint2(optixGetLaunchIndex().x, optixGetLaunchIndex().y);
@@ -308,6 +316,10 @@ namespace vlr {
                 float backwardDirDensityL;
                 /*float forwardDirDensityL = */bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
                 //float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
+                if constexpr (includeRRProbability) {
+                    SampledSpectrum backwardThroughputL = backwardFsL * absDot(bsdfLQuery.dirLocal, geomNormalLocalL) / backwardDirDensityL;
+                    backwardDirDensityL *= std::fmin(backwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                }
                 float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
                 float partialDenomMisWeightL = // extend eye subpath, shorten light subpath.
                     pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
@@ -564,6 +576,14 @@ namespace vlr {
                 SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
                 float backwardDirDensityL;
                 float forwardDirDensityL = bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
+                if constexpr (includeRRProbability) {
+                    if (vertex.pathLength > 0) {
+                        SampledSpectrum forwardThroughputL = forwardFsL * absDot(bsdfLQuery.dirLocal, geomNormalLocalL) / forwardDirDensityL;
+                        forwardDirDensityL *= std::fmin(forwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                    }
+                    SampledSpectrum backwardThroughputL = backwardFsL * absDot(conRayDirLocalL, geomNormalLocalL) / backwardDirDensityL;
+                    backwardDirDensityL *= std::fmin(backwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                }
                 float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
                 float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
                 float partialDenomMisWeightL = // extend eye subpath, shorten light subpath.
@@ -574,6 +594,12 @@ namespace vlr {
                 SampledSpectrum forwardFsE = bsdfE.evaluate(bsdfEQuery, conRayDirLocalE, &backwardFsE);
                 float backwardDirDensityE;
                 float forwardDirDensityE = bsdfE.evaluatePDF(bsdfEQuery, conRayDirLocalE, &backwardDirDensityE);
+                if constexpr (includeRRProbability) {
+                    SampledSpectrum forwardThroughputE = forwardFsE * absDot(conRayDirLocalE, geomNormalLocalE) / forwardDirDensityE;
+                    forwardDirDensityE *= std::fmin(forwardThroughputE.importance(wls.selectedLambdaIndex()), 1.0f);
+                    SampledSpectrum backwardThroughputE = backwardFsE * absDot(bsdfEQuery.dirLocal, geomNormalLocalE) / backwardDirDensityE;
+                    backwardDirDensityE *= std::fmin(backwardThroughputE.importance(wls.selectedLambdaIndex()), 1.0f);
+                }
                 float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
                 float backwardAreaDensityE = backwardDirDensityE * roPayload->prevCosTerm / lastDist2;
                 float partialDenomMisWeightE = // extend light subpath, shorten eye subpath.
@@ -635,6 +661,12 @@ namespace vlr {
         woPayload->cosTerm = std::fabs(cosTerm);
         woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->prevCosTerm / lastDist2;
         woPayload->sampledType = fsResult.sampledType;
+        if constexpr (includeRRProbability) {
+            woPayload->dirPDF *= continueProb;
+            SampledSpectrum revThroughput = fsRevResult.value * absDot(bsdfEQuery.dirLocal, geomNormalLocalE) / fsRevResult.dirPDF;
+            float revContinueProb = std::fmin(revThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
+            woPayload->revAreaPDF *= revContinueProb;
+        }
     }
 
 
