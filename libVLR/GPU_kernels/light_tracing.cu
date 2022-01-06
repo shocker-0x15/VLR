@@ -1,4 +1,4 @@
-#include "../shared/light_transport_common.h"
+ï»¿#include "../shared/light_transport_common.h"
 
 namespace vlr {
     using namespace shared;
@@ -223,7 +223,7 @@ namespace vlr {
                 float cosLens = We0Result.surfPt.calcCosTerm(shadowRayDir);
 
                 float G = fractionalVisibility * absDot(shadowRayDir_sn, geomNormalLocal) * cosLens / squaredDistance;
-                float scalarCoeff = G / lensPDF; // ’¼Úcontribution‚ÌŒvŽZŽ®‚É“ü‚ê‚é‚ÆCUDA‚ÌƒoƒO‚È‚Ì‚©‚¨‚©‚µ‚ÈŒ‹‰Ê‚É‚È‚éB
+                float scalarCoeff = G / lensPDF; // ç›´æŽ¥contributionã®è¨ˆç®—å¼ã«å…¥ã‚Œã‚‹ã¨CUDAã®ãƒã‚°ãªã®ã‹ãŠã‹ã—ãªçµæžœã«ãªã‚‹ã€‚
                 SampledSpectrum contribution = rwPayload->alpha * We * fs * scalarCoeff;
                 atomicAddToBuffer(wls, contribution, pixel);
             }

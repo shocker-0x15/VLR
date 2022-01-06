@@ -1,4 +1,4 @@
-#include "../shared/light_transport_common.h"
+﻿#include "../shared/light_transport_common.h"
 
 namespace vlr {
     using namespace shared;

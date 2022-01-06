@@ -529,9 +529,9 @@ namespace vlr::shared {
         uint32_t geomInstIndex;
         uint32_t primIndex;
         float u, v;
-        float totalPowerProbDensity;
-        float prevTotalPowerProbDensity;
-        float prevSumPowerProbDensities;
+        float powerProbDensity;
+        float prevPowerProbDensity;
+        float prevSumPowerProbRatios;
         float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirInLocal;
