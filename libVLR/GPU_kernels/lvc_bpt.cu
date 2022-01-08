@@ -56,10 +56,29 @@ namespace vlr {
         plp.lightVertexCache[cacheIndex] = lightVertex;
     }
 
+    CUDA_DEVICE_FUNCTION void decodeHitPoint(
+        const LightPathVertex &vertex, const WavelengthSamples &wls,
+        SurfacePoint* surfPt, uint32_t* materialIndex) {
+        const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
+        ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
+        decodeHitPoint(vertex.instIndex, vertex.geomInstIndex, vertex.primIndex,
+                       vertex.u, vertex.v, surfPt);
+
+        Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), *surfPt, wls);
+        if (localNormal != Normal3D(0.0f, 0.0f, 1.0f))
+            applyBumpMapping(localNormal, surfPt);
+
+        Vector3D newTangent = calcNode(geomInst.nodeTangent, surfPt->shadingFrame.x, *surfPt, wls);
+        if (newTangent != surfPt->shadingFrame.x)
+            modifyTangent(newTangent, surfPt);
+
+        *materialIndex = geomInst.materialIndex;
+    }
+
     CUDA_DEVICE_FUNCTION float computeRRProbability(
         const SampledSpectrum &fs, const Vector3D &dirLocal, float dirDensity, const Normal3D &geomNormalLocal) {
-        SampledSpectrum throughput = fs * absDot(dirLocal, geomNormalLocal) / dirDensity;
-        return std::fmin(throughput.importance(plp.commonWavelengthSamples.selectedLambdaIndex()), 1.0f);
+        SampledSpectrum localThroughput = fs * absDot(dirLocal, geomNormalLocal) / dirDensity;
+        return std::fmin(localThroughput.importance(plp.commonWavelengthSamples.selectedLambdaIndex()), 1.0f);
     }
 
 
@@ -172,6 +191,8 @@ namespace vlr {
 
         KernelRNG &rng = rwPayload->rng;
         WavelengthSamples wls = plp.commonWavelengthSamples;
+        if (rwPayload->singleIsSelected)
+            wls.setSingleIsSelected();
 
         SurfacePoint surfPt;
         float hypAreaPDF;
@@ -187,11 +208,11 @@ namespace vlr {
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
         BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
-        bool thirdLastSegIsDeltaConnection =
-            roPayload->prevDeltaSampled || roPayload->secondPrevDeltaSampled;
+        bool thirdLastSegIsValidStrategy =
+            !roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled;
         rwPayload->prevSumPowerProbRatios =
             pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
-            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsDeltaConnection ? 0 : 1));
+            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsValidStrategy ? 1 : 0));
         rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPt.position);
@@ -283,20 +304,7 @@ namespace vlr {
 
             SurfacePoint surfPtL;
             uint32_t matIndexL;
-            {
-                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
-                ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
-                decodeHitPoint(vertex.instIndex, vertex.geomInstIndex, vertex.primIndex,
-                               vertex.u, vertex.v, &surfPtL);
-
-                Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPtL, wls);
-                applyBumpMapping(localNormal, &surfPtL);
-
-                Vector3D newTangent = calcNode(geomInst.nodeTangent, surfPtL.shadingFrame.x, surfPtL, wls);
-                modifyTangent(newTangent, &surfPtL);
-
-                matIndexL = geomInst.materialIndex;
-            }
+            decodeHitPoint(vertex, wls, &surfPtL, &matIndexL);
 
             Vector3D conRayDir;
             float squaredConDist;
@@ -347,14 +355,14 @@ namespace vlr {
                     float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
 
                     // extend eye subpath, shorten light subpath.
-                    bool secondLastSegIsDeltaSampled = vertex.deltaSampled || vertex.prevDeltaSampled;
+                    bool secondLastSegIsValidStrategyL = !vertex.deltaSampled && !vertex.prevDeltaSampled;
                     float partialDenomMisWeightL =
                         pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                        (vertex.prevSumPowerProbRatios + (secondLastSegIsDeltaSampled ? 0 : 1));
-                    bool lastSegIsDeltaSampled = /*bsdfL.hasNonDelta() ||*/ vertex.deltaSampled;
+                        (vertex.prevSumPowerProbRatios + (secondLastSegIsValidStrategyL ? 1 : 0));
+                    bool lastSegIsValidStrategyL = /*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled;
                     partialDenomMisWeightL =
                         pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                        (partialDenomMisWeightL + (lastSegIsDeltaSampled ? 0 : 1));
+                        (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
                     SampledSpectrum unweightedContribution = vertex.flux * conTerm * alpha;
@@ -473,6 +481,8 @@ namespace vlr {
 
         KernelRNG &rng = rwPayload->rng;
         WavelengthSamples wls = plp.commonWavelengthSamples;
+        if (rwPayload->singleIsSelected)
+            wls.setSingleIsSelected();
 
         SurfacePoint surfPtE;
         float hypAreaPDF;
@@ -494,16 +504,13 @@ namespace vlr {
         Normal3D geomNormalLocalE = surfPtE.shadingFrame.toLocal(surfPtE.geometricNormal);
         BSDFQuery bsdfEQuery(dirOutLocalE, geomNormalLocalE, transportModeE, DirectionType::All(), wls);
 
-        bool thirdLastSegIsDeltaConnectionE =
-            roPayload->prevDeltaSampled || roPayload->secondPrevDeltaSampled;
+        bool thirdLastSegIsValidStrategyE =
+            (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
+            rwPayload->pathLength > 2; // Ignore the strategy with zero eye vertices.
         rwPayload->prevSumPowerProbRatios =
             pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
-            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsDeltaConnectionE ? 0 : 1));
+            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsValidStrategyE ? 1 : 0));
         rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
-        if (rwPayload->pathLength == 2) {
-            // Ignore the strategy with zero eye vertices.
-            rwPayload->prevSumPowerProbRatios = 0;
-        }
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPtE.position);
         float probDensity = roPayload->dirPDF * absDot(dirOutLocalE, geomNormalLocalE) / lastDist2;
@@ -516,6 +523,8 @@ namespace vlr {
             EDFQuery edfQuery(DirectionType::All(), wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(edfQuery, dirOutLocalE);
             SampledSpectrum unweightedContribution = rwPayload->alpha * Le;
+            if (rwPayload->singleIsSelected)
+                unweightedContribution *= SampledSpectrum::NumComponents();
 
             const Instance &inst = plp.instBuffer[surfPtE.instIndex];
             float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
@@ -526,15 +535,16 @@ namespace vlr {
             float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
 
             // extend light subpath, shorten eye subpath.
-            bool secondLastSegIsDeltaConnectionE =
-                roPayload->sampledType.isDelta() || roPayload->prevDeltaSampled;
+            bool secondLastSegIsValidStrategyE =
+                (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
+                rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
             float partialDenomMisWeightE =
                 pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                (rwPayload->prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionE ? 0 : 1));
-            bool lastSegIsDeltaConnectionE = /*edf.hasNonDelta() ||*/ roPayload->sampledType.isDelta();
+                (rwPayload->prevSumPowerProbRatios + (secondLastSegIsValidStrategyE ? 1 : 0));
+            bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
             partialDenomMisWeightE =
                 pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                (partialDenomMisWeightE + (lastSegIsDeltaConnectionE ? 0 : 1));
+                (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
 
             float recMisWeight = 1.0f + partialDenomMisWeightE;
             float misWeight = 1.0f / recMisWeight;
@@ -551,20 +561,7 @@ namespace vlr {
 
             SurfacePoint surfPtL;
             uint32_t matIndexL;
-            {
-                const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
-                ProgSigDecodeHitPoint decodeHitPoint(geomInst.progDecodeHitPoint);
-                decodeHitPoint(vertex.instIndex, vertex.geomInstIndex, vertex.primIndex,
-                               vertex.u, vertex.v, &surfPtL);
-
-                Normal3D localNormal = calcNode(geomInst.nodeNormal, Normal3D(0.0f, 0.0f, 1.0f), surfPtL, wls);
-                applyBumpMapping(localNormal, &surfPtL);
-
-                Vector3D newTangent = calcNode(geomInst.nodeTangent, surfPtL.shadingFrame.x, surfPtL, wls);
-                modifyTangent(newTangent, &surfPtL);
-
-                matIndexL = geomInst.materialIndex;
-            }
+            decodeHitPoint(vertex, wls, &surfPtL, &matIndexL);
 
             Vector3D conRayDir;
             float squaredConDist;
@@ -620,25 +617,25 @@ namespace vlr {
                     float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
 
                     // extend eye subpath, shorten light subpath.
-                    bool secondLastSegIsDeltaConnectionL = vertex.deltaSampled || vertex.prevDeltaSampled;
+                    bool secondLastSegIsValidStrategyL = !vertex.deltaSampled && !vertex.prevDeltaSampled;
                     float partialDenomMisWeightL =
                         pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                        (vertex.prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionL ? 0 : 1));
-                    bool lastSegIsDeltaConnectionL = /*bsdfL.hasNonDelta() ||*/ vertex.deltaSampled;
+                        (vertex.prevSumPowerProbRatios + (secondLastSegIsValidStrategyL ? 1 : 0));
+                    bool lastSegIsValidStrategyL = /*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled;
                     partialDenomMisWeightL =
                         pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                        (partialDenomMisWeightL + (lastSegIsDeltaConnectionL ? 0 : 1));
+                        (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
 
                     // extend light subpath, shorten eye subpath.
-                    bool secondLastSegIsDeltaConnectionE =
-                        roPayload->sampledType.isDelta() || roPayload->prevDeltaSampled;
+                    bool secondLastSegIsValidStrategyE =
+                        !roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled;
                     float partialDenomMisWeightE =
                         pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                        (rwPayload->prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionE ? 0 : 1));
-                    bool lastSegIsDeltaConnectionE = /*bsdfE.hasNonDelta() ||*/ roPayload->sampledType.isDelta();
+                        (rwPayload->prevSumPowerProbRatios + (secondLastSegIsValidStrategyE ? 1 : 0));
+                    bool lastSegIsValidStrategyE = /*bsdfE.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
                     partialDenomMisWeightE =
                         pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                        (partialDenomMisWeightE + (lastSegIsDeltaConnectionE ? 0 : 1));
+                        (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
                     SampledSpectrum unweightedContribution = vertex.flux * conTerm * rwPayload->alpha;

@@ -856,7 +856,7 @@ namespace vlr {
 
                 if (revResult) {
                     revResult->value = ret;
-                    revResult->dirPDF = 1.0f;
+                    revResult->dirPDF = result->dirPDF;
                 }
 
                 return ret;
@@ -879,8 +879,7 @@ namespace vlr {
                     (m_dispersive ? DirectionType::Dispersive() : DirectionType());
 
                 SampledSpectrum ret = SampledSpectrum::Zero();
-                ret[query.wlHint] = m_coeff[query.wlHint] *
-                    (1.0f - F[query.wlHint]) * regFactor;
+                ret[query.wlHint] = m_coeff[query.wlHint] * (1.0f - F[query.wlHint]) * regFactor;
 
                 if (revResult) {
                     SampledSpectrum revRet = ret;
@@ -936,8 +935,7 @@ namespace vlr {
                 if (!entering)
                     dirRefracted = -dirRefracted;
                 if (dot(dirLocal, dirRefracted) >= cosEpsilon && cosExit != 0.0f) {
-                    ret[query.wlHint] = m_coeff[query.wlHint] *
-                        (1.0f - F[query.wlHint]) * regFactor;
+                    ret[query.wlHint] = m_coeff[query.wlHint] * (1.0f - F[query.wlHint]) * regFactor;
 
                     if (revValue) {
                         SampledSpectrum revRet = ret;

@@ -240,6 +240,7 @@ namespace vlr::shared {
             if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
                 result->sampledType = DirectionType();
+                revResult->dirPDF = 0.0f;
                 return SampledSpectrum::Zero();
             }
             SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
@@ -255,6 +256,7 @@ namespace vlr::shared {
                     snCorrection = 0.0f;
             }
             SampledSpectrum ret = fs_sn * snCorrection;
+            revResult->value *= snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
                       "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g, "
@@ -282,6 +284,7 @@ namespace vlr::shared {
                     snCorrection = 0.0f;
             }
             SampledSpectrum ret = fs_sn * snCorrection;
+            *revValue *= snCorrection;
             VLRAssert(ret.allFinite() && !ret.hasNegative(),
                       "evalBSDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), "
