@@ -99,6 +99,11 @@ namespace vlr::shared {
             result->sampledType = DirectionType();
             SampledSpectrum ret = SampledSpectrum::Zero();
 
+            if (!matches(query.dirTypeFilter))
+                return ret;
+
+            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
+
             float snCorrection;
             if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
@@ -107,10 +112,6 @@ namespace vlr::shared {
             if (!vlr::isfinite(snCorrection))
                 return ret;
 
-            if (!matches(query.dirTypeFilter))
-                return ret;
-
-            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
             ret = fs_sn * snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
                       "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
@@ -240,6 +241,11 @@ namespace vlr::shared {
             revResult->dirPDF = 0.0f;
             SampledSpectrum ret = SampledSpectrum::Zero();
 
+            if (!matches(query.dirTypeFilter))
+                return ret;
+
+            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
+
             float snCorrection;
             if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
@@ -248,10 +254,6 @@ namespace vlr::shared {
             if (!vlr::isfinite(snCorrection))
                 return ret;
 
-            if (!matches(query.dirTypeFilter))
-                return ret;
-
-            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
             ret = fs_sn * snCorrection;
             revResult->value *= snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
