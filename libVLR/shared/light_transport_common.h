@@ -59,10 +59,12 @@ namespace vlr::shared {
         LTReadOnlyPayload*, LTWriteOnlyPayload*, LTReadWritePayload*>;
 
     struct LVCBPTLightPathReadOnlyPayload {
-        float prevDirPDF;
-        float prevCosTerm;
+        float dirPDF;
+        float cosTerm;
         float prevRevAreaPDF;
-        DirectionType prevSampledType;
+        DirectionType sampledType;
+        unsigned int prevDeltaSampled : 1;
+        unsigned int secondPrevDeltaSampled : 1;
     };
 
     struct LVCBPTLightPathWriteOnlyPayload {
@@ -86,10 +88,12 @@ namespace vlr::shared {
     };
 
     struct LVCBPTEyePathReadOnlyPayload {
-        float prevDirPDF;
-        float prevCosTerm;
+        float dirPDF;
+        float cosTerm;
         float prevRevAreaPDF;
-        DirectionType prevSampledType;
+        DirectionType sampledType;
+        unsigned int prevDeltaSampled : 1;
+        unsigned int secondPrevDeltaSampled : 1;
     };
 
     struct LVCBPTEyePathWriteOnlyPayload {

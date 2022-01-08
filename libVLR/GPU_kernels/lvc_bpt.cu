@@ -26,20 +26,15 @@ namespace vlr {
         const float2 &pixel) {
         uint32_t ipx = static_cast<uint32_t>(pixel.x);
         uint32_t ipy = static_cast<uint32_t>(pixel.y);
-        if (ipx < plp.imageSize.x && ipy < plp.imageSize.y) {
-            if (!contribution.allFinite()) {
-                vlrprintf("Pass %u, (%u - %u, %u): Not a finite value.\n",
-                          plp.numAccumFrames, optixGetLaunchIndex().x, ipx, ipy);
-                return;
-            }
+        if (ipx < plp.imageSize.x && ipy < plp.imageSize.y)
             plp.atomicAccumBuffer[ipy * plp.imageStrideInPixels + ipx].atomicAdd(wls, contribution);
-        }
     }
 
     CUDA_DEVICE_FUNCTION void storeLightVertex(
         float powerProbDensity, float prevPowerProbDensity, float prevSumPowerProbRatios,
         float backwardConversionFactor,
-        const SampledSpectrum &flux, const Vector3D &dirInLocal, DirectionType sampledType, bool wlSelected,
+        const SampledSpectrum &flux, const Vector3D &dirInLocal,
+        bool deltaSampled, bool prevDeltaSampled, bool wlSelected,
         const SurfacePoint &surfPt, uint32_t pathLength) {
         LightPathVertex lightVertex = {};
         lightVertex.instIndex = surfPt.instIndex;
@@ -53,11 +48,18 @@ namespace vlr {
         lightVertex.backwardConversionFactor = backwardConversionFactor;
         lightVertex.flux = flux;
         lightVertex.dirInLocal = dirInLocal;
-        lightVertex.sampledType = sampledType;
+        lightVertex.deltaSampled = deltaSampled;
+        lightVertex.prevDeltaSampled = prevDeltaSampled;
         lightVertex.wlSelected = wlSelected;
         lightVertex.pathLength = pathLength;
         uint32_t cacheIndex = atomicAdd(plp.numLightVertices, 1u);
         plp.lightVertexCache[cacheIndex] = lightVertex;
+    }
+
+    CUDA_DEVICE_FUNCTION float computeRRProbability(
+        const SampledSpectrum &fs, const Vector3D &dirLocal, float dirDensity, const Normal3D &geomNormalLocal) {
+        SampledSpectrum throughput = fs * absDot(dirLocal, geomNormalLocal) / dirDensity;
+        return std::fmin(throughput.importance(plp.commonWavelengthSamples.selectedLambdaIndex()), 1.0f);
     }
 
 
@@ -88,7 +90,8 @@ namespace vlr {
         float prevPowerProbDensity0 = pow2(1);
         float prevSumPowerProbRatios0 = 0;
         storeLightVertex(powerProbDensities0, prevPowerProbDensity0, prevSumPowerProbRatios0, 0,
-                         alpha, Vector3D(0, 0, 1), Le0Result.posType, false,
+                         alpha, Vector3D(0, 0, 1),
+                         Le0Result.posType.isDelta(), false, false,
                          Le0Result.surfPt, 0);
 
         EDFQuery edfQuery(DirectionType::All(), plp.commonWavelengthSamples);
@@ -110,10 +113,12 @@ namespace vlr {
         alpha *= Le1 * (cosTerm / Le1Result.dirPDF);
 
         LVCBPTLightPathReadOnlyPayload roPayload = {};
-        roPayload.prevDirPDF = Le1Result.dirPDF;
-        roPayload.prevCosTerm = cosTerm;
+        roPayload.dirPDF = Le1Result.dirPDF;
+        roPayload.cosTerm = cosTerm;
         roPayload.prevRevAreaPDF = 0;
-        roPayload.prevSampledType = Le1Result.sampledType;
+        roPayload.secondPrevDeltaSampled = false;
+        roPayload.prevDeltaSampled = Le0Result.posType.isDelta();
+        roPayload.sampledType = Le1Result.sampledType;
         LVCBPTLightPathWriteOnlyPayload woPayload = {};
         LVCBPTLightPathReadWritePayload rwPayload = {};
         rwPayload.rng = rng;
@@ -145,10 +150,12 @@ namespace vlr {
 
             rayOrg = woPayload.nextOrigin;
             rayDir = woPayload.nextDirection;
-            roPayload.prevDirPDF = woPayload.dirPDF;
-            roPayload.prevCosTerm = woPayload.cosTerm;
+            roPayload.dirPDF = woPayload.dirPDF;
+            roPayload.cosTerm = woPayload.cosTerm;
             roPayload.prevRevAreaPDF = woPayload.revAreaPDF;
-            roPayload.prevSampledType = woPayload.sampledType;
+            roPayload.secondPrevDeltaSampled = roPayload.prevDeltaSampled;
+            roPayload.prevDeltaSampled = roPayload.sampledType.isDelta();
+            roPayload.sampledType = woPayload.sampledType;
         }
         plp.linearRngBuffer[launchIndex] = rwPayload.rng;
     }
@@ -180,20 +187,24 @@ namespace vlr {
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
         BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
+        bool thirdLastSegIsDeltaConnection =
+            roPayload->prevDeltaSampled || roPayload->secondPrevDeltaSampled;
         rwPayload->prevSumPowerProbRatios =
             pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
-            (1 + rwPayload->prevSumPowerProbRatios);
+            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsDeltaConnection ? 0 : 1));
         rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPt.position);
-        float probDensity = roPayload->prevDirPDF * absDot(dirInLocal, geomNormalLocal) / lastDist2;
+        float probDensity = roPayload->dirPDF * absDot(dirInLocal, geomNormalLocal) / lastDist2;
         rwPayload->powerProbDensity = pow2(probDensity);
 
         storeLightVertex(rwPayload->powerProbDensity,
                          rwPayload->prevPowerProbDensity, rwPayload->prevSumPowerProbRatios,
-                         roPayload->prevCosTerm / lastDist2,
+                         roPayload->cosTerm / lastDist2,
                          rwPayload->alpha, dirInLocal,
-                         roPayload->prevSampledType, rwPayload->singleIsSelected, surfPt, rwPayload->pathLength);
+                         roPayload->sampledType.isDelta(), roPayload->prevDeltaSampled,
+                         rwPayload->singleIsSelected,
+                         surfPt, rwPayload->pathLength);
 
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
@@ -201,15 +212,15 @@ namespace vlr {
         SampledSpectrum fs = bsdf.sample(fsQuery, sample, &fsResult, &fsRevResult);
         if (fs == SampledSpectrum::Zero() || fsResult.dirPDF == 0.0f)
             return;
-        if (fsResult.sampledType.isDispersive() && !wls.singleIsSelected())
+        if (fsResult.sampledType.isDispersive() && !rwPayload->singleIsSelected)
             rwPayload->singleIsSelected = true;
 
         float cosTerm = dot(fsResult.dirLocal, geomNormalLocal);
-        SampledSpectrum throughput = fs * (std::fabs(cosTerm) / fsResult.dirPDF);
-        rwPayload->alpha *= throughput;
+        SampledSpectrum localThroughput = fs * (std::fabs(cosTerm) / fsResult.dirPDF);
+        rwPayload->alpha *= localThroughput;
 
         // Russian roulette
-        float continueProb = std::fmin(throughput.importance(wls.selectedLambdaIndex()), 1.0f);
+        float continueProb = std::fmin(localThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
         if (rng.getFloat0cTo1o() >= continueProb)
             return;
         rwPayload->alpha /= continueProb;
@@ -220,14 +231,12 @@ namespace vlr {
         woPayload->nextDirection = dirOut;
         woPayload->dirPDF = fsResult.dirPDF;
         woPayload->cosTerm = std::fabs(cosTerm);
-        woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->prevCosTerm / lastDist2;
+        woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->cosTerm / lastDist2;
         woPayload->sampledType = fsResult.sampledType;
         if constexpr (includeRRProbability) {
             woPayload->dirPDF *= continueProb;
-            SampledSpectrum revThroughput =
-                fsRevResult.value * absDot(fsQuery.dirLocal, geomNormalLocal) / fsRevResult.dirPDF;
-            float revContinueProb = std::fmin(revThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
-            woPayload->revAreaPDF *= revContinueProb;
+            woPayload->revAreaPDF *= computeRRProbability(
+                fsRevResult.value, fsQuery.dirLocal, fsRevResult.dirPDF, geomNormalLocal);
         }
     }
 
@@ -300,56 +309,66 @@ namespace vlr {
                 const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
                 BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
-                Vector3D dirInLocalL = vertex.dirInLocal;
-                Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
-                BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
+                if (bsdfL.hasNonDelta()) {
+                    Vector3D dirInLocalL = vertex.dirInLocal;
+                    Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
+                    BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
 
-                Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
-                Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
+                    Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
+                    Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
 
-                float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
-                float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
-                float G = cosL * cosE * recSquaredConDist;
+                    float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
+                    float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
+                    float G = cosL * cosE * recSquaredConDist;
+                    float scalarConTerm = G * fractionalVisibility / (vertexProb * plp.wavelengthProbability);
+                    //// JP: ライトトレーシングをピクセル数実行することに等しいので確率密度がピクセル数倍になる。
+                    //scalarConTerm /= resCorrection;
+                    if (vertex.wlSelected)
+                        scalarConTerm *= SampledSpectrum::NumComponents();
 
-                SampledSpectrum backwardFsL;
-                SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
-                float backwardDirDensityL;
-                /*float forwardDirDensityL = */bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
-                //float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
-                if constexpr (includeRRProbability) {
-                    SampledSpectrum backwardThroughputL = backwardFsL * absDot(bsdfLQuery.dirLocal, geomNormalLocalL) / backwardDirDensityL;
-                    backwardDirDensityL *= std::fmin(backwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                    // JP: Implicit Lens Sampling戦略は考えない。
+                    // EN: Don't consider the implicit lens sampling strategy.
+                    SampledSpectrum backwardFsL;
+                    SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
+                    float backwardDirDensityL;
+                    /*float forwardDirDensityL = */bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
+                    //float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
+                    if constexpr (includeRRProbability)
+                        backwardDirDensityL *= computeRRProbability(
+                            backwardFsL, bsdfLQuery.dirLocal, backwardDirDensityL, geomNormalLocalL);
+                    float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
+
+                    SampledSpectrum backwardFsE;
+                    SampledSpectrum forwardFsE = idf.evaluateDirectionalImportance(idfQuery, conRayDirLocalE);
+                    float forwardDirDensityE = idf.evaluatePDF(idfQuery, conRayDirLocalE);
+                    //forwardDirDensityE *= resCorrection;
+                    float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
+                    float2 posInScreen = idf.backProjectDirection(idfQuery, conRayDirLocalE);
+                    float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
+
+                    // extend eye subpath, shorten light subpath.
+                    bool secondLastSegIsDeltaSampled = vertex.deltaSampled || vertex.prevDeltaSampled;
+                    float partialDenomMisWeightL =
+                        pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
+                        (vertex.prevSumPowerProbRatios + (secondLastSegIsDeltaSampled ? 0 : 1));
+                    bool lastSegIsDeltaSampled = /*bsdfL.hasNonDelta() ||*/ vertex.deltaSampled;
+                    partialDenomMisWeightL =
+                        pow2(forwardAreaDensityE) / vertex.powerProbDensity *
+                        (partialDenomMisWeightL + (lastSegIsDeltaSampled ? 0 : 1));
+
+                    SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
+                    SampledSpectrum unweightedContribution = vertex.flux * conTerm * alpha;
+
+                    float recMisWeight = 1.0f + partialDenomMisWeightL;
+                    float misWeight = 1.0f / recMisWeight;
+                    SampledSpectrum contribution = misWeight * unweightedContribution;
+                    if (contribution.allFinite())
+                        atomicAddToBuffer(wls, contribution, pixel);
+                    else
+                        vlrprintf("Pass %u, (%u, %u - %u, %u): Not a finite value.\n",
+                                  plp.numAccumFrames, optixGetLaunchIndex().x, optixGetLaunchIndex().y,
+                                  static_cast<int32_t>(pixel.x), static_cast<int32_t>(pixel.y));
                 }
-                float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
-                float partialDenomMisWeightL = // extend eye subpath, shorten light subpath.
-                    pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                    (vertex.prevSumPowerProbRatios + 1);
-
-                SampledSpectrum backwardFsE;
-                SampledSpectrum forwardFsE = idf.evaluateDirectionalImportance(idfQuery, conRayDirLocalE);
-                float forwardDirDensityE = idf.evaluatePDF(idfQuery, conRayDirLocalE);
-                //forwardDirDensityE *= resCorrection;
-                float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
-                float2 posInScreen = idf.backProjectDirection(idfQuery, conRayDirLocalE);
-                float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
-
-                partialDenomMisWeightL =
-                    pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                    (partialDenomMisWeightL + 1);
-
-                float scalarTerm = G * fractionalVisibility /
-                    (vertexProb * plp.wavelengthProbability);
-                //// JP: ライトトレーシングをピクセル数実行することに等しいので確率密度がピクセル数倍になる。
-                //scalarTerm /= resCorrection;
-                if (vertex.wlSelected)
-                    scalarTerm *= SampledSpectrum::NumComponents();
-                SampledSpectrum conTerm = forwardFsL * scalarTerm * forwardFsE;
-                SampledSpectrum unweightedContribution = vertex.flux * conTerm * alpha;
-
-                float recMisWeight = 1.0f + partialDenomMisWeightL;
-                float misWeight = 1.0f / recMisWeight;
-                SampledSpectrum contribution = misWeight * unweightedContribution;
-                atomicAddToBuffer(wls, contribution, pixel);
             }
         }
 
@@ -364,10 +383,12 @@ namespace vlr {
         alpha *= We1 * (cosTerm / We1Result.dirPDF);
 
         LVCBPTEyePathReadOnlyPayload roPayload = {};
-        roPayload.prevDirPDF = We1Result.dirPDF;
-        roPayload.prevCosTerm = cosTerm;
+        roPayload.dirPDF = We1Result.dirPDF;
+        roPayload.cosTerm = cosTerm;
         roPayload.prevRevAreaPDF = 0;
-        roPayload.prevSampledType = We1Result.sampledType;
+        roPayload.secondPrevDeltaSampled = false;
+        roPayload.prevDeltaSampled = We0Result.posType.isDelta();
+        roPayload.sampledType = We1Result.sampledType;
         LVCBPTEyePathWriteOnlyPayload woPayload = {};
         LVCBPTEyePathReadWritePayload rwPayload = {};
         rwPayload.rng = rng;
@@ -421,10 +442,12 @@ namespace vlr {
 
             rayOrg = woPayload.nextOrigin;
             rayDir = woPayload.nextDirection;
-            roPayload.prevDirPDF = woPayload.dirPDF;
-            roPayload.prevCosTerm = woPayload.cosTerm;
+            roPayload.dirPDF = woPayload.dirPDF;
+            roPayload.cosTerm = woPayload.cosTerm;
             roPayload.prevRevAreaPDF = woPayload.revAreaPDF;
-            roPayload.prevSampledType = woPayload.sampledType;
+            roPayload.secondPrevDeltaSampled = roPayload.prevDeltaSampled;
+            roPayload.prevDeltaSampled = roPayload.sampledType.isDelta();
+            roPayload.sampledType = woPayload.sampledType;
         }
         plp.rngBuffer.write(launchIndex, rwPayload.rng);
         if (!rwPayload.contribution.allFinite()) {
@@ -471,28 +494,25 @@ namespace vlr {
         Normal3D geomNormalLocalE = surfPtE.shadingFrame.toLocal(surfPtE.geometricNormal);
         BSDFQuery bsdfEQuery(dirOutLocalE, geomNormalLocalE, transportModeE, DirectionType::All(), wls);
 
+        bool thirdLastSegIsDeltaConnectionE =
+            roPayload->prevDeltaSampled || roPayload->secondPrevDeltaSampled;
         rwPayload->prevSumPowerProbRatios =
             pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
-            (1 + rwPayload->prevSumPowerProbRatios);
+            (rwPayload->prevSumPowerProbRatios + (thirdLastSegIsDeltaConnectionE ? 0 : 1));
         rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
-        //if (rwPayload->pathLength == 1) {
-        //    // 
-        //    float resCorrection = plp.imageSize.x * plp.imageSize.y;
-        //    rwPayload->prevPowerProbDensity *= pow2(resCorrection);
-        //}
         if (rwPayload->pathLength == 2) {
             // Ignore the strategy with zero eye vertices.
             rwPayload->prevSumPowerProbRatios = 0;
         }
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPtE.position);
-        float probDensity = roPayload->prevDirPDF * absDot(dirOutLocalE, geomNormalLocalE) / lastDist2;
+        float probDensity = roPayload->dirPDF * absDot(dirOutLocalE, geomNormalLocalE) / lastDist2;
         rwPayload->powerProbDensity = pow2(probDensity);
 
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
         if ((debugPathLength == 0 || rwPayload->pathLength == debugPathLength) &&
-            spEmittance.hasNonZero()) {
+            spEmittance.hasNonZero() && edf.hasNonDelta()) {
             EDFQuery edfQuery(DirectionType::All(), wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(edfQuery, dirOutLocalE);
             SampledSpectrum unweightedContribution = rwPayload->alpha * Le;
@@ -503,13 +523,18 @@ namespace vlr {
             float forwardAreaDensityL = plp.numLightPaths * instProb * geomInstProb * hypAreaPDF;
 
             float backwardDirDensityE = edf.evaluatePDF(edfQuery, dirOutLocalE);
-            float backwardAreaDensityE = backwardDirDensityE * roPayload->prevCosTerm / lastDist2;
-            float partialDenomMisWeightE = // extend light subpath, shorten eye subpath.
+            float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
+
+            // extend light subpath, shorten eye subpath.
+            bool secondLastSegIsDeltaConnectionE =
+                roPayload->sampledType.isDelta() || roPayload->prevDeltaSampled;
+            float partialDenomMisWeightE =
                 pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                (rwPayload->prevSumPowerProbRatios + 1);
+                (rwPayload->prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionE ? 0 : 1));
+            bool lastSegIsDeltaConnectionE = /*edf.hasNonDelta() ||*/ roPayload->sampledType.isDelta();
             partialDenomMisWeightE =
                 pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                (partialDenomMisWeightE + 1);
+                (partialDenomMisWeightE + (lastSegIsDeltaConnectionE ? 0 : 1));
 
             float recMisWeight = 1.0f + partialDenomMisWeightE;
             float misWeight = 1.0f / recMisWeight;
@@ -541,15 +566,6 @@ namespace vlr {
                 matIndexL = geomInst.materialIndex;
             }
 
-            //printf("SurfPtL: p: (%g, %g, %g), frame: (%g, %g, %g), (%g, %g, %g), (%g, %g, %g), "
-            //       "gn: (%g, %g, %g), %u - %u - %u - %g, %g, tc: %g, %g, inf: %u, point: %u\n",
-            //       VLR3DPrint(surfPtL.position),
-            //       VLR3DPrint(surfPtL.shadingFrame.x), VLR3DPrint(surfPtL.shadingFrame.y), VLR3DPrint(surfPtL.shadingFrame.z),
-            //       VLR3DPrint(surfPtL.geometricNormal),
-            //       surfPtL.instIndex, surfPtL.geomInstIndex, surfPtL.primIndex, surfPtL.u, surfPtL.v,
-            //       surfPtL.texCoord.u, surfPtL.texCoord.v,
-            //       surfPtL.atInfinity, surfPtL.isPoint);
-
             Vector3D conRayDir;
             float squaredConDist;
             float fractionalVisibility;
@@ -561,76 +577,76 @@ namespace vlr {
                 const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
                 BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
-                Vector3D dirInLocalL = vertex.dirInLocal;
-                Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
-                BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
+                if (bsdfL.hasNonDelta()) {
+                    Vector3D dirInLocalL = vertex.dirInLocal;
+                    Normal3D geomNormalLocalL = surfPtL.shadingFrame.toLocal(surfPtL.geometricNormal);
+                    BSDFQuery bsdfLQuery(dirInLocalL, geomNormalLocalL, transportModeL, DirectionType::All(), wls);
 
-                Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
-                Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
+                    Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
+                    Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
 
-                float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
-                float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
-                float G = cosL * cosE * recSquaredConDist;
+                    float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
+                    float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
+                    float G = cosL * cosE * recSquaredConDist;
+                    float scalarConTerm = G * fractionalVisibility / (vertexProb * plp.wavelengthProbability);
+                    if (vertex.wlSelected || rwPayload->singleIsSelected)
+                        scalarConTerm *= SampledSpectrum::NumComponents();
 
-                SampledSpectrum backwardFsL;
-                SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
-                float backwardDirDensityL;
-                float forwardDirDensityL = bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
-                if constexpr (includeRRProbability) {
-                    if (vertex.pathLength > 0) {
-                        SampledSpectrum forwardThroughputL = forwardFsL * absDot(bsdfLQuery.dirLocal, geomNormalLocalL) / forwardDirDensityL;
-                        forwardDirDensityL *= std::fmin(forwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                    SampledSpectrum backwardFsL;
+                    SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
+                    float backwardDirDensityL;
+                    float forwardDirDensityL = bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
+                    if constexpr (includeRRProbability) {
+                        if (vertex.pathLength > 0)
+                            forwardDirDensityL *= computeRRProbability(
+                                forwardFsL, conRayDirLocalL, forwardDirDensityL, geomNormalLocalL);
+                        backwardDirDensityL *= computeRRProbability(
+                            backwardFsL, bsdfLQuery.dirLocal, backwardDirDensityL, geomNormalLocalL);
                     }
-                    SampledSpectrum backwardThroughputL = backwardFsL * absDot(conRayDirLocalL, geomNormalLocalL) / backwardDirDensityL;
-                    backwardDirDensityL *= std::fmin(backwardThroughputL.importance(wls.selectedLambdaIndex()), 1.0f);
+                    float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
+                    float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
+
+                    SampledSpectrum backwardFsE;
+                    SampledSpectrum forwardFsE = bsdfE.evaluate(bsdfEQuery, conRayDirLocalE, &backwardFsE);
+                    float backwardDirDensityE;
+                    float forwardDirDensityE = bsdfE.evaluatePDF(bsdfEQuery, conRayDirLocalE, &backwardDirDensityE);
+                    if constexpr (includeRRProbability) {
+                        forwardDirDensityE *= computeRRProbability(
+                            forwardFsE, conRayDirLocalE, forwardDirDensityE, geomNormalLocalE);
+                        backwardDirDensityE *= computeRRProbability(
+                            backwardFsE, bsdfEQuery.dirLocal, backwardDirDensityE, geomNormalLocalE);
+                    }
+                    float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
+                    float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
+
+                    // extend eye subpath, shorten light subpath.
+                    bool secondLastSegIsDeltaConnectionL = vertex.deltaSampled || vertex.prevDeltaSampled;
+                    float partialDenomMisWeightL =
+                        pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
+                        (vertex.prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionL ? 0 : 1));
+                    bool lastSegIsDeltaConnectionL = /*bsdfL.hasNonDelta() ||*/ vertex.deltaSampled;
+                    partialDenomMisWeightL =
+                        pow2(forwardAreaDensityE) / vertex.powerProbDensity *
+                        (partialDenomMisWeightL + (lastSegIsDeltaConnectionL ? 0 : 1));
+
+                    // extend light subpath, shorten eye subpath.
+                    bool secondLastSegIsDeltaConnectionE =
+                        roPayload->sampledType.isDelta() || roPayload->prevDeltaSampled;
+                    float partialDenomMisWeightE =
+                        pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
+                        (rwPayload->prevSumPowerProbRatios + (secondLastSegIsDeltaConnectionE ? 0 : 1));
+                    bool lastSegIsDeltaConnectionE = /*bsdfE.hasNonDelta() ||*/ roPayload->sampledType.isDelta();
+                    partialDenomMisWeightE =
+                        pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
+                        (partialDenomMisWeightE + (lastSegIsDeltaConnectionE ? 0 : 1));
+
+                    SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
+                    SampledSpectrum unweightedContribution = vertex.flux * conTerm * rwPayload->alpha;
+
+                    float recMisWeight = 1.0f + partialDenomMisWeightL + partialDenomMisWeightE;
+                    float misWeight = 1.0f / recMisWeight;
+                    rwPayload->contribution += misWeight * unweightedContribution;
                 }
-                float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
-                float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
-                float partialDenomMisWeightL = // extend eye subpath, shorten light subpath.
-                    pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                    (vertex.prevSumPowerProbRatios + 1);
-
-                SampledSpectrum backwardFsE;
-                SampledSpectrum forwardFsE = bsdfE.evaluate(bsdfEQuery, conRayDirLocalE, &backwardFsE);
-                float backwardDirDensityE;
-                float forwardDirDensityE = bsdfE.evaluatePDF(bsdfEQuery, conRayDirLocalE, &backwardDirDensityE);
-                if constexpr (includeRRProbability) {
-                    SampledSpectrum forwardThroughputE = forwardFsE * absDot(conRayDirLocalE, geomNormalLocalE) / forwardDirDensityE;
-                    forwardDirDensityE *= std::fmin(forwardThroughputE.importance(wls.selectedLambdaIndex()), 1.0f);
-                    SampledSpectrum backwardThroughputE = backwardFsE * absDot(bsdfEQuery.dirLocal, geomNormalLocalE) / backwardDirDensityE;
-                    backwardDirDensityE *= std::fmin(backwardThroughputE.importance(wls.selectedLambdaIndex()), 1.0f);
-                }
-                float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
-                float backwardAreaDensityE = backwardDirDensityE * roPayload->prevCosTerm / lastDist2;
-                float partialDenomMisWeightE = // extend light subpath, shorten eye subpath.
-                    pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                    (rwPayload->prevSumPowerProbRatios + 1);
-
-                partialDenomMisWeightL =
-                    pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                    (partialDenomMisWeightL + 1);
-                partialDenomMisWeightE =
-                    pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                    (partialDenomMisWeightE + 1);
-
-                float scalarTerm = G * fractionalVisibility /
-                    (vertexProb * plp.wavelengthProbability);
-                if (vertex.wlSelected || rwPayload->singleIsSelected)
-                    scalarTerm *= SampledSpectrum::NumComponents();
-                SampledSpectrum conTerm = forwardFsL * scalarTerm * forwardFsE;
-                SampledSpectrum unweightedContribution = vertex.flux * conTerm * rwPayload->alpha;
-
-                float recMisWeight = 1.0f + partialDenomMisWeightL + partialDenomMisWeightE;
-                float misWeight = 1.0f / recMisWeight;
-                rwPayload->contribution += misWeight * unweightedContribution;
-
-                //if (!vlr::isfinite(misWeight) || !unweightedContribution.allFinite()) {
-                //    printf("%g (%g, %g), (%g, %g), (%g, %g, %g, %g), (%g, %g, %g)\n",
-                //           misWeight, numMisWeight, denomMisWeight,
-                //           rwPayload->totalPowerProbDensity, vertex.totalPowerProbDensity,
-                //           probDensity, roPayload->prevDirPDF, absDot(dirOutLocalE, geomNormalLocalE), lastDist2,
-                //           unweightedContribution.r, unweightedContribution.g, unweightedContribution.b);
-                //}
             }
         }
 
@@ -640,15 +656,15 @@ namespace vlr {
         SampledSpectrum fs = bsdfE.sample(bsdfEQuery, sample, &fsResult, &fsRevResult);
         if (fs == SampledSpectrum::Zero() || fsResult.dirPDF == 0.0f)
             return;
-        if (fsResult.sampledType.isDispersive() && !wls.singleIsSelected())
+        if (fsResult.sampledType.isDispersive() && !rwPayload->singleIsSelected)
             rwPayload->singleIsSelected = true;
 
         float cosTerm = dot(fsResult.dirLocal, geomNormalLocalE);
-        SampledSpectrum throughput = fs * (std::fabs(cosTerm) / fsResult.dirPDF);
-        rwPayload->alpha *= throughput;
+        SampledSpectrum localThroughput = fs * (std::fabs(cosTerm) / fsResult.dirPDF);
+        rwPayload->alpha *= localThroughput;
 
         // Russian roulette
-        float continueProb = std::fmin(throughput.importance(wls.selectedLambdaIndex()), 1.0f);
+        float continueProb = std::fmin(localThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
         if (rng.getFloat0cTo1o() >= continueProb)
             return;
         rwPayload->alpha /= continueProb;
@@ -659,13 +675,12 @@ namespace vlr {
         woPayload->nextDirection = dirInE;
         woPayload->dirPDF = fsResult.dirPDF;
         woPayload->cosTerm = std::fabs(cosTerm);
-        woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->prevCosTerm / lastDist2;
+        woPayload->revAreaPDF = fsRevResult.dirPDF * roPayload->cosTerm / lastDist2;
         woPayload->sampledType = fsResult.sampledType;
         if constexpr (includeRRProbability) {
             woPayload->dirPDF *= continueProb;
-            SampledSpectrum revThroughput = fsRevResult.value * absDot(bsdfEQuery.dirLocal, geomNormalLocalE) / fsRevResult.dirPDF;
-            float revContinueProb = std::fmin(revThroughput.importance(wls.selectedLambdaIndex()), 1.0f);
-            woPayload->revAreaPDF *= revContinueProb;
+            woPayload->revAreaPDF *= computeRRProbability(
+                fsRevResult.value, bsdfEQuery.dirLocal, fsRevResult.dirPDF, geomNormalLocalE);
         }
     }
 

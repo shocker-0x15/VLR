@@ -535,8 +535,9 @@ namespace vlr::shared {
         float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirInLocal;
-        DirectionType sampledType;
         unsigned int wlSelected : 1;
+        unsigned int deltaSampled : 1;
+        unsigned int prevDeltaSampled : 1;
         unsigned int pathLength : 16;
     };
 

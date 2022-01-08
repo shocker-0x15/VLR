@@ -356,6 +356,10 @@ namespace vlr::shared {
             progEvaluatePDFInternal = ProgSigEDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
         }
 
+        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
+            return matches(DirectionType::Emission() | DirectionType::NonDelta());
+        }
+
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(
             const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) const {
             if (!matches(query.dirTypeFilter)) {
