@@ -95,24 +95,23 @@ namespace vlr::shared {
 
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(
             const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) const {
-            if (!matches(query.dirTypeFilter)) {
-                result->dirPDF = 0.0f;
-                result->sampledType = DirectionType();
-                return SampledSpectrum::Zero();
-            }
-            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
+            result->dirPDF = 0.0f;
+            result->sampledType = DirectionType();
+            SampledSpectrum ret = SampledSpectrum::Zero();
+
             float snCorrection;
-            if constexpr (transportMode == TransportMode::Radiance) {
+            if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
-                if (result->dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            else {
+            else
                 snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
-                if (query.dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            SampledSpectrum ret = fs_sn * snCorrection;
+            if (!vlr::isfinite(snCorrection))
+                return ret;
+
+            if (!matches(query.dirTypeFilter))
+                return ret;
+
+            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result);
+            ret = fs_sn * snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
                       "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), dirPDF: %g, "
@@ -125,19 +124,18 @@ namespace vlr::shared {
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) const {
-            SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
+            SampledSpectrum ret = SampledSpectrum::Zero();
+
             float snCorrection;
-            if constexpr (transportMode == TransportMode::Radiance) {
+            if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
-                if (dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            else {
+            else
                 snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
-                if (query.dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            SampledSpectrum ret = fs_sn * snCorrection;
+            if (!vlr::isfinite(snCorrection))
+                return ret;
+
+            SampledSpectrum fs_sn = evaluateInternal(query, dirLocal);
+            ret = fs_sn * snCorrection;
             VLRAssert(ret.allFinite() && !ret.hasNegative(),
                       "evalBSDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), "
@@ -237,25 +235,24 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION SampledSpectrum sample(
             const BSDFQuery &query, const BSDFSample &sample,
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult) const {
-            if (!matches(query.dirTypeFilter)) {
-                result->dirPDF = 0.0f;
-                result->sampledType = DirectionType();
-                revResult->dirPDF = 0.0f;
-                return SampledSpectrum::Zero();
-            }
-            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
+            result->dirPDF = 0.0f;
+            result->sampledType = DirectionType();
+            revResult->dirPDF = 0.0f;
+            SampledSpectrum ret = SampledSpectrum::Zero();
+
             float snCorrection;
-            if constexpr (transportMode == TransportMode::Radiance) {
+            if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(result->dirLocal.z / dot(result->dirLocal, query.geometricNormalLocal));
-                if (result->dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            else {
+            else
                 snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
-                if (query.dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            SampledSpectrum ret = fs_sn * snCorrection;
+            if (!vlr::isfinite(snCorrection))
+                return ret;
+
+            if (!matches(query.dirTypeFilter))
+                return ret;
+
+            SampledSpectrum fs_sn = sampleInternal(query, sample.uComponent, sample.uDir, result, revResult);
+            ret = fs_sn * snCorrection;
             revResult->value *= snCorrection;
             VLRAssert((result->dirPDF > 0 && ret.allFinite() && !ret.hasNegative()) || result->dirPDF == 0,
                       "sampleBSDF: smp: (%g, %g, %g), qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
@@ -271,36 +268,35 @@ namespace vlr::shared {
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue) const {
-            SampledSpectrum fs_sn = evaluateInternal(query, dirLocal, revValue);
+            SampledSpectrum ret = SampledSpectrum::Zero();
+
             float snCorrection;
-            if constexpr (transportMode == TransportMode::Radiance) {
+            if constexpr (transportMode == TransportMode::Radiance)
                 snCorrection = std::fabs(dirLocal.z / dot(dirLocal, query.geometricNormalLocal));
-                if (dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            else {
+            else
                 snCorrection = std::fabs(query.dirLocal.z / dot(query.dirLocal, query.geometricNormalLocal));
-                if (query.dirLocal.z == 0.0f)
-                    snCorrection = 0.0f;
-            }
-            SampledSpectrum ret = fs_sn * snCorrection;
+            if (!vlr::isfinite(snCorrection))
+                return ret;
+
+            SampledSpectrum fs_sn = evaluateInternal(query, dirLocal, revValue);
+            ret = fs_sn * snCorrection;
             *revValue *= snCorrection;
             VLRAssert(ret.allFinite() && !ret.hasNegative(),
                       "evalBSDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "
                       "rDir: (%g, %g, %g), "
-                      "snCorrection: %g",
+                      "snCorrection: %g (%g, %g)",
                       VLR3DPrint(query.dirLocal), VLR3DPrint(query.geometricNormalLocal), query.wlHint,
                       VLR3DPrint(dirLocal),
-                      snCorrection);
+                      snCorrection, dirLocal.z, dot(dirLocal, query.geometricNormalLocal));
             return ret;
         }
 
         CUDA_DEVICE_FUNCTION float evaluatePDF(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue) const {
-            if (!matches(query.dirTypeFilter)) {
+            if (!matches(query.dirTypeFilter))
                 return 0;
-            }
+
             float ret = evaluatePDFInternal(query, dirLocal, revValue);
             VLRAssert(vlr::isfinite(ret) && ret >= 0,
                       "evalBSDF_PDF: qDir: (%g, %g, %g), gNormal: (%g, %g, %g), wlIdx: %u, "

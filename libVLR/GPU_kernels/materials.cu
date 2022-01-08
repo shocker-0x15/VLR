@@ -882,17 +882,20 @@ namespace vlr {
                 ret[query.wlHint] = m_coeff[query.wlHint] * (1.0f - F[query.wlHint]) * regFactor;
 
                 if (revResult) {
-                    SampledSpectrum revRet = ret;
-                    revRet[query.wlHint] /= std::fabs(query.dirLocal.z);
+                    float revSqueezeFactor = 1.0f;
                     if (static_cast<TransportMode>(query.transportMode) == TransportMode::Importance)
-                        revRet[query.wlHint] *= pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                        revSqueezeFactor = pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                    SampledSpectrum revRet = ret;
+                    revRet[query.wlHint] *= revSqueezeFactor / std::fabs(query.dirLocal.z);
                     revResult->value = revRet;
-                    revResult->dirPDF = result->dirPDF;
+                    revResult->dirPDF = revSqueezeFactor * result->dirPDF;
                 }
 
-                ret[query.wlHint] /= std::fabs(cosExit);
+                float squeezeFactor = 1.0f;
                 if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
-                    ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
+                    squeezeFactor *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
+                ret[query.wlHint] *= squeezeFactor / std::fabs(cosExit);
+                result->dirPDF *= squeezeFactor;
 
                 return ret;
             }
@@ -938,16 +941,18 @@ namespace vlr {
                     ret[query.wlHint] = m_coeff[query.wlHint] * (1.0f - F[query.wlHint]) * regFactor;
 
                     if (revValue) {
-                        SampledSpectrum revRet = ret;
-                        revRet[query.wlHint] /= std::fabs(query.dirLocal.z);
+                        float revSqueezeFactor = 1.0f;
                         if (static_cast<TransportMode>(query.transportMode) == TransportMode::Importance)
-                            revRet[query.wlHint] *= pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                            revSqueezeFactor = pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                        SampledSpectrum revRet = ret;
+                        revRet[query.wlHint] *= revSqueezeFactor / std::fabs(query.dirLocal.z);
                         *revValue = revRet;
                     }
 
-                    ret[query.wlHint] /= std::fabs(cosExit);
+                    float squeezeFactor = 1.0f;
                     if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
-                        ret[query.wlHint] *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
+                        squeezeFactor *= pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
+                    ret[query.wlHint] *= squeezeFactor / std::fabs(cosExit);
                 }
                 else {
                     if (revValue)
@@ -1014,8 +1019,17 @@ namespace vlr {
                 if (dot(dirLocal, dirRefracted) >= cosEpsilon)
                     ret = (1.0f - reflectProb) * regFactor;
 
-                if (revValue)
-                    *revValue = ret;
+                if (revValue) {
+                    float revSqueezeFactor = 1.0f;
+                    if (static_cast<TransportMode>(query.transportMode) == TransportMode::Importance)
+                        revSqueezeFactor = pow2(eExit[query.wlHint] / eEnter[query.wlHint]);
+                    *revValue = revSqueezeFactor * ret;
+                }
+
+                float squeezeFactor = 1.0f;
+                if (static_cast<TransportMode>(query.transportMode) == TransportMode::Radiance)
+                    squeezeFactor = pow2(eEnter[query.wlHint] / eExit[query.wlHint]);
+                ret *= squeezeFactor;
 
                 return ret;
             }
@@ -2836,6 +2850,7 @@ namespace vlr {
 
             // encode the projected position as the xy components.
             result->dirLocal = Vector3D(m_worldRadius * dx, m_worldRadius * dy, 1);
+            // The true value is: lim_{l to inf} l^2 / m_worldDiscArea
             result->dirPDF = 1.0f / m_worldDiscArea;
             result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
             SampledSpectrum feValue(1 / VLR_M_PI);
@@ -2856,6 +2871,7 @@ namespace vlr {
             const EDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return 0.0f;
+            // The true value is: lim_{l to inf} l^2 / m_worldDiscArea
             float pdfValue = 1.0f / m_worldDiscArea;
 
             return pdfValue;
