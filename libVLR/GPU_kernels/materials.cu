@@ -701,14 +701,14 @@ namespace vlr {
             FresnelConductor fresnel(m_eta, m_k);
 
             result->dirLocal = Vector3D(-query.dirLocal.x, -query.dirLocal.y, query.dirLocal.z);
-            result->dirPDF = 1.0f;
+            result->dirPDF = regFactor;
             result->sampledType = DirectionType::Reflection() | dirType;
             SampledSpectrum ret = m_coeffR * fresnel.evaluate(query.dirLocal.z) *
                 (regFactor / std::fabs(query.dirLocal.z));
 
             if (revResult) {
                 revResult->value = ret;
-                revResult->dirPDF = 1.0f;
+                revResult->dirPDF = regFactor;
             }
 
             return ret;
@@ -2111,7 +2111,7 @@ namespace vlr {
             }
 
             result->dirLocal = Vector3D(0, 0, 1);
-            result->dirPDF = 1.0f;
+            result->dirPDF = regFactor;
             result->sampledType = DirectionType::Emission() | dirType;
             SampledSpectrum feValue(regFactor);
 
