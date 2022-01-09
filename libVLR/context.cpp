@@ -1370,11 +1370,15 @@ namespace vlr {
                 //sizeof(shared::LightPathVertex);
                 //std::vector<shared::LightPathVertex> lightPathCache = m_optix.lightVertexCache;
                 //std::vector<uint32_t> perLengthCounts;
+                //float minSumProbRatios = INFINITY;
+                //float maxSumProbRatios = 0;
                 //for (int i = 0; i < numLightVertices; ++i) {
                 //    const shared::LightPathVertex &vertex = lightPathCache[i];
                 //    if (perLengthCounts.size() < vertex.pathLength + 1)
                 //        perLengthCounts.resize(vertex.pathLength + 1, 0);
                 //    ++perLengthCounts[vertex.pathLength];
+                //    minSumProbRatios = std::min(vertex.prevSumPowerProbRatios, minSumProbRatios);
+                //    maxSumProbRatios = std::max(vertex.prevSumPowerProbRatios, maxSumProbRatios);
                 //}
                 //printf("");
             }

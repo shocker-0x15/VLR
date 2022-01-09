@@ -531,7 +531,7 @@ namespace vlr::shared {
         float u, v;
         float powerProbDensity;
         float prevPowerProbDensity;
-        float prevSumPowerProbRatios;
+        float secondPrevPartialDenomMisWeight;
         float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirInLocal;

@@ -81,7 +81,7 @@ namespace vlr::shared {
         SampledSpectrum alpha;
         float powerProbDensity;
         float prevPowerProbDensity;
-        float prevSumPowerProbRatios;
+        float secondPrevPartialDenomMisWeight;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;
         unsigned int terminate : 1;
@@ -111,7 +111,7 @@ namespace vlr::shared {
         SampledSpectrum contribution;
         float powerProbDensity;
         float prevPowerProbDensity;
-        float prevSumPowerProbRatios;
+        float secondPrevPartialDenomMisWeight;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;
         unsigned int terminate : 1;
