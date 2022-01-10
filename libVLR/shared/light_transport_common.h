@@ -82,6 +82,7 @@ namespace vlr::shared {
         float powerProbDensity;
         float prevPowerProbDensity;
         float secondPrevPartialDenomMisWeight;
+        float secondPrevPowerProbRatioToFirst;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;
         unsigned int terminate : 1;

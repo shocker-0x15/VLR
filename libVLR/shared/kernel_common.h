@@ -531,7 +531,8 @@ namespace vlr::shared {
         float u, v;
         float powerProbDensity;
         float prevPowerProbDensity;
-        float secondPrevPartialDenomMisWeight;
+        float secondPrevPartialDenomMisWeight; // minus prob ratio to the strategy of implicit light sampling
+        float secondPrevPowerProbRatioToFirst; // prob ratio of implicit light sampling
         float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirInLocal;

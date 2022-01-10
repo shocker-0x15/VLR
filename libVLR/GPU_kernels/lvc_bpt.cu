@@ -35,11 +35,11 @@ namespace vlr {
     }
 
     CUDA_DEVICE_FUNCTION void storeLightVertex(
-        float powerProbDensity, float prevPowerProbDensity, float secondPrevPartialDenomMisWeight,
-        float backwardConversionFactor,
-        const SampledSpectrum &flux, const Vector3D &dirInLocal,
-        bool deltaSampled, bool prevDeltaSampled, bool wlSelected,
-        const SurfacePoint &surfPt, uint32_t pathLength) {
+        const SurfacePoint &surfPt, const SampledSpectrum &flux,
+        const Vector3D &dirInLocal, float backwardConversionFactor,
+        float powerProbDensity, float prevPowerProbDensity,
+        float secondPrevPartialDenomMisWeight, float secondPrevPowerProbRatioToFirst,
+        bool deltaSampled, bool prevDeltaSampled, bool wlSelected, uint32_t pathLength) {
         LightPathVertex lightVertex = {};
         lightVertex.instIndex = surfPt.instIndex;
         lightVertex.geomInstIndex = surfPt.geomInstIndex;
@@ -49,6 +49,7 @@ namespace vlr {
         lightVertex.powerProbDensity = powerProbDensity;
         lightVertex.prevPowerProbDensity = prevPowerProbDensity;
         lightVertex.secondPrevPartialDenomMisWeight = secondPrevPartialDenomMisWeight;
+        lightVertex.secondPrevPowerProbRatioToFirst = secondPrevPowerProbRatioToFirst;
         lightVertex.backwardConversionFactor = backwardConversionFactor;
         lightVertex.flux = flux;
         lightVertex.dirInLocal = dirInLocal;
@@ -112,10 +113,12 @@ namespace vlr {
         float powerProbDensities0 = pow2(probDensity0);
         float prevPowerProbDensity0 = pow2(1);
         float secondPrevPartialDenomMisWeight0 = 0;
-        storeLightVertex(powerProbDensities0, prevPowerProbDensity0, secondPrevPartialDenomMisWeight0, 0,
-                         alpha, Vector3D(0, 0, 1),
-                         Le0Result.posType.isDelta(), false, false,
-                         Le0Result.surfPt, 0);
+        float secondPrevPowerProbRatioToFirst0 = 1;
+        storeLightVertex(Le0Result.surfPt, alpha,
+                         Vector3D(0, 0, 1), 0,
+                         powerProbDensities0, prevPowerProbDensity0,
+                         secondPrevPartialDenomMisWeight0, secondPrevPowerProbRatioToFirst0,
+                         Le0Result.posType.isDelta(), false, false, 0);
 
         EDFQuery edfQuery(DirectionType::All(), plp.commonWavelengthSamples);
         EDFSample Le1Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
@@ -138,7 +141,7 @@ namespace vlr {
         LVCBPTLightPathReadOnlyPayload roPayload = {};
         roPayload.dirPDF = Le1Result.dirPDF;
         roPayload.cosTerm = cosTerm;
-        roPayload.prevRevAreaPDF = 0;
+        roPayload.prevRevAreaPDF = 1;
         roPayload.secondPrevDeltaSampled = false;
         roPayload.prevDeltaSampled = Le0Result.posType.isDelta();
         roPayload.sampledType = Le1Result.sampledType;
@@ -149,6 +152,7 @@ namespace vlr {
         rwPayload.powerProbDensity = powerProbDensities0;
         rwPayload.prevPowerProbDensity = prevPowerProbDensity0;
         rwPayload.secondPrevPartialDenomMisWeight = secondPrevPartialDenomMisWeight0;
+        rwPayload.secondPrevPowerProbRatioToFirst = secondPrevPowerProbRatioToFirst0;
         rwPayload.singleIsSelected = false;
         rwPayload.pathLength = 0;
         LVCBPTLightPathReadOnlyPayload* roPayloadPtr = &roPayload;
@@ -213,23 +217,25 @@ namespace vlr {
         BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
         bool thirdLastSegIsValidStrategy =
-            !roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled;
+            (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
+            rwPayload->pathLength > 2; // separately accumulate the ratio for the strategy with zero light vertices.
+        float powerProbRatio = pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity;
         rwPayload->secondPrevPartialDenomMisWeight =
-            pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
+            powerProbRatio *
             (rwPayload->secondPrevPartialDenomMisWeight + (thirdLastSegIsValidStrategy ? 1 : 0));
+        rwPayload->secondPrevPowerProbRatioToFirst *= powerProbRatio;
         rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPt.position);
         float probDensity = roPayload->dirPDF * absDot(dirInLocal, geomNormalLocal) / lastDist2;
         rwPayload->powerProbDensity = pow2(probDensity);
 
-        storeLightVertex(rwPayload->powerProbDensity,
-                         rwPayload->prevPowerProbDensity, rwPayload->secondPrevPartialDenomMisWeight,
-                         roPayload->cosTerm / lastDist2,
-                         rwPayload->alpha, dirInLocal,
+        storeLightVertex(surfPt, rwPayload->alpha,
+                         dirInLocal, roPayload->cosTerm / lastDist2,
+                         rwPayload->powerProbDensity, rwPayload->prevPowerProbDensity,
+                         rwPayload->secondPrevPartialDenomMisWeight, rwPayload->secondPrevPowerProbRatioToFirst,
                          roPayload->sampledType.isDelta(), roPayload->prevDeltaSampled,
-                         rwPayload->singleIsSelected,
-                         surfPt, rwPayload->pathLength);
+                         rwPayload->singleIsSelected, rwPayload->pathLength);
 
         BSDFSample sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         BSDFQueryResult fsResult;
@@ -275,14 +281,15 @@ namespace vlr {
         float2 p = make_float2(launchIndex.x + rng.getFloat0cTo1o(),
                                launchIndex.y + rng.getFloat0cTo1o());
 
-        float resCorrection = plp.imageSize.x * plp.imageSize.y;
         WavelengthSamples wls = plp.commonWavelengthSamples;
 
         Camera camera(static_cast<ProgSigCamera_sample>(plp.progSampleLensPosition));
         LensPosSample We0Sample(rng.getFloat0cTo1o(), rng.getFloat0cTo1o());
         LensPosQueryResult We0Result;
         camera.sample(We0Sample, &We0Result);
-        We0Result.areaPDF *= resCorrection; // TODO: 結果は正しいが、これを説明できるようにする。
+
+        // JP: 
+        We0Result.areaPDF *= plp.imageSize.x * plp.imageSize.y;
 
         IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
 
@@ -333,8 +340,6 @@ namespace vlr {
                     float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
                     float G = cosL * cosE * recSquaredConDist;
                     float scalarConTerm = G * fractionalVisibility / (vertexProb * plp.wavelengthProbability);
-                    //// JP: ライトトレーシングをピクセル数実行することに等しいので確率密度がピクセル数倍になる。
-                    //scalarConTerm /= resCorrection;
                     if (vertex.wlSelected)
                         scalarConTerm *= SampledSpectrum::NumComponents();
 
@@ -355,20 +360,36 @@ namespace vlr {
                     SampledSpectrum backwardFsE;
                     SampledSpectrum forwardFsE = idf.evaluateDirectionalImportance(idfQuery, conRayDirLocalE);
                     float forwardDirDensityE = idf.evaluatePDF(idfQuery, conRayDirLocalE);
-                    //forwardDirDensityE *= resCorrection;
                     float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
                     float2 posInScreen = idf.backProjectDirection(idfQuery, conRayDirLocalE);
                     float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
 
                     // extend eye subpath, shorten light subpath.
-                    bool secondLastSegIsValidStrategyL = !vertex.deltaSampled && !vertex.prevDeltaSampled;
-                    float partialDenomMisWeightL =
-                        pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                        (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
-                    bool lastSegIsValidStrategyL = /*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled;
-                    partialDenomMisWeightL =
-                        pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                        (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                    float partialDenomMisWeightL;
+                    {
+                        bool secondLastSegIsValidStrategyL =
+                            (!vertex.deltaSampled && !vertex.prevDeltaSampled) &&
+                            vertex.pathLength > 1; // separately accumulate the ratio for the strategy with zero light vertices.
+                        float lastToSecondLastPowerProbRatio = pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity;
+                        partialDenomMisWeightL =
+                            lastToSecondLastPowerProbRatio *
+                            (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
+                        float powerProbRatioToFirst = vertex.secondPrevPowerProbRatioToFirst;
+                        if (vertex.pathLength > 0)
+                            powerProbRatioToFirst *= lastToSecondLastPowerProbRatio;
+
+                        bool lastSegIsValidStrategyL =
+                            (/*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled) &&
+                            vertex.pathLength > 0; // separately accumulate the ratio for the strategy with zero light vertices.
+                        float curToLastPowerProbRatio = pow2(forwardAreaDensityE) / (vertex.powerProbDensity);
+                        partialDenomMisWeightL =
+                            curToLastPowerProbRatio *
+                            (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                        powerProbRatioToFirst *= curToLastPowerProbRatio;
+
+                        // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
+                        partialDenomMisWeightL += pow2(*plp.numLightVertices) * powerProbRatioToFirst;
+                    }
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
                     SampledSpectrum unweightedContribution = vertex.flux * conTerm * alpha;
@@ -389,7 +410,6 @@ namespace vlr {
         IDFSample We1Sample(p.x / plp.imageSize.x, p.y / plp.imageSize.y);
         IDFQueryResult We1Result;
         SampledSpectrum We1 = idf.sample(idfQuery, We1Sample, &We1Result);
-        //We1Result.dirPDF *= resCorrection;
 
         Point3D rayOrg = We0Result.surfPt.position;
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
@@ -399,7 +419,7 @@ namespace vlr {
         LVCBPTEyePathReadOnlyPayload roPayload = {};
         roPayload.dirPDF = We1Result.dirPDF;
         roPayload.cosTerm = cosTerm;
-        roPayload.prevRevAreaPDF = 0;
+        roPayload.prevRevAreaPDF = 1;
         roPayload.secondPrevDeltaSampled = false;
         roPayload.prevDeltaSampled = We0Result.posType.isDelta();
         roPayload.sampledType = We1Result.sampledType;
@@ -541,16 +561,25 @@ namespace vlr {
             float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
 
             // extend light subpath, shorten eye subpath.
-            bool secondLastSegIsValidStrategyE =
-                (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
-                rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
-            float partialDenomMisWeightE =
-                pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
-            bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
-            partialDenomMisWeightE =
-                pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+            float partialDenomMisWeightE;
+            {
+                bool secondLastSegIsValidStrategyE =
+                    (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
+                    rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
+                float lastToSecondLastPowerProbRatio = pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity;
+                partialDenomMisWeightE =
+                    lastToSecondLastPowerProbRatio *
+                    (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+
+                bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                float curToLastPowerProbRatio = pow2(forwardAreaDensityL) / rwPayload->powerProbDensity;
+                partialDenomMisWeightE =
+                    curToLastPowerProbRatio *
+                    (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+
+                // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
+                partialDenomMisWeightE /= pow2(*plp.numLightVertices);
+            }
 
             float recMisWeight = 1.0f + partialDenomMisWeightE;
             float misWeight = 1.0f / recMisWeight;
@@ -625,25 +654,48 @@ namespace vlr {
                     float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
 
                     // extend eye subpath, shorten light subpath.
-                    bool secondLastSegIsValidStrategyL = !vertex.deltaSampled && !vertex.prevDeltaSampled;
-                    float partialDenomMisWeightL =
-                        pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity *
-                        (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
-                    bool lastSegIsValidStrategyL = /*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled;
-                    partialDenomMisWeightL =
-                        pow2(forwardAreaDensityE) / vertex.powerProbDensity *
-                        (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                    float partialDenomMisWeightL;
+                    {
+                        bool secondLastSegIsValidStrategyL =
+                            (!vertex.deltaSampled && !vertex.prevDeltaSampled) &&
+                            vertex.pathLength > 1; // separately accumulate the ratio for the strategy with zero light vertices.
+                        float lastToSecondLastPowerProbRatio = pow2(backwardAreaDensityL) / vertex.prevPowerProbDensity;
+                        partialDenomMisWeightL =
+                            lastToSecondLastPowerProbRatio *
+                            (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
+                        float powerProbRatioToFirst = vertex.secondPrevPowerProbRatioToFirst;
+                        if (vertex.pathLength > 0)
+                            powerProbRatioToFirst *= lastToSecondLastPowerProbRatio;
+
+                        bool lastSegIsValidStrategyL =
+                            (/*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled) &&
+                            vertex.pathLength > 0; // separately accumulate the ratio for the strategy with zero light vertices.
+                        float curToLastPowerProbRatio = pow2(forwardAreaDensityE) / vertex.powerProbDensity;
+                        partialDenomMisWeightL =
+                            curToLastPowerProbRatio *
+                            (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                        powerProbRatioToFirst *= curToLastPowerProbRatio;
+
+                        // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
+                        partialDenomMisWeightL += pow2(*plp.numLightVertices) * powerProbRatioToFirst;
+                    }
 
                     // extend light subpath, shorten eye subpath.
-                    bool secondLastSegIsValidStrategyE =
-                        !roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled;
-                    float partialDenomMisWeightE =
-                        pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity *
-                        (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
-                    bool lastSegIsValidStrategyE = /*bsdfE.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
-                    partialDenomMisWeightE =
-                        pow2(forwardAreaDensityL) / rwPayload->powerProbDensity *
-                        (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+                    float partialDenomMisWeightE;
+                    {
+                        bool secondLastSegIsValidStrategyE =
+                            !roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled;
+                        float lastToSecondLastPowerProbRatio = pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity;
+                        partialDenomMisWeightE =
+                            lastToSecondLastPowerProbRatio *
+                            (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+
+                        bool lastSegIsValidStrategyE = /*bsdfE.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                        float curToLastPowerProbRatio = pow2(forwardAreaDensityL) / rwPayload->powerProbDensity;
+                        partialDenomMisWeightE =
+                            curToLastPowerProbRatio *
+                            (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+                    }
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
                     SampledSpectrum unweightedContribution = vertex.flux * conTerm * rwPayload->alpha;
@@ -697,9 +749,118 @@ namespace vlr {
         LVCBPTEyePathExtraPayload* exPayload;
         LVCBPTEyePathPayloadSignature::get(&roPayload, nullptr, &rwPayload, &exPayload);
 
+        WavelengthSamples wls = plp.commonWavelengthSamples;
+        if (rwPayload->singleIsSelected)
+            wls.setSingleIsSelected();
+
         if (exPayload) {
             exPayload->firstHitAlbedo = SampledSpectrum::Zero();
             exPayload->firstHitNormal = Normal3D(0.0f, 0.0f, 0.0f);
+        }
+
+        const Instance &inst = plp.instBuffer[plp.envLightInstIndex];
+        uint32_t geomInstindex = inst.geomInstIndices[0];
+        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstindex];
+
+        if (geomInst.importance == 0)
+            return;
+
+        SurfacePoint surfPtE;
+        Vector3D direction = asVector3D(optixGetWorldRayDirection());
+        float hypAreaPDF;
+        {
+            float posPhi, theta;
+            direction.toPolarYUp(&theta, &posPhi);
+
+            float sinPhi, cosPhi;
+            ::vlr::sincos(posPhi, &sinPhi, &cosPhi);
+            Vector3D texCoord0Dir = normalize(Vector3D(-cosPhi, 0.0f, -sinPhi));
+            ReferenceFrame shadingFrame;
+            shadingFrame.x = texCoord0Dir;
+            shadingFrame.z = -direction;
+            shadingFrame.y = cross(shadingFrame.z, shadingFrame.x);
+
+            surfPtE.instIndex = plp.envLightInstIndex;
+            surfPtE.geomInstIndex = geomInstindex;
+            surfPtE.primIndex = 0;
+
+            surfPtE.position = Point3D(direction.x, direction.y, direction.z);
+            surfPtE.shadingFrame = shadingFrame;
+            surfPtE.isPoint = false;
+            surfPtE.atInfinity = true;
+            surfPtE.geometricNormal = -direction;
+            surfPtE.u = posPhi;
+            surfPtE.v = theta;
+            float phi = posPhi + inst.rotationPhi;
+            phi = phi - ::vlr::floor(phi / (2 * VLR_M_PI)) * 2 * VLR_M_PI;
+            surfPtE.texCoord = TexCoord2D(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
+
+            VLRAssert(vlr::isfinite(phi) && vlr::isfinite(theta), "\"phi\", \"theta\": Not finite values %g, %g.", phi, theta);
+            float uvPDF = geomInst.asInfSphere.importanceMap.evaluatePDF(phi / (2 * VLR_M_PI), theta / VLR_M_PI);
+            // The true value is: lim_{l to inf} uvPDF / (2 * M_PI * M_PI * std::sin(theta)) / l^2
+            hypAreaPDF = uvPDF / (2 * VLR_M_PI * VLR_M_PI * std::sin(theta));
+        }
+
+        const SurfaceMaterialDescriptor &matDescE = plp.materialDescriptorBuffer[geomInst.materialIndex];
+        EDF edf(matDescE, surfPtE, wls);
+
+        Vector3D dirOutLocalE = surfPtE.shadingFrame.toLocal(-direction);
+
+        bool thirdLastSegIsValidStrategyE =
+            (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
+            rwPayload->pathLength > 2; // Ignore the strategy with zero eye vertices.
+        rwPayload->secondPrevPartialDenomMisWeight =
+            pow2(roPayload->prevRevAreaPDF) / rwPayload->prevPowerProbDensity *
+            (rwPayload->secondPrevPartialDenomMisWeight + (thirdLastSegIsValidStrategyE ? 1 : 0));
+        rwPayload->prevPowerProbDensity = rwPayload->powerProbDensity;
+
+        float lastDist2 = 1.0f;
+        float probDensity = roPayload->dirPDF / lastDist2;
+        rwPayload->powerProbDensity = pow2(probDensity);
+
+        // implicit light sampling (zero light path vertices)
+        SampledSpectrum spEmittance = edf.evaluateEmittance();
+        if ((debugPathLength == 0 || rwPayload->pathLength == debugPathLength) &&
+            spEmittance.hasNonZero() && edf.hasNonDelta()) {
+            EDFQuery edfQuery(DirectionType::All(), wls);
+            SampledSpectrum Le = spEmittance * edf.evaluate(edfQuery, dirOutLocalE);
+            SampledSpectrum unweightedContribution = rwPayload->alpha * Le;
+            unweightedContribution /= plp.wavelengthProbability;
+            if (rwPayload->singleIsSelected)
+                unweightedContribution *= SampledSpectrum::NumComponents();
+
+            const Instance &inst = plp.instBuffer[surfPtE.instIndex];
+            float instProb = inst.lightGeomInstDistribution.integral() / plp.lightInstDist.integral();
+            float geomInstProb = geomInst.importance / inst.lightGeomInstDistribution.integral();
+            float forwardAreaDensityL = plp.numLightPaths * instProb * geomInstProb * hypAreaPDF;
+
+            float backwardDirDensityE = edf.evaluatePDF(edfQuery, dirOutLocalE);
+            float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
+
+            // extend light subpath, shorten eye subpath.
+            float partialDenomMisWeightE;
+            {
+                bool secondLastSegIsValidStrategyE =
+                    (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
+                    rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
+                float lastToSecondLastPowerProbRatio = pow2(backwardAreaDensityE) / rwPayload->prevPowerProbDensity;
+                partialDenomMisWeightE =
+                    lastToSecondLastPowerProbRatio *
+                    (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+
+                bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                float curToLastPowerProbRatio = pow2(forwardAreaDensityL) / rwPayload->powerProbDensity;
+                partialDenomMisWeightE =
+                    curToLastPowerProbRatio *
+                    (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+
+                // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
+                partialDenomMisWeightE /= pow2(*plp.numLightVertices);
+            }
+
+            float recMisWeight = 1.0f + partialDenomMisWeightE;
+            float misWeight = 1.0f / recMisWeight;
+            rwPayload->contribution += misWeight * unweightedContribution;
         }
     }
 }
