@@ -394,6 +394,7 @@ class HostProgram {
         static constexpr const char* renderers[] = {
             "Path Tracing",
             "Light Tracing",
+            "Bidirectional Path Tracing",
         };
         static constexpr const char* debugRenderModes[] = {
             "Base Color",
@@ -843,6 +844,11 @@ public:
         m_renderer = VLRRenderer_PathTracing;
         m_enableDebugRendering = false;
         m_debugRenderingMode = VLRDebugRenderingMode_BaseColor;
+        if (m_enableDebugRendering)
+            m_context->setRenderer(VLRRenderer_DebugRendering);
+        else
+            m_context->setRenderer(m_renderer);
+        m_context->setDebugRenderingAttribute(m_debugRenderingMode);
 
         constexpr bool enableGLDebugCallback = true;
 
@@ -1195,6 +1201,8 @@ public:
                     firstFrame = true;
                 renderTimer.start(curStream);
                 uint32_t numAccumFramesLimit = 1u << m_log2MaxNumAccums;
+                ImVec2 mousePos = ImGui::GetIO().MousePos;
+                m_context->setProbePixel(static_cast<int32_t>(mousePos.x), static_cast<int32_t>(mousePos.y));
                 m_context->render(
                     curStream, m_camera, m_enableDenoiser, shrinkCoeff, firstFrame,
                     numAccumFramesLimit, &m_numAccumFrames);

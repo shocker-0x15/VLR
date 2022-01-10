@@ -79,11 +79,12 @@ namespace vlr::shared {
     struct LVCBPTLightPathReadWritePayload {
         KernelRNG rng;
         SampledSpectrum alpha;
-        float powerProbDensity;
-        float prevPowerProbDensity;
+        float probDensity;
+        float prevProbDensity;
         float secondPrevPartialDenomMisWeight;
-        float secondPrevPowerProbRatioToFirst;
+        float secondPrevProbRatioToFirst;
         unsigned int singleIsSelected : 1;
+        unsigned int originIsInfinity : 1;
         unsigned int pathLength : 16;
         unsigned int terminate : 1;
     };
@@ -110,8 +111,8 @@ namespace vlr::shared {
         KernelRNG rng;
         SampledSpectrum alpha;
         SampledSpectrum contribution;
-        float powerProbDensity;
-        float prevPowerProbDensity;
+        float probDensity;
+        float prevProbDensity;
         float secondPrevPartialDenomMisWeight;
         unsigned int singleIsSelected : 1;
         unsigned int pathLength : 16;

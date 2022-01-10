@@ -529,10 +529,10 @@ namespace vlr::shared {
         uint32_t geomInstIndex;
         uint32_t primIndex;
         float u, v;
-        float powerProbDensity;
-        float prevPowerProbDensity;
+        float probDensity;
+        float prevProbDensity;
         float secondPrevPartialDenomMisWeight; // minus prob ratio to the strategy of implicit light sampling
-        float secondPrevPowerProbRatioToFirst; // prob ratio of implicit light sampling
+        float secondPrevProbRatioToFirst; // prob ratio of implicit light sampling
         float backwardConversionFactor;
         SampledSpectrum flux;
         Vector3D dirInLocal;
