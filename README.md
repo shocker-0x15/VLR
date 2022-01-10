@@ -156,17 +156,23 @@ There are some scene files loading model data and textures, but those assets are
 [Veach1997] "ROBUST MONTE CARLO METHODS FOR LIGHT TRANSPORT SIMULATION"
 
 ## ギャラリー / Gallery
-<img src = "gallery/CornellBox_var.png" width = "512px" alt = "CornellBox_var.png"><br>
+<img src = "gallery/CornellBox_var.jpg" width = "512px" alt = "CornellBox_var.jpg"><br>
 A variant of the famous Cornell box scene. The left box has anisotropic BRDF with circular tangents along its local Y axis (roughness is smoother along tangent, rougher along bitangent).
 <br><br>
-<img src = "gallery/UE4LikeBRDF.png" width = "512px" alt = "UE4LikeBRDF.png"><br>
+<img src = "gallery/UE4LikeBRDF.jpg" width = "512px" alt = "UE4LikeBRDF.jpg"><br>
 An object with UE4- or Frostbite 3.0-like BRDF (Textures are exported from Substance Painter) illuminated by an area light and an environmental light.
 
 Model: Substance Painter\
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 <br><br>
-<img src = "gallery/Rungholt_view1.png" width = "768px" alt = "Rungholt_view1.png"><br>
-<img src = "gallery/Rungholt_view2.png" width = "768px" alt = "Rungholt_view2.png"><br>
+<img src = "gallery/dispersive_caustics_closeup.jpg" width = "512px" alt = "dispersive_caustics_closeup.jpg"><br>
+Caustics generated from Stanford bunny model illuminated by directional area light.\
+The renderer uses spectral rendering for this.
+
+Model: [Stanford Bunny](http://graphics.stanford.edu/data/3Dscanrep/)
+<br><br>
+<img src = "gallery/Rungholt_view1.jpg" width = "768px" alt = "Rungholt_view1.jpg"><br>
+<img src = "gallery/Rungholt_view2.jpg" width = "768px" alt = "Rungholt_view2.jpg"><br>
 Rungholt model illuminated by outdoor environment light.
 
 Model: Rungholt from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)\
