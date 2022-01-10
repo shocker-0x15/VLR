@@ -524,6 +524,7 @@ namespace vlr::shared {
 
 
 
+    // TODO: キャッシュラインサイズの考慮。
     struct LightPathVertex {
         uint32_t instIndex;
         uint32_t geomInstIndex;

@@ -1,7 +1,43 @@
 ﻿#include "../shared/light_transport_common.h"
 
-// Reference
-// Progressive Light Transport Simulation on the GPU: Survey and Improvements
+/*
+Reference
+Progressive Light Transport Simulation on the GPU: Survey and Improvements
+https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
+
+- JP: s, t をそれぞれ光線サブパス、視線サブパスの頂点数とする。
+      光線サブパスを y_0 y_1 ... y_(s-1)、視線サブパスを z_0 z_1 ... z_(t-1) のように表す。
+  EN: s and t denote the number of vertices of light subpath and eye subpath respectively.
+      Represent a light subpath as y_0 y_1 ... y_(s-1) and a eye subpath as z_0 z_1 ... z_(t-1).
+- JP: このコードはImplicit Lens Sampling (t = 0) は考慮しない。
+  EN: This code doesn't take implicit lens sampling (t = 0) into account.
+- JP: パスの確率密度
+  例えば k = 2 の経路をサンプリングする戦略について考える。
+  それぞれの戦略の確率密度は次のように表される。
+  s = 0, t = 3: p_A(z_0) * n_p p_A(z_0 -> z_1) * p_A(z_1 -> z_2)
+  s = 1, t = 2: p_A(z_0) * n_p p_A(z_0 -> z_1) * n_l / n_v * p_A(y_0)
+  s = 2, t = 1: n_p p_A(z_0) * 1 / n_v * p_A(y_0 -> y_1) * p_A(y_0) * n_l
+  ここで、n_p はピクセル数、n_l はライトサブパス数、n_v は格納されたLight Vertex数である。
+  t >= 2 の戦略ではレンズ面からシーンに対するレイ(z_0 -> z_1)のサンプリングをピクセルごとに行うため、
+  方向に関する確率密度が n_p 倍される。s >= 1 の戦略では確率密度がライトパス数 n_l 分大きくなる。
+  Explicit (s != 0 and t != 0)な戦略ではLight Vertex Cacheからランダムに頂点を選ぶ確率 1 / n_v が確率密度にかかる。
+  このコードで扱うすべての戦略にn_pが含まれており、MISウェイトの計算では結局キャンセルされて無くなるため、
+  最初から n_p は計算に含めていない。
+  EN: Probability Density of a Path
+  As an example, let's consider strategies to sample a path of length k = 2.
+  Probability density of each strategy is represented as follows:
+  s = 0, t = 3: p_A(z_0) * n_p p_A(z_0 -> z_1) * p_A(z_1 -> z_2)
+  s = 1, t = 2: p_A(z_0) * n_p p_A(z_0 -> z_1) * n_l / n_v * p_A(y_0)
+  s = 2, t = 1: n_p p_A(z_0) * 1 / n_v * p_A(y_0 -> y_1) * p_A(y_0) * n_l
+  Here, n_p, n_l and n_v are the number of pixels, light subpaths and stored light vertices respectively.
+  Strategies with t >= 2 sample rays from a lens plane to a scene (z_0 -> z_1) pixel by pixel,
+  so the probability density with respect to direction is multipled by n_p.
+  Probability densities for strategies with s >= 1 are multipled by the number of light subpaths n_l.
+  Explicit strategies (s != 0 and t != 0) needs to multiply a probability to randomly select a
+  vertex from the light vertex cache to its probability density.
+  All the strategies handled in this code have n_p and it will be cancelled in MIS weight computation in the end,
+  thus n_p is not included in the beginning.
+*/
 
 namespace vlr {
     using namespace shared;
@@ -117,13 +153,12 @@ namespace vlr {
         SampledSpectrum Le0 = edf.evaluateEmittance();
         SampledSpectrum alpha = Le0 / probDensity0;
 
-        float probDensities0 = probDensity0;
         float prevProbDensity0 = 1.0f;
         float secondPrevPartialDenomMisWeight0 = 0;
         float secondPrevProbRatioToFirst0 = 1;
         storeLightVertex(Le0Result.surfPt, alpha,
                          Vector3D(0, 0, 1), 0,
-                         probDensities0, prevProbDensity0,
+                         probDensity0, prevProbDensity0,
                          secondPrevPartialDenomMisWeight0, secondPrevProbRatioToFirst0,
                          Le0Result.posType.isDelta(), false, false, 0);
 
@@ -156,7 +191,7 @@ namespace vlr {
         LVCBPTLightPathReadWritePayload rwPayload = {};
         rwPayload.rng = rng;
         rwPayload.alpha = alpha;
-        rwPayload.probDensity = probDensities0;
+        rwPayload.probDensity = probDensity0;
         rwPayload.prevProbDensity = prevProbDensity0;
         rwPayload.secondPrevPartialDenomMisWeight = secondPrevPartialDenomMisWeight0;
         rwPayload.secondPrevProbRatioToFirst = secondPrevProbRatioToFirst0;
@@ -214,7 +249,7 @@ namespace vlr {
         float hypAreaPDF;
         calcSurfacePoint(hp, wls, &surfPt, &hypAreaPDF);
 
-        const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
+        const SurfaceMaterialDescriptor &matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
         constexpr TransportMode transportMode = TransportMode::Importance;
         BSDF<transportMode, BSDFTier::Bidirectional> bsdf(matDesc, surfPt, wls);
 
@@ -224,13 +259,15 @@ namespace vlr {
         Normal3D geomNormalLocal = surfPt.shadingFrame.toLocal(surfPt.geometricNormal);
         BSDFQuery fsQuery(dirInLocal, geomNormalLocal, transportMode, DirectionType::All(), wls);
 
-        bool thirdLastSegIsValidStrategy =
+        // JP: 現在のパスセグメントより2つ前のセグメントにおける部分的なMISウェイトが確定する。
+        // EN: The partial MIS weight at the segment two segments before the current path segment can be determined.
+        bool secondLastSegIsValidConnection =
             (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
             rwPayload->pathLength > 2; // separately accumulate the ratio for the strategy with zero light vertices.
         float probRatio = roPayload->prevRevAreaPDF / rwPayload->prevProbDensity;
         rwPayload->secondPrevPartialDenomMisWeight =
             pow2(probRatio) *
-            (rwPayload->secondPrevPartialDenomMisWeight + (thirdLastSegIsValidStrategy ? 1 : 0));
+            (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidConnection ? 1 : 0));
         rwPayload->secondPrevProbRatioToFirst *= probRatio;
         rwPayload->prevProbDensity = rwPayload->probDensity;
 
@@ -299,7 +336,11 @@ namespace vlr {
         LensPosQueryResult We0Result;
         camera.sample(We0Sample, &We0Result);
 
-        // JP: 
+        // JP: レンズ面の確率密度にピクセル数 n_p をかけるのは理論的には正しくないが、
+        //     結局全ての戦略の確率密度に n_p が含まれるため、この時点で含めておく。
+        // EN: It is not theoretically correct to multiply the number of pixels n_p to the probability density
+        //     of the lens plane, but all the strategies have n_p in their probability densities in the end,
+        //     so include the value at this point.
         We0Result.areaPDF *= plp.imageSize.x * plp.imageSize.y;
 
         IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
@@ -355,11 +396,11 @@ namespace vlr {
                         scalarConTerm *= SampledSpectrum::NumComponents();
 
                     // on the light vertex
-                    // JP: Implicit Lens Sampling戦略は考えない。
-                    // EN: Don't consider the implicit lens sampling strategy.
                     SampledSpectrum backwardFsL;
                     SampledSpectrum forwardFsL = bsdfL.evaluate(bsdfLQuery, conRayDirLocalL, &backwardFsL);
                     float backwardDirDensityL;
+                    // JP: Implicit Lens Sampling戦略は考えない。
+                    // EN: Don't consider the implicit lens sampling strategy.
                     /*float forwardDirDensityL = */bsdfL.evaluatePDF(bsdfLQuery, conRayDirLocalL, &backwardDirDensityL);
                     //float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
                     if constexpr (includeRRProbability)
@@ -378,27 +419,29 @@ namespace vlr {
                     // extend eye subpath, shorten light subpath.
                     float partialDenomMisWeightL;
                     {
-                        bool secondLastSegIsValidStrategyL =
+                        bool lastSegIsValidConnectionL =
                             (!vertex.deltaSampled && !vertex.prevDeltaSampled) &&
                             vertex.pathLength > 1; // separately accumulate the ratio for the strategy with zero light vertices.
                         float lastToSecondLastProbRatio = backwardAreaDensityL / vertex.prevProbDensity;
                         partialDenomMisWeightL =
                             pow2(lastToSecondLastProbRatio) *
-                            (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
+                            (vertex.secondPrevPartialDenomMisWeight + (lastSegIsValidConnectionL ? 1 : 0));
                         float probRatioToFirst = vertex.secondPrevProbRatioToFirst;
                         if (vertex.pathLength > 0)
                             probRatioToFirst *= lastToSecondLastProbRatio;
 
-                        bool lastSegIsValidStrategyL =
+                        bool curSegIsValidConnectionL =
                             (/*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled) &&
                             vertex.pathLength > 0; // separately accumulate the ratio for the strategy with zero light vertices.
                         float curToLastProbRatio = forwardAreaDensityE / vertex.probDensity;
                         partialDenomMisWeightL =
                             pow2(curToLastProbRatio) *
-                            (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                            (partialDenomMisWeightL + (curSegIsValidConnectionL ? 1 : 0));
                         probRatioToFirst *= curToLastProbRatio;
 
                         // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
+                        // EN: Implicit light sampling strategy doesn't contain a probability to
+                        //     randomly select from the light vertex cache.
                         partialDenomMisWeightL += pow2(probRatioToFirst / vertexProb);
                     }
 
@@ -542,12 +585,14 @@ namespace vlr {
         Normal3D geomNormalLocalE = surfPtE.shadingFrame.toLocal(surfPtE.geometricNormal);
         BSDFQuery bsdfEQuery(dirOutLocalE, geomNormalLocalE, transportModeE, DirectionType::All(), wls);
 
-        bool thirdLastSegIsValidStrategyE =
+        // JP: 現在のパスセグメントより2つ前のセグメントにおける部分的なMISウェイトが確定する。
+        // EN: The partial MIS weight at the segment two segments before the current path segment can be determined.
+        bool secondLastSegIsValidConnectionE =
             (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
             rwPayload->pathLength > 2; // Ignore the strategy with zero eye path vertices.
         rwPayload->secondPrevPartialDenomMisWeight =
             pow2(roPayload->prevRevAreaPDF / rwPayload->prevProbDensity) *
-            (rwPayload->secondPrevPartialDenomMisWeight + (thirdLastSegIsValidStrategyE ? 1 : 0));
+            (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidConnectionE ? 1 : 0));
         rwPayload->prevProbDensity = rwPayload->probDensity;
 
         float lastDist2 = sqDistance(asPoint3D(optixGetWorldRayOrigin()), surfPtE.position);
@@ -577,21 +622,23 @@ namespace vlr {
             // extend light subpath, shorten eye subpath.
             float partialDenomMisWeightE;
             {
-                bool secondLastSegIsValidStrategyE =
+                bool lastSegIsValidConnectionE =
                     (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
                     rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
                 float lastToSecondLastProbRatio = backwardAreaDensityE / rwPayload->prevProbDensity;
                 partialDenomMisWeightE =
                     pow2(lastToSecondLastProbRatio) *
-                    (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+                    (rwPayload->secondPrevPartialDenomMisWeight + (lastSegIsValidConnectionE ? 1 : 0));
 
-                bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                bool curSegIsValidConnectionE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
                 float curToLastProbRatio = forwardAreaDensityL / rwPayload->probDensity;
                 partialDenomMisWeightE =
                     pow2(curToLastProbRatio) *
-                    (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+                    (partialDenomMisWeightE + (curSegIsValidConnectionE ? 1 : 0));
 
                 // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
+                // EN: Strategies other than the implicit light sampling have a selection probability from
+                //     the light vertex cache.
                 partialDenomMisWeightE *= pow2(vertexProb);
             }
 
@@ -675,45 +722,47 @@ namespace vlr {
                     // extend eye subpath, shorten light subpath.
                     float partialDenomMisWeightL;
                     {
-                        bool secondLastSegIsValidStrategyL =
+                        bool lastSegIsValidConnectionL =
                             (!vertex.deltaSampled && !vertex.prevDeltaSampled) &&
                             vertex.pathLength > 1; // separately accumulate the ratio for the strategy with zero light vertices.
                         float lastToSecondLastProbRatio = backwardAreaDensityL / vertex.prevProbDensity;
                         partialDenomMisWeightL =
                             pow2(lastToSecondLastProbRatio) *
-                            (vertex.secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyL ? 1 : 0));
+                            (vertex.secondPrevPartialDenomMisWeight + (lastSegIsValidConnectionL ? 1 : 0));
                         float probRatioToFirst = vertex.secondPrevProbRatioToFirst;
                         if (vertex.pathLength > 0)
                             probRatioToFirst *= lastToSecondLastProbRatio;
 
-                        bool lastSegIsValidStrategyL =
+                        bool curSegIsValidConnectionL =
                             (/*bsdfL.hasNonDelta() &&*/ !vertex.deltaSampled) &&
                             vertex.pathLength > 0; // separately accumulate the ratio for the strategy with zero light vertices.
                         float curToLastProbRatio = forwardAreaDensityE / vertex.probDensity;
                         partialDenomMisWeightL =
                             pow2(curToLastProbRatio) *
-                            (partialDenomMisWeightL + (lastSegIsValidStrategyL ? 1 : 0));
+                            (partialDenomMisWeightL + (curSegIsValidConnectionL ? 1 : 0));
                         probRatioToFirst *= curToLastProbRatio;
 
                         // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
+                        // EN: Implicit light sampling strategy doesn't contain a probability to
+                        //     randomly select from the light vertex cache.
                         partialDenomMisWeightL += pow2(probRatioToFirst / vertexProb);
                     }
 
                     // extend light subpath, shorten eye subpath.
                     float partialDenomMisWeightE;
                     {
-                        bool secondLastSegIsValidStrategyE =
+                        bool lastSegIsValidConnectionE =
                             !roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled;
                         float lastToSecondLastProbRatio = backwardAreaDensityE / rwPayload->prevProbDensity;
                         partialDenomMisWeightE =
                             pow2(lastToSecondLastProbRatio) *
-                            (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+                            (rwPayload->secondPrevPartialDenomMisWeight + (lastSegIsValidConnectionE ? 1 : 0));
 
-                        bool lastSegIsValidStrategyE = /*bsdfE.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                        bool curSegIsValidConnectionE = /*bsdfE.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
                         float curToLastProbRatio = forwardAreaDensityL / rwPayload->probDensity;
                         partialDenomMisWeightE =
                             pow2(curToLastProbRatio) *
-                            (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+                            (partialDenomMisWeightE + (curSegIsValidConnectionE ? 1 : 0));
                     }
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
@@ -832,12 +881,14 @@ namespace vlr {
 
         Vector3D dirOutLocalE = surfPtE.shadingFrame.toLocal(-direction);
 
-        bool thirdLastSegIsValidStrategyE =
+        // JP: 現在のパスセグメントより2つ前のセグメントにおける部分的なMISウェイトが確定する。
+        // EN: The partial MIS weight at the segment two segments before the current path segment can be determined.
+        bool secondLastSegIsValidConnectionE =
             (!roPayload->prevDeltaSampled && !roPayload->secondPrevDeltaSampled) &&
             rwPayload->pathLength > 2; // Ignore the strategy with zero eye vertices.
         rwPayload->secondPrevPartialDenomMisWeight =
             pow2(roPayload->prevRevAreaPDF / rwPayload->prevProbDensity) *
-            (rwPayload->secondPrevPartialDenomMisWeight + (thirdLastSegIsValidStrategyE ? 1 : 0));
+            (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidConnectionE ? 1 : 0));
         rwPayload->prevProbDensity = rwPayload->probDensity;
 
         float lastDist2 = 1.0f;
@@ -868,21 +919,23 @@ namespace vlr {
             // extend light subpath, shorten eye subpath.
             float partialDenomMisWeightE;
             {
-                bool secondLastSegIsValidStrategyE =
+                bool lastSegIsValidConnectionE =
                     (!roPayload->sampledType.isDelta() && !roPayload->prevDeltaSampled) &&
                     rwPayload->pathLength > 1; // Ignore the strategy with zero eye vertices.
                 float lastToSecondLastProbRatio = backwardAreaDensityE / rwPayload->prevProbDensity;
                 partialDenomMisWeightE =
                     pow2(lastToSecondLastProbRatio) *
-                    (rwPayload->secondPrevPartialDenomMisWeight + (secondLastSegIsValidStrategyE ? 1 : 0));
+                    (rwPayload->secondPrevPartialDenomMisWeight + (lastSegIsValidConnectionE ? 1 : 0));
 
-                bool lastSegIsValidStrategyE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
+                bool curSegIsValidConnectionE = /*edf.hasNonDelta() &&*/ !roPayload->sampledType.isDelta();
                 float curToLastProbRatio = forwardAreaDensityL / rwPayload->probDensity;
                 partialDenomMisWeightE =
                     pow2(curToLastProbRatio) *
-                    (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
+                    (partialDenomMisWeightE + (curSegIsValidConnectionE ? 1 : 0));
 
                 // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
+                // EN: Strategies other than the implicit light sampling have a selection probability from
+                //     the light vertex cache.
                 partialDenomMisWeightE *= pow2(vertexProb);
             }
 
