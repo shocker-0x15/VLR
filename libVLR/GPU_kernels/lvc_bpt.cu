@@ -19,7 +19,7 @@ https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
   s = 2, t = 1: n_p p_A(z_0) * 1 / n_v * p_A(y_0 -> y_1) * p_A(y_0) * n_l
   ここで、n_p はピクセル数、n_l はライトサブパス数、n_v は格納されたLight Vertex数である。
   t >= 2 の戦略ではレンズ面からシーンに対するレイ(z_0 -> z_1)のサンプリングをピクセルごとに行うため、
-  方向に関する確率密度が n_p 倍される。一方で t < 2の戦略ではランダムなピクセルへの寄与が n_p 回評価されるため、
+  方向に関する確率密度が n_p 倍される。一方で t < 2 の戦略ではランダムなピクセルへの寄与が n_p 回評価されるため、
   こちらの確率密度にも n_p がかかる。
   s >= 1 の戦略では確率密度がライトパス数 n_l 分大きくなる。
   Explicit (s != 0 and t != 0)な戦略ではLight Vertex Cacheからランダムに頂点を選ぶ確率 1 / n_v が確率密度にかかる。
@@ -340,17 +340,15 @@ namespace vlr {
         LensPosQueryResult We0Result;
         camera.sample(We0Sample, &We0Result);
 
-        // JP: レンズ面の確率密度にピクセル数 n_p をかけるのは理論的には正しくないが、
-        //     結局全ての戦略の確率密度に n_p が含まれるため、この時点で含めておく。
-        // EN: It is not theoretically correct to multiply the number of pixels n_p to the probability density
-        //     of the lens plane, but all the strategies have n_p in their probability densities in the end,
-        //     so include the value at this point.
-        We0Result.areaPDF *= plp.imageSize.x * plp.imageSize.y;
-
         IDF idf(plp.cameraDescriptor, We0Result.surfPt, wls);
 
+        // JP: 全ての戦略の確率密度にピクセル数 n_p が含まれおりMISウェイト計算ではキャンセルされるため、
+        //     個別の確率密度には n_p は含めていないが、パススループットには含める必要がある。
+        // EN: All the strategies have the number of pixels n_p in their probability densities and will be
+        //     cancelled in MIS weight computation, so each densities don't include n_p, but
+        //     the path throughput needs to include it.
         SampledSpectrum We0 = idf.evaluateSpatialImportance();
-        SampledSpectrum alpha = We0 / We0Result.areaPDF;
+        SampledSpectrum alpha = We0 / (We0Result.areaPDF * plp.imageSize.x * plp.imageSize.y);
 
         float probDensities0 = We0Result.areaPDF;
         float prevProbDensity0 = 1.0f;
