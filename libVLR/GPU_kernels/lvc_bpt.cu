@@ -19,7 +19,9 @@ https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
   s = 2, t = 1: n_p p_A(z_0) * 1 / n_v * p_A(y_0 -> y_1) * p_A(y_0) * n_l
   ここで、n_p はピクセル数、n_l はライトサブパス数、n_v は格納されたLight Vertex数である。
   t >= 2 の戦略ではレンズ面からシーンに対するレイ(z_0 -> z_1)のサンプリングをピクセルごとに行うため、
-  方向に関する確率密度が n_p 倍される。s >= 1 の戦略では確率密度がライトパス数 n_l 分大きくなる。
+  方向に関する確率密度が n_p 倍される。一方で t < 2の戦略ではランダムなピクセルへの寄与が n_p 回評価されるため、
+  こちらの確率密度にも n_p がかかる。
+  s >= 1 の戦略では確率密度がライトパス数 n_l 分大きくなる。
   Explicit (s != 0 and t != 0)な戦略ではLight Vertex Cacheからランダムに頂点を選ぶ確率 1 / n_v が確率密度にかかる。
   このコードで扱うすべての戦略にn_pが含まれており、MISウェイトの計算では結局キャンセルされて無くなるため、
   最初から n_p は計算に含めていない。
@@ -32,6 +34,8 @@ https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
   Here, n_p, n_l and n_v are the number of pixels, light subpaths and stored light vertices respectively.
   Strategies with t >= 2 sample rays from a lens plane to a scene (z_0 -> z_1) pixel by pixel,
   so the probability density with respect to direction is multipled by n_p.
+  On the other hand, strategies with t < 2 evaluates a contribution to a random pixel n_p times,
+  so the probability densities for those strategies also have n_p.
   Probability densities for strategies with s >= 1 are multipled by the number of light subpaths n_l.
   Explicit strategies (s != 0 and t != 0) needs to multiply a probability to randomly select a
   vertex from the light vertex cache to its probability density.
