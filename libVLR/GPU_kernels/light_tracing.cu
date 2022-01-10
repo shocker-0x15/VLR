@@ -3,6 +3,19 @@
 namespace vlr {
     using namespace shared;
 
+    static constexpr int32_t debugPathLength = 0;
+
+    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+        return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
+    }
+
+    CUDA_DEVICE_FUNCTION bool onProbePixel(const float2 &projPixel) {
+        return static_cast<int32_t>(projPixel.x) == plp.probePixX &&
+            static_cast<int32_t>(projPixel.y) == plp.probePixY;
+    }
+
+
+
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     CUDA_DEVICE_KERNEL void RT_AH_NAME(lightTracingAnyHitWithAlpha)() {
         LTReadOnlyPayload* roPayload;
@@ -32,8 +45,6 @@ namespace vlr {
     }
 
 
-
-    static constexpr int32_t debugPathLength = 0;
 
     CUDA_DEVICE_KERNEL void RT_RG_NAME(lightTracing)() {
         uint32_t launchIndex = optixGetLaunchIndex().x;

@@ -9,6 +9,17 @@ namespace vlr {
     static constexpr bool includeRRProbability = true;
     static constexpr int32_t debugPathLength = 0;
 
+    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+        return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
+    }
+
+    CUDA_DEVICE_FUNCTION bool onProbePixel(const float2 &projPixel) {
+        return static_cast<int32_t>(projPixel.x) == plp.probePixX &&
+            static_cast<int32_t>(projPixel.y) == plp.probePixY;
+    }
+
+
+
     CUDA_DEVICE_KERNEL void RT_AH_NAME(lvcbptAnyHitWithAlpha)() {
         LTReadOnlyPayload* roPayload;
         LTReadWritePayload* rwPayload;
@@ -19,10 +30,6 @@ namespace vlr {
         // Stochastic Alpha Test
         if (rwPayload->rng.getFloat0cTo1o() >= alpha)
             optixIgnoreIntersection();
-    }
-
-    CUDA_DEVICE_FUNCTION bool onProbePixel() {
-        return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
     }
 
     CUDA_DEVICE_FUNCTION void atomicAddToBuffer(
@@ -388,7 +395,7 @@ namespace vlr {
                         powerProbRatioToFirst *= curToLastPowerProbRatio;
 
                         // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
-                        partialDenomMisWeightL += pow2(*plp.numLightVertices) * powerProbRatioToFirst;
+                        partialDenomMisWeightL += powerProbRatioToFirst / pow2(vertexProb);
                     }
 
                     SampledSpectrum conTerm = forwardFsL * scalarConTerm * forwardFsE;
@@ -542,6 +549,8 @@ namespace vlr {
         float probDensity = roPayload->dirPDF * absDot(dirOutLocalE, geomNormalLocalE) / lastDist2;
         rwPayload->powerProbDensity = pow2(probDensity);
 
+        float vertexProb = 1.0f / *plp.numLightVertices;
+
         // implicit light sampling (zero light path vertices)
         SampledSpectrum spEmittance = edf.evaluateEmittance();
         if ((debugPathLength == 0 || rwPayload->pathLength == debugPathLength) &&
@@ -578,7 +587,7 @@ namespace vlr {
                     (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
 
                 // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
-                partialDenomMisWeightE /= pow2(*plp.numLightVertices);
+                partialDenomMisWeightE *= pow2(vertexProb);
             }
 
             float recMisWeight = 1.0f + partialDenomMisWeightE;
@@ -592,7 +601,6 @@ namespace vlr {
                 *plp.numLightVertices * rng.getFloat0cTo1o(),
                 *plp.numLightVertices - 1);
             const LightPathVertex &vertex = plp.lightVertexCache[lightVertexIndex];
-            float vertexProb = 1.0f / *plp.numLightVertices;
 
             SurfacePoint surfPtL;
             uint32_t matIndexL;
@@ -677,7 +685,7 @@ namespace vlr {
                         powerProbRatioToFirst *= curToLastPowerProbRatio;
 
                         // JP: Implicit Light Sampling戦略にはLight Vertex Cacheからのランダムな選択確率は含まれない。
-                        partialDenomMisWeightL += pow2(*plp.numLightVertices) * powerProbRatioToFirst;
+                        partialDenomMisWeightL += powerProbRatioToFirst / pow2(vertexProb);
                     }
 
                     // extend light subpath, shorten eye subpath.
@@ -818,6 +826,8 @@ namespace vlr {
         float probDensity = roPayload->dirPDF / lastDist2;
         rwPayload->powerProbDensity = pow2(probDensity);
 
+        float vertexProb = 1.0f / *plp.numLightVertices;
+
         // implicit light sampling (zero light path vertices)
         SampledSpectrum spEmittance = edf.evaluateEmittance();
         if ((debugPathLength == 0 || rwPayload->pathLength == debugPathLength) &&
@@ -855,7 +865,7 @@ namespace vlr {
                     (partialDenomMisWeightE + (lastSegIsValidStrategyE ? 1 : 0));
 
                 // JP: Implicit Light Sampling戦略以外にはLight Vertex Cacheからのランダムな選択確率が含まれる。
-                partialDenomMisWeightE /= pow2(*plp.numLightVertices);
+                partialDenomMisWeightE *= pow2(vertexProb);
             }
 
             float recMisWeight = 1.0f + partialDenomMisWeightE;

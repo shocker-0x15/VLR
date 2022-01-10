@@ -129,24 +129,32 @@ namespace vlr {
         return a * (1 - t) + b * t;
     }
 
-    template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType pow1(RealType x) {
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T pow1(T x) {
         return x;
     }
-    template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType pow2(RealType x) {
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T pow2(T x) {
+        if constexpr (std::is_same_v<T, int32_t>)
+            VLRAssert(x >= -46340 && x <= 46340, "pow2(): int32_t Overflow.");
+        if constexpr (std::is_same_v<T, uint32_t>)
+            VLRAssert(x <= 65535, "pow2(): uint32_t Overflow.");
         return x * x;
     }
-    template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType pow3(RealType x) {
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T pow3(T x) {
+        if constexpr (std::is_same_v<T, int32_t>)
+            VLRAssert(x >= -1290 && x <= 1290, "pow3(): int32_t Overflow.");
+        if constexpr (std::is_same_v<T, uint32_t>)
+            VLRAssert(x <= 1625, "pow2(): uint32_t Overflow.");
         return x * x * x;
     }
-    template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType pow4(RealType x) {
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T pow4(T x) {
         return x * x * x * x;
     }
-    template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType pow5(RealType x) {
+    template <typename T>
+    CUDA_DEVICE_FUNCTION constexpr T pow5(T x) {
         return x * x * x * x * x;
     }
 

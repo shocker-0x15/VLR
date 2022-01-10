@@ -3,6 +3,14 @@
 namespace vlr {
     using namespace shared;
 
+    static constexpr int32_t debugPathLength = 0;
+
+    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+        return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
+    }
+
+
+
     // Common Any Hit Program for All Primitive Types and Materials for non-shadow rays
     CUDA_DEVICE_KERNEL void RT_AH_NAME(pathTracingAnyHitWithAlpha)() {
         PTReadOnlyPayload* roPayload;
@@ -17,8 +25,6 @@ namespace vlr {
     }
 
 
-
-    static constexpr int32_t debugPathLength = 0;
 
     // Common Ray Generation Program for All Camera Types
     CUDA_DEVICE_KERNEL void RT_RG_NAME(pathTracing)() {
@@ -310,7 +316,8 @@ namespace vlr {
 
         // implicit light sampling
         SampledSpectrum spEmittance = edf.evaluateEmittance();
-        if (spEmittance.hasNonZero()) {
+        if ((debugPathLength == 0 || roPayload->pathLength == debugPathLength) &&
+            spEmittance.hasNonZero()) {
             EDFQuery feQuery(DirectionType::All(), roPayload->wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(feQuery, dirOutLocal);
 
