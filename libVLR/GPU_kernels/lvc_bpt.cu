@@ -348,7 +348,7 @@ namespace vlr {
         //     cancelled in MIS weight computation, so each densities don't include n_p, but
         //     the path throughput needs to include it.
         SampledSpectrum We0 = idf.evaluateSpatialImportance();
-        SampledSpectrum alpha = We0 / (We0Result.areaPDF * plp.imageSize.x * plp.imageSize.y);
+        SampledSpectrum alpha = We0 / (We0Result.areaPDF * plp.wavelengthProbability * plp.imageSize.x * plp.imageSize.y);
 
         float probDensities0 = We0Result.areaPDF;
         float prevProbDensity0 = 1.0f;
@@ -393,7 +393,7 @@ namespace vlr {
                     float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
                     float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
                     float G = cosL * cosE * recSquaredConDist;
-                    float scalarConTerm = G * fractionalVisibility / (vertexProb * plp.wavelengthProbability);
+                    float scalarConTerm = G * fractionalVisibility / vertexProb;
                     if (vertex.wlSelected)
                         scalarConTerm *= SampledSpectrum::NumComponents();
 
@@ -688,7 +688,7 @@ namespace vlr {
                     float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
                     float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
                     float G = cosL * cosE * recSquaredConDist;
-                    float scalarConTerm = G * fractionalVisibility / (vertexProb * plp.wavelengthProbability);
+                    float scalarConTerm = G * fractionalVisibility / vertexProb;
                     if (vertex.wlSelected || rwPayload->singleIsSelected)
                         scalarConTerm *= SampledSpectrum::NumComponents();
 
@@ -906,7 +906,6 @@ namespace vlr {
             EDFQuery edfQuery(DirectionType::All(), wls);
             SampledSpectrum Le = spEmittance * edf.evaluate(edfQuery, dirOutLocalE);
             SampledSpectrum unweightedContribution = rwPayload->alpha * Le;
-            unweightedContribution /= plp.wavelengthProbability;
             if (rwPayload->singleIsSelected)
                 unweightedContribution *= SampledSpectrum::NumComponents();
 
