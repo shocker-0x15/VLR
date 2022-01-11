@@ -146,7 +146,7 @@ namespace vlr {
         float hypAreaPDF;
         calcSurfacePoint(hp, wls, &surfPt, &hypAreaPDF);
 
-        const SurfaceMaterialDescriptor matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
+        const SurfaceMaterialDescriptor &matDesc = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
         constexpr TransportMode transportMode = TransportMode::Radiance;
         BSDF<transportMode> bsdf(matDesc, surfPt, wls);
         EDF edf(matDesc, surfPt, wls);
@@ -204,7 +204,7 @@ namespace vlr {
             SurfaceLightPosQueryResult lpResult;
             light.sample(lpSample, surfPt.position, &lpResult);
 
-            const SurfaceMaterialDescriptor lightMatDesc = plp.materialDescriptorBuffer[lpResult.materialIndex];
+            const SurfaceMaterialDescriptor &lightMatDesc = plp.materialDescriptorBuffer[lpResult.materialIndex];
             EDF ledf(lightMatDesc, lpResult.surfPt, wls);
             SampledSpectrum M = ledf.evaluateEmittance();
 

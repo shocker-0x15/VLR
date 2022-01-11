@@ -2208,9 +2208,8 @@ namespace vlr {
             result->dirLocal = uniformSampleSphere(uDir[0], uDir[1]);
             result->dirPDF = 1.0f / (4 * VLR_M_PI);
             result->sampledType = DirectionType::Emission() | DirectionType::LowFreq();
-            SampledSpectrum feValue = m_intensity;
 
-            return feValue;
+            return 1.0f / (4 * VLR_M_PI);
         }
 
         CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
