@@ -689,7 +689,7 @@ void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
 
     //    {
     //        auto matLight = context->createSurfaceMaterial("PointEmitter");
-    //        matLight->set("intensity", VLRImmediateSpectrum{ "Rec709(D65)", 9.0f, 9.0f, 9.0f });
+    //        matLight->set("intensity", VLRImmediateSpectrum{ "Rec709(D65)", 2.4f, 2.4f, 2.4f });
 
     //        std::vector<uint32_t> matGroup = { 0 };
     //        pointLights->addMaterialGroup(matGroup.data(), matGroup.size(), matLight);
@@ -2629,13 +2629,13 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 void createScene(const vlr::ContextRef &context, Shot* shot) {
     //createTempScene(context, shot);
     //createSingleSphereScene(context, shot);
-    //createCornellBoxScene(context, shot);
+    createCornellBoxScene(context, shot);
     //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
     //createColorInterpolationTestScene(context, shot);
-    createSubstanceManScene(context, shot);
+    //createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
     //createRungholtScene(context, shot);

@@ -84,6 +84,7 @@ namespace vlr::shared {
         float secondPrevPartialDenomMisWeight;
         float secondPrevProbRatioToFirst;
         unsigned int singleIsSelected : 1;
+        unsigned int originIsPoint : 1;
         unsigned int originIsInfinity : 1;
         unsigned int pathLength : 16;
         unsigned int terminate : 1;

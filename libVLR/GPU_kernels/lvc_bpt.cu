@@ -200,6 +200,7 @@ namespace vlr {
         rwPayload.secondPrevPartialDenomMisWeight = secondPrevPartialDenomMisWeight0;
         rwPayload.secondPrevProbRatioToFirst = secondPrevProbRatioToFirst0;
         rwPayload.singleIsSelected = false;
+        rwPayload.originIsPoint = Le0Result.surfPt.isPoint;
         rwPayload.originIsInfinity = Le0Result.surfPt.atInfinity;
         rwPayload.pathLength = 0;
         LVCBPTLightPathReadOnlyPayload* roPayloadPtr = &roPayload;
@@ -307,7 +308,6 @@ namespace vlr {
             return;
         rwPayload->alpha /= continueProb;
         rwPayload->terminate = false;
-        rwPayload->originIsInfinity = false;
 
         Vector3D dirOut = surfPt.fromLocal(fsResult.dirLocal);
         woPayload->nextOrigin = offsetRayOrigin(surfPt.position, cosTerm > 0.0f ? surfPt.geometricNormal : -surfPt.geometricNormal);
@@ -321,6 +321,10 @@ namespace vlr {
             woPayload->revAreaPDF *= computeRRProbability(
                 fsRevResult.value, fsQuery.dirLocal, fsRevResult.dirPDF, geomNormalLocal);
         }
+        if (rwPayload->originIsPoint) // Delta function in the positional density (e.g. point light)
+            woPayload->revAreaPDF = 0;
+        rwPayload->originIsPoint = false;
+        rwPayload->originIsInfinity = false;
     }
 
 
@@ -390,8 +394,8 @@ namespace vlr {
                     Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
                     Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
 
-                    float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
-                    float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
+                    float cosL = surfPtL.calcCosTerm(conRayDir);
+                    float cosE = surfPtE.calcCosTerm(conRayDir);
                     float G = cosL * cosE * recSquaredConDist;
                     float scalarConTerm = G * fractionalVisibility / vertexProb;
                     if (vertex.wlSelected)
@@ -409,12 +413,16 @@ namespace vlr {
                         backwardDirDensityL *= computeRRProbability(
                             backwardFsL, bsdfLQuery.dirLocal, backwardDirDensityL, geomNormalLocalL);
                     float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
+                    if (vertex.prevDeltaSampled) // Delta function in the positional density (e.g. point light)
+                        backwardAreaDensityL = 0;
 
                     // on the eye vertex
                     SampledSpectrum backwardFsE;
                     SampledSpectrum forwardFsE = idf.evaluateDirectionalImportance(idfQuery, conRayDirLocalE);
                     float forwardDirDensityE = idf.evaluatePDF(idfQuery, conRayDirLocalE);
                     float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
+                    if (surfPtL.isPoint) // Delta function in the positional density (e.g. point light)
+                        forwardAreaDensityE = 0;
                     float2 posInScreen = idf.backProjectDirection(idfQuery, conRayDirLocalE);
                     float2 pixel = make_float2(posInScreen.x * plp.imageSize.x, posInScreen.y * plp.imageSize.y);
 
@@ -685,8 +693,8 @@ namespace vlr {
                     Vector3D conRayDirLocalL = surfPtL.toLocal(-conRayDir);
                     Vector3D conRayDirLocalE = surfPtE.toLocal(conRayDir);
 
-                    float cosL = absDot(conRayDirLocalL, geomNormalLocalL);
-                    float cosE = absDot(conRayDirLocalE, geomNormalLocalE);
+                    float cosL = surfPtL.calcCosTerm(conRayDir);
+                    float cosE = surfPtE.calcCosTerm(conRayDir);
                     float G = cosL * cosE * recSquaredConDist;
                     float scalarConTerm = G * fractionalVisibility / vertexProb;
                     if (vertex.wlSelected || rwPayload->singleIsSelected)
@@ -706,6 +714,8 @@ namespace vlr {
                     }
                     float forwardAreaDensityL = forwardDirDensityL * cosE * recSquaredConDist;
                     float backwardAreaDensityL = backwardDirDensityL * vertex.backwardConversionFactor;
+                    if (vertex.prevDeltaSampled) // Delta function in the positional density (e.g. point light)
+                        backwardAreaDensityL = 0;
 
                     // on the eye vertex
                     SampledSpectrum backwardFsE;
@@ -719,6 +729,8 @@ namespace vlr {
                             backwardFsE, bsdfEQuery.dirLocal, backwardDirDensityE, geomNormalLocalE);
                     }
                     float forwardAreaDensityE = forwardDirDensityE * cosL * recSquaredConDist;
+                    if (surfPtL.isPoint) // Delta function in the positional density (e.g. point light)
+                        forwardAreaDensityE = 0;
                     float backwardAreaDensityE = backwardDirDensityE * roPayload->cosTerm / lastDist2;
 
                     // extend eye subpath, shorten light subpath.
