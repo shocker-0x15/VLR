@@ -379,7 +379,7 @@ namespace vlr {
                     surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
                 float recSquaredConDist = 1.0f / squaredConDist;
 
-                const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
+                const SurfaceMaterialDescriptor &matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
                 BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
                 if (bsdfL.hasNonDelta()) {
@@ -571,7 +571,7 @@ namespace vlr {
         float hypAreaPDF;
         calcSurfacePoint(hp, wls, &surfPtE, &hypAreaPDF);
 
-        const SurfaceMaterialDescriptor matDescE = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
+        const SurfaceMaterialDescriptor &matDescE = plp.materialDescriptorBuffer[hp.sbtr->geomInst.materialIndex];
         constexpr TransportMode transportModeE = TransportMode::Radiance;
         BSDF<transportModeE, BSDFTier::Bidirectional> bsdfE(matDescE, surfPtE, wls);
         EDF edf(matDescE, surfPtE, wls);
@@ -674,7 +674,7 @@ namespace vlr {
                     surfPtE, surfPtL, wls, &conRayDir, &squaredConDist, &fractionalVisibility)) {
                 float recSquaredConDist = 1.0f / squaredConDist;
 
-                const SurfaceMaterialDescriptor matDescL = plp.materialDescriptorBuffer[matIndexL];
+                const SurfaceMaterialDescriptor &matDescL = plp.materialDescriptorBuffer[matIndexL];
                 constexpr TransportMode transportModeL = TransportMode::Importance;
                 BSDF<transportModeL, BSDFTier::Bidirectional> bsdfL(matDescL, surfPtL, wls, vertex.pathLength == 0);
                 if (bsdfL.hasNonDelta()) {

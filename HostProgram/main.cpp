@@ -403,6 +403,7 @@ class HostProgram {
             "Shading Bitangent",
             "Shading Normal",
             "Texture Coordinates",
+            "Shading Normal View Cos",
             "Geometric vs ShadingNormal",
             "Shading Frame Lengths",
             "Shading Frame Orthogonality",

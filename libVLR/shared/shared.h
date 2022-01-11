@@ -610,6 +610,7 @@ namespace vlr {
             ShadingBitangent,
             ShadingNormal,
             TextureCoordinates,
+            ShadingNormalViewCos,
             GeometricVsShadingNormal,
             ShadingFrameLengths,
             ShadingFrameOrthogonality,

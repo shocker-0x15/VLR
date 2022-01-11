@@ -48,6 +48,7 @@ enum VLRDebugRenderingMode {
     VLRDebugRenderingMode_ShadingBitangent,
     VLRDebugRenderingMode_ShadingNormal,
     VLRDebugRenderingMode_TextureCoordinates,
+    VLRDebugRenderingMode_ShadingNormalViewCos,
     VLRDebugRenderingMode_GeometricVsShadingNormal,
     VLRDebugRenderingMode_ShadingFrameLengths,
     VLRDebugRenderingMode_ShadingFrameOrthogonality,

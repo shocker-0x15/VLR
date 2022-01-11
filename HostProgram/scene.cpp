@@ -201,7 +201,7 @@ void printParameterInfos(const vlr::QueryableRef& connectable) {
 
 #define ASSETS_DIR "resources/assets/"
 
-void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
+void createTempScene(const vlr::ContextRef &context, Shot* shot) {
     using namespace vlr;
 
     shot->scene = context->createScene();
@@ -236,10 +236,10 @@ void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
         vertices.push_back(Vertex{ Point3D(1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(1.0f, 0.0f) });
         vertices.push_back(Vertex{ Point3D(1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(0.0f, 0.0f) });
         // Light
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(0.5f,  2.9f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
-        vertices.push_back(Vertex{ Point3D(0.5f,  2.9f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
-        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f,  100.0f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f,  100.0f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f,  100.0f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f,  100.0f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
         // Light 2
         vertices.push_back(Vertex{ Point3D(0.5f, 0.01f,  1.0f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 1.0f) });
         vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f,  1.0f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 1.0f) });
@@ -350,6 +350,362 @@ void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
 
 
 
+    InternalNodeRef dragonNode;
+    construct(context, ASSETS_DIR "dragon/dragon.obj", false, false, &dragonNode,
+              [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
+
+        auto matA = context->createSurfaceMaterial("SpecularReflection");
+        matA->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 0.999f, 0.999f, 0.999f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.27579f, 0.940922f, 0.574879f }); // Aluminum
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 7.30257f, 6.33458f, 5.16694f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 0.237698f, 0.734847f, 1.37062f }); // Copper
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.44233f, 2.55751f, 2.23429f });
+        matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 0.12481f, 0.468228f, 1.44476f }); // Gold
+        matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.32107f, 2.23761f, 1.69196f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 2.91705f, 2.92092f, 2.53253f }); // Iron
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.06696f, 2.93804f, 2.7429f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.9566f, 1.82777f, 1.46089f }); // Lead
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.49593f, 3.38158f, 3.17737f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.99144f, 1.5186f, 1.00058f }); // Mercury
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 5.25161f, 4.6095f, 3.7646f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 2.32528f, 2.06722f, 1.81479f }); // Platinum
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 4.19238f, 3.67941f, 3.06551f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 0.157099f, 0.144013f, 0.134847f }); // Silver
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.82431f, 3.1451f, 2.27711f });
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 2.71866f, 2.50954f, 2.22767f }); // Titanium
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 3.79521f, 3.40035f, 3.00114f });
+
+        //auto matA = context->createSurfaceMaterial("SpecularScattering");
+        //matA->set("coeff", VLRImmediateSpectrum{ "Rec709(D65)", 0.999f, 0.999f, 0.999f });
+        //matA->set("eta ext", VLRImmediateSpectrum{ "Rec709(D65)", 1.00036f, 1.00021f, 1.00071f }); // Air
+        //matA->set("eta int", VLRImmediateSpectrum{ "Rec709(D65)", 2.41174f, 2.42343f, 2.44936f }); // Diamond
+        ////matA->set("eta int", VLRImmediateSpectrum{ "Rec709", 1.33161f, 1.33331f, 1.33799f }); // Water
+        ////matA->set("eta int", VLRImmediateSpectrum{ "Rec709", 1.51455f, 1.51816f, 1.52642f }); // Glass BK7
+
+        //auto matB = context->createSurfaceMaterial("DiffuseEmitter");
+        //matB->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 1, 1, 1 });
+
+        //auto matB = context->createSurfaceMaterial("Matte");
+        //matB->set("albedo", VLRImmediateSpectrum{ "Rec709(D65)", 0.05f, 0.3f, 0.05f });
+
+        //auto mat = context->createSurfaceMaterial("Multi");
+        //mat->set("0", matA);
+        //mat->set("1", matB);
+
+        return SurfaceMaterialAttributeTuple(matA, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+              });
+
+    InternalNodeRef dragonA = context->createInternalNode(
+        "dragonA",
+        context->createStaticTransform(scale(0.5f) * translate<float>(-1.4f, 0.0f, -1.0f)));
+    dragonA->addChild(dragonNode);
+
+    InternalNodeRef dragonB = context->createInternalNode(
+        "dragonB",
+        context->createStaticTransform(scale(0.5f) * translate<float>(0.0f, 0.0f, 0.0f)));
+    dragonB->addChild(dragonNode);
+
+    InternalNodeRef dragonC = context->createInternalNode(
+        "dragonC",
+        context->createStaticTransform(scale(0.5f) * translate<float>(1.4f, 0.0f, 1.0f)));
+    dragonC->addChild(dragonNode);
+
+    InternalNodeRef dragonGroup = context->createInternalNode(
+        "dragonGroup");
+    dragonGroup->addChild(dragonA);
+    dragonGroup->addChild(dragonB);
+    dragonGroup->addChild(dragonC);
+
+    InternalNodeRef dragonGroupA = context->createInternalNode(
+        "dragonGroupA");
+    dragonGroupA->addChild(dragonGroup);
+
+    InternalNodeRef dragonGroupB = context->createInternalNode(
+        "dragonGroupB",
+        context->createStaticTransform(rotateY<float>(30 * M_PI / 180) * translate<float>(0.0f, 0.75f, 0.0f)));
+    dragonGroupB->addChild(dragonGroup);
+
+    InternalNodeRef dragonGroupC = context->createInternalNode(
+        "dragonGroupC",
+        context->createStaticTransform(rotateY<float>(60 * M_PI / 180) * translate<float>(0.0f, 1.5f, 0.0f)));
+    dragonGroupC->addChild(dragonGroup);
+
+    shot->scene->addChild(dragonGroupA);
+    shot->scene->addChild(dragonGroupB);
+    shot->scene->addChild(dragonGroupC);
+
+    dragonNode->setTransform(context->createStaticTransform(
+        scale(2.0f) * rotateY<float>(M_PI / 2) * translate<float>(0.0f, 0.285684f, 0.0f)));
+
+
+
+    //Image2DRef imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr", "Light Source", "Rec709(D65)");
+    //auto nodeEnvTex = context->createShaderNode("EnvironmentTexture");
+    //nodeEnvTex->set("image", imgEnv);
+    //auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
+    //matEnv->set("emittance", nodeEnvTex->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+    //matEnv->set("scale", 0.1f);
+    //shot->environmentRotation = 0;
+    //shot->scene->setEnvironment(matEnv, shot->environmentRotation);
+
+    shot->renderTargetSizeX = 1920;
+    shot->renderTargetSizeY = 1080;
+
+    shot->brightnessCoeff = 1.0f;
+    shot->environmentRotation = 0.0f;
+
+    {
+        auto camera = context->createCamera("Perspective");
+
+        camera->set("position", Point3D(0, 1.5f, 6.0f));
+        camera->set("orientation", qRotateY<float>(M_PI));
+
+        camera->set("aspect", (float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->set("sensitivity", 1.0f);
+        camera->set("fovy", 40 * M_PI / 180);
+        camera->set("lens radius", 0.0f);
+        camera->set("op distance", 1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
+void createSingleSphereScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
+
+    shot->scene = context->createScene();
+
+    InternalNodeRef sphere;
+    construct(context, "resources/sphere/sphere.obj", false, false, &sphere,
+              [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
+        using namespace vlr;
+
+        auto mat = context->createSurfaceMaterial("Matte");
+        mat->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.75f, 0.75f, 0.75f });
+
+        return SurfaceMaterialAttributeTuple(mat, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+              });
+
+    InternalNodeRef sphereNode = context->createInternalNode(
+        "sphere A",
+        context->createStaticTransform(scale(2.5f)));
+    sphereNode->addChild(sphere);
+
+    shot->scene->addChild(sphereNode);
+
+
+
+    auto imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr", "Light Source", "Rec709(D65)");
+    auto nodeEnvTex = context->createShaderNode("EnvironmentTexture");
+    nodeEnvTex->set("image", imgEnv);
+    auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
+    matEnv->set("emittance", nodeEnvTex->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+    shot->scene->setEnvironment(matEnv, 0.0f);
+
+    shot->renderTargetSizeX = 1024;
+    shot->renderTargetSizeY = 1024;
+
+    shot->brightnessCoeff = 1.0f;
+    shot->environmentRotation = 0.0f;
+
+    {
+        auto camera = context->createCamera("Perspective");
+
+        camera->set("position", Point3D(0, 0.0f, 10.0f));
+        camera->set("orientation", qRotateY<float>(M_PI));
+
+        camera->set("aspect", (float)shot->renderTargetSizeX / shot->renderTargetSizeY);
+
+        camera->set("sensitivity", 1.0f);
+        camera->set("fovy", 40 * M_PI / 180);
+        camera->set("lens radius", 0.0f);
+        camera->set("op distance", 1.0f);
+
+        shot->viewpoints.push_back(camera);
+    }
+}
+
+void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
+    using namespace vlr;
+
+    shot->scene = context->createScene();
+
+    auto cornellBox = context->createTriangleMeshSurfaceNode("CornellBox");
+    {
+        std::vector<Vertex> vertices;
+
+        // Floor
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 5.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  0.0f,  1.5f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(5.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  0.0f, -1.5f), Normal3D(0,  1, 0), Vector3D(1,  0,  0), TexCoord2D(5.0f, 5.0f) });
+        // Back wall
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  0.0f, -1.5f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  3.0f, -1.5f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D(0,  0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Ceiling
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  3.0f, -1.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  3.0f,  1.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Left wall
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f,  1.5f), Normal3D(1,  0, 0), Vector3D(0,  0, -1), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  0.0f, -1.5f), Normal3D(1,  0, 0), Vector3D(0,  0, -1), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f, -1.5f), Normal3D(1,  0, 0), Vector3D(0,  0, -1), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-1.5f,  3.0f,  1.5f), Normal3D(1,  0, 0), Vector3D(0,  0, -1), TexCoord2D(0.0f, 0.0f) });
+        // Right wall
+        vertices.push_back(Vertex{ Point3D(1.5f,  0.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  0.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  3.0f,  1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(1.5f,  3.0f, -1.5f), Normal3D(-1,  0, 0), Vector3D(0,  0,  1), TexCoord2D(0.0f, 0.0f) });
+        // Light
+        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f,  2.9f, -0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f,  2.9f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f,  2.9f,  0.5f), Normal3D(0, -1, 0), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        // Light 2
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.01f,  1.0f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f,  1.0f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        vertices.push_back(Vertex{ Point3D(-0.5f, 0.01f, 1.25f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+        vertices.push_back(Vertex{ Point3D(0.5f, 0.01f, 1.25f), Normal3D(0,  1,  0), Vector3D(-1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+
+        //// Texture Coordinate Direction Check
+        //vertices.push_back(Vertex{ Point3D(-0.5f, 2.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 0.0f) });
+        //vertices.push_back(Vertex{ Point3D(-0.5f, 1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(0.0f, 1.0f) });
+        //vertices.push_back(Vertex{ Point3D(0.5f, 1.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 1.0f) });
+        //vertices.push_back(Vertex{ Point3D(0.5f, 2.0f, 0.0f), Normal3D(0, 0, 1), Vector3D(1,  0,  0), TexCoord2D(1.0f, 0.0f) });
+
+        cornellBox->setVertices(vertices.data(), vertices.size());
+
+        //// Texture Coordinate Direction Check
+        //{
+        //    //auto nodeAlbedo = context->createShaderNode("Image2DTexture");
+        //    //nodeAlbedo->set("image", loadImage2D(context, "resources/mountain_heightmap.png", "Reflectance", "Rec709(D65) sRGB Gamma"));
+        //    //nodeAlbedo->setTextureFilterMode(VLRTextureFilter_Nearest, VLRTextureFilter_Nearest);
+        //    auto matMatte = context->createSurfaceMaterial("Matte");
+        //    //matMatte->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+        //    matMatte->set("albedo", VLRImmediateSpectrum{ "Rec709(D65)", 0.8f, 0.8f, 0.8f });
+
+        //    auto nodeNormal = context->createShaderNode("Image2DTexture");
+        //    nodeNormal->set("image", loadImage2D(context, "resources/mountain_heightmap.jpg", "NA", "Rec709(D65)"));
+        //    nodeNormal->set("bump type", "Height Map");
+        //    nodeNormal->set("min filter", "Nearest");
+        //    nodeNormal->set("mag filter", "Nearest");
+        //    nodeNormal->set("wrap u", "Clamp to Edge");
+        //    nodeNormal->set("wrap v", "Clamp to Edge");
+
+        //    std::vector<uint32_t> matGroup = {
+        //        28, 29, 30, 28, 30, 31
+        //    };
+        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, nodeNormal->getPlug(VLRShaderNodePlugType_Normal3D, 0), ShaderNodePlug(), ShaderNodePlug());
+        //}
+
+        {
+            //auto matMatte = context->createSurfaceMaterial("Matte");
+            //matMatte->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.75f, 0.75f, 0.75f });
+            auto image = loadImage2D(context, "resources/checkerboard_line.png", "Reflectance", "Rec709(D65) sRGB Gamma");
+            auto nodeAlbedo = context->createShaderNode("Image2DTexture");
+            nodeAlbedo->set("image", image);
+            nodeAlbedo->set("filter", "Nearest");
+            auto matMatte = context->createSurfaceMaterial("Matte");
+            matMatte->set("albedo", nodeAlbedo->getPlug(VLRShaderNodePlugType_Spectrum, 0));
+
+            std::vector<uint32_t> matGroup = {
+                0, 1, 2, 0, 2, 3
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        }
+
+        {
+            auto matMatte = context->createSurfaceMaterial("Matte");
+            matMatte->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.75f, 0.75f, 0.75f });
+
+            std::vector<uint32_t> matGroup = {
+                4, 5, 6, 4, 6, 7,
+                8, 9, 10, 8, 10, 11,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        }
+
+        {
+            auto matMatte = context->createSurfaceMaterial("Matte");
+            matMatte->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.75f, 0.25f, 0.25f });
+
+            //float value[3] = { 0.06f, 0.02f, 0.02f };
+            //Float3TextureRef texEmittance = context->createConstantFloat3Texture(value);
+            //SurfaceMaterialRef matMatte = context->createSurfaceMaterial("DiffuseEmitter");
+
+            std::vector<uint32_t> matGroup = {
+                12, 13, 14, 12, 14, 15,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        }
+
+        {
+            auto matMatte = context->createSurfaceMaterial("Matte");
+            matMatte->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.25f, 0.25f, 0.75f });
+
+            std::vector<uint32_t> matGroup = {
+                16, 17, 18, 16, 18, 19,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matMatte, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        }
+
+        {
+            auto matLight = context->createSurfaceMaterial("DiffuseEmitter");
+            matLight->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 30.0f, 30.0f, 30.0f });
+
+            std::vector<uint32_t> matGroup = {
+                20, 21, 22, 20, 22, 23,
+            };
+            cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        }
+
+        //{
+        //    auto matLight = context->createSurfaceMaterial("DiffuseEmitter");
+        //    matLight->set("emittance", VLRImmediateSpectrum{ "Rec709(D65)", 100.0f, 100.0f, 100.0f });
+
+        //    std::vector<uint32_t> matGroup = {
+        //        24, 25, 26, 24, 26, 27,
+        //    };
+        //    cornellBox->addMaterialGroup(matGroup.data(), matGroup.size(), matLight, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
+        //}
+    }
+    shot->scene->addChild(cornellBox);
+
+
+
+    // ----------------------------------------------------------------
+    // Point Lights
+
+    //auto pointLights = context->createPointSurfaceNode("Point Lights");
+    //{
+    //    std::vector<Vertex> vertices;
+    //    vertices.push_back(Vertex{ Point3D(0.0f, 0.0f, 0.0f), Normal3D(0, -1, 0), Vector3D(1, 0, 0), TexCoord2D(0.0f, 0.0f) });
+    //    pointLights->setVertices(vertices.data(), vertices.size());
+
+    //    {
+    //        auto matLight = context->createSurfaceMaterial("PointEmitter");
+    //        matLight->set("intensity", VLRImmediateSpectrum{ "Rec709(D65)", 9.0f, 9.0f, 9.0f });
+
+    //        std::vector<uint32_t> matGroup = { 0 };
+    //        pointLights->addMaterialGroup(matGroup.data(), matGroup.size(), matLight);
+    //    }
+    //}
+    //InternalNodeRef pointLightNode = context->createInternalNode(
+    //    "Point Light Node",
+    //    context->createStaticTransform(translate<float>(0.0f, 2.9f, 0.0f)));
+    //pointLightNode->addChild(pointLights);
+    //shot->scene->addChild(pointLightNode);
+
+    // END: Point Lights
+    // ----------------------------------------------------------------
+
+
+
     InternalNodeRef sphereNode;
     construct(context, "resources/sphere/sphere.obj", false, false, &sphereNode, [](const vlr::ContextRef &context, const aiMaterial* aiMat, const std::string &pathPrefix) {
         using namespace vlr;
@@ -392,10 +748,32 @@ void createCornellBoxScene(const vlr::ContextRef &context, Shot* shot) {
         //mat->set("0", matA);
         //mat->set("1", matB);
 
+        //auto matA = context->createSurfaceMaterial("MicrofacetReflection");
+        //// Aluminum
+        //matA->set("eta", VLRImmediateSpectrum{ "Rec709(D65)", 1.27579f, 0.940922f, 0.574879f });
+        //matA->set("k", VLRImmediateSpectrum{ "Rec709(D65)", 7.30257f, 6.33458f, 5.16694f });
+        //matA->set("roughness", 0.2f);
+
+        //auto matA = context->createSurfaceMaterial("Matte");
+        //matA->set("albedo", VLRImmediateSpectrum{ "Rec709(D65) sRGB Gamma", 0.95f, 0.95f, 0.95f });
+
         return SurfaceMaterialAttributeTuple(matA, ShaderNodePlug(), ShaderNodePlug(), ShaderNodePlug());
     });
-    shot->scene->addChild(sphereNode);
-    sphereNode->setTransform(context->createStaticTransform(scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+
+    InternalNodeRef sphereA = context->createInternalNode(
+        "sphere A",
+        context->createStaticTransform(translate<float>(-0.7, 0.0f, -0.7) *
+                                       scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+    sphereA->addChild(sphereNode);
+
+    InternalNodeRef sphereB = context->createInternalNode(
+        "sphere B",
+        context->createStaticTransform(translate<float>(0.7, 0.0f, 0.7) *
+                                       scale(0.5f) * translate<float>(0.0f, 1.0f, 0.0f)));
+    sphereB->addChild(sphereNode);
+
+    shot->scene->addChild(sphereA);
+    shot->scene->addChild(sphereB);
 
 
 
@@ -1307,6 +1685,7 @@ void createSubstanceManScene(const vlr::ContextRef &context, Shot* shot) {
 
 
     auto imgEnv = loadImage2D(context, "resources/material_test/Chelsea_Stairs_3k.exr", "Light Source", "Rec709(D65)");
+    //auto imgEnv = loadImage2D(context, "resources/environments/WhiteOne.exr", "Light Source", "Rec709(D65)");
     auto nodeEnvTex = context->createShaderNode("EnvironmentTexture");
     nodeEnvTex->set("image", imgEnv);
     auto matEnv = context->createSurfaceMaterial("EnvironmentEmitter");
@@ -1841,7 +2220,8 @@ void createAmazonBistroExteriorScene(const vlr::ContextRef &context, Shot* shot)
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", false, true, &modelNode, bistroMaterialFunc);
+    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", false, true,
+              &modelNode, grayMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 
@@ -2046,7 +2426,7 @@ void createAmazonBistroInteriorScene(const vlr::ContextRef &context, Shot* shot)
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior_corrected.obj", false, true, &modelNode, bistroMaterialFunc);
+    construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 
@@ -2247,6 +2627,8 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 }
 
 void createScene(const vlr::ContextRef &context, Shot* shot) {
+    //createTempScene(context, shot);
+    //createSingleSphereScene(context, shot);
     //createCornellBoxScene(context, shot);
     //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);

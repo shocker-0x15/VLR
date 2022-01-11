@@ -4,7 +4,8 @@ namespace vlr {
     using namespace shared;
 
     // for debug rendering
-    CUDA_DEVICE_FUNCTION TripletSpectrum debugRenderingAttributeToSpectrum(const SurfacePoint &surfPt, DebugRenderingAttribute attribute) {
+    CUDA_DEVICE_FUNCTION TripletSpectrum debugRenderingAttributeToSpectrum(
+        const SurfacePoint &surfPt, const Vector3D &dirOut, DebugRenderingAttribute attribute) {
         TripletSpectrum value;
 
         switch (attribute) {
@@ -38,14 +39,26 @@ namespace vlr {
                                           surfPt.texCoord.v - ::vlr::floor(surfPt.texCoord.v),
                                           0.0f);
             break;
+        case DebugRenderingAttribute::ShadingNormalViewCos: {
+            float cos = dot(normalize(dirOut), normalize(surfPt.shadingFrame.z));
+            bool opposite = cos < 0;
+            cos = std::fabs(cos);
+            constexpr float coeff = 5.0f;
+            float sValue = 1 - cos;
+            sValue = clamp(sValue, 0.0f, 1.0f);
+            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
+                                          sValue, opposite ? 0 : sValue, opposite ? 0 : sValue);
+            break;
+        }
         case DebugRenderingAttribute::GeometricVsShadingNormal: {
             float sim = dot(surfPt.geometricNormal, surfPt.shadingFrame.z);
             bool opposite = sim < 0.0f;
             sim = std::fabs(sim);
-            const float coeff = 5.0f;
+            constexpr float coeff = 5.0f;
             float sValue = 0.5f + coeff * (sim - 1);
             sValue = clamp(sValue, 0.0f, 1.0f);
-            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65, sValue, opposite ? 0 : sValue, opposite ? 0 : sValue);
+            value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
+                                          sValue, opposite ? 0 : sValue, opposite ? 0 : sValue);
             break;
         }
         case DebugRenderingAttribute::ShadingFrameLengths:
@@ -116,7 +129,8 @@ namespace vlr {
             value = bsdf.getBaseColor() * whitePoint.evaluate(wls);
         }
         else {
-            value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
+            value = debugRenderingAttributeToSpectrum(
+                surfPt, -asVector3D(optixGetWorldRayDirection()), plp.debugRenderingAttribute).evaluate(wls);
         }
 
         DebugPayloadSignature::set(nullptr, nullptr, &value);
@@ -163,7 +177,8 @@ namespace vlr {
         if (plp.debugRenderingAttribute == DebugRenderingAttribute::BaseColor)
             value = SampledSpectrum::Zero();
         else
-            value = debugRenderingAttributeToSpectrum(surfPt, plp.debugRenderingAttribute).evaluate(wls);
+            value = debugRenderingAttributeToSpectrum(
+                surfPt, -direction, plp.debugRenderingAttribute).evaluate(wls);
 
         DebugPayloadSignature::set(nullptr, nullptr, &value);
     }
