@@ -1,6 +1,6 @@
 # VLR: 
 
-![VLR](README_TOP.png)\
+![VLR](README_TOP.jpg)\
 IBL image: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 
 VLRはNVIDIA OptiX 7を使用したGPUモンテカルロレイトレーシングレンダラーです。\

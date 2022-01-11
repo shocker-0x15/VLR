@@ -1,6 +1,8 @@
 ﻿#include "../shared/light_transport_common.h"
 
 /*
+Light Vertex Cache Bidirectional Path Tracing / LVC-BPT
+
 Reference
 Progressive Light Transport Simulation on the GPU: Survey and Improvements
 https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
@@ -60,6 +62,7 @@ namespace vlr {
 
 
 
+    // TODO: take probability from stochastic alpha into account when computing MIS weights?
     CUDA_DEVICE_KERNEL void RT_AH_NAME(lvcbptAnyHitWithAlpha)() {
         LTReadOnlyPayload* roPayload;
         LTReadWritePayload* rwPayload;
