@@ -650,14 +650,6 @@ namespace vlr::shared {
             vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
         }
     };
-    static_assert( // Size consistency check between host and device side
-#if SPECTRAL_UPSAMPLING_METHOD == MENG_SPECTRAL_UPSAMPLING
-                  sizeof(PipelineLaunchParameters) == 616 &&
-#elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
-                  sizeof(PipelineLaunchParameters) == 624 &&
-#endif
-                  alignof(PipelineLaunchParameters) == 8,
-                  "Unexpected sizeof(PipelineLaunchParameters) or alignof(PipelineLaunchParameters).");
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
     RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;

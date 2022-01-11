@@ -19,7 +19,7 @@ namespace vlr {
         float u, float v,
         SurfacePoint* surfPt) {
         const Instance &inst = plp.instBuffer[instIndex];
-        const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
+        //const GeometryInstance &geomInst = plp.geomInstBuffer[geomInstIndex];
 
         float posPhi = u;
         float theta = v;
