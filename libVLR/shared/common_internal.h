@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#if defined(__CUDACC__)
+#if defined(__CUDA_ARCH__)
 #   define VLR_Device
 
 #   define vlrDevPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
