@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HostProgram", "HostProgram\
 		{776A3F3D-83C8-4421-8CF4-13D6FF36C808} = {776A3F3D-83C8-4421-8CF4-13D6FF36C808}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Init", "Init\Init.vcxproj", "{31BE4D3E-318B-4133-9663-0A674D2422B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -24,6 +26,10 @@ Global
 		{6430930F-4932-457F-AC9C-AED74FACC5C7}.Debug|x64.Build.0 = Debug|x64
 		{6430930F-4932-457F-AC9C-AED74FACC5C7}.Release|x64.ActiveCfg = Release|x64
 		{6430930F-4932-457F-AC9C-AED74FACC5C7}.Release|x64.Build.0 = Release|x64
+		{31BE4D3E-318B-4133-9663-0A674D2422B4}.Debug|x64.ActiveCfg = Debug|x64
+		{31BE4D3E-318B-4133-9663-0A674D2422B4}.Debug|x64.Build.0 = Debug|x64
+		{31BE4D3E-318B-4133-9663-0A674D2422B4}.Release|x64.ActiveCfg = Release|x64
+		{31BE4D3E-318B-4133-9663-0A674D2422B4}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
