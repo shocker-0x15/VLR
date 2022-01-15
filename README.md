@@ -127,17 +127,15 @@ context->render(cuStream, camera, enableDenoiser, 1, firstFrame, &numAccumFrames
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (21H2) & Visual Studio 2019 (16.11.8)
+* Windows 10 (21H2) & Visual Studio 2022 (17.0.5)
 * Core i9-9900K, 32GB, RTX 3080 10GB
-* NVIDIA Driver 497.09
+* NVIDIA Driver 511.23
 
 動作させるにあたっては以下のライブラリが必要です。\
 It requires the following libraries.
 
 * libVLR
-    * CUDA 11.3 \
-    ※CUDA 11.3.0にはバグがあり、内部で使用している[OptiX Utility](https://github.com/shocker-0x15/OptiX_Utility)と一緒に使用することができません。Update 1以降が必要です。\
-    \* CUDA 11.3.0 has a bug which prevents to use it with [OptiX Utility](https://github.com/shocker-0x15/OptiX_Utility) internally used. You need to use Update 1 or later.
+    * CUDA 11.6
     * OptiX 7.4.0 (requires Maxwell or later generation NVIDIA GPU)
 * Host Program
     * OpenEXR 3.1
@@ -180,4 +178,4 @@ IBL image 1: [Direct HDR Capture of the Sun and Sky](https://vgl.ict.usc.edu/Dat
 IBL image 2: [sIBL Archive](http://www.hdrlabs.com/sibl/archive.html)
 
 ----
-2021 [@Shocker_0x15](https://twitter.com/Shocker_0x15)
+2022 [@Shocker_0x15](https://twitter.com/Shocker_0x15)
