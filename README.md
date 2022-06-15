@@ -127,9 +127,9 @@ context->render(cuStream, camera, enableDenoiser, 1, firstFrame, &numAccumFrames
 現状以下の環境で動作を確認しています。\
 I've confirmed that the program runs correctly on the following environment.
 
-* Windows 10 (21H2) & Visual Studio 2022 (17.0.5)
+* Windows 10 (21H2) & Visual Studio 2022 (17.2.4)
 * Core i9-9900K, 32GB, RTX 3080 10GB
-* NVIDIA Driver 511.23
+* NVIDIA Driver 516.40 (Note that versions around 510-512 had several OptiX issues.)
 
 動作させるにあたっては以下のライブラリが必要です。\
 It requires the following libraries.

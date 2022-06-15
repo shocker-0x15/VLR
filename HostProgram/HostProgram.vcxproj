@@ -65,7 +65,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc142-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc143-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
@@ -89,7 +89,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc142-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc143-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -158,9 +158,6 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\assimp-vc142-mt.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="..\..\..\..\..\local\bin\Imath-3_1.dll">
       <FileType>Document</FileType>
     </CopyFileToFolders>
@@ -173,6 +170,11 @@
       <FileType>Document</FileType>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\..\..\..\..\local\bin\IlmThread-3_1.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\..\..\..\..\local\bin\assimp-vc143-mt.dll">
       <FileType>Document</FileType>
     </CopyFileToFolders>
   </ItemGroup>
