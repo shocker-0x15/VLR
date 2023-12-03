@@ -274,7 +274,7 @@ namespace vlr {
     CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate<RealType, NumSpectralSamples> min(const SampledSpectrumTemplate<RealType, NumSpectralSamples> &value, RealType minValue) {
         SampledSpectrumTemplate<RealType, NumSpectralSamples> ret;
         for (int i = 0; i < NumSpectralSamples; ++i)
-            ret[i] = std::fmin(value[0], minValue);
+            ret[i] = std::fmin(value[i], minValue);
         return ret;
     }
 
@@ -282,7 +282,7 @@ namespace vlr {
     CUDA_DEVICE_FUNCTION constexpr SampledSpectrumTemplate<RealType, NumSpectralSamples> max(const SampledSpectrumTemplate<RealType, NumSpectralSamples> &value, RealType maxValue) {
         SampledSpectrumTemplate<RealType, NumSpectralSamples> ret;
         for (int i = 0; i < NumSpectralSamples; ++i)
-            ret[i] = std::fmax(value[0], maxValue);
+            ret[i] = std::fmax(value[i], maxValue);
         return ret;
     }
 

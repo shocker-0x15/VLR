@@ -908,7 +908,7 @@ namespace vlr {
         }
 
         m_ias = m_optixScene.createInstanceAccelerationStructure();
-        m_ias.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false, false);
+        m_ias.setConfiguration(optixu::ASTradeoff::PreferFastTrace);
     }
 
     Scene::~Scene() {
@@ -1046,7 +1046,7 @@ namespace vlr {
         if (isNewGeomGroup) {
             GeometryAS &gas = m_geometryASes[shGeomGroup];
             gas.optixGas = m_optixScene.createGeometryAccelerationStructure();
-            gas.optixGas.setConfiguration(optixu::ASTradeoff::PreferFastTrace, false, false, false);
+            gas.optixGas.setConfiguration(optixu::ASTradeoff::PreferFastTrace);
             gas.optixGas.setNumMaterialSets(1);
             gas.optixGas.setNumRayTypes(0, shared::MaxNumRayTypes);
         }

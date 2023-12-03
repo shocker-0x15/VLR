@@ -124,16 +124,20 @@ namespace vlr {
         m_optix.bsdfProcedureSetBuffer.initialize(m_cuContext, 64);
         m_optix.edfProcedureSetBuffer.initialize(m_cuContext, 64);
         m_optix.idfProcedureSetBuffer.initialize(m_cuContext, 8);
-        m_optix.launchParams.nodeProcedureSetBuffer = m_optix.nodeProcedureSetBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.smallNodeDescriptorBuffer = m_optix.smallNodeDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.nodeProcedureSetBuffer =
+            m_optix.nodeProcedureSetBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.smallNodeDescriptorBuffer =
+            m_optix.smallNodeDescriptorBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.mediumNodeDescriptorBuffer = m_optix.mediumNodeDescriptorBuffer.optixBuffer.getDevicePointer();
-        m_optix.launchParams.largeNodeDescriptorBuffer = m_optix.largeNodeDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.largeNodeDescriptorBuffer =
+            m_optix.largeNodeDescriptorBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.bsdfProcedureSetBuffer = m_optix.bsdfProcedureSetBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.edfProcedureSetBuffer = m_optix.edfProcedureSetBuffer.optixBuffer.getDevicePointer();
         m_optix.launchParams.idfProcedureSetBuffer = m_optix.idfProcedureSetBuffer.optixBuffer.getDevicePointer();
 
         m_optix.surfaceMaterialDescriptorBuffer.initialize(m_cuContext, 8192);
-        m_optix.launchParams.materialDescriptorBuffer = m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
+        m_optix.launchParams.materialDescriptorBuffer = 
+            m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
 
         m_optix.context = optixu::Context::create(cuContext/*, 4, true*/);
 
@@ -150,18 +154,15 @@ namespace vlr {
                          shared::ShadowPayloadSignature::numDwords),
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
-                false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                                 OPTIX_EXCEPTION_FLAG_DEBUG,
-                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_TRACE_DEPTH, OPTIX_EXCEPTION_FLAG_NONE),
                 OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
             p.pipeline.setNumMissRayTypes(shared::PTRayType::NumTypes);
 
             p.modules.resize(NumOptiXModules);
             p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/path_tracing.ptx"),
+                readTxtFile(exeDir / "libvlr/ptxes/path_tracing.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
@@ -219,18 +220,15 @@ namespace vlr {
                          shared::ShadowPayloadSignature::numDwords),
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
-                false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                                 OPTIX_EXCEPTION_FLAG_DEBUG,
-                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_TRACE_DEPTH, OPTIX_EXCEPTION_FLAG_NONE),
                 OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
             p.pipeline.setNumMissRayTypes(shared::LTRayType::NumTypes);
 
             p.modules.resize(NumOptiXModules);
             p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/light_tracing.ptx"),
+                readTxtFile(exeDir / "libvlr/ptxes/light_tracing.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
@@ -291,18 +289,15 @@ namespace vlr {
                          }),
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
-                false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                                 OPTIX_EXCEPTION_FLAG_DEBUG,
-                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_TRACE_DEPTH, OPTIX_EXCEPTION_FLAG_NONE),
                 OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
             p.pipeline.setNumMissRayTypes(shared::LVCBPTRayType::NumTypes);
 
             p.modules.resize(NumOptiXModules);
             p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/lvc_bpt.ptx"),
+                readTxtFile(exeDir / "libvlr/ptxes/lvc_bpt.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
@@ -373,18 +368,15 @@ namespace vlr {
                 shared::AuxBufGenPayloadSignature::numDwords,
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
-                false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                                 OPTIX_EXCEPTION_FLAG_DEBUG,
-                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_TRACE_DEPTH, OPTIX_EXCEPTION_FLAG_NONE),
                 OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
             p.pipeline.setNumMissRayTypes(shared::AuxBufGenRayType::NumTypes);
 
             p.modules.resize(NumOptiXModules);
             p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/aux_buffer_generator.ptx"),
+                readTxtFile(exeDir / "libvlr/ptxes/aux_buffer_generator.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
@@ -431,18 +423,15 @@ namespace vlr {
                 shared::DebugPayloadSignature::numDwords,
                 static_cast<uint32_t>(optixu::calcSumDwords<float2>()),
                 "plp", sizeof(shared::PipelineLaunchParameters),
-                false,
                 OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
-                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
-                                 OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
-                                 OPTIX_EXCEPTION_FLAG_DEBUG,
-                                 OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW),
+                OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW |
+                VLR_DEBUG_SELECT(OPTIX_EXCEPTION_FLAG_TRACE_DEPTH, OPTIX_EXCEPTION_FLAG_NONE),
                 OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE);
             p.pipeline.setNumMissRayTypes(shared::DebugRayType::NumTypes);
 
             p.modules.resize(NumOptiXModules);
             p.modules[OptiXModule_LightTransport] = p.pipeline.createModuleFromPTXString(
-                readTxtFile(exeDir / "ptxes/debug_rendering.ptx"),
+                readTxtFile(exeDir / "libvlr/ptxes/debug_rendering.ptx"),
                 OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT,
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_OPTIMIZATION_LEVEL_0, OPTIX_COMPILE_OPTIMIZATION_LEVEL_3),
                 VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
@@ -599,8 +588,10 @@ namespace vlr {
         m_optix.UpsampledSpectrum_spectrum_data_points.initialize(
             m_cuContext, g_bufferType,
             UpsampledSpectrum::spectrum_data_points, NumSpectrumDataPoints);
-        m_optix.launchParams.UpsampledSpectrum_spectrum_grid = m_optix.UpsampledSpectrum_spectrum_grid.getDevicePointer();
-        m_optix.launchParams.UpsampledSpectrum_spectrum_data_points = m_optix.UpsampledSpectrum_spectrum_data_points.getDevicePointer();
+        m_optix.launchParams.UpsampledSpectrum_spectrum_grid =
+            m_optix.UpsampledSpectrum_spectrum_grid.getDevicePointer();
+        m_optix.launchParams.UpsampledSpectrum_spectrum_data_points = 
+            m_optix.UpsampledSpectrum_spectrum_data_points.getDevicePointer();
 #elif SPECTRAL_UPSAMPLING_METHOD == JAKOB_SPECTRAL_UPSAMPLING
         m_optix.UpsampledSpectrum_maxBrightnesses.initialize(
             m_cuContext, g_bufferType,
@@ -611,9 +602,12 @@ namespace vlr {
         m_optix.UpsampledSpectrum_coefficients_sRGB_E.initialize(
             m_cuContext, g_bufferType,
             UpsampledSpectrum::coefficients_sRGB_E, 3 * pow3(UpsampledSpectrum::kTableResolution));
-        m_optix.launchParams.UpsampledSpectrum_maxBrightnesses = m_optix.UpsampledSpectrum_maxBrightnesses.getDevicePointer();
-        m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_D65 = m_optix.UpsampledSpectrum_coefficients_sRGB_D65.getDevicePointer();
-        m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_E = m_optix.UpsampledSpectrum_coefficients_sRGB_E.getDevicePointer();
+        m_optix.launchParams.UpsampledSpectrum_maxBrightnesses = 
+            m_optix.UpsampledSpectrum_maxBrightnesses.getDevicePointer();
+        m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_D65 = 
+            m_optix.UpsampledSpectrum_coefficients_sRGB_D65.getDevicePointer();
+        m_optix.launchParams.UpsampledSpectrum_coefficients_sRGB_E = 
+            m_optix.UpsampledSpectrum_coefficients_sRGB_E.getDevicePointer();
 #endif
 
         CUDADRV_CHECK(cuMemAlloc(&m_optix.launchParamsOnDevice, sizeof(shared::PipelineLaunchParameters)));
@@ -638,13 +632,13 @@ namespace vlr {
 
 
         m_optix.denoiser = m_optix.context.createDenoiser(
-            OPTIX_DENOISER_MODEL_KIND_HDR, true, true);
-        CUDADRV_CHECK(cuMemAlloc(&m_optix.hdrIntensity, sizeof(float)));
+            OPTIX_DENOISER_MODEL_KIND_HDR, optixu::GuideAlbedo::Yes, optixu::GuideNormal::Yes, OPTIX_DENOISER_ALPHA_MODE_COPY);
 
 
 
         {
-            CUDADRV_CHECK(cuModuleLoad(&m_cudaSetupSceneModule, (exeDir / "ptxes/setup_scene.ptx").string().c_str()));
+            CUDADRV_CHECK(cuModuleLoad(
+                &m_cudaSetupSceneModule, (exeDir / "libvlr/ptxes/setup_scene.ptx").string().c_str()));
 
             m_computeInstanceAABBs.set(m_cudaSetupSceneModule, "computeInstanceAABBs", cudau::dim3(32), 0);
             m_finalizeInstanceAABBs.set(m_cudaSetupSceneModule, "finalizeInstanceAABBs", cudau::dim3(32), 0);
@@ -653,14 +647,18 @@ namespace vlr {
         }
         
         {
-            CUDADRV_CHECK(cuModuleLoad(&m_cudaPostProcessModule, (exeDir / "ptxes/post_process.ptx").string().c_str()));
+            CUDADRV_CHECK(cuModuleLoad(
+                &m_cudaPostProcessModule, (exeDir / "libvlr/ptxes/post_process.ptx").string().c_str()));
 
             size_t symbolSize;
-            CUDADRV_CHECK(cuModuleGetGlobal(&m_cudaPostProcessModuleLaunchParamsPtr, &symbolSize,
-                                            m_cudaPostProcessModule, "plp"));
+            CUDADRV_CHECK(cuModuleGetGlobal(
+                &m_cudaPostProcessModuleLaunchParamsPtr, &symbolSize,
+                m_cudaPostProcessModule, "plp"));
 
-            m_resetAtomicAccumBuffer.set(m_cudaPostProcessModule, "resetAtomicAccumBuffer", cudau::dim3(8, 8), 0);
-            m_accumulateFromAtomicAccumBuffer.set(m_cudaPostProcessModule, "accumulateFromAtomicAccumBuffer", cudau::dim3(8, 8), 0);
+            m_resetAtomicAccumBuffer.set(
+                m_cudaPostProcessModule, "resetAtomicAccumBuffer", cudau::dim3(8, 8), 0);
+            m_accumulateFromAtomicAccumBuffer.set(
+                m_cudaPostProcessModule, "accumulateFromAtomicAccumBuffer", cudau::dim3(8, 8), 0);
             m_copyBuffers.set(m_cudaPostProcessModule, "copyBuffers", cudau::dim3(32), 0);
             m_convertToRGB.set(m_cudaPostProcessModule, "convertToRGB", cudau::dim3(32), 0);
         }
@@ -678,7 +676,7 @@ namespace vlr {
         {
             OptiX::PathTracing &p = m_optix.pathTracing;
 
-            p.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.link(2);
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
@@ -695,7 +693,7 @@ namespace vlr {
         {
             OptiX::LightTracing &p = m_optix.lightTracing;
 
-            p.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.link(2);
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
@@ -712,7 +710,7 @@ namespace vlr {
         {
             OptiX::LVCBPT &p = m_optix.lvcbpt;
 
-            p.pipeline.link(2, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.link(2);
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
@@ -729,7 +727,7 @@ namespace vlr {
         {
             OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
 
-            p.pipeline.link(1, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.link(1);
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
@@ -746,7 +744,7 @@ namespace vlr {
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
 
-            p.pipeline.link(1, VLR_DEBUG_SELECT(OPTIX_COMPILE_DEBUG_LEVEL_FULL, OPTIX_COMPILE_DEBUG_LEVEL_NONE));
+            p.pipeline.link(1);
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
             for (int i = 0; i < p.callablePrograms.size(); ++i)
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
@@ -829,7 +827,7 @@ namespace vlr {
 
 
 
-        cuMemFree(m_optix.hdrIntensity);
+        cuMemFree(m_optix.denoiserNormalizer);
         m_optix.denoiser.destroy();
 
 
@@ -1025,7 +1023,7 @@ namespace vlr {
             m_optix.outputBuffer.initializeFromGLTexture2D(
                 m_cuContext, glTexID,
                 cudau::ArraySurface::Enable, cudau::ArrayTextureGather::Disable);
-            m_optix.outputBufferHolder.initialize(&m_optix.outputBuffer);
+            m_optix.outputBufferHolder.initialize({ &m_optix.outputBuffer });
             m_optix.useGLTexture = true;
         }
         else {
@@ -1079,20 +1077,20 @@ namespace vlr {
             m_optix.denoiserScratchBuffer.finalize();
         if (m_optix.denoiserStateBuffer.isInitialized())
             m_optix.denoiserStateBuffer.finalize();
+        if (m_optix.denoiserNormalizer)
+            CUDADRV_CHECK(cuMemFree(m_optix.denoiserNormalizer));
         
-        size_t stateBufferSize;
-        size_t scratchBufferSize;
-        size_t scratchBufferSizeForComputeIntensity;
+        optixu::DenoiserSizes denoiserSizes;
         uint32_t numTasks;
         m_optix.denoiser.prepare(
             m_width, m_height, 0, 0,
-            &stateBufferSize, &scratchBufferSize, &scratchBufferSizeForComputeIntensity,
-            &numTasks);
+            &denoiserSizes, &numTasks);
+        CUDADRV_CHECK(cuMemAlloc(&m_optix.denoiserNormalizer, denoiserSizes.normalizerSize));
         m_optix.denoiserStateBuffer.initialize(
-            m_cuContext, g_bufferType, static_cast<uint32_t>(stateBufferSize), 1);
+            m_cuContext, g_bufferType, static_cast<uint32_t>(denoiserSizes.stateSize), 1);
         m_optix.denoiserScratchBuffer.initialize(
             m_cuContext, g_bufferType,
-            static_cast<uint32_t>(std::max(scratchBufferSize, scratchBufferSizeForComputeIntensity)), 1);
+            static_cast<uint32_t>(std::max(denoiserSizes.scratchSize, denoiserSizes.scratchSizeForComputeNormalizer)), 1);
         m_optix.denoiserTasks.resize(numTasks);
         m_optix.accumAlbedoBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
         m_optix.accumNormalBuffer.initialize(m_cuContext, g_bufferType, m_width * m_height);
@@ -1288,8 +1286,7 @@ namespace vlr {
         if (firstFrame) {
             m_optix.launchParams.imageSize = imageSize;
             camera->setup(&m_optix.launchParams);
-            if (!m_optix.denoiser.stateIsReady())
-                m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
+            m_optix.denoiser.setupState(stream, m_optix.denoiserStateBuffer, m_optix.denoiserScratchBuffer);
             m_numAccumFrames = 0;
         }
 
@@ -1306,16 +1303,18 @@ namespace vlr {
             m_optix.launchParams.probePixY = m_probePixY;
 
             if (m_renderer == VLRRenderer_PathTracing) {
-                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
-                                                sizeof(m_optix.launchParams), stream));
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(
+                    m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                    sizeof(m_optix.launchParams), stream));
 
                 m_optix.pathTracing.pipeline.launch(
                     stream, m_optix.launchParamsOnDevice,
                     imageSize.x, imageSize.y, 1);
             }
             else if (m_renderer == VLRRenderer_LightTracing) {
-                CUDADRV_CHECK(cuMemcpyHtoDAsync(m_optix.launchParamsOnDevice, &m_optix.launchParams,
-                                                sizeof(m_optix.launchParams), stream));
+                CUDADRV_CHECK(cuMemcpyHtoDAsync(
+                    m_optix.launchParamsOnDevice, &m_optix.launchParams,
+                    sizeof(m_optix.launchParams), stream));
 
                 m_optix.auxBufferGenerator.pipeline.launch(
                     stream, m_optix.launchParamsOnDevice,
@@ -1405,32 +1404,38 @@ namespace vlr {
             camera->get("orientation", &camOri);
             Quaternion invCamOri = conjugate(camOri);
 
-            m_copyBuffers(stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
-                          m_optix.accumBuffer.getBlockBuffer2D(),
-                          m_optix.accumAlbedoBuffer.getDevicePointer(),
-                          m_optix.accumNormalBuffer.getDevicePointer(),
-                          invCamOri,
-                          imageSize, imageStrideInPixels, m_numAccumFrames,
-                          m_optix.linearColorBuffer.getDevicePointer(),
-                          m_optix.linearAlbedoBuffer.getDevicePointer(),
-                          m_optix.linearNormalBuffer.getDevicePointer());
+            m_copyBuffers(
+                stream, m_copyBuffers.calcGridDim(imageSize.x, imageSize.y),
+                m_optix.accumBuffer.getBlockBuffer2D(),
+                m_optix.accumAlbedoBuffer.getDevicePointer(),
+                m_optix.accumNormalBuffer.getDevicePointer(),
+                invCamOri,
+                imageSize, imageStrideInPixels, m_numAccumFrames,
+                m_optix.linearColorBuffer.getDevicePointer(),
+                m_optix.linearAlbedoBuffer.getDevicePointer(),
+                m_optix.linearNormalBuffer.getDevicePointer());
 
             if (denoise) {
-                m_optix.denoiser.computeIntensity(
+                m_optix.denoiser.computeNormalizer(
                     stream,
                     m_optix.linearColorBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
-                    m_optix.denoiserScratchBuffer, m_optix.hdrIntensity);
+                    m_optix.denoiserScratchBuffer, m_optix.denoiserNormalizer);
+
+                optixu::DenoiserInputBuffers buffers = {};
+                buffers.noisyBeauty = m_optix.linearColorBuffer;
+                buffers.beautyFormat = OPTIX_PIXEL_FORMAT_FLOAT4;
+                buffers.albedo = m_optix.linearAlbedoBuffer;
+                buffers.albedoFormat = OPTIX_PIXEL_FORMAT_FLOAT4;
+                buffers.normal = m_optix.linearNormalBuffer;
+                buffers.normalFormat = OPTIX_PIXEL_FORMAT_FLOAT4;
 
                 for (int i = 0; i < m_optix.denoiserTasks.size(); ++i)
                     m_optix.denoiser.invoke(
-                        stream,
-                        false, m_optix.hdrIntensity, 0.0f,
-                        m_optix.linearColorBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
-                        m_optix.linearAlbedoBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
-                        m_optix.linearNormalBuffer, OPTIX_PIXEL_FORMAT_FLOAT4,
-                        optixu::BufferView(), OPTIX_PIXEL_FORMAT_FLOAT2,
-                        optixu::BufferView(), m_optix.linearDenoisedColorBuffer,
-                        m_optix.denoiserTasks[i]);
+                        stream, m_optix.denoiserTasks[i], buffers,
+                        optixu::IsFirstFrame::False,
+                        m_optix.denoiserNormalizer, 0.0f,
+                        m_optix.linearDenoisedColorBuffer, nullptr,
+                        optixu::BufferView());
             }
         }
 
@@ -1442,16 +1447,17 @@ namespace vlr {
         else {
             renderTarget = m_optix.outputBuffer.getSurfaceObject(0);
         }
-        m_convertToRGB(stream, m_convertToRGB.calcGridDim(imageSize.x, imageSize.y),
-                       m_optix.accumBuffer.getBlockBuffer2D(),
-                       m_optix.linearDenoisedColorBuffer.getDevicePointer(),
-                       m_optix.linearAlbedoBuffer.getDevicePointer(),
-                       m_optix.linearNormalBuffer.getDevicePointer(),
-                       denoise, debugRender, debugAttr,
-                       imageSize, imageStrideInPixels, m_numAccumFrames,
-                       renderTarget);
+        m_convertToRGB(
+            stream, m_convertToRGB.calcGridDim(imageSize.x, imageSize.y),
+            m_optix.accumBuffer.getBlockBuffer2D(),
+            m_optix.linearDenoisedColorBuffer.getDevicePointer(),
+            m_optix.linearAlbedoBuffer.getDevicePointer(),
+            m_optix.linearNormalBuffer.getDevicePointer(),
+            denoise, debugRender, debugAttr,
+            imageSize, imageStrideInPixels, m_numAccumFrames,
+            renderTarget);
         if (m_optix.useGLTexture)
-            m_optix.outputBufferHolder.endCUDAAccess(stream);
+            m_optix.outputBufferHolder.endCUDAAccess(stream, true);
     }
 
 
@@ -1465,7 +1471,7 @@ namespace vlr {
         // Path Tracing
         {
             OptiX::PathTracing &p = m_optix.pathTracing;
-            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+            optixu::CallableProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
                 optixu::Module(), nullptr);
             p.callablePrograms.push_back(program);
@@ -1474,7 +1480,7 @@ namespace vlr {
         // Light Tracing
         {
             OptiX::LightTracing &p = m_optix.lightTracing;
-            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+            optixu::CallableProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
                 optixu::Module(), nullptr);
             p.callablePrograms.push_back(program);
@@ -1483,7 +1489,7 @@ namespace vlr {
         // LVC-BPT
         {
             OptiX::LVCBPT &p = m_optix.lvcbpt;
-            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+            optixu::CallableProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
                 optixu::Module(), nullptr);
             p.callablePrograms.push_back(program);
@@ -1492,7 +1498,7 @@ namespace vlr {
         // Aux Buffer Generator
         {
             OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
-            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+            optixu::CallableProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
                 optixu::Module(), nullptr);
             p.callablePrograms.push_back(program);
@@ -1501,7 +1507,7 @@ namespace vlr {
         // Debug Rendering
         {
             OptiX::DebugRendering &p = m_optix.debugRendering;
-            optixu::ProgramGroup program = p.pipeline.createCallableProgramGroup(
+            optixu::CallableProgramGroup program = p.pipeline.createCallableProgramGroup(
                 p.modules[mdl], dcName,
                 optixu::Module(), nullptr);
             p.callablePrograms.push_back(program);

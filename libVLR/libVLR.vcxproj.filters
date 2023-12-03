@@ -21,20 +21,17 @@
     <ClCompile Include="utils\cuda_util.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="ext\gl3w.c">
-      <Filter>ext\gl3w</Filter>
-    </ClCompile>
     <ClCompile Include="vlr.cpp">
       <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\prebuilt\src\gl3w.c">
+      <Filter>ext\gl3w</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scene.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="context.h" />
-    <ClInclude Include="ext\include\half.hpp">
-      <Filter>ext</Filter>
-    </ClInclude>
     <ClInclude Include="shader_nodes.h" />
     <ClInclude Include="include\vlr\public_types.h">
       <Filter>API</Filter>
@@ -81,15 +78,6 @@
     <ClInclude Include="shared\random_distributions.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="ext\include\GL\glcorearb.h">
-      <Filter>ext\gl3w</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\GL\gl3w.h">
-      <Filter>ext\gl3w</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\KHR\khrplatform.h">
-      <Filter>ext\gl3w</Filter>
-    </ClInclude>
     <ClInclude Include="include\vlr\vlr.h">
       <Filter>API</Filter>
     </ClInclude>
@@ -104,6 +92,15 @@
     </ClInclude>
     <ClInclude Include="shared\kernel_common.h">
       <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\GL\gl3w.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\GL\glcorearb.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\KHR\khrplatform.h">
+      <Filter>ext\gl3w</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

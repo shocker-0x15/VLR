@@ -48,7 +48,7 @@ namespace vlr {
 
         SampledSpectrum firstHitAlbedo;
         Normal3D firstHitNormal;
-        optixu::trace<AuxBufGenPayloadSignature>(
+        AuxBufGenPayloadSignature::trace(
             plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
             VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
             AuxBufGenRayType::Primary, MaxNumRayTypes, AuxBufGenRayType::Primary,

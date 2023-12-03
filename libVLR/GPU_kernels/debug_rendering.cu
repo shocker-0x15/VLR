@@ -43,7 +43,6 @@ namespace vlr {
             float cos = dot(normalize(dirOut), normalize(surfPt.shadingFrame.z));
             bool opposite = cos < 0;
             cos = std::fabs(cos);
-            constexpr float coeff = 5.0f;
             float sValue = 1 - cos;
             sValue = clamp(sValue, 0.0f, 1.0f);
             value = createTripletSpectrum(SpectrumType::LightSource, ColorSpace::Rec709_D65,
@@ -212,7 +211,7 @@ namespace vlr {
         Vector3D rayDir = We0Result.surfPt.fromLocal(We1Result.dirLocal);
 
         SampledSpectrum value;
-        optixu::trace<DebugPayloadSignature>(
+        DebugPayloadSignature::trace(
             plp.topGroup, asOptiXType(We0Result.surfPt.position), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
             VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
             DebugRayType::Primary, MaxNumRayTypes, DebugRayType::Primary,

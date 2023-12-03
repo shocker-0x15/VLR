@@ -12,7 +12,6 @@ namespace vlr {
     extern const float ybar_CIE1931_2deg[NumCMFSamples];
     extern const float zbar_CIE1931_2deg[NumCMFSamples];
     extern float integralCMF;
-    extern float integralCMF;
 
     void initializeColorSystem();
     void finalizeColorSystem();

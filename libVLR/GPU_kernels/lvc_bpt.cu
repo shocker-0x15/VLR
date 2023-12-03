@@ -11,8 +11,10 @@ https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
       光線サブパスを y_0 y_1 ... y_(s-1)、視線サブパスを z_0 z_1 ... z_(t-1) のように表す。
   EN: s and t denote the number of vertices of light subpath and eye subpath respectively.
       Represent a light subpath as y_0 y_1 ... y_(s-1) and a eye subpath as z_0 z_1 ... z_(t-1).
+
 - JP: このコードはImplicit Lens Sampling (t = 0) は考慮しない。
   EN: This code doesn't take implicit lens sampling (t = 0) into account.
+
 - JP: パスの確率密度
   例えば k = 2 の経路をサンプリングする戦略について考える。
   それぞれの戦略の確率密度は次のように表される。
@@ -27,6 +29,7 @@ https://cgg.mff.cuni.cz/~jaroslav/papers/2014-gpult/index.htm
   Explicit (s != 0 and t != 0)な戦略ではLight Vertex Cacheからランダムに頂点を選ぶ確率 1 / n_v が確率密度にかかる。
   このコードで扱うすべての戦略にn_pが含まれており、MISウェイトの計算では結局キャンセルされて無くなるため、
   最初から n_p は計算に含めていない。
+
   EN: Probability Density of a Path
   As an example, let's consider strategies to sample a path of length k = 2.
   Probability density of each strategy is represented as follows:
@@ -215,7 +218,7 @@ namespace vlr {
             rwPayload.terminate = true;
             ++rwPayload.pathLength;
 
-            optixu::trace<LVCBPTLightPathPayloadSignature>(
+            LVCBPTLightPathPayloadSignature::trace(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 shared::VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 LVCBPTRayType::LightPath, MaxNumRayTypes, LVCBPTRayType::LightPath,
@@ -516,7 +519,7 @@ namespace vlr {
                 rwPayload.pathLength > debugPathLength)
                 break;
 
-            optixu::trace<LVCBPTEyePathPayloadSignature>(
+            LVCBPTEyePathPayloadSignature::trace(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 shared::VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 LVCBPTRayType::EyePath, MaxNumRayTypes, LVCBPTRayType::EyePath,

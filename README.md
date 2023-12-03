@@ -135,8 +135,8 @@ I've confirmed that the program runs correctly on the following environment.
 It requires the following libraries.
 
 * libVLR
-    * CUDA 11.6
-    * OptiX 7.4.0 (requires Maxwell or later generation NVIDIA GPU)
+    * CUDA 12.2
+    * OptiX 8.0.0 (requires Maxwell or later generation NVIDIA GPU)
 * Host Program
     * OpenEXR 3.1
     * assimp 5.0

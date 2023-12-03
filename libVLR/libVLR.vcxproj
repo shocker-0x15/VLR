@@ -20,19 +20,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.4.0\include;$(IncludePath)</IncludePath>
-    <TargetName>VLR</TargetName>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\half;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 8.0.0\include;$(ProjectDir)include\vlr;$(IncludePath)</IncludePath>
+    <TargetName>libvlr</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)ext\include;$(ProjectDir)include\vlr;C:\ProgramData\NVIDIA Corporation\OptiX SDK 7.4.0\include;$(IncludePath)</IncludePath>
-    <TargetName>VLR</TargetName>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\half;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 8.0.0\include;$(ProjectDir)include\vlr;$(IncludePath)</IncludePath>
+    <TargetName>libvlr</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -61,9 +61,10 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <CudaCompile>
-      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\libvlr\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -73,11 +74,10 @@
     </CudaCompile>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <AdditionalOptions>-std=c++17 --use_fast_math -Xcompiler "/wd 4819" -DDEBUG %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-std=c++20 --use_fast_math -Xcompiler "/wd 4819" -DDEBUG %(AdditionalOptions)</AdditionalOptions>
       <Defines>
       </Defines>
       <FastMath>true</FastMath>
-      <GenerateLineInfo>true</GenerateLineInfo>
     </CudaCompile>
     <Link />
     <CudaLink>
@@ -103,6 +103,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -110,7 +111,7 @@
       <AdditionalDependencies>opengl32.lib;cuda.lib;cudart_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
-      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\ptxes\%(Filename).ptx</CompileOut>
+      <CompileOut>$(SolutionDir)$(Platform)\$(Configuration)\libvlr\ptxes\%(Filename).ptx</CompileOut>
     </CudaCompile>
     <CudaCompile>
       <NvccCompilation>ptx</NvccCompilation>
@@ -120,7 +121,7 @@
     </CudaCompile>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <AdditionalOptions>-std=c++17 --use_fast_math -Xcompiler "/wd 4819" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-std=c++20 --use_fast_math -Xcompiler "/wd 4819" %(AdditionalOptions)</AdditionalOptions>
       <FastMath>true</FastMath>
     </CudaCompile>
     <CudaLink>
@@ -132,8 +133,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ext\prebuilt\src\gl3w.c" />
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="ext\gl3w.c" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="queryable.cpp" />
     <ClCompile Include="shared\spectrum_base.cpp" />
@@ -148,11 +149,10 @@
     <ClCompile Include="vlr.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ext\prebuilt\include\GL\gl3w.h" />
+    <ClInclude Include="..\ext\prebuilt\include\GL\glcorearb.h" />
+    <ClInclude Include="..\ext\prebuilt\include\KHR\khrplatform.h" />
     <ClInclude Include="context.h" />
-    <ClInclude Include="ext\include\GL\gl3w.h" />
-    <ClInclude Include="ext\include\GL\glcorearb.h" />
-    <ClInclude Include="ext\include\half.hpp" />
-    <ClInclude Include="ext\include\KHR\khrplatform.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="include\vlr\basic_types.h" />
     <ClInclude Include="include\vlr\common.h" />
@@ -184,6 +184,7 @@
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\cameras.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
@@ -191,37 +192,44 @@
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\light_tracing.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\lvc_bpt.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\point.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\post_process.cu" />
     <CudaCompile Include="GPU_kernels\debug_rendering.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\infinite_sphere.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\materials.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\path_tracing.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
@@ -229,33 +237,36 @@
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </Defines>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\setup_scene.cu" />
     <CudaCompile Include="GPU_kernels\shader_nodes.cu">
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
     <CudaCompile Include="GPU_kernels\triangle.cu">
       <GPUDebugInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GPUDebugInfo>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
       <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateLineInfo Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateLineInfo>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_D65.coeff">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)spectral_upsampling_tables</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)spectral_upsampling_tables</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)libvlr\spectral_upsampling_tables</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)libvlr\spectral_upsampling_tables</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="spectral_upsampling_tables\sRGB_E.coeff">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)spectral_upsampling_tables</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)spectral_upsampling_tables</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)libvlr\spectral_upsampling_tables</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)libvlr\spectral_upsampling_tables</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" />
   </ImportGroup>
 </Project>

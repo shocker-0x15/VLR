@@ -166,7 +166,7 @@ namespace vlr::shared {
 
         WavelengthSamples plWls = wls;
         float plFracVis = 1.0f;
-        optixu::trace<ShadowPayloadSignature>(
+        ShadowPayloadSignature::trace(
             plp.topGroup, asOptiXType(shadingPoint), asOptiXType(*shadowRayDir), 0.0f, tmax, 0.0f,
             VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE, rayType, MaxNumRayTypes, rayType,
             plWls, plFracVis);

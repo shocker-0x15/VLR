@@ -1,59 +1,90 @@
 ﻿# Current CMakeLists has been tested only on Windows/MSVC.
 # Manual copying executables and other files are required for other platforms.
 
-cmake_minimum_required(VERSION 3.14)
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
-project(VLR)
+cmake_minimum_required(VERSION 3.26)
+project(
+    VLR_cmake
+    VERSION 1.0
+    DESCRIPTION "GPU Monte Carlo Ray Tracing Renderer"
+    LANGUAGES C CXX CUDA)
 
-if(NOT MSVC)
-    option(USE_LIBCPP "Use libc++ instead of libstdc++." ON)
-endif()
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# macro (set_xcode_property TARGET XCODE_PROPERTY XCODE_VALUE)
-# set_property (TARGET ${TARGET} PROPERTY XCODE_ATTRIBUTE_${XCODE_PROPERTY}
-#     ${XCODE_VALUE})
-# endmacro (set_xcode_property)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_LIBRARY_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-set(CMAKE_CXX_STANDARD 17)
+set(
+    CMAKE_MODULE_PATH
+    "${CMAKE_SOURCE_DIR}/cmake"
+    ${CMAKE_MODULE_PATH})
+find_package(CUDAToolkit 12.2 REQUIRED)
+find_package(OptiX80)
+include("copy_files")
+include("nvcuda_compile_ptx")
 
-if(MSVC)
-    set(CMAKE_C_FLAGS_DEBUG "/Od /DDEBUG /ZI /MP")
-    set(CMAKE_CXX_FLAGS_DEBUG "/Od /DDEBUG /ZI /MP")
-    set(CMAKE_C_FLAGS_RELEASE "/O2 /DNDEBUG /Zi /MP")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /Zi /MP")
-
-    set_property(GLOBAL APPEND PROPERTY LINK_FLAGS_DEBUG /DEBUG:FASTLINK)
-    set_property(GLOBAL APPEND PROPERTY LINK_FLAGS_RELEASE /DEBUG:FASTLINK)
+if (OptiX80_FOUND)
+    set(OPTIX_INCLUDE_DIR "${OPTIX80_INCLUDE_DIR}")
 else()
-    set(CMAKE_C_FLAGS_DEBUG "-g -DDEBUG")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
-    set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    message(FATAL_ERROR "OptiX SDK 8.0 not found.")
 endif()
 
-set(Assimp_include "/usr/local/include/" CACHE PATH "Assimp include directory")
-set(Assimp_lib "/usr/local/lib/" CACHE PATH "Assimp library directory")
-set(Assimp_bin "/usr/local/bin/" CACHE PATH "Assimp binary directory")
-set(Imath_include "/usr/local/include/Imath" CACHE PATH "Imath 3.1 include directory")
-set(OpenEXR_include "/usr/local/include/OpenEXR" CACHE PATH "OpenEXR 3.1 include directory")
-set(OpenEXR_lib "/usr/local/lib/" CACHE PATH "OpenEXR library directory")
-set(OpenEXR_bin "/usr/local/bin/" CACHE PATH "OpenEXR binary directory")
+
+
+# ----------------------------------------------------------------
+# JP: CMakeLists.txtのあるサブディレクトリ内のターゲット全てにフォルダーを設定する。
+# https://stackoverflow.com/questions/45092198/cmake-how-do-i-change-properties-on-subdirectory-project-targets
+
+# _dir以下の(CMakeが有効な)サブディレクトリにあるターゲットを再帰的に取得する。
+function(get_all_targets _result _dir)
+    get_property(_subdirs DIRECTORY "${_dir}" PROPERTY SUBDIRECTORIES)
+    foreach(_subdir IN LISTS _subdirs)
+        get_all_targets(${_result} "${_subdir}")
+    endforeach()
+    get_property(_sub_targets DIRECTORY "${_dir}" PROPERTY BUILDSYSTEM_TARGETS)
+    set(${_result} ${${_result}} ${_sub_targets} PARENT_SCOPE)
+endfunction()
+
+# _dir以下の(CMakeが有効な)サブディレクトリにあるターゲットにフォルダーを設定する。
+function(set_project_group _folder_name _dir)
+    get_all_targets(_targets "${_dir}")
+    foreach(_target IN LISTS _targets)
+        # message(${_target})
+        set_target_properties(
+            ${_target}
+            PROPERTIES FOLDER "${_folder_name}"
+        )
+    endforeach()
+endfunction()
+
+# END: JP: CMakeLists.txtのあるサブディレクトリ内のターゲット全てにフォルダーを設定する。
+# ----------------------------------------------------------------
+
+
+
+# gl3w
+add_subdirectory(ext/gl3w)
+set_project_group("External" "ext/gl3w")
+
+# GLFW
+option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
+option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
+option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
+option(GLFW_INSTALL "Generate installation target" OFF)
+add_subdirectory(ext/glfw)
+set_project_group("External" "ext/GLFW")
+
+# Assimp
+option(ASSIMP_BUILD_ASSIMP_TOOLS "If the supplementary tools for Assimp are built in addition to the library." OFF)
+option(ASSIMP_BUILD_SAMPLES "If the official samples are built as well (needs Glut)." OFF)
+option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
+option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
 if(MSVC)
-    set(OptiX_SDK "C:/ProgramData/NVIDIA Corporation/OptiX SDK 7.4.0" CACHE PATH "OptiX SDK directory")
-else()
-    set(OptiX_SDK "NVIDIA Corporation/OptiX SDK 7.4.0" CACHE PATH "OptiX SDK directory")
+    option(ASSIMP_BUILD_ASSIMP_VIEW "If the Assimp view tool is built. (requires DirectX)" OFF)
 endif()
+add_subdirectory(ext/assimp)
+set_project_group("External" "ext/assimp")
 
-if(MSVC)
-    add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-endif()
 
-# OS Xにおけるrun path処理の有効化
-set(CMAKE_MACOSX_RPATH 1)
 
-# 各プロジェクトのCMakeLists.txtを呼び出す。
 add_subdirectory(libVLR)
 add_subdirectory(HostProgram)
-
-# ビルド依存関係を設定
-add_dependencies(HostProgram VLR)

@@ -15,8 +15,6 @@ namespace vlr::shared {
             return asPoint3D(optixTransformPointFromObjectToWorldSpace(asOptiXType(p)));
         else
             return asPoint3D(optixTransformPointFromWorldToObjectSpace(asOptiXType(p)));
-        VLRAssert_ShouldNotBeCalled();
-        return Point3D();
     }
 
     template <TransformKind kind>
@@ -25,8 +23,6 @@ namespace vlr::shared {
             return asVector3D(optixTransformVectorFromObjectToWorldSpace(asOptiXType(v)));
         else
             return asVector3D(optixTransformVectorFromWorldToObjectSpace(asOptiXType(v)));
-        VLRAssert_ShouldNotBeCalled();
-        return Vector3D();
     }
 
     template <TransformKind kind>
@@ -35,8 +31,6 @@ namespace vlr::shared {
             return asNormal3D(optixTransformNormalFromObjectToWorldSpace(asOptiXType(n)));
         else
             return asNormal3D(optixTransformNormalFromWorldToObjectSpace(asOptiXType(n)));
-        VLRAssert_ShouldNotBeCalled();
-        return Normal3D();
     }
 #endif
 
@@ -120,7 +114,7 @@ namespace vlr::shared {
     };
 
     using InfiniteSphereAttributeSignature = optixu::AttributeSignature<float, float>;
-    
+
     struct HitPointParameter {
         const HitGroupSBTRecordData* sbtr;
         union {
@@ -305,7 +299,7 @@ namespace vlr::shared {
         DirectionType posType;
         uint32_t materialIndex;
     };
-    
+
     using ProgSigSurfaceLight_sample = optixu::DirectCallableProgramID<
         void(uint32_t, uint32_t,
              const SurfaceLightPosSample &, const Point3D &,
@@ -335,7 +329,7 @@ namespace vlr::shared {
     };
 
 
-    
+
     struct EDFQuery {
         DirectionType dirTypeFilter;
         struct {
@@ -371,7 +365,7 @@ namespace vlr::shared {
         Radiance = 0,
         Importance = 1
     };
-    
+
     struct BSDFQuery {
         Vector3D dirLocal;
         Normal3D geometricNormalLocal;
@@ -383,7 +377,7 @@ namespace vlr::shared {
 
         CUDA_DEVICE_FUNCTION BSDFQuery(
             const Vector3D &dirL, const Normal3D &gNormL, TransportMode transportMode,
-            DirectionType filter, const WavelengthSamples &wls) : 
+            DirectionType filter, const WavelengthSamples &wls) :
             dirLocal(dirL), geometricNormalLocal(gNormL), dirTypeFilter(filter),
             transportMode(static_cast<unsigned int>(transportMode)), wlHint(wls.selectedLambdaIndex()) {}
     };
@@ -450,10 +444,10 @@ namespace vlr::shared {
     };
 
 
-    
+
     struct IDFQuery {
     };
-    
+
     struct IDFSample {
         float uDir[2];
 
@@ -639,7 +633,7 @@ namespace vlr::shared {
             vlrprintf("accumAlbedoBuffer: 0x%p\n", accumAlbedoBuffer);
             vlrprintf("accumNormalBuffer: 0x%p\n", accumNormalBuffer);
 
-            vlrprintf("topGroup: 0x%p\n", topGroup);
+            vlrprintf("topGroup: 0x%p\n", reinterpret_cast<void*>(topGroup));
             vlrprintf("instIndices: 0x%p\n", instIndices);
             vlrprintf("envLightInstIndex: %u\n", envLightInstIndex);
 
@@ -650,10 +644,13 @@ namespace vlr::shared {
             vlrprintf("debugRenderingAttribute: %u\n", static_cast<uint32_t>(debugRenderingAttribute));
         }
     };
+}
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-    RT_PIPELINE_LAUNCH_PARAMETERS PipelineLaunchParameters plp;
+RT_PIPELINE_LAUNCH_PARAMETERS vlr::shared::PipelineLaunchParameters plp;
 #endif
+
+namespace vlr::shared {
 
 
 
@@ -671,8 +668,8 @@ namespace vlr::shared {
     case EnumName: { \
         using ProgSigT = optixu::DirectCallableProgramID<ReturnType(const ShaderNodePlug &, const SurfacePoint &, const WavelengthSamples &)>; \
         auto program = static_cast<ProgSigT>(programID); \
-        conversionDefined = NodeTypeInfo<T>::ConversionIsDefinedFrom<ReturnType>(); \
-        ret = NodeTypeInfo<T>::convertFrom<ReturnType>(program(plug, surfPt, wls)); \
+        conversionDefined = NodeTypeInfo<T>::template ConversionIsDefinedFrom<ReturnType>(); \
+        ret = NodeTypeInfo<T>::template convertFrom<ReturnType>(program(plug, surfPt, wls)); \
         break; \
     }
             switch (static_cast<ShaderNodePlugType>(plug.plugType)) {

@@ -4,7 +4,7 @@
 #include "rgb_spectrum_types.h"
 #include "spectrum_types.h"
 #if defined(VLR_Host)
-#include "../ext/include/half.hpp"
+#include "half/half.hpp"
 #endif
 #include "random_distributions.h"
 
@@ -219,7 +219,7 @@ namespace vlr {
                 return idx;
             }
             CUDA_DEVICE_FUNCTION RealType evaluatePMF(uint32_t idx) const {
-                VLRAssert(idx >= 0 && idx < m_numValues, "\"idx\" is out of range [0, %u)", m_numValues);
+                VLRAssert(idx < m_numValues, "\"idx\" is out of range [0, %u)", m_numValues);
                 return m_PMF[idx];
             }
 

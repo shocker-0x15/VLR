@@ -1,105 +1,163 @@
-﻿# ----------------------------------------------------------------
-# JP: PTX生成用ターゲット
-# EN: Target for PTX generation
+﻿set(TARGET_NAME "libvlr")
 
-enable_language(CUDA)
+file(
+    GLOB_RECURSE SOURCES
+    *.h *.hpp *.c *.cpp)
 
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_52,code=sm_52 -cudart shared -rdc=true")
+set(
+    GL3W_SOURCES
+    "${CMAKE_BINARY_DIR}/ext/gl3w/include/GL/gl3w.h"
+    "${CMAKE_BINARY_DIR}/ext/gl3w/include/GL/glcorearb.h"
+    "${CMAKE_BINARY_DIR}/ext/gl3w/include/KHR/khplatform.h"
+    "${CMAKE_BINARY_DIR}/ext/gl3w/src/gl3w.c"
+)
+set_source_files_properties(
+    ${GL3W_SOURCES} PROPERTIES
+    GENERATED TRUE
+)
 
-file(GLOB_RECURSE libVLR_PTX_Headers
-     *.cuh)
-file(GLOB_RECURSE libVLR_PTX_Sources
-     *.cu)
+set(
+    CUDA_KERNELS
+    "GPU_kernels/aux_buffer_generator.cu"
+    "GPU_kernels/post_process.cu"
+    "GPU_kernels/setup_scene.cu"
+)
 
-add_library(VLR_PTX OBJECT ${libVLR_PTX_Headers} ${libVLR_PTX_Sources})
-target_include_directories(VLR_PTX PUBLIC "\
-${OptiX_SDK}/include;\
-${CMAKE_CURRENT_SOURCE_DIR}/include/VLR\
-")
-target_compile_features(VLR_PTX PUBLIC cxx_std_17)
-set_property(TARGET VLR_PTX PROPERTY CUDA_PTX_COMPILATION ON)
+set(
+    OPTIX_KERNELS
+    "GPU_kernels/materials.cu"
+    "GPU_kernels/shader_nodes.cu"
+    "GPU_kernels/triangle.cu"
+    "GPU_kernels/point.cu"
+    "GPU_kernels/infinite_sphere.cu"
+    "GPU_kernels/cameras.cu"
+    "GPU_kernels/debug_rendering.cu"
+    "GPU_kernels/path_tracing.cu"
+    "GPU_kernels/light_tracing.cu"
+    "GPU_kernels/lvc_bpt.cu"
+)
 
-# END: Target for PTX generation
-# ----------------------------------------------------------------
+set(
+    GPU_KERNEL_DEPENDENCIES
+    "utils/cuda_util.h"
+    "utils/optix_util.h"
+    "utils/optixu_on_cudau.h"
+    "include/vlr/common.h"
+    "include/vlr/basic_types.h"
+    "shared/common_internal.h"
+    "shared/basic_types_internal.h"
+    "shared/spectrum_base.h"
+    "shared/rgb_spectrum_types.h"
+    "shared/spectrum_types.h"
+    "shared/random_distributions.h"
+    "shared/shared.h"
+    "shared/kernel_common.h"
+    "shared/renderer_common.h"
+    "shared/light_transport_common.h"
+)
+
+nvcuda_compile_ptx(
+    SOURCES ${CUDA_KERNELS}
+    DEPENDENCIES ${GPU_KERNEL_DEPENDENCIES}
+    TARGET_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_CFG_INTDIR}/${TARGET_NAME}/ptxes"
+    GENERATED_FILES CUDA_PTXES
+    NVCC_OPTIONS
+    "-Xcompiler" "\"/wd 4819 /Zc:__cplusplus\""
+    "$<$<CONFIG:Debug>:-D_DEBUG=1>"
+    "$<$<CONFIG:Debug>:-G>"
+    "--gpu-architecture=compute_52"
+    "-std=c++20"
+    "-cudart" "shared"
+    "--use_fast_math"
+    "--relocatable-device-code=true"
+    "-I${OPTIX_INCLUDE_DIR}"
+    "-I\"include/vlr\""
+)
+
+nvcuda_compile_ptx(
+    SOURCES ${OPTIX_KERNELS}
+    DEPENDENCIES ${GPU_KERNEL_DEPENDENCIES}
+    TARGET_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_CFG_INTDIR}/${TARGET_NAME}/ptxes"
+    GENERATED_FILES OPTIX_PTXES
+    NVCC_OPTIONS
+    "-Xcompiler" "\"/wd 4819 /Zc:__cplusplus\""
+    "$<$<CONFIG:Debug>:-D_DEBUG=1>"
+    "$<$<CONFIG:Debug>:-lineinfo>"
+    "--gpu-architecture=compute_52"
+    "-std=c++20"
+    "-cudart" "shared"
+    "--use_fast_math"
+    "--relocatable-device-code=true"
+    "-I${OPTIX_INCLUDE_DIR}"
+    "-I\"include/vlr\""
+)
 
 
 
-set(include_dirs "\
-${CMAKE_CURRENT_SOURCE_DIR}/ext/include;\
-${CMAKE_CURRENT_SOURCE_DIR}/include/vlr;\
-${OptiX_SDK}/include;\
-")
-
-set(libs "\
-cuda;cudart_static;\
-opengl32\
-")
-
-if(MSVC)
-    add_definitions(-DVLR_API_EXPORTS)
-endif()
-
-file(GLOB_RECURSE libVLR_Sources
-     *.h
-     *.c
-     *.hpp
-     *.cpp)
-
-source_group("" REGULAR_EXPRESSION 
-             ".*\.(h|c|hpp|cpp)")
-source_group("include" REGULAR_EXPRESSION 
-             "include/vlr/.*\.(h|c|hpp|cpp)")
-source_group("Shared" REGULAR_EXPRESSION 
-             "shared/.*\.(h|c|hpp|cpp)")
-source_group("GPU Kernels" REGULAR_EXPRESSION 
-             "GPU_kernels/.*\.(cuh|cu)")
-source_group("ext" REGULAR_EXPRESSION 
-             "ext/.*\.(h|c|hpp|cpp)")
-source_group("Utilities" REGULAR_EXPRESSION 
-             "utils/.*\.(h|c|hpp|cpp)")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
-add_library(VLR SHARED ${libVLR_Sources})
-add_dependencies(VLR VLR_PTX)
-target_include_directories(VLR PRIVATE ${include_dirs})
-foreach(lib_dir ${lib_dirs})
-    target_link_directories(VLR PRIVATE ${lib_dir})
-endforeach()
-foreach(lib ${libs})
-    target_link_libraries(VLR PRIVATE ${lib})
-endforeach()
-
-set(PTXes_to_copy)
-foreach(file ${libVLR_PTX_Sources})
-    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/GPU_kernels/" "" ptx ${file})
-    string(REPLACE ".cu" ".ptx" ptx ${ptx})
-    set(PTXes_to_copy ${PTXes_to_copy} ${ptx})
-endforeach()
-
-# foreach(ptx ${PTXes_to_copy})
-#     message(${ptx})
-# endforeach()
+source_group(
+    "Host" REGULAR_EXPRESSION 
+    ".*\.(h|c|hpp|cpp)")
+source_group(
+    "include" REGULAR_EXPRESSION 
+    "include/vlr/.*\.(h|c|hpp|cpp)")
+source_group(
+    "Shared" REGULAR_EXPRESSION 
+    "shared/.*\.(h|c|hpp|cpp)")
+source_group(
+    "GPU Kernels" REGULAR_EXPRESSION 
+    "GPU_kernels/.*\.(cuh|cu)")
+source_group(
+    "Utilities" REGULAR_EXPRESSION 
+    "utils/.*\.(h|c|hpp|cpp)")
+source_group(
+    "ext/gl3w" REGULAR_EXPRESSION
+    "../ext/gl3w/.*$")
 
 
-# ----------------------------------------------------------------
-# Post-build events
+file(
+    GLOB_RECURSE SPECTRAL_UPSAMPLING_TABLES
+    "spectral_upsampling_tables/*"
+)
 
-# copy ptxes
-set(ptx_destination_dir "$<TARGET_FILE_DIR:VLR>/ptxes")
-add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory
-                   ${ptx_destination_dir})
-add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E chdir
-                   "${CMAKE_CURRENT_BINARY_DIR}/VLR_PTX.dir/${CMAKE_CFG_INTDIR}" 
-                   ${CMAKE_COMMAND} -E 
-                   copy ${PTXes_to_copy} ${ptx_destination_dir})
+copy_files(
+    SOURCES ${SPECTRAL_UPSAMPLING_TABLES}
+    TARGET_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_CFG_INTDIR}/${TARGET_NAME}/spectral_upsampling_tables"
+    GENERATED_FILES COPIED_SPECTRAL_UPSAMPLING_TABLES
+)
 
-# copy resouces
-add_custom_command(TARGET VLR POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
-                   "${CMAKE_CURRENT_SOURCE_DIR}/spectral_upsampling_tables" "$<TARGET_FILE_DIR:VLR>/spectral_upsampling_tables")
 
-# END: Post-build events
-# ----------------------------------------------------------------
 
-install(TARGETS VLR CONFIGURATIONS Debug DESTINATION "${CMAKE_BINARY_DIR}/bin/Debug")
-install(TARGETS VLR CONFIGURATIONS Release DESTINATION "${CMAKE_BINARY_DIR}/bin/Release")
+add_library(
+    "${TARGET_NAME}" SHARED
+    ${SOURCES}
+    ${CUDA_KERNELS}
+    ${OPTIX_KERNELS}
+    ${SPECTRAL_UPSAMPLING_TABLES}
+)
+target_compile_definitions(
+    "${TARGET_NAME}" PRIVATE
+    "$<$<CONFIG:Debug>:_DEBUG=1>"
+    "VLR_API_EXPORTS"
+)
+target_compile_options(
+    "${TARGET_NAME}" PRIVATE
+    # if (compilerID == MSVC && compilerLanguage != CUDA) set(/MP);
+    "$<$<AND:$<C_COMPILER_ID:MSVC>,$<NOT:$<COMPILE_LANGUAGE:CUDA>>>:/MP>"
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<COMPILE_LANGUAGE:CUDA>>>:/MP>"
+    # if (compilerID == MSVC && compilerLanguage != CUDA) set(/Zc:__cplusplus);
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<COMPILE_LANGUAGE:CUDA>>>:/Zc:__cplusplus>"
+)
+target_include_directories(
+    "${TARGET_NAME}" PRIVATE
+    "include/vlr"
+    "${CMAKE_BINARY_DIR}/ext/gl3w/include"
+    "${CMAKE_SOURCE_DIR}/ext/half"
+    "${OPTIX_INCLUDE_DIR}"
+)
+target_link_libraries(
+    "${TARGET_NAME}" PRIVATE
+    CUDA::cuda_driver
+    gl3w
+)
+target_compile_features("${TARGET_NAME}" PRIVATE cxx_std_20)
+set_target_properties("${TARGET_NAME}" PROPERTIES CXX_EXTENSIONS OFF)

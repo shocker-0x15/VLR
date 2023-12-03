@@ -119,12 +119,12 @@ namespace vlr {
     };
 
     constexpr const char* commonModulePaths[] = {
-        "ptxes/shader_nodes.ptx",
-        "ptxes/materials.ptx",
-        "ptxes/triangle.ptx",
-        "ptxes/point.ptx",
-        "ptxes/infinite_sphere.ptx",
-        "ptxes/cameras.ptx",
+        "libvlr/ptxes/shader_nodes.ptx",
+        "libvlr/ptxes/materials.ptx",
+        "libvlr/ptxes/triangle.ptx",
+        "libvlr/ptxes/point.ptx",
+        "libvlr/ptxes/infinite_sphere.ptx",
+        "libvlr/ptxes/cameras.ptx",
     };
 
 
@@ -168,15 +168,15 @@ namespace vlr {
 
                 std::vector<optixu::Module> modules;
 
-                optixu::ProgramGroup rayGeneration;
-                optixu::ProgramGroup miss;
-                optixu::ProgramGroup shadowMiss;
-                optixu::ProgramGroup hitGroupDefault;
-                optixu::ProgramGroup hitGroupWithAlpha;
-                optixu::ProgramGroup hitGroupShadowDefault;
-                optixu::ProgramGroup hitGroupShadowWithAlpha;
-                optixu::ProgramGroup emptyHitGroup;
-                std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::Program rayGeneration;
+                optixu::Program miss;
+                optixu::Program shadowMiss;
+                optixu::HitProgramGroup hitGroupDefault;
+                optixu::HitProgramGroup hitGroupWithAlpha;
+                optixu::HitProgramGroup hitGroupShadowDefault;
+                optixu::HitProgramGroup hitGroupShadowWithAlpha;
+                optixu::HitProgramGroup emptyHitGroup;
+                std::vector<optixu::CallableProgramGroup> callablePrograms;
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
@@ -187,15 +187,15 @@ namespace vlr {
 
                 std::vector<optixu::Module> modules;
 
-                optixu::ProgramGroup rayGeneration;
-                optixu::ProgramGroup miss;
-                optixu::ProgramGroup shadowMiss;
-                optixu::ProgramGroup hitGroupDefault;
-                optixu::ProgramGroup hitGroupWithAlpha;
-                optixu::ProgramGroup hitGroupShadowDefault;
-                optixu::ProgramGroup hitGroupShadowWithAlpha;
-                optixu::ProgramGroup emptyHitGroup;
-                std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::Program rayGeneration;
+                optixu::Program miss;
+                optixu::Program shadowMiss;
+                optixu::HitProgramGroup hitGroupDefault;
+                optixu::HitProgramGroup hitGroupWithAlpha;
+                optixu::HitProgramGroup hitGroupShadowDefault;
+                optixu::HitProgramGroup hitGroupShadowWithAlpha;
+                optixu::HitProgramGroup emptyHitGroup;
+                std::vector<optixu::CallableProgramGroup> callablePrograms;
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
@@ -206,19 +206,19 @@ namespace vlr {
 
                 std::vector<optixu::Module> modules;
 
-                optixu::ProgramGroup lightPathRayGen;
-                optixu::ProgramGroup eyePathRayGen;
-                optixu::ProgramGroup lightPathMiss;
-                optixu::ProgramGroup eyePathMiss;
-                optixu::ProgramGroup connectionMiss;
-                optixu::ProgramGroup lightPathHitGroupDefault;
-                optixu::ProgramGroup lightPathHitGroupWithAlpha;
-                optixu::ProgramGroup eyePathHitGroupDefault;
-                optixu::ProgramGroup eyePathHitGroupWithAlpha;
-                optixu::ProgramGroup connectionHitGroupDefault;
-                optixu::ProgramGroup connectionHitGroupWithAlpha;
-                optixu::ProgramGroup emptyHitGroup;
-                std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::Program lightPathRayGen;
+                optixu::Program eyePathRayGen;
+                optixu::Program lightPathMiss;
+                optixu::Program eyePathMiss;
+                optixu::Program connectionMiss;
+                optixu::HitProgramGroup lightPathHitGroupDefault;
+                optixu::HitProgramGroup lightPathHitGroupWithAlpha;
+                optixu::HitProgramGroup eyePathHitGroupDefault;
+                optixu::HitProgramGroup eyePathHitGroupWithAlpha;
+                optixu::HitProgramGroup connectionHitGroupDefault;
+                optixu::HitProgramGroup connectionHitGroupWithAlpha;
+                optixu::HitProgramGroup emptyHitGroup;
+                std::vector<optixu::CallableProgramGroup> callablePrograms;
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
@@ -231,12 +231,12 @@ namespace vlr {
 
                 std::vector<optixu::Module> modules;
 
-                optixu::ProgramGroup rayGeneration;
-                optixu::ProgramGroup miss;
-                optixu::ProgramGroup hitGroupDefault;
-                optixu::ProgramGroup hitGroupWithAlpha;
-                optixu::ProgramGroup emptyHitGroup;
-                std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::Program rayGeneration;
+                optixu::Program miss;
+                optixu::HitProgramGroup hitGroupDefault;
+                optixu::HitProgramGroup hitGroupWithAlpha;
+                optixu::HitProgramGroup emptyHitGroup;
+                std::vector<optixu::CallableProgramGroup> callablePrograms;
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
@@ -247,12 +247,12 @@ namespace vlr {
 
                 std::vector<optixu::Module> modules;
 
-                optixu::ProgramGroup rayGeneration;
-                optixu::ProgramGroup miss;
-                optixu::ProgramGroup hitGroupDefault;
-                optixu::ProgramGroup hitGroupWithAlpha;
-                optixu::ProgramGroup emptyHitGroup;
-                std::vector<optixu::ProgramGroup> callablePrograms;
+                optixu::Program rayGeneration;
+                optixu::Program miss;
+                optixu::HitProgramGroup hitGroupDefault;
+                optixu::HitProgramGroup hitGroupWithAlpha;
+                optixu::HitProgramGroup emptyHitGroup;
+                std::vector<optixu::CallableProgramGroup> callablePrograms;
 
                 cudau::Buffer shaderBindingTable;
                 cudau::Buffer hitGroupShaderBindingTable;
@@ -306,7 +306,7 @@ namespace vlr {
             CUdeviceptr numLightVertices;
 
             optixu::Denoiser denoiser;
-            CUdeviceptr hdrIntensity;
+            CUdeviceptr denoiserNormalizer;
             cudau::Buffer denoiserStateBuffer;
             cudau::Buffer denoiserScratchBuffer;
             std::vector<optixu::DenoisingTask> denoiserTasks;

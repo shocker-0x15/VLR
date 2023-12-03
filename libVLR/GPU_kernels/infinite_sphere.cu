@@ -9,7 +9,7 @@ namespace vlr {
         float phi, theta;
         direction.toPolarYUp(&theta, &phi);
 
-        optixu::reportIntersection<InfiniteSphereAttributeSignature>(INFINITY, 0, phi, theta);
+        InfiniteSphereAttributeSignature::reportIntersection(INFINITY, 0, phi, theta);
     }
 
 

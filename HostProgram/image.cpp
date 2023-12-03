@@ -1,5 +1,7 @@
 #include "image.h"
 
+#include <map>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -7,11 +9,8 @@
 #define STBI_MSC_SECURE_CRT
 #include "stb_image_write.h"
 
-#include <ImfInputFile.h>
-#include <ImfRgbaFile.h>
-#include <ImfArray.h>
-
 #include "dds_loader.h"
+#include "tinyexr.h"
 
 
 
@@ -62,38 +61,17 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
 #endif
 
     if (ext == "exr") {
-        using namespace Imf;
-        using namespace Imath;
-        RgbaInputFile file(filepath.c_str());
-        Imf::Header header = file.header();
-
-        Box2i dw = file.dataWindow();
-        long width = dw.max.x - dw.min.x + 1;
-        long height = dw.max.y - dw.min.y + 1;
-        Array2D<Rgba> pixels{ height, width };
-        pixels.resizeErase(height, width);
-        file.setFrameBuffer(&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
-        file.readPixels(dw.min.y, dw.max.y);
-
-        Rgba* linearImageData = new Rgba[width * height];
-        Rgba* curDataHead = linearImageData;
-        for (int i = 0; i < height; ++i) {
-            std::copy_n(pixels[i], width, reinterpret_cast<Rgba*>(curDataHead));
-            for (int j = 0; j < width; ++j) {
-                Rgba &pix = curDataHead[j];
-                pix.r = pix.r >= 0.0f ? pix.r : (half)0.0f;
-                pix.g = pix.g >= 0.0f ? pix.g : (half)0.0f;
-                pix.b = pix.b >= 0.0f ? pix.b : (half)0.0f;
-                pix.a = pix.a >= 0.0f ? pix.a : (half)0.0f;
-            }
-            curDataHead += width;
-        }
+        int32_t width, height;
+        float* textureData;
+        const char* errMsg = nullptr;
+        int exrRet = LoadEXR(&textureData, &width, &height, filepath.c_str(), &errMsg);
+        VLRAssert(exrRet == TINYEXR_SUCCESS, "failed to read the exr."); // TODO: error handling.
 
         ret = context->createLinearImage2D(
-            reinterpret_cast<uint8_t*>(linearImageData), width, height, "RGBA16Fx4",
+            reinterpret_cast<uint8_t*>(textureData), width, height, "RGBA16Fx4",
             spectrumType.c_str(), colorSpace.c_str());
 
-        delete[] linearImageData;
+        free(textureData);
     }
     else if (ext == "dds") {
         int32_t width, height, mipCount;
@@ -168,7 +146,7 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
             spectrumType.c_str(), colorSpace.c_str());
         Assert(ret, "failed to load a block compressed texture.");
 
-        dds::free(data, mipCount, sizes);
+        dds::free(data, sizes);
     }
     else {
         int32_t width, height, n;
@@ -198,23 +176,66 @@ void writePNG(const std::filesystem::path &filePath, uint32_t width, uint32_t he
 }
 
 void writeEXR(const std::filesystem::path &filePath, uint32_t width, uint32_t height, const float* data) {
-    using namespace Imf;
+    EXRHeader header;
+    InitEXRHeader(&header);
 
-    auto imfData = new Rgba[width * height];
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            uint32_t idx = y * width + x;
-            Rgba &outPix = imfData[idx];
-            outPix.r = static_cast<half>(data[4 * idx + 0]);
-            outPix.g = static_cast<half>(data[4 * idx + 1]);
-            outPix.b = static_cast<half>(data[4 * idx + 2]);
-            outPix.a = static_cast<half>(data[4 * idx + 3]);
+    EXRImage image;
+    InitEXRImage(&image);
+
+    image.num_channels = 4;
+
+    std::vector<float> images[4];
+    images[0].resize(width * height);
+    images[1].resize(width * height);
+    images[2].resize(width * height);
+    images[3].resize(width * height);
+
+    bool flipY = false;
+    float brightnessScale = 1.0f;
+    for (uint32_t y = 0; y < height; ++y) {
+        for (uint32_t x = 0; x < width; ++x) {
+            uint32_t srcIdx = 4 * (y * width + x);
+            uint32_t dstIdx = (flipY ? (height - 1 - y) : y) * width + x;
+            images[0][dstIdx] = brightnessScale * data[srcIdx + 0];
+            images[1][dstIdx] = brightnessScale * data[srcIdx + 1];
+            images[2][dstIdx] = brightnessScale * data[srcIdx + 2];
+            images[3][dstIdx] = brightnessScale * data[srcIdx + 3];
         }
     }
 
-    RgbaOutputFile file(filePath.string().c_str(), width, height, WRITE_RGBA);
-    file.setFrameBuffer(imfData, 1, width);
-    file.writePixels(height);
+    float* image_ptr[4];
+    image_ptr[0] = &(images[3].at(0)); // A
+    image_ptr[1] = &(images[2].at(0)); // B
+    image_ptr[2] = &(images[1].at(0)); // G
+    image_ptr[3] = &(images[0].at(0)); // R
 
-    delete[] imfData;
+    image.images = (unsigned char**)image_ptr;
+    image.width = width;
+    image.height = height;
+
+    header.num_channels = 4;
+    header.channels = (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels);
+    // Must be (A)BGR order, since most of EXR viewers expect this channel order.
+    strncpy(header.channels[0].name, "A", 255); header.channels[0].name[strlen("A")] = '\0';
+    strncpy(header.channels[1].name, "B", 255); header.channels[1].name[strlen("B")] = '\0';
+    strncpy(header.channels[2].name, "G", 255); header.channels[2].name[strlen("G")] = '\0';
+    strncpy(header.channels[3].name, "R", 255); header.channels[3].name[strlen("R")] = '\0';
+
+    header.pixel_types = (int32_t*)malloc(sizeof(int32_t) * header.num_channels);
+    header.requested_pixel_types = (int32_t*)malloc(sizeof(int32_t) * header.num_channels);
+    for (int i = 0; i < header.num_channels; i++) {
+        header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+        header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+    }
+
+    const char* err = nullptr;
+    int32_t ret = SaveEXRImageToFile(&image, &header, filePath.string().c_str(), &err);
+    if (ret != TINYEXR_SUCCESS) {
+        fprintf(stderr, "Save EXR err: %s\n", err);
+        FreeEXRErrorMessage(err);
+    }
+
+    free(header.channels);
+    free(header.pixel_types);
+    free(header.requested_pixel_types);
 }

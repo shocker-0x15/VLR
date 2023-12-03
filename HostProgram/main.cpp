@@ -2,8 +2,8 @@
 
 #define NOMINMAX
 #include "imgui.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_impl_glfw.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
 #include "gl_util.h"
 // Include glfw3.h after our OpenGL definitions
 #include "GLFW/glfw3.h"

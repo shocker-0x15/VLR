@@ -86,7 +86,7 @@ namespace vlr {
                 roPayload.pathLength > debugPathLength)
                 break;
 
-            optixu::trace<PTPayloadSignature>(
+            PTPayloadSignature::trace(
                 plp.topGroup, asOptiXType(rayOrg), asOptiXType(rayDir), 0.0f, FLT_MAX, 0.0f,
                 VisibilityGroup_Everything, OPTIX_RAY_FLAG_NONE,
                 PTRayType::Closest, MaxNumRayTypes, PTRayType::Closest,

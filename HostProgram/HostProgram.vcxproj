@@ -20,19 +20,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -45,13 +45,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\local\include;C:\local\include\Imath;C:\local\include\OpenEXR;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\local\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\local\include;C:\local\include\Imath;C:\local\include\OpenEXR;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\local\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -65,7 +65,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc143-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;$(OutDir)libvlr.lib;opengl32.lib;zlibstaticd.lib;assimp-vc143-mtd.lib;glfw3d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
@@ -89,7 +89,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;Imath-3_1.lib;OpenEXR-3_1.lib;assimp-vc143-mt.lib;$(OutDir)VLR.lib;$(ProjectDir)ext\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;$(OutDir)libvlr.lib;opengl32.lib;zlibstatic.lib;assimp-vc143-mt.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -97,38 +97,44 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ext\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\ext\imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\ext\imgui\imgui.cpp" />
+    <ClCompile Include="..\ext\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\ext\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\ext\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\ext\prebuilt\src\gl3w.c" />
+    <ClCompile Include="..\ext\tinyexr\deps\miniz\miniz.c" />
+    <ClCompile Include="..\ext\tinyexr\deps\nanozlib\wuffs-v0.3.c" />
+    <ClCompile Include="..\ext\tinyexr\tinyexr.cc" />
     <ClCompile Include="cpp_compile_test.cpp" />
     <ClCompile Include="c_compile_test.c" />
     <ClCompile Include="dds_loader.cpp" />
-    <ClCompile Include="ext\src\gl3w\gl3w.c" />
-    <ClCompile Include="ext\src\imGui\imgui.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_demo.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_draw.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_tables.cpp" />
-    <ClCompile Include="ext\src\imGui\imgui_widgets.cpp" />
     <ClCompile Include="gl_util.cpp" />
     <ClCompile Include="image.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="scene.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ext\glfw\include\GLFW\glfw3.h" />
+    <ClInclude Include="..\ext\glfw\include\GLFW\glfw3native.h" />
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_glfw.h" />
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="..\ext\imgui\imconfig.h" />
+    <ClInclude Include="..\ext\imgui\imgui.h" />
+    <ClInclude Include="..\ext\imgui\imgui_internal.h" />
+    <ClInclude Include="..\ext\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\ext\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\ext\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\ext\prebuilt\include\GL\gl3w.h" />
+    <ClInclude Include="..\ext\prebuilt\include\GL\glcorearb.h" />
+    <ClInclude Include="..\ext\prebuilt\include\KHR\khrplatform.h" />
+    <ClInclude Include="..\ext\tinyexr\deps\miniz\miniz.h" />
+    <ClInclude Include="..\ext\tinyexr\deps\nanozlib\nanozlib.h" />
+    <ClInclude Include="..\ext\tinyexr\tinyexr.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="dds_loader.h" />
-    <ClInclude Include="ext\include\GLFW\glfw3.h" />
-    <ClInclude Include="ext\include\GLFW\glfw3native.h" />
-    <ClInclude Include="ext\include\GL\gl3w.h" />
-    <ClInclude Include="ext\include\GL\glcorearb.h" />
-    <ClInclude Include="ext\include\imGui\imconfig.h" />
-    <ClInclude Include="ext\include\imGui\imgui.h" />
-    <ClInclude Include="ext\include\imGui\imgui_impl_glfw.h" />
-    <ClInclude Include="ext\include\imGui\imgui_impl_opengl3.h" />
-    <ClInclude Include="ext\include\imGui\imgui_internal.h" />
-    <ClInclude Include="ext\include\imGui\imstb_rectpack.h" />
-    <ClInclude Include="ext\include\imGui\imstb_textedit.h" />
-    <ClInclude Include="ext\include\imGui\imstb_truetype.h" />
-    <ClInclude Include="ext\include\KHR\khrplatform.h" />
     <ClInclude Include="gl_util.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="parameter.h" />
@@ -138,48 +144,27 @@
   <ItemGroup>
     <CopyFileToFolders Include="shaders\drawOptiXResult.frag">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\drawOptiXResult.vert">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\scale.frag">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\scale.vert">
       <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)shaders</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)shaders</DestinationFolders>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Imath-3_1.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\OpenEXR-3_1.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Iex-3_1.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\IlmThread-3_1.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\assimp-vc143-mt.dll">
-      <FileType>Document</FileType>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)HostProgram\shaders</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" />
   </ImportGroup>
 </Project>

@@ -2629,13 +2629,13 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
 void createScene(const vlr::ContextRef &context, Shot* shot) {
     //createTempScene(context, shot);
     //createSingleSphereScene(context, shot);
-    createCornellBoxScene(context, shot);
+    //createCornellBoxScene(context, shot);
     //createMaterialTestScene(context, shot);
     //createAnisotropyScene(context, shot);
     //createWhiteFurnaceTestScene(context, shot);
     //createColorCheckerScene(context, shot);
     //createColorInterpolationTestScene(context, shot);
-    //createSubstanceManScene(context, shot);
+    createSubstanceManScene(context, shot);
     //createGalleryScene(context, shot);
     //createHairballScene(context, shot);
     //createRungholtScene(context, shot);

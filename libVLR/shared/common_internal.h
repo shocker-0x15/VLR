@@ -64,7 +64,6 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 #include <chrono>
 #include <limits>
-#include <algorithm>
 #include <memory>
 #include <functional>
 #include <random>
@@ -72,6 +71,8 @@ static constexpr uint32_t NumStrataForStorage = 16;
 #include <immintrin.h>
 
 #endif
+
+#include <algorithm>
 
 #undef CUDA_DEVICE_FUNCTION
 #include "../utils/optixu_on_cudau.h"

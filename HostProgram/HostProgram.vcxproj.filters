@@ -2,29 +2,8 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ext\src\gl3w\gl3w.c">
-      <Filter>gl3w</Filter>
-    </ClCompile>
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="c_compile_test.c" />
-    <ClCompile Include="ext\src\imGui\imgui_impl_glfw.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_impl_opengl3.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_widgets.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_demo.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_draw.cpp">
-      <Filter>imGui</Filter>
-    </ClCompile>
     <ClCompile Include="cpp_compile_test.cpp" />
     <ClCompile Include="dds_loader.cpp">
       <Filter>helpers</Filter>
@@ -35,74 +14,74 @@
     <ClCompile Include="image.cpp">
       <Filter>helpers</Filter>
     </ClCompile>
-    <ClCompile Include="ext\src\imGui\imgui_tables.cpp">
-      <Filter>imGui</Filter>
+    <ClCompile Include="..\ext\imgui\imgui.cpp">
+      <Filter>ext\imgui\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\imgui\imgui_draw.cpp">
+      <Filter>ext\imgui\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\imgui\imgui_tables.cpp">
+      <Filter>ext\imgui\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\imgui\imgui_widgets.cpp">
+      <Filter>ext\imgui\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>ext\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>ext\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\prebuilt\src\gl3w.c">
+      <Filter>ext\gl3w</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\tinyexr\tinyexr.cc">
+      <Filter>ext\tinyexr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\tinyexr\deps\miniz\miniz.c">
+      <Filter>ext\tinyexr\miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ext\tinyexr\deps\nanozlib\wuffs-v0.3.c">
+      <Filter>ext\tinyexr\nanozlib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="gl3w">
-      <UniqueIdentifier>{f1d96776-f3d0-4528-b4c8-1bf6b691e30b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="imGui">
-      <UniqueIdentifier>{c87f610c-174a-4151-b19d-cdfb50062d04}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{b1ba1065-1607-4b70-8c86-9c1535ae2b93}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GLFW">
-      <UniqueIdentifier>{087fdc49-3034-48a3-95d9-953bde5f51ac}</UniqueIdentifier>
     </Filter>
     <Filter Include="helpers">
       <UniqueIdentifier>{079c8b79-02fc-414e-b18d-35ee05d2185f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="files to copy">
-      <UniqueIdentifier>{e25caf6d-50c3-4ffd-af1c-9537fca00240}</UniqueIdentifier>
+    <Filter Include="ext">
+      <UniqueIdentifier>{1dea447f-c586-4af4-9fcc-07446eaf5302}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\gl3w">
+      <UniqueIdentifier>{6497c07d-c3f7-4fb5-93de-b585feebf71b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\glfw">
+      <UniqueIdentifier>{43e601ba-e170-4f1d-a2f8-bf59df727ea2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\imgui">
+      <UniqueIdentifier>{31dd1e9f-aa48-4946-be58-14b0af22f884}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\imgui\core">
+      <UniqueIdentifier>{af65f80e-df32-4b70-b046-f63a5ac93235}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\tinyexr">
+      <UniqueIdentifier>{1f9ebec8-34bb-4d1c-92d1-07450937107e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\tinyexr\miniz">
+      <UniqueIdentifier>{6cf3b058-ea32-4e6e-8fdf-96bfbbe9abaf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ext\tinyexr\nanozlib">
+      <UniqueIdentifier>{2c013ec0-e674-4ab5-a3f3-ecbbd1f11323}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ext\include\GL\gl3w.h">
-      <Filter>gl3w</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\GL\glcorearb.h">
-      <Filter>gl3w</Filter>
-    </ClInclude>
     <ClInclude Include="StopWatch.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="ext\include\imGui\imgui_impl_glfw.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imgui_impl_opengl3.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imgui_internal.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imstb_rectpack.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imstb_textedit.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imstb_truetype.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imconfig.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\imGui\imgui.h">
-      <Filter>imGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\GLFW\glfw3.h">
-      <Filter>GLFW</Filter>
-    </ClInclude>
-    <ClInclude Include="ext\include\GLFW\glfw3native.h">
-      <Filter>GLFW</Filter>
-    </ClInclude>
     <ClInclude Include="parameter.h" />
-    <ClInclude Include="ext\include\KHR\khrplatform.h">
-      <Filter>gl3w</Filter>
-    </ClInclude>
     <ClInclude Include="gl_util.h">
       <Filter>helpers</Filter>
     </ClInclude>
@@ -111,6 +90,57 @@
     </ClInclude>
     <ClInclude Include="image.h">
       <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imconfig.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imgui.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imgui_internal.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imstb_rectpack.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imstb_textedit.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\imstb_truetype.h">
+      <Filter>ext\imgui\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_glfw.h">
+      <Filter>ext\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_opengl3.h">
+      <Filter>ext\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\imgui\backends\imgui_impl_opengl3_loader.h">
+      <Filter>ext\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\glfw\include\GLFW\glfw3.h">
+      <Filter>ext\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\glfw\include\GLFW\glfw3native.h">
+      <Filter>ext\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\GL\gl3w.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\GL\glcorearb.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\prebuilt\include\KHR\khrplatform.h">
+      <Filter>ext\gl3w</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\tinyexr\tinyexr.h">
+      <Filter>ext\tinyexr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\tinyexr\deps\miniz\miniz.h">
+      <Filter>ext\tinyexr\miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ext\tinyexr\deps\nanozlib\nanozlib.h">
+      <Filter>ext\tinyexr\nanozlib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -125,21 +155,6 @@
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\scale.frag">
       <Filter>shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Imath-3_1.dll">
-      <Filter>files to copy</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\OpenEXR-3_1.dll">
-      <Filter>files to copy</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\Iex-3_1.dll">
-      <Filter>files to copy</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\IlmThread-3_1.dll">
-      <Filter>files to copy</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\..\..\..\local\bin\assimp-vc143-mt.dll">
-      <Filter>files to copy</Filter>
     </CopyFileToFolders>
   </ItemGroup>
 </Project>
