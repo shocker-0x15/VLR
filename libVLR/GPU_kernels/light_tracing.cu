@@ -5,11 +5,11 @@ namespace vlr {
 
     static constexpr int32_t debugPathLength = 0;
 
-    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool onProbePixel() {
         return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
     }
 
-    CUDA_DEVICE_FUNCTION bool onProbePixel(const float2 &projPixel) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool onProbePixel(const float2 &projPixel) {
         return static_cast<int32_t>(projPixel.x) == plp.probePixX &&
             static_cast<int32_t>(projPixel.y) == plp.probePixY;
     }
@@ -29,7 +29,7 @@ namespace vlr {
             optixIgnoreIntersection();
     }
 
-    CUDA_DEVICE_FUNCTION void atomicAddToBuffer(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicAddToBuffer(
         const WavelengthSamples &wls, const SampledSpectrum &contribution,
         const float2 &pixel) {
         uint32_t ipx = static_cast<uint32_t>(pixel.x);

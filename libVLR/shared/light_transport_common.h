@@ -144,7 +144,7 @@ namespace vlr::shared {
     // Light
 
     template <uint32_t rayType>
-    CUDA_DEVICE_FUNCTION bool testVisibility(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool testVisibility(
         const SurfacePoint &shadingSurfacePoint, const SurfacePoint &lightSurfacePoint, const WavelengthSamples &wls,
         Vector3D* shadowRayDir, float* squaredDistance, float* fractionalVisibility) {
         VLRAssert(shadingSurfacePoint.atInfinity == false, "Shading point must be in finite region.");
@@ -176,7 +176,7 @@ namespace vlr::shared {
         return *fractionalVisibility > 0;
     }
 
-    CUDA_DEVICE_FUNCTION void selectSurfaceLight(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void selectSurfaceLight(
         float uLight, SurfaceLight* light, float* lightProb, float* uPrim) {
         float uInst;
         float instProb;

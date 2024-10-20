@@ -50,7 +50,7 @@ namespace vlr {
 
     using DiscretizedSpectrumAlwaysSpectral = DiscretizedSpectrumTemplate<float, NumStrataForStorage>;
 
-    CUDA_DEVICE_FUNCTION TripletSpectrum createTripletSpectrum(SpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE TripletSpectrum createTripletSpectrum(SpectrumType spectrumType, ColorSpace colorSpace, float e0, float e1, float e2) {
 #if defined(VLR_USE_SPECTRAL_RENDERING)
         return UpsampledSpectrum(spectrumType, colorSpace, e0, e1, e2);
 #else
@@ -189,9 +189,9 @@ namespace vlr {
             DiscreteDistribution1DTemplate(const RealType* PMF, const RealType* CDF, RealType integral, uint32_t numValues) :
                 m_PMF(PMF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
-            CUDA_DEVICE_FUNCTION DiscreteDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE DiscreteDistribution1DTemplate() {}
 
-            CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t sample(RealType u, RealType* prob) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = 0;
                 for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
@@ -204,7 +204,7 @@ namespace vlr {
                 *prob = m_PMF[idx];
                 return idx;
             }
-            CUDA_DEVICE_FUNCTION uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t sample(RealType u, RealType* prob, RealType* remapped) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = 0;
                 for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
@@ -218,13 +218,13 @@ namespace vlr {
                 *remapped = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return idx;
             }
-            CUDA_DEVICE_FUNCTION RealType evaluatePMF(uint32_t idx) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType evaluatePMF(uint32_t idx) const {
                 VLRAssert(idx < m_numValues, "\"idx\" is out of range [0, %u)", m_numValues);
                 return m_PMF[idx];
             }
 
-            CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
-            CUDA_DEVICE_FUNCTION uint32_t numValues() const { return m_numValues; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType integral() const { return m_integral; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t numValues() const { return m_numValues; }
         };
 
         using DiscreteDistribution1D = DiscreteDistribution1DTemplate<float>;
@@ -242,9 +242,9 @@ namespace vlr {
             RegularConstantContinuousDistribution1DTemplate(const RealType* PDF, const RealType* CDF, RealType integral, uint32_t numValues) :
                 m_PDF(PDF), m_CDF(CDF), m_integral(integral), m_numValues(numValues) {}
 
-            CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution1DTemplate() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RegularConstantContinuousDistribution1DTemplate() {}
 
-            CUDA_DEVICE_FUNCTION RealType sample(RealType u, RealType* probDensity) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType sample(RealType u, RealType* probDensity) const {
                 VLRAssert(u >= 0 && u < 1, "\"u\": %g must be in range [0, 1).", u);
                 int idx = 0;
                 for (int d = nextPowerOf2(m_numValues) >> 1; d >= 1; d >>= 1) {
@@ -258,14 +258,14 @@ namespace vlr {
                 RealType t = (u - m_CDF[idx]) / (m_CDF[idx + 1] - m_CDF[idx]);
                 return (idx + t) / m_numValues;
             }
-            CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType smp) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType evaluatePDF(RealType smp) const {
                 VLRAssert(smp >= 0 && smp < 1.0, "\"smp\": %g is out of range [0, 1).", smp);
                 int32_t idx = ::vlr::min<int32_t>(m_numValues - 1, smp * m_numValues);
                 return m_PDF[idx];
             }
-            CUDA_DEVICE_FUNCTION RealType integral() const { return m_integral; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType integral() const { return m_integral; }
 
-            CUDA_DEVICE_FUNCTION uint32_t numValues() const { return m_numValues; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t numValues() const { return m_numValues; }
         };
 
         using RegularConstantContinuousDistribution1D = RegularConstantContinuousDistribution1DTemplate<float>;
@@ -282,16 +282,16 @@ namespace vlr {
                                                             const RegularConstantContinuousDistribution1DTemplate<RealType> &top1DDist) :
                 m_1DDists(_1DDists), m_top1DDist(top1DDist) {}
 
-            CUDA_DEVICE_FUNCTION RegularConstantContinuousDistribution2DTemplate() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RegularConstantContinuousDistribution2DTemplate() {}
 
-            CUDA_DEVICE_FUNCTION void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE void sample(RealType u0, RealType u1, RealType* d0, RealType* d1, RealType* probDensity) const {
                 RealType topPDF;
                 *d1 = m_top1DDist.sample(u1, &topPDF);
                 uint32_t idx1D = ::vlr::min(uint32_t(m_top1DDist.numValues() * *d1), m_top1DDist.numValues() - 1);
                 *d0 = m_1DDists[idx1D].sample(u0, probDensity);
                 *probDensity *= topPDF;
             }
-            CUDA_DEVICE_FUNCTION RealType evaluatePDF(RealType d0, RealType d1) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE RealType evaluatePDF(RealType d0, RealType d1) const {
                 uint32_t idx1D = ::vlr::min(uint32_t(m_top1DDist.numValues() * d1), m_top1DDist.numValues() - 1);
                 return m_top1DDist.evaluatePDF(d1) * m_1DDists[idx1D].evaluatePDF(d0);
             }
@@ -306,32 +306,32 @@ namespace vlr {
             Matrix4x4 m_invMatrix;
 
         public:
-            CUDA_DEVICE_FUNCTION StaticTransform() {}
-            CUDA_DEVICE_FUNCTION StaticTransform(const Matrix4x4 &m) : m_matrix(m), m_invMatrix(invert(m)) {}
-            CUDA_DEVICE_FUNCTION StaticTransform(const Matrix4x4 &m, const Matrix4x4 &mInv) : m_matrix(m), m_invMatrix(mInv) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE StaticTransform() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE StaticTransform(const Matrix4x4 &m) : m_matrix(m), m_invMatrix(invert(m)) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE StaticTransform(const Matrix4x4 &m, const Matrix4x4 &mInv) : m_matrix(m), m_invMatrix(mInv) {}
 
-            CUDA_DEVICE_FUNCTION Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
-            CUDA_DEVICE_FUNCTION Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
-            CUDA_DEVICE_FUNCTION Point3D operator*(const Point3D &p) const { return m_matrix * p; }
-            CUDA_DEVICE_FUNCTION Normal3D operator*(const Normal3D &n) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Vector3D operator*(const Vector3D &v) const { return m_matrix * v; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Vector4D operator*(const Vector4D &v) const { return m_matrix * v; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Point3D operator*(const Point3D &p) const { return m_matrix * p; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Normal3D operator*(const Normal3D &n) const {
                 // The length of the normal is changed if the transform has scaling, so it requires normalization.
                 return Normal3D(m_invMatrix.m00 * n.x + m_invMatrix.m10 * n.y + m_invMatrix.m20 * n.z,
                                 m_invMatrix.m01 * n.x + m_invMatrix.m11 * n.y + m_invMatrix.m21 * n.z,
                                 m_invMatrix.m02 * n.x + m_invMatrix.m12 * n.y + m_invMatrix.m22 * n.z);
             }
-            CUDA_DEVICE_FUNCTION BoundingBox3D operator*(const BoundingBox3D &b) const { return m_matrix * b; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3D operator*(const BoundingBox3D &b) const { return m_matrix * b; }
 
 
-            CUDA_DEVICE_FUNCTION Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
-            CUDA_DEVICE_FUNCTION Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
-            CUDA_DEVICE_FUNCTION Point3D mulInv(const Point3D& p) const { return m_invMatrix * p; }
-            CUDA_DEVICE_FUNCTION Normal3D mulInv(const Normal3D& n) const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Vector3D mulInv(const Vector3D& v) const { return m_invMatrix * v; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Vector4D mulInv(const Vector4D& v) const { return m_invMatrix * v; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Point3D mulInv(const Point3D& p) const { return m_invMatrix * p; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE Normal3D mulInv(const Normal3D& n) const {
                 // The length of the normal is changed if the transform has scaling, so it requires normalization.
                 return Normal3D(m_matrix.m00 * n.x + m_matrix.m10 * n.y + m_matrix.m20 * n.z,
                                 m_matrix.m01 * n.x + m_matrix.m11 * n.y + m_matrix.m21 * n.z,
                                 m_matrix.m02 * n.x + m_matrix.m12 * n.y + m_matrix.m22 * n.z);
             }
-            CUDA_DEVICE_FUNCTION BoundingBox3D mulInv(const BoundingBox3D &b) const { return m_invMatrix * b; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3D mulInv(const BoundingBox3D &b) const { return m_invMatrix * b; }
         };
 
 
@@ -351,9 +351,9 @@ namespace vlr {
             };
             uint32_t asUInt;
 
-            CUDA_DEVICE_FUNCTION ShaderNodePlug() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE ShaderNodePlug() {}
             explicit constexpr ShaderNodePlug(uint32_t ui) : asUInt(ui) {}
-            CUDA_DEVICE_FUNCTION bool isValid() const { return asUInt != 0xFFFFFFFF; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE bool isValid() const { return asUInt != 0xFFFFFFFF; }
 
             static constexpr ShaderNodePlug Invalid() { return ShaderNodePlug(0xFFFFFFFF); }
         };
@@ -364,17 +364,17 @@ namespace vlr {
             uint32_t data[Size];
 
             template <typename T>
-            CUDA_DEVICE_FUNCTION T* getData() {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE T* getData() {
                 VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return reinterpret_cast<T*>(data);
             }
             template <typename T>
-            CUDA_DEVICE_FUNCTION const T* getData() const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE const T* getData() const {
                 VLRAssert(sizeof(T) <= sizeof(data), "Too big node data.");
                 return reinterpret_cast<const T*>(data);
             }
 
-            CUDA_DEVICE_FUNCTION static constexpr uint32_t NumDWSlots() { return Size; }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE static constexpr uint32_t NumDWSlots() { return Size; }
         };
 
         using SmallNodeDescriptor = NodeDescriptor<4>;
@@ -390,21 +390,21 @@ namespace vlr {
         template <typename Type>
         struct NodeTypeInfo {
             template <typename SrcType>
-            CUDA_DEVICE_FUNCTION static constexpr bool ConversionIsDefinedFrom() {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE static constexpr bool ConversionIsDefinedFrom() {
                 return false;
             }
-            CUDA_DEVICE_FUNCTION static constexpr bool ConversionIsDefinedFrom(ShaderNodePlugType plugType);
+            CUDA_DEVICE_FUNCTION CUDA_INLINE static constexpr bool ConversionIsDefinedFrom(ShaderNodePlugType plugType);
             template <typename SrcType>
-            CUDA_DEVICE_FUNCTION static Type convertFrom(const SrcType &) {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE static Type convertFrom(const SrcType &) {
                 return Type();
             }
         };
 
 #define VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(DstType, SrcType) \
     template <> template <> \
-    CUDA_DEVICE_FUNCTION constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr bool NodeTypeInfo<DstType>::ConversionIsDefinedFrom<SrcType>() { return true; } \
     template <> template <> \
-    CUDA_DEVICE_FUNCTION DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
+    CUDA_DEVICE_FUNCTION CUDA_INLINE DstType NodeTypeInfo<DstType>::convertFrom<SrcType>(const SrcType &srcValue)
 
         VLR_NODE_TYPE_INFO_DEFINE_CONVERSION(float, float) { return srcValue; }
 
@@ -440,7 +440,7 @@ namespace vlr {
 #undef VLR_NODE_TYPE_INFO_DEFINE_CONVERSION
 
         template <typename Type>
-        CUDA_DEVICE_FUNCTION constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFrom(ShaderNodePlugType plugType) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr bool NodeTypeInfo<Type>::ConversionIsDefinedFrom(ShaderNodePlugType plugType) {
             switch (plugType) {
             case ShaderNodePlugType::float1:
                 return ConversionIsDefinedFrom<float>();
@@ -557,7 +557,7 @@ namespace vlr {
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr PTRayType(Value v = Closest) : value(v) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr PTRayType(Value v = Closest) : value(v) {}
         };
 
         struct LTRayType {
@@ -567,7 +567,7 @@ namespace vlr {
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr LTRayType(Value v = Closest) : value(v) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr LTRayType(Value v = Closest) : value(v) {}
         };
 
         struct LVCBPTRayType {
@@ -578,7 +578,7 @@ namespace vlr {
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr LVCBPTRayType(Value v = LightPath) : value(v) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr LVCBPTRayType(Value v = LightPath) : value(v) {}
         };
 
         struct AuxBufGenRayType {
@@ -587,7 +587,7 @@ namespace vlr {
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr AuxBufGenRayType(Value v = Primary) : value(v) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr AuxBufGenRayType(Value v = Primary) : value(v) {}
         };
 
         struct DebugRayType {
@@ -596,7 +596,7 @@ namespace vlr {
                 NumTypes
             } value;
 
-            CUDA_DEVICE_FUNCTION constexpr DebugRayType(Value v = Primary) : value(v) {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr DebugRayType(Value v = Primary) : value(v) {}
         };
 
         static constexpr uint32_t MaxNumRayTypes = 3;
@@ -736,11 +736,11 @@ namespace vlr {
                 unsigned int height : 16;
             };
 
-            CUDA_DEVICE_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
-            CUDA_DEVICE_FUNCTION SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
-            CUDA_DEVICE_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
-            CUDA_DEVICE_FUNCTION BumpType getBumpType() const { return BumpType(bumpType); }
-            CUDA_DEVICE_FUNCTION float getBumpCoeff() const {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE DataFormat getDataFormat() const { return DataFormat(dataFormat); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE SpectrumType getSpectrumType() const { return SpectrumType(spectrumType); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE BumpType getBumpType() const { return BumpType(bumpType); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE float getBumpCoeff() const {
                 // map to (0, 2]
                 return static_cast<float>(bumpCoeff + 1) / (1 << (VLR_IMAGE2D_TEXTURE_SHADER_NODE_BUMP_COEFF_BITWIDTH - 1));
             }
@@ -754,8 +754,8 @@ namespace vlr {
                 unsigned int colorSpace : 3;
             };
 
-            CUDA_DEVICE_FUNCTION DataFormat getDataFormat() const { return DataFormat(dataFormat); }
-            CUDA_DEVICE_FUNCTION ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE DataFormat getDataFormat() const { return DataFormat(dataFormat); }
+            CUDA_DEVICE_FUNCTION CUDA_INLINE ColorSpace getColorSpace() const { return ColorSpace(colorSpace); }
         };
 
         // END: Shader Nodes
@@ -892,7 +892,7 @@ namespace vlr {
             float opHeight;
             float imgPlaneArea;
 
-            CUDA_DEVICE_FUNCTION PerspectiveCamera() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE PerspectiveCamera() {}
 
             void setImagePlaneArea() {
                 opHeight = 2.0f * objPlaneDistance * std::tan(fovY * 0.5f);
@@ -911,7 +911,7 @@ namespace vlr {
             float phiAngle;
             float thetaAngle;
 
-            CUDA_DEVICE_FUNCTION EquirectangularCamera() {}
+            CUDA_DEVICE_FUNCTION CUDA_INLINE EquirectangularCamera() {}
         };
 
         // END: Camera

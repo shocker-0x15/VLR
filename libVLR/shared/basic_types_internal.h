@@ -17,40 +17,40 @@ namespace vlr {
 
 
 
-    CUDA_DEVICE_FUNCTION constexpr Vector3D asVector3D(const float3 &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr Vector3D asVector3D(const float3 &v) {
         return Vector3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Vector3D &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float3 asOptiXType(const Vector3D &v) {
         return make_float3(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION constexpr Vector4D asVector4D(const float4 &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr Vector4D asVector4D(const float4 &v) {
         return Vector4D(v.x, v.y, v.z, v.w);
     }
-    CUDA_DEVICE_FUNCTION float4 asOptiXType(const Vector4D &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float4 asOptiXType(const Vector4D &v) {
         return make_float4(v.x, v.y, v.z, v.w);
     }
-    CUDA_DEVICE_FUNCTION constexpr Normal3D asNormal3D(const float3 &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr Normal3D asNormal3D(const float3 &v) {
         return Normal3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Normal3D &n) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float3 asOptiXType(const Normal3D &n) {
         return make_float3(n.x, n.y, n.z);
     }
-    CUDA_DEVICE_FUNCTION constexpr Point3D asPoint3D(const float3 &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr Point3D asPoint3D(const float3 &v) {
         return Point3D(v.x, v.y, v.z);
     }
-    CUDA_DEVICE_FUNCTION float3 asOptiXType(const Point3D &p) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float3 asOptiXType(const Point3D &p) {
         return make_float3(p.x, p.y, p.z);
     }
-    CUDA_DEVICE_FUNCTION constexpr TexCoord2D asTexCoord2D(const float2 &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr TexCoord2D asTexCoord2D(const float2 &v) {
         return TexCoord2D(v.x, v.y);
     }
-    CUDA_DEVICE_FUNCTION float2 asOptiXType(const TexCoord2D &p) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float2 asOptiXType(const TexCoord2D &p) {
         return make_float2(p.u, p.v);
     }
 
 
 
-    CUDA_DEVICE_FUNCTION int32_t floatToOrderedInt(float fVal) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE int32_t floatToOrderedInt(float fVal) {
 #if defined(VLR_Host)
         int32_t iVal = *reinterpret_cast<int32_t*>(&fVal);
 #else
@@ -59,7 +59,7 @@ namespace vlr {
         return (iVal >= 0) ? iVal : iVal ^ 0x7FFFFFFF;
     }
 
-    CUDA_DEVICE_FUNCTION float orderedIntToFloat(int32_t iVal) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float orderedIntToFloat(int32_t iVal) {
         int32_t orgVal = (iVal >= 0) ? iVal : iVal ^ 0x7FFFFFFF;
 #if defined(VLR_Host)
         return *reinterpret_cast<float*>(&orgVal);
@@ -68,7 +68,7 @@ namespace vlr {
 #endif
     }
 
-    CUDA_DEVICE_FUNCTION uint32_t floatToOrderedUInt(float fVal) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t floatToOrderedUInt(float fVal) {
 #if defined(VLR_Host)
         int32_t iVal = *reinterpret_cast<int32_t*>(&fVal);
 #else
@@ -80,46 +80,46 @@ namespace vlr {
     struct Point3DAsOrderedInt {
         int32_t x, y, z;
 
-        CUDA_DEVICE_FUNCTION Point3DAsOrderedInt() : x(0), y(0), z(0) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt() : x(0), y(0), z(0) {
         }
-        CUDA_DEVICE_FUNCTION Point3DAsOrderedInt(const Point3D &v) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt(const Point3D &v) :
             x(floatToOrderedInt(v.x)), y(floatToOrderedInt(v.y)), z(floatToOrderedInt(v.z)) {
         }
 
-        CUDA_DEVICE_FUNCTION Point3DAsOrderedInt& operator=(const Point3DAsOrderedInt &v) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt& operator=(const Point3DAsOrderedInt &v) {
             x = v.x;
             y = v.y;
             z = v.z;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION Point3DAsOrderedInt& operator=(const volatile Point3DAsOrderedInt &v) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt& operator=(const volatile Point3DAsOrderedInt &v) {
             x = v.x;
             y = v.y;
             z = v.z;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION volatile Point3DAsOrderedInt& operator=(const Point3DAsOrderedInt &v) volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE volatile Point3DAsOrderedInt& operator=(const Point3DAsOrderedInt &v) volatile {
             x = v.x;
             y = v.y;
             z = v.z;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION volatile Point3DAsOrderedInt& operator=(const volatile Point3DAsOrderedInt &v) volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE volatile Point3DAsOrderedInt& operator=(const volatile Point3DAsOrderedInt &v) volatile {
             x = v.x;
             y = v.y;
             z = v.z;
             return *this;
         }
 
-        CUDA_DEVICE_FUNCTION explicit operator Point3D() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE explicit operator Point3D() const {
             return Point3D(orderedIntToFloat(x), orderedIntToFloat(y), orderedIntToFloat(z));
         }
-        CUDA_DEVICE_FUNCTION explicit operator Point3D() const volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE explicit operator Point3D() const volatile {
             return Point3D(orderedIntToFloat(x), orderedIntToFloat(y), orderedIntToFloat(z));
         }
     };
 
-    CUDA_DEVICE_FUNCTION Point3DAsOrderedInt min(const Point3DAsOrderedInt &a, const Point3DAsOrderedInt &b) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt min(const Point3DAsOrderedInt &a, const Point3DAsOrderedInt &b) {
         Point3DAsOrderedInt ret;
         ret.x = vlr::min(a.x, b.x);
         ret.y = vlr::min(a.y, b.y);
@@ -127,7 +127,7 @@ namespace vlr {
         return ret;
     }
 
-    CUDA_DEVICE_FUNCTION Point3DAsOrderedInt max(const Point3DAsOrderedInt &a, const Point3DAsOrderedInt &b) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE Point3DAsOrderedInt max(const Point3DAsOrderedInt &a, const Point3DAsOrderedInt &b) {
         Point3DAsOrderedInt ret;
         ret.x = vlr::max(a.x, b.x);
         ret.y = vlr::max(a.y, b.y);
@@ -139,43 +139,43 @@ namespace vlr {
         Point3DAsOrderedInt minP;
         Point3DAsOrderedInt maxP;
 
-        CUDA_DEVICE_FUNCTION BoundingBox3DAsOrderedInt() :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3DAsOrderedInt() :
             minP(Point3D(INFINITY)), maxP(Point3D(-INFINITY)) {
         }
-        CUDA_DEVICE_FUNCTION BoundingBox3DAsOrderedInt(const BoundingBox3D &v) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3DAsOrderedInt(const BoundingBox3D &v) :
             minP(v.minP), maxP(v.maxP) {
         }
 
-        CUDA_DEVICE_FUNCTION BoundingBox3DAsOrderedInt& operator=(const BoundingBox3DAsOrderedInt &v) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3DAsOrderedInt& operator=(const BoundingBox3DAsOrderedInt &v) {
             minP = v.minP;
             maxP = v.maxP;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION BoundingBox3DAsOrderedInt& operator=(const volatile BoundingBox3DAsOrderedInt &v) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3DAsOrderedInt& operator=(const volatile BoundingBox3DAsOrderedInt &v) {
             minP = v.minP;
             maxP = v.maxP;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION volatile BoundingBox3DAsOrderedInt& operator=(const BoundingBox3DAsOrderedInt &v) volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE volatile BoundingBox3DAsOrderedInt& operator=(const BoundingBox3DAsOrderedInt &v) volatile {
             minP = v.minP;
             maxP = v.maxP;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION volatile BoundingBox3DAsOrderedInt& operator=(const volatile BoundingBox3DAsOrderedInt &v) volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE volatile BoundingBox3DAsOrderedInt& operator=(const volatile BoundingBox3DAsOrderedInt &v) volatile {
             minP = v.minP;
             maxP = v.maxP;
             return *this;
         }
 
-        CUDA_DEVICE_FUNCTION explicit operator BoundingBox3D() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE explicit operator BoundingBox3D() const {
             return BoundingBox3D(static_cast<Point3D>(minP), static_cast<Point3D>(maxP));
         }
-        CUDA_DEVICE_FUNCTION explicit operator BoundingBox3D() const volatile {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE explicit operator BoundingBox3D() const volatile {
             return BoundingBox3D(static_cast<Point3D>(minP), static_cast<Point3D>(maxP));
         }
 
         struct unify {
-            CUDA_DEVICE_FUNCTION BoundingBox3DAsOrderedInt operator()(const BoundingBox3DAsOrderedInt &a, const BoundingBox3DAsOrderedInt &b) {
+            CUDA_DEVICE_FUNCTION CUDA_INLINE BoundingBox3DAsOrderedInt operator()(const BoundingBox3DAsOrderedInt &a, const BoundingBox3DAsOrderedInt &b) {
                 BoundingBox3DAsOrderedInt ret;
                 ret.minP = min(a.minP, b.minP);
                 ret.maxP = max(a.maxP, b.maxP);
@@ -193,46 +193,46 @@ namespace vlr {
 #   define atomicMax_block atomicMax
 #endif
 
-    CUDA_DEVICE_FUNCTION void atomicMinPoint3D(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicMinPoint3D(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMin(&dst->x, v.x);
         atomicMin(&dst->y, v.y);
         atomicMin(&dst->z, v.z);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicMaxPoint3D(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicMaxPoint3D(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMax(&dst->x, v.x);
         atomicMax(&dst->y, v.y);
         atomicMax(&dst->z, v.z);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicMinPoint3D_block(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicMinPoint3D_block(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMin_block(&dst->x, v.x);
         atomicMin_block(&dst->y, v.y);
         atomicMin_block(&dst->z, v.z);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicMaxPoint3D_block(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicMaxPoint3D_block(Point3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMax_block(&dst->x, v.x);
         atomicMax_block(&dst->y, v.y);
         atomicMax_block(&dst->z, v.z);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicUnifyBoundingBox3D(BoundingBox3DAsOrderedInt* dst, const BoundingBox3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicUnifyBoundingBox3D(BoundingBox3DAsOrderedInt* dst, const BoundingBox3DAsOrderedInt &v) {
         atomicMinPoint3D(&dst->minP, v.minP);
         atomicMaxPoint3D(&dst->maxP, v.maxP);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicUnifyBoundingBox3D(BoundingBox3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicUnifyBoundingBox3D(BoundingBox3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMinPoint3D(&dst->minP, v);
         atomicMaxPoint3D(&dst->maxP, v);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicUnifyBoundingBox3D_block(BoundingBox3DAsOrderedInt* dst, const BoundingBox3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicUnifyBoundingBox3D_block(BoundingBox3DAsOrderedInt* dst, const BoundingBox3DAsOrderedInt &v) {
         atomicMinPoint3D_block(&dst->minP, v.minP);
         atomicMaxPoint3D_block(&dst->maxP, v.maxP);
     }
 
-    CUDA_DEVICE_FUNCTION void atomicUnifyBoundingBox3D_block(BoundingBox3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicUnifyBoundingBox3D_block(BoundingBox3DAsOrderedInt* dst, const Point3DAsOrderedInt &v) {
         atomicMinPoint3D_block(&dst->minP, v);
         atomicMaxPoint3D_block(&dst->maxP, v);
     }

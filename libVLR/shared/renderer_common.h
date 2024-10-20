@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 
 #include "kernel_common.h"
 
@@ -25,7 +25,7 @@ namespace vlr::shared {
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION BSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BSDF(
             const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
             setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
@@ -35,7 +35,7 @@ namespace vlr::shared {
             progGetBaseColor = ProgSigBSDFGetBaseColor(procSet.progGetBaseColor);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return progGetBaseColor(data);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
@@ -53,25 +53,25 @@ namespace vlr::shared {
         ProgSigBSDFEvaluatePDFInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType dirType) const {
             return progMatches(data, dirType);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2], BSDFQueryResult* result) const {
             return progSampleInternal(data, query, uComponent, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluateInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(const BSDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluatePDFInternal(data, query, dirLocal);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION BSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BSDF(
             const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupBSDF = static_cast<ProgSigSetupBSDF>(matDesc.progSetupBSDF);
             setupBSDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
@@ -85,15 +85,15 @@ namespace vlr::shared {
             progEvaluatePDFInternal = ProgSigBSDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return progGetBaseColor(data);
         }
 
-        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool hasNonDelta() const {
             return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sample(
             const BSDFQuery &query, const BSDFSample &sample, BSDFQueryResult* result) const {
             result->dirPDF = 0.0f;
             result->sampledType = DirectionType();
@@ -124,7 +124,7 @@ namespace vlr::shared {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(const BSDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum ret = SampledSpectrum::Zero();
 
             float snCorrection;
@@ -147,7 +147,7 @@ namespace vlr::shared {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDF(const BSDFQuery &query, const Vector3D &dirLocal) const {
             if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
@@ -174,20 +174,20 @@ namespace vlr::shared {
         ProgSigBSDFEvaluatePDFWithRevInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType dirType) const {
             return progMatches(data, dirType);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult) const {
             return progSampleInternal(data, query, uComponent, uDir, result, revResult);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue) const {
             return progEvaluateInternal(data, query, dirLocal, revValue);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue) const {
             return progEvaluatePDFInternal(data, query, dirLocal, revValue);
@@ -196,7 +196,7 @@ namespace vlr::shared {
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION BSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BSDF(
             const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls,
             bool fromEDF = false) {
             if (fromEDF) {
@@ -225,15 +225,15 @@ namespace vlr::shared {
             }
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return progGetBaseColor(data);
         }
 
-        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool hasNonDelta() const {
             return matches(DirectionType::WholeSphere() | DirectionType::NonDelta());
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sample(
             const BSDFQuery &query, const BSDFSample &sample,
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult) const {
             result->dirPDF = 0.0f;
@@ -267,7 +267,7 @@ namespace vlr::shared {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue) const {
             SampledSpectrum ret = SampledSpectrum::Zero();
@@ -293,7 +293,7 @@ namespace vlr::shared {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDF(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue) const {
             if (!matches(query.dirTypeFilter))
@@ -323,27 +323,27 @@ namespace vlr::shared {
         ProgSigEDFEvaluatePDFInternal progEvaluatePDFInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType dirType) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType dirType) const {
             return progMatches(data, dirType);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             return progSampleInternal(data, query, uComponent, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             return progEvaluateEmittanceInternal(data);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluateInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(const EDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluatePDFInternal(data, query, dirLocal);
         }
 #endif // #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION EDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE EDF(
             const SurfaceMaterialDescriptor &matDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupEDF = static_cast<ProgSigSetupEDF>(matDesc.progSetupEDF);
             setupEDF(matDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
@@ -357,11 +357,11 @@ namespace vlr::shared {
             progEvaluatePDFInternal = ProgSigEDFEvaluatePDFInternal(procSet.progEvaluatePDFInternal);
         }
 
-        CUDA_DEVICE_FUNCTION bool hasNonDelta() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool hasNonDelta() const {
             return matches(DirectionType::Emission() | DirectionType::NonDelta());
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sample(
             const EDFQuery &query, const EDFSample &sample, EDFQueryResult* result) const {
             if (!matches(query.dirTypeFilter)) {
                 result->dirPDF = 0.0f;
@@ -376,17 +376,17 @@ namespace vlr::shared {
             return fe;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittance() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittance() const {
             SampledSpectrum Le0 = evaluateEmittanceInternal();
             return Le0;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(const EDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum Le1 = evaluateInternal(query, dirLocal);
             return Le1;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const EDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDF(const EDFQuery &query, const Vector3D &dirLocal) const {
             if (!matches(query.dirTypeFilter)) {
                 return 0;
             }
@@ -409,21 +409,21 @@ namespace vlr::shared {
         ProgSigIDFBackProjectDirectionInternal progBackProjectDirectionInternal;
 
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const IDFQuery &query, const float uDir[2], IDFQueryResult* result) const {
             return progSampleInternal(data, query, uDir, result);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateSpatialImportanceInternal() const {
             return progEvaluateSpatialImportanceInternal(data);
         }
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateDirectionalImportanceInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluateDirectionalImportanceInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(const IDFQuery &query, const Vector3D &dirLocal) const {
             return progEvaluatePDFInternal(data, query, dirLocal);
         }
-        CUDA_DEVICE_FUNCTION float2 backProjectDirectionInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float2 backProjectDirectionInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             return progBackProjectDirectionInternal(data, query, dirLocal);
         }
@@ -431,7 +431,7 @@ namespace vlr::shared {
 
     public:
 #if defined(VLR_Device) || defined(OPTIXU_Platform_CodeCompletion)
-        CUDA_DEVICE_FUNCTION IDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE IDF(
             const CameraDescriptor &camDesc, const SurfacePoint &surfPt, const WavelengthSamples &wls) {
             auto setupIDF = static_cast<ProgSigSetupIDF>(camDesc.progSetupIDF);
             setupIDF(camDesc.data, surfPt, wls, reinterpret_cast<uint32_t*>(data));
@@ -445,7 +445,7 @@ namespace vlr::shared {
             progBackProjectDirectionInternal = ProgSigIDFBackProjectDirectionInternal(procSet.progBackProjectDirectionInternal);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sample(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sample(
             const IDFQuery &query, const IDFSample &sample, IDFQueryResult* result) const {
             SampledSpectrum fi = sampleInternal(query, sample.uDir, result);
             VLRAssert((result->dirPDF > 0 && fi.allPositiveFinite()) || result->dirPDF == 0,
@@ -455,23 +455,23 @@ namespace vlr::shared {
             return fi;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportance() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateSpatialImportance() const {
             SampledSpectrum We0 = evaluateSpatialImportanceInternal();
             return We0;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportance(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateDirectionalImportance(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             SampledSpectrum We1 = evaluateDirectionalImportanceInternal(query, dirLocal);
             return We1;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDF(const IDFQuery &query, const Vector3D &dirLocal) const {
             float ret = evaluatePDFInternal(query, dirLocal);
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float2 backProjectDirection(const IDFQuery &query, const Vector3D &dirLocal) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float2 backProjectDirection(const IDFQuery &query, const Vector3D &dirLocal) const {
             float2 ret = backProjectDirectionInternal(query, dirLocal);
             return ret;
         }
@@ -499,7 +499,7 @@ namespace vlr::shared {
 
     // Reference:
     // Chapter 6. A Fast and Robust Method for Avoiding Self-Intersection, Ray Tracing Gems, 2019
-    CUDA_DEVICE_FUNCTION Point3D offsetRayOrigin(const Point3D &p, const Normal3D &geometricNormal) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE Point3D offsetRayOrigin(const Point3D &p, const Normal3D &geometricNormal) {
         constexpr float kOrigin = 1.0f / 32.0f;
         constexpr float kFloatScale = 1.0f / 65536.0f;
         constexpr float kIntScale = 256.0f;
@@ -510,15 +510,15 @@ namespace vlr::shared {
             static_cast<int32_t>(kIntScale * geometricNormal.z)
         };
 
-        // JP: êîäwìIÇ»è’ìÀì_ÇÃç¿ïWÇ∆ÅAé¿ç€ÇÃç¿ïWÇÃåÎç∑ÇÕå¥ì_Ç©ÇÁÇÃãóó£Ç…î‰ó·Ç∑ÇÈÅB
-        //     intÇ∆ÇµÇƒÉIÉtÉZÉbÉgÇâ¡Ç¶ÇÈÇ±Ç∆Ç≈ÉXÉPÅ[ÉãîÒàÀë∂Ç…ìKêÿÇ»ÉIÉtÉZÉbÉgÇâ¡Ç¶ÇÈÇ±Ç∆Ç™Ç≈Ç´ÇÈÅB
+        // JP: Êï∞Â≠¶ÁöÑ„Å™Ë°ùÁ™ÅÁÇπ„ÅÆÂ∫ßÊ®ô„Å®„ÄÅÂÆüÈöõ„ÅÆÂ∫ßÊ®ô„ÅÆË™§Â∑Æ„ÅØÂéüÁÇπ„Åã„Çâ„ÅÆË∑ùÈõ¢„Å´ÊØî‰æã„Åô„Çã„ÄÇ
+        //     int„Å®„Åó„Å¶„Ç™„Éï„Çª„ÉÉ„Éà„ÇíÂä†„Åà„Çã„Åì„Å®„Åß„Çπ„Ç±„Éº„É´Èùû‰æùÂ≠ò„Å´ÈÅ©Âàá„Å™„Ç™„Éï„Çª„ÉÉ„Éà„ÇíÂä†„Åà„Çã„Åì„Å®„Åå„Åß„Åç„Çã„ÄÇ
         // EN: The error of the actual coorinates of the intersection point to the mathematical one is proportional to the distance to the origin.
         //     Applying the offset as int makes applying appropriate scale invariant amount of offset possible.
         Point3D newP1 = Point3D(__int_as_float(__float_as_int(p.x) + (p.x < 0 ? -1 : 1) * offsetInInt[0]),
                                 __int_as_float(__float_as_int(p.y) + (p.y < 0 ? -1 : 1) * offsetInInt[1]),
                                 __int_as_float(__float_as_int(p.z) + (p.z < 0 ? -1 : 1) * offsetInInt[2]));
 
-        // JP: å¥ì_Ç…ãﬂÇ¢èÍèäÇ≈ÇÕÅAå¥ì_Ç©ÇÁÇÃãóó£Ç…àÀë∂ÇπÇ∏àÍíËÇÃåÎç∑Ç™écÇÈÇΩÇﬂï èàóùÇ™ïKóvÅB
+        // JP: ÂéüÁÇπ„Å´Ëøë„ÅÑÂ†¥ÊâÄ„Åß„ÅØ„ÄÅÂéüÁÇπ„Åã„Çâ„ÅÆË∑ùÈõ¢„Å´‰æùÂ≠ò„Åõ„Åö‰∏ÄÂÆö„ÅÆË™§Â∑Æ„ÅåÊÆã„Çã„Åü„ÇÅÂà•Âá¶ÁêÜ„ÅåÂøÖË¶Å„ÄÇ
         // EN: A constant amount of error remains near the origin independent of the distance to the origin so we need handle it separately.
         Point3D newP2 = p + kFloatScale * geometricNormal;
 
@@ -529,7 +529,7 @@ namespace vlr::shared {
 
 
 
-    CUDA_DEVICE_FUNCTION float getAlpha(const WavelengthSamples &wls) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float getAlpha(const WavelengthSamples &wls) {
         const auto hp = HitPointParameter::get();
 
         SurfacePoint surfPt;
@@ -549,13 +549,13 @@ namespace vlr::shared {
 
 
 
-    // JP: ïœàŸÇ≥ÇÍÇΩñ@ê¸Ç…è]Ç¡ÇƒÉVÉFÅ[ÉfÉBÉìÉOÉtÉåÅ[ÉÄÇïœçXÇ∑ÇÈÅB
+    // JP: Â§âÁï∞„Åï„Çå„ÅüÊ≥ïÁ∑ö„Å´Âæì„Å£„Å¶„Ç∑„Çß„Éº„Éá„Ç£„É≥„Ç∞„Éï„É¨„Éº„É†„ÇíÂ§âÊõ¥„Åô„Çã„ÄÇ
     // EN: perturb the shading frame according to the modified normal.
-    CUDA_DEVICE_FUNCTION void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void applyBumpMapping(const Normal3D &modNormalInTF, SurfacePoint* surfPt) {
         if (modNormalInTF.x == 0.0f && modNormalInTF.y == 0.0f)
             return;
 
-        // JP: ñ@ê¸Ç©ÇÁâÒì]é≤Ç∆âÒì]äp(ÅAQuaternion)ÇãÅÇﬂÇƒëŒâûÇ∑ÇÈê⁄ïΩñ ÉxÉNÉgÉãÇãÅÇﬂÇÈÅB
+        // JP: Ê≥ïÁ∑ö„Åã„ÇâÂõûËª¢Ëª∏„Å®ÂõûËª¢Ëßí(„ÄÅQuaternion)„ÇíÊ±Ç„ÇÅ„Å¶ÂØæÂøú„Åô„ÇãÊé•Âπ≥Èù¢„Éô„ÇØ„Éà„É´„ÇíÊ±Ç„ÇÅ„Çã„ÄÇ
         // EN: calculate a rotating axis and an angle (and quaternion) from the normal then calculate corresponding tangential vectors.
         float projLength = std::sqrt(modNormalInTF.x * modNormalInTF.x + modNormalInTF.y * modNormalInTF.y);
         float tiltAngle = std::atan(projLength / modNormalInTF.z);
@@ -577,9 +577,9 @@ namespace vlr::shared {
 
 
 
-    // JP: ïœàŸÇ≥ÇÍÇΩê⁄ê¸Ç…è]Ç¡ÇƒÉVÉFÅ[ÉfÉBÉìÉOÉtÉåÅ[ÉÄÇïœçXÇ∑ÇÈÅB
+    // JP: Â§âÁï∞„Åï„Çå„ÅüÊé•Á∑ö„Å´Âæì„Å£„Å¶„Ç∑„Çß„Éº„Éá„Ç£„É≥„Ç∞„Éï„É¨„Éº„É†„ÇíÂ§âÊõ¥„Åô„Çã„ÄÇ
     // EN: perturb the shading frame according to the modified tangent.
-    CUDA_DEVICE_FUNCTION void modifyTangent(const Vector3D& modTangent, SurfacePoint* surfPt) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void modifyTangent(const Vector3D& modTangent, SurfacePoint* surfPt) {
         if (modTangent == surfPt->shadingFrame.x)
             return;
 
@@ -606,7 +606,7 @@ namespace vlr::shared {
 
 
 
-    CUDA_DEVICE_FUNCTION void calcSurfacePoint(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void calcSurfacePoint(
         const HitPointParameter &hp, const WavelengthSamples &wls, SurfacePoint* surfPt, float* hypAreaPDF) {
         ProgSigDecodeLocalHitPoint decodeLocalHitPoint(hp.sbtr->geomInst.progDecodeLocalHitPoint);
         surfPt->instIndex = optixGetInstanceId();

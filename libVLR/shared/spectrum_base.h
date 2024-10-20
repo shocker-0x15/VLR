@@ -35,7 +35,7 @@ namespace vlr {
     };
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType sRGB_gamma(RealType value) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType sRGB_gamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
         if (value <= static_cast<RealType>(0.0031308))
             return static_cast<RealType>(12.92) * value;
@@ -43,7 +43,7 @@ namespace vlr {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType sRGB_degamma(RealType value) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType sRGB_degamma(RealType value) {
         VLRAssert(value >= 0, "Input value must be equal to or greater than 0: %g", value);
         if (value <= static_cast<RealType>(0.04045))
             return value / static_cast<RealType>(12.92);
@@ -128,14 +128,14 @@ namespace vlr {
     };
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr void transformTristimulus(const float matColMajor[9], const RealType src[3], RealType dst[3]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr void transformTristimulus(const float matColMajor[9], const RealType src[3], RealType dst[3]) {
         dst[0] = matColMajor[0] * src[0] + matColMajor[3] * src[1] + matColMajor[6] * src[2];
         dst[1] = matColMajor[1] * src[0] + matColMajor[4] * src[1] + matColMajor[7] * src[2];
         dst[2] = matColMajor[2] * src[0] + matColMajor[5] * src[1] + matColMajor[8] * src[2];
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr void transformToRenderingRGB(SpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr void transformToRenderingRGB(SpectrumType spectrumType, const RealType XYZ[3], RealType RGB[3]) {
         switch (spectrumType) {
         case SpectrumType::Reflectance:
         case SpectrumType::IndexOfRefraction:
@@ -152,7 +152,7 @@ namespace vlr {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr void transformFromRenderingRGB(SpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr void transformFromRenderingRGB(SpectrumType spectrumType, const RealType RGB[3], RealType XYZ[3]) {
         switch (spectrumType) {
         case SpectrumType::Reflectance:
         case SpectrumType::IndexOfRefraction:
@@ -215,7 +215,7 @@ namespace vlr {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr void XYZ_to_xyY(const RealType xyz[3], RealType xyY[3]) {
         RealType b = xyz[0] + xyz[1] + xyz[2];
         if (b == 0) {
             xyY[0] = xyY[1] = static_cast<RealType>(1.0 / 3.0);
@@ -228,7 +228,7 @@ namespace vlr {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr void xyY_to_XYZ(const RealType xyY[3], RealType xyz[3]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr void xyY_to_XYZ(const RealType xyY[3], RealType xyz[3]) {
         RealType b = xyY[2] / xyY[1];
         xyz[0] = xyY[0] * b;
         xyz[1] = xyY[2];

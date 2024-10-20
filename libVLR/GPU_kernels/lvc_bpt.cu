@@ -54,11 +54,11 @@ namespace vlr {
     static constexpr bool includeRRProbability = true;
     static constexpr int32_t debugPathLength = 0;
 
-    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool onProbePixel() {
         return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
     }
 
-    CUDA_DEVICE_FUNCTION bool onProbePixel(const float2 &projPixel) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool onProbePixel(const float2 &projPixel) {
         return static_cast<int32_t>(projPixel.x) == plp.probePixX &&
             static_cast<int32_t>(projPixel.y) == plp.probePixY;
     }
@@ -78,7 +78,7 @@ namespace vlr {
             optixIgnoreIntersection();
     }
 
-    CUDA_DEVICE_FUNCTION void atomicAddToBuffer(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void atomicAddToBuffer(
         const WavelengthSamples &wls, SampledSpectrum contribution,
         const float2 &pixel) {
         uint32_t ipx = static_cast<uint32_t>(pixel.x);
@@ -87,7 +87,7 @@ namespace vlr {
             plp.atomicAccumBuffer[ipy * plp.imageStrideInPixels + ipx].atomicAdd(wls, contribution);
     }
 
-    CUDA_DEVICE_FUNCTION void storeLightVertex(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void storeLightVertex(
         const SurfacePoint &surfPt, const SampledSpectrum &flux,
         const Vector3D &dirInLocal, float backwardConversionFactor,
         float probDensity, float prevProbDensity,
@@ -114,7 +114,7 @@ namespace vlr {
         plp.lightVertexCache[cacheIndex] = lightVertex;
     }
 
-    CUDA_DEVICE_FUNCTION void decodeHitPoint(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE void decodeHitPoint(
         const LightPathVertex &vertex, const WavelengthSamples &wls,
         SurfacePoint* surfPt, uint32_t* materialIndex) {
         const GeometryInstance &geomInst = plp.geomInstBuffer[vertex.geomInstIndex];
@@ -133,7 +133,7 @@ namespace vlr {
         *materialIndex = geomInst.materialIndex;
     }
 
-    CUDA_DEVICE_FUNCTION float computeRRProbability(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float computeRRProbability(
         const SampledSpectrum &fs, const Vector3D &dirLocal, float dirDensity, const Normal3D &geomNormalLocal) {
         SampledSpectrum localThroughput = fs * absDot(dirLocal, geomNormalLocal) / dirDensity;
         return std::fmin(localThroughput.importance(plp.commonWavelengthSamples.selectedLambdaIndex()), 1.0f);

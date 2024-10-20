@@ -132,7 +132,7 @@ namespace vlr {
         float m_imgPlaneArea;
 
     public:
-        CUDA_DEVICE_FUNCTION PerspectiveCameraIDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE PerspectiveCameraIDF(
             float sensitivity,
             float xOnLens, float yOnLens, float opWidth, float opHeight,
             float imgPlaneDistance, float objPlaneDistance, float imgPlaneArea) :
@@ -142,7 +142,7 @@ namespace vlr {
             m_objPlaneDistance(objPlaneDistance),
             m_imgPlaneArea(imgPlaneArea) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const IDFQuery &query, const float uDir[2], IDFQueryResult* result) const {
             Point3D pFocus = Point3D(m_opWidth * (0.5f - uDir[0]),
                                      m_opHeight * (0.5f - uDir[1]),
@@ -156,11 +156,11 @@ namespace vlr {
             return SampledSpectrum::One();
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateSpatialImportanceInternal() const {
             return SampledSpectrum(m_sensitivity);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateDirectionalImportanceInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return SampledSpectrum::Zero();
@@ -176,7 +176,7 @@ namespace vlr {
             return SampledSpectrum::One();
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return 0.0f;
@@ -193,7 +193,7 @@ namespace vlr {
             return density;
         }
 
-        CUDA_DEVICE_FUNCTION float2 backProjectDirection(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float2 backProjectDirection(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return make_float2(NAN, NAN);
@@ -267,13 +267,13 @@ namespace vlr {
         float m_thetaAngle;
 
     public:
-        CUDA_DEVICE_FUNCTION EquirectangularCameraIDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE EquirectangularCameraIDF(
             float sensitivity,
             float phiAngle, float thetaAngle) :
             m_sensitivity(sensitivity),
             m_phiAngle(phiAngle), m_thetaAngle(thetaAngle) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const IDFQuery &query, const float uDir[2], IDFQueryResult* result) const {
             float phi = VLR_M_PI + m_phiAngle * (uDir[0] - 0.5f);
             float theta = 0.5f * VLR_M_PI + m_thetaAngle * (uDir[1] - 0.5f);
@@ -291,11 +291,11 @@ namespace vlr {
             return SampledSpectrum::One();
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateSpatialImportanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateSpatialImportanceInternal() const {
             return SampledSpectrum(m_sensitivity);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateDirectionalImportanceInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateDirectionalImportanceInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
             float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,
@@ -308,7 +308,7 @@ namespace vlr {
             return SampledSpectrum::One();
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
             float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,
@@ -323,7 +323,7 @@ namespace vlr {
             return density;
         }
 
-        CUDA_DEVICE_FUNCTION float2 backProjectDirection(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float2 backProjectDirection(
             const IDFQuery &query, const Vector3D &dirLocal) const {
             float theta = std::acos(vlr::clamp(dirLocal.y, -1.0f, 1.0f));
             float phi = std::fmod(std::atan2(dirLocal.x, -dirLocal.z) + 2 * VLR_M_PI,

@@ -5,7 +5,7 @@ namespace vlr {
 
     static constexpr int32_t debugPathLength = 0;
 
-    CUDA_DEVICE_FUNCTION bool onProbePixel() {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool onProbePixel() {
         return optixGetLaunchIndex().x == plp.probePixX && optixGetLaunchIndex().y == plp.probePixY;
     }
 

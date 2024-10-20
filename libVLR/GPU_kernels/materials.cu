@@ -3,7 +3,7 @@
 namespace vlr {
     using namespace shared;
 
-    CUDA_DEVICE_FUNCTION DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE DirectionType sideTest(const Normal3D &ng, const Vector3D &d0, const Vector3D &d1) {
         bool reflect = dot(Vector3D(ng), d0) * dot(Vector3D(ng), d1) > 0;
         return DirectionType::AllFreq() | (reflect ? DirectionType::Reflection() : DirectionType::Transmission());
     }
@@ -15,10 +15,10 @@ namespace vlr {
         SampledSpectrum m_k;
 
     public:
-        CUDA_DEVICE_FUNCTION FresnelConductor(const SampledSpectrum &eta, const SampledSpectrum &k) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE FresnelConductor(const SampledSpectrum &eta, const SampledSpectrum &k) :
             m_eta(eta), m_k(k) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(float cosEnter) const {
             cosEnter = std::fabs(cosEnter);
             float cosEnter2 = cosEnter * cosEnter;
             SampledSpectrum _2EtaCosEnter = 2.0f * m_eta * cosEnter;
@@ -29,7 +29,7 @@ namespace vlr {
 
             return (Rparl2 + Rperp2) / 2.0f;
         }
-        CUDA_DEVICE_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluate(float cosEnter, uint32_t wlIdx) const {
             cosEnter = std::fabs(cosEnter);
             float cosEnter2 = cosEnter * cosEnter;
             float _2EtaCosEnter = 2.0f * m_eta[wlIdx] * cosEnter;
@@ -49,12 +49,12 @@ namespace vlr {
         SampledSpectrum m_etaInt;
 
     public:
-        CUDA_DEVICE_FUNCTION FresnelDielectric(const SampledSpectrum &etaExt, const SampledSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
+        CUDA_DEVICE_FUNCTION CUDA_INLINE FresnelDielectric(const SampledSpectrum &etaExt, const SampledSpectrum &etaInt) : m_etaExt(etaExt), m_etaInt(etaInt) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum etaExt() const { return m_etaExt; }
-        CUDA_DEVICE_FUNCTION SampledSpectrum etaInt() const { return m_etaInt; }
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum etaExt() const { return m_etaExt; }
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum etaInt() const { return m_etaInt; }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(float cosEnter) const {
             cosEnter = clamp(cosEnter, -1.0f, 1.0f);
 
             bool entering = cosEnter > 0.0f;
@@ -75,7 +75,7 @@ namespace vlr {
             }
             return ret;
         }
-        CUDA_DEVICE_FUNCTION float evaluate(float cosEnter, uint32_t wlIdx) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluate(float cosEnter, uint32_t wlIdx) const {
             cosEnter = clamp(cosEnter, -1.0f, 1.0f);
 
             bool entering = cosEnter > 0.0f;
@@ -93,10 +93,10 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
+        CUDA_DEVICE_FUNCTION CUDA_INLINE static float evalF(float etaEnter, float etaExit, float cosEnter, float cosExit);
     };
 
-    CUDA_DEVICE_FUNCTION float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float FresnelDielectric::evalF(float etaEnter, float etaExit, float cosEnter, float cosExit) {
         float Rparl = ((etaExit * cosEnter) - (etaEnter * cosExit)) / ((etaExit * cosEnter) + (etaEnter * cosExit));
         float Rperp = ((etaEnter * cosEnter) - (etaExit * cosExit)) / ((etaEnter * cosEnter) + (etaExit * cosExit));
         return (Rparl * Rparl + Rperp * Rperp) / 2.0f;
@@ -109,9 +109,9 @@ namespace vlr {
         float m_F0;
 
     public:
-        CUDA_DEVICE_FUNCTION FresnelSchlick(float F0) : m_F0(F0) {}
+        CUDA_DEVICE_FUNCTION CUDA_INLINE FresnelSchlick(float F0) : m_F0(F0) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluate(float cosEnter) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluate(float cosEnter) const {
             bool entering = cosEnter >= 0;
             float cosEval = cosEnter;
             if (!entering) {
@@ -137,12 +137,12 @@ namespace vlr {
         float m_sinRt;
 
     public:
-        CUDA_DEVICE_FUNCTION GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE GGXMicrofacetDistribution(float alpha_gx, float alpha_gy, float rotation) :
             m_alpha_gx(alpha_gx), m_alpha_gy(alpha_gy) {
             ::vlr::sincos(rotation, &m_sinRt, &m_cosRt);
         }
 
-        CUDA_DEVICE_FUNCTION float evaluate(const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluate(const Normal3D &m) {
             Normal3D mr = Normal3D(m_cosRt * m.x + m_sinRt * m.y,
                                    -m_sinRt * m.x + m_cosRt * m.y,
                                    m.z);
@@ -153,7 +153,7 @@ namespace vlr {
             return 1.0f / (VLR_M_PI * m_alpha_gx * m_alpha_gy * pow2(temp));
         }
 
-        CUDA_DEVICE_FUNCTION float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluateSmithG1(const Vector3D &v, const Normal3D &m) {
             Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
                                    -m_sinRt * v.x + m_cosRt * v.y,
                                    v.z);
@@ -164,7 +164,7 @@ namespace vlr {
             return chi / (1 + Lambda);
         }
 
-        CUDA_DEVICE_FUNCTION float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluateHeightCorrelatedSmithG(const Vector3D &v1, const Vector3D &v2, const Normal3D &m) {
             Vector3D v1r = Vector3D(m_cosRt * v1.x + m_sinRt * v1.y,
                                     -m_sinRt * v1.x + m_cosRt * v1.y,
                                     v1.z);
@@ -181,7 +181,7 @@ namespace vlr {
             return chi1 * chi2 / (1 + Lambda1 + Lambda2);
         }
 
-        CUDA_DEVICE_FUNCTION float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float sample(const Vector3D &v, float u0, float u1, Normal3D* m, float* normalPDF) {
             Vector3D vr = Vector3D(m_cosRt * v.x + m_sinRt * v.y,
                                    -m_sinRt * v.x + m_cosRt * v.y,
                                    v.z);
@@ -222,7 +222,7 @@ namespace vlr {
             return D;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDF(const Vector3D &v, const Normal3D &m) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDF(const Vector3D &v, const Normal3D &m) {
             return evaluateSmithG1(v, m) * absDot(v, m) * evaluate(m) / std::fabs(v.z);
         }
     };
@@ -230,14 +230,14 @@ namespace vlr {
 
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_getBaseColor(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum BSDF_getBaseColor(
         const uint32_t* params) {
         auto &p = *reinterpret_cast<const BSDFType*>(params);
         return p.getBaseColor();
     }
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION bool BSDF_matches(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool BSDF_matches(
         const uint32_t* params,
         DirectionType flags) {
         auto &p = *reinterpret_cast<const BSDFType*>(params);
@@ -245,7 +245,7 @@ namespace vlr {
     }
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_sampleInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum BSDF_sampleInternal(
         const uint32_t* params,
         const BSDFQuery &query, float uComponent, const float uDir[2],
         BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) {
@@ -254,7 +254,7 @@ namespace vlr {
     }
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum BSDF_evaluateInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum BSDF_evaluateInternal(
         const uint32_t* params,
         const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue = nullptr) {
         auto &p = *reinterpret_cast<const BSDFType*>(params);
@@ -262,7 +262,7 @@ namespace vlr {
     }
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION float BSDF_evaluatePDFInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float BSDF_evaluatePDFInternal(
         const uint32_t* params,
         const BSDFQuery &query, const Vector3D &dirLocal, float* revValue = nullptr) {
         auto &p = *reinterpret_cast<const BSDFType*>(params);
@@ -270,7 +270,7 @@ namespace vlr {
     }
 
     template <typename BSDFType>
-    CUDA_DEVICE_FUNCTION float BSDF_weightInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float BSDF_weightInternal(
         const uint32_t* params,
         const BSDFQuery &query) {
         auto &p = *reinterpret_cast<const BSDFType*>(params);
@@ -331,7 +331,7 @@ namespace vlr {
 
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION bool EDF_matches(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool EDF_matches(
         const uint32_t* params,
         DirectionType flags) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -339,7 +339,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_sampleInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_sampleInternal(
         const uint32_t* params,
         const EDFQuery &query, float uComponent, const float uDir[2],
         EDFQueryResult* result) {
@@ -348,14 +348,14 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_evaluateEmittanceInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_evaluateEmittanceInternal(
         const uint32_t* params) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
         return p.evaluateEmittanceInternal();
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_evaluateInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_evaluateInternal(
         const uint32_t* params,
         const EDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -363,7 +363,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION float EDF_evaluatePDFInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float EDF_evaluatePDFInternal(
         const uint32_t* params,
         const EDFQuery &query, const Vector3D &dirLocal) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -371,7 +371,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION float EDF_weightInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float EDF_weightInternal(
         const uint32_t* params,
         const EDFQuery &query) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -413,13 +413,13 @@ namespace vlr {
 
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_getBaseColor(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_as_BSDF_getBaseColor(
         const uint32_t* params) {
         return SampledSpectrum::Zero();
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION bool EDF_as_BSDF_matches(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE bool EDF_as_BSDF_matches(
         const uint32_t* params,
         DirectionType flags) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -427,7 +427,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_sampleInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_as_BSDF_sampleInternal(
         const uint32_t* params,
         const BSDFQuery &query, float uComponent, const float uDir[2],
         BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) {
@@ -446,7 +446,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION SampledSpectrum EDF_as_BSDF_evaluateInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum EDF_as_BSDF_evaluateInternal(
         const uint32_t* params,
         const BSDFQuery &query, const Vector3D &dirLocal, SampledSpectrum* revValue = nullptr) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -458,7 +458,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION float EDF_as_BSDF_evaluatePDFInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float EDF_as_BSDF_evaluatePDFInternal(
         const uint32_t* params,
         const BSDFQuery &query, const Vector3D &dirLocal, float* revValue = nullptr) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -470,7 +470,7 @@ namespace vlr {
     }
 
     template <typename EDFType>
-    CUDA_DEVICE_FUNCTION float EDF_as_BSDF_weightInternal(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE float EDF_as_BSDF_weightInternal(
         const uint32_t* params,
         const BSDFQuery &query) {
         auto &p = *reinterpret_cast<const EDFType*>(params);
@@ -532,17 +532,17 @@ namespace vlr {
 
     class NullBSDF {
     public:
-        CUDA_DEVICE_FUNCTION NullBSDF() {}
+        CUDA_DEVICE_FUNCTION CUDA_INLINE NullBSDF() {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             return false;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             result->dirPDF = 0.0f;
@@ -551,7 +551,7 @@ namespace vlr {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             if (revValue)
@@ -559,7 +559,7 @@ namespace vlr {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (*revValue)
@@ -567,7 +567,7 @@ namespace vlr {
             return 0.0f;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             return 0.0f;
         }
     };
@@ -586,19 +586,19 @@ namespace vlr {
         float m_roughness;
 
     public:
-        CUDA_DEVICE_FUNCTION MatteBRDF(const SampledSpectrum &albedo, float roughness) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE MatteBRDF(const SampledSpectrum &albedo, float roughness) :
             m_albedo(albedo), m_roughness(roughness) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_albedo;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq();
             return m_type.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
@@ -614,7 +614,7 @@ namespace vlr {
             return fsValue;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             if (query.dirLocal.z * dirLocal.z <= 0.0f) {
@@ -630,7 +630,7 @@ namespace vlr {
             return fsValue;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (query.dirLocal.z * dirLocal.z <= 0.0f) {
@@ -645,7 +645,7 @@ namespace vlr {
             return pdfValue;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             return m_albedo.importance(query.wlHint);
         }
     };
@@ -670,15 +670,15 @@ namespace vlr {
         SampledSpectrum m_k;
 
     public:
-        CUDA_DEVICE_FUNCTION SpecularBRDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SpecularBRDF(
             const SampledSpectrum &coeffR, const SampledSpectrum &eta, const SampledSpectrum &k) :
         m_coeffR(coeffR), m_eta(eta), m_k(k) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_coeffR;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType;
             if constexpr (usePathSpaceRegularization)
                 dirType = DirectionType::Reflection() | DirectionType::HighFreq();
@@ -687,7 +687,7 @@ namespace vlr {
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             float regFactor = 1.0f;
@@ -714,7 +714,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
@@ -741,7 +741,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
@@ -765,7 +765,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             FresnelDielectric fresnel(m_eta, m_k);
             float weight = (m_coeffR * fresnel.evaluate(query.dirLocal.z)).importance(query.wlHint);
 
@@ -797,16 +797,16 @@ namespace vlr {
         bool m_dispersive;
 
     public:
-        CUDA_DEVICE_FUNCTION SpecularBSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SpecularBSDF(
             const SampledSpectrum &coeff, const SampledSpectrum &etaExt, const SampledSpectrum &etaInt,
             bool dispersive) :
             m_coeff(coeff), m_etaExt(etaExt), m_etaInt(etaInt), m_dispersive(dispersive) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_coeff;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType;
             if constexpr (usePathSpaceRegularization)
                 dirType = DirectionType::WholeSphere() | DirectionType::HighFreq();
@@ -815,7 +815,7 @@ namespace vlr {
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -901,7 +901,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             if constexpr (usePathSpaceRegularization) {
@@ -968,7 +968,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -1038,7 +1038,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             return m_coeff.importance(query.wlHint);
         }
     };
@@ -1069,23 +1069,23 @@ namespace vlr {
         float m_rotation;
 
     public:
-        CUDA_DEVICE_FUNCTION MicrofacetBRDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE MicrofacetBRDF(
             const SampledSpectrum &eta, const SampledSpectrum &k,
             float alphaX, float alphaY, float rotation) :
         m_eta(eta), m_k(k), m_alphaX(alphaX), m_alphaY(alphaY), m_rotation(rotation) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             FresnelConductor fresnel(m_eta, m_k);
 
             return fresnel.evaluate(1.0f);
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType m_type = DirectionType::Reflection() | DirectionType::HighFreq();
             return m_type.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -1136,7 +1136,7 @@ namespace vlr {
             return fs;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
@@ -1169,7 +1169,7 @@ namespace vlr {
             return fs;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -1207,7 +1207,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(
             const BSDFQuery &query) const {
             FresnelConductor fresnel(m_eta, m_k);
 
@@ -1252,22 +1252,22 @@ namespace vlr {
         float m_rotation;
 
     public:
-        CUDA_DEVICE_FUNCTION MicrofacetBSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE MicrofacetBSDF(
             const SampledSpectrum &coeff, const SampledSpectrum &etaExt, const SampledSpectrum &etaInt,
             float alphaX, float alphaY, float rotation) :
         m_coeff(coeff), m_etaExt(etaExt), m_etaInt(etaInt),
         m_alphaX(alphaX), m_alphaY(alphaY), m_rotation(rotation) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_coeff;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType m_type = DirectionType::WholeSphere() | DirectionType::HighFreq();
             return m_type.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -1382,7 +1382,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
@@ -1445,7 +1445,7 @@ namespace vlr {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -1508,7 +1508,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             return m_coeff.importance(query.wlHint);
         }
     };
@@ -1544,20 +1544,20 @@ namespace vlr {
         float m_F0;
 
     public:
-        CUDA_DEVICE_FUNCTION LambertianBSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE LambertianBSDF(
             const SampledSpectrum &coeff, float F0) :
         m_coeff(coeff), m_F0(F0) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_coeff;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType m_type = DirectionType::WholeSphere() | DirectionType::LowFreq();
             return m_type.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -1606,7 +1606,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             bool entering = query.dirLocal.z >= 0.0f;
@@ -1632,7 +1632,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -1666,7 +1666,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             return m_coeff.importance(query.wlHint);
         }
     };
@@ -1695,20 +1695,20 @@ namespace vlr {
         float m_roughness;
 
     public:
-        CUDA_DEVICE_FUNCTION DiffuseAndSpecularBRDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE DiffuseAndSpecularBRDF(
             const SampledSpectrum &diffuseColor, const SampledSpectrum &specularF0Color, float roughness) :
             m_diffuseColor(diffuseColor), m_specularF0Color(specularF0Color), m_roughness(roughness) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             return m_diffuseColor + m_specularF0Color;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType m_type = DirectionType::Reflection() | DirectionType::LowFreq() | DirectionType::HighFreq();
             return m_type.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -1833,7 +1833,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             float alpha = pow2(m_roughness);
@@ -1878,7 +1878,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -1937,7 +1937,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             bool entering = query.dirLocal.z >= 0.0f;
             Vector3D dirV = entering ? query.dirLocal : -query.dirLocal;
 
@@ -1997,32 +1997,32 @@ namespace vlr {
 
     class NullEDF {
     public:
-        CUDA_DEVICE_FUNCTION NullEDF() {}
+        CUDA_DEVICE_FUNCTION CUDA_INLINE NullEDF() {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             return false;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum::Zero();
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return 0.0f;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             return 0.0f;
         }
     };
@@ -2041,15 +2041,15 @@ namespace vlr {
         SampledSpectrum m_emittance;
 
     public:
-        CUDA_DEVICE_FUNCTION DiffuseEDF(const SampledSpectrum &emittance) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE DiffuseEDF(const SampledSpectrum &emittance) :
             m_emittance(emittance) {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             result->dirLocal = cosineSampleHemisphere(uDir[0], uDir[1]);
             result->dirPDF = result->dirLocal.z / VLR_M_PI;
@@ -2059,16 +2059,16 @@ namespace vlr {
             return feValue;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             return m_emittance;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return 0.0f;
@@ -2077,7 +2077,7 @@ namespace vlr {
             return pdfValue;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             return m_emittance.importance(query.wlHint);
         }
     };
@@ -2102,10 +2102,10 @@ namespace vlr {
         Vector3D m_direction;
 
     public:
-        CUDA_DEVICE_FUNCTION DirectionalEDF(const SampledSpectrum &emittance, const Vector3D &direction) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE DirectionalEDF(const SampledSpectrum &emittance, const Vector3D &direction) :
             m_emittance(emittance), m_direction(direction) {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType;
             if constexpr (usePathSpaceRegularization)
                 dirType = DirectionType::Emission() | DirectionType::HighFreq();
@@ -2114,7 +2114,7 @@ namespace vlr {
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             float regFactor = 1.0f;
             DirectionType dirType = DirectionType::Delta0D();
@@ -2132,11 +2132,11 @@ namespace vlr {
             return feValue;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             return m_emittance;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             if constexpr (usePathSpaceRegularization) {
                 float cosEpsilon;
@@ -2154,7 +2154,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             if constexpr (usePathSpaceRegularization) {
                 float cosEpsilon;
@@ -2170,7 +2170,7 @@ namespace vlr {
             }
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             return m_emittance.importance(query.wlHint);
         }
     };
@@ -2195,15 +2195,15 @@ namespace vlr {
         SampledSpectrum m_intensity;
 
     public:
-        CUDA_DEVICE_FUNCTION PointEDF(const SampledSpectrum &intensity) :
+        CUDA_DEVICE_FUNCTION CUDA_INLINE PointEDF(const SampledSpectrum &intensity) :
             m_intensity(intensity) {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             result->dirLocal = uniformSampleSphere(uDir[0], uDir[1]);
             result->dirPDF = 1.0f / (4 * VLR_M_PI);
@@ -2212,26 +2212,26 @@ namespace vlr {
             return 1.0f / (4 * VLR_M_PI);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             // power = intensity * (4 * Pi)
             // area = 4 * pi * r^2
             // emittance = power / area = intensity / r^2
             return m_intensity;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return 1.0f / (4 * VLR_M_PI);
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             float pdfValue = 1.0f / (4 * VLR_M_PI);
 
             return pdfValue;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             return m_intensity.importance(query.wlHint);
         }
     };
@@ -2269,14 +2269,14 @@ namespace vlr {
         unsigned int m_bsdf3 : 6;
         unsigned int m_numBSDFs : 8;
 
-        CUDA_DEVICE_FUNCTION BSDFProcedureSet getBSDFProcSet(uint32_t offset, const uint32_t** body) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE BSDFProcedureSet getBSDFProcSet(uint32_t offset, const uint32_t** body) const {
             const uint32_t* bsdf = reinterpret_cast<const uint32_t*>(this) + offset;
             uint32_t procIdx = *reinterpret_cast<const uint32_t*>(bsdf);
             *body = bsdf + 1;
             return plp.bsdfProcedureSetBuffer[procIdx];
         }
 
-        CUDA_DEVICE_FUNCTION float BSDFWeight(uint32_t offset, const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float BSDFWeight(uint32_t offset, const BSDFQuery &query) const {
             const uint32_t* body;
             BSDFProcedureSet procSet = getBSDFProcSet(offset, &body);
             auto matches = static_cast<ProgSigBSDFmatches>(procSet.progMatches);
@@ -2298,13 +2298,13 @@ namespace vlr {
         }
 
     public:
-        CUDA_DEVICE_FUNCTION MultiBSDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE MultiBSDF(
             uint32_t bsdf0, uint32_t bsdf1, uint32_t bsdf2, uint32_t bsdf3,
             uint32_t numBSDFs) :
         m_bsdf0(bsdf0), m_bsdf1(bsdf1), m_bsdf2(bsdf2), m_bsdf3(bsdf3),
         m_numBSDFs(numBSDFs) {}
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum getBaseColor() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum getBaseColor() const {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             SampledSpectrum ret;
@@ -2318,7 +2318,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             for (int i = 0; i < m_numBSDFs; ++i) {
@@ -2332,7 +2332,7 @@ namespace vlr {
             return false;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const BSDFQuery &query, float uComponent, const float uDir[2],
             BSDFQueryResult* result, BSDFQueryReverseResult* revResult = nullptr) const {
             if (revResult)
@@ -2442,7 +2442,7 @@ namespace vlr {
             return value;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             SampledSpectrum* revValue = nullptr) const {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
@@ -2472,7 +2472,7 @@ namespace vlr {
             return retValue;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const BSDFQuery &query, const Vector3D &dirLocal,
             float* revValue = nullptr) const {
             if (revValue)
@@ -2530,7 +2530,7 @@ namespace vlr {
             return retPDF;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const BSDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const BSDFQuery &query) const {
             uint32_t bsdfOffsets[4] = { m_bsdf0, m_bsdf1, m_bsdf2, m_bsdf3 };
 
             float ret = 0.0f;
@@ -2608,18 +2608,18 @@ namespace vlr {
         unsigned int m_edf3 : 6;
         unsigned int m_numEDFs : 8;
 
-        CUDA_DEVICE_FUNCTION const uint32_t* getEDF(uint32_t offset) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE const uint32_t* getEDF(uint32_t offset) const {
             return reinterpret_cast<const uint32_t*>(this) + offset;
         }
 
     public:
-        CUDA_DEVICE_FUNCTION MultiEDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE MultiEDF(
             uint32_t edf0, uint32_t edf1, uint32_t edf2, uint32_t edf3,
             uint32_t numEDFs) :
             m_edf0(edf0), m_edf1(edf1), m_edf2(edf2), m_edf3(edf3),
             m_numEDFs(numEDFs) {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
             for (int i = 0; i < m_numEDFs; ++i) {
@@ -2635,7 +2635,7 @@ namespace vlr {
             return false;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
@@ -2705,7 +2705,7 @@ namespace vlr {
             return value;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
             SampledSpectrum ret = SampledSpectrum::Zero();
@@ -2721,7 +2721,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
@@ -2743,7 +2743,7 @@ namespace vlr {
             return ret;
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
@@ -2776,7 +2776,7 @@ namespace vlr {
             return retPDF;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             uint32_t edfOffsets[4] = { m_edf0, m_edf1, m_edf2, m_edf3 };
 
             float ret = 0.0f;
@@ -2833,16 +2833,16 @@ namespace vlr {
         float m_worldDiscArea;
 
     public:
-        CUDA_DEVICE_FUNCTION EnvironmentEDF(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE EnvironmentEDF(
             const SampledSpectrum &emittance, float worldRadius, float worldDiscArea) :
             m_emittance(emittance), m_worldRadius(worldRadius), m_worldDiscArea(worldDiscArea) {}
 
-        CUDA_DEVICE_FUNCTION bool matches(DirectionType flags) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE bool matches(DirectionType flags) const {
             DirectionType dirType = DirectionType::Emission() | DirectionType::LowFreq();
             return dirType.matches(flags);
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum sampleInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum sampleInternal(
             const EDFQuery &query, float uComponent, const float uDir[2], EDFQueryResult* result) const {
             float dx, dy;
             concentricSampleDisk(uDir[0], uDir[1], &dx, &dy);
@@ -2857,16 +2857,16 @@ namespace vlr {
             return feValue;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateEmittanceInternal() const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateEmittanceInternal() const {
             return VLR_M_PI * m_emittance;
         }
 
-        CUDA_DEVICE_FUNCTION SampledSpectrum evaluateInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE SampledSpectrum evaluateInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             return SampledSpectrum(dirLocal.z > 0.0f ? 1.0f / VLR_M_PI : 0.0f);
         }
 
-        CUDA_DEVICE_FUNCTION float evaluatePDFInternal(
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float evaluatePDFInternal(
             const EDFQuery &query, const Vector3D &dirLocal) const {
             if (dirLocal.z <= 0.0f)
                 return 0.0f;
@@ -2876,7 +2876,7 @@ namespace vlr {
             return pdfValue;
         }
 
-        CUDA_DEVICE_FUNCTION float weightInternal(const EDFQuery &query) const {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE float weightInternal(const EDFQuery &query) const {
             return m_emittance.importance(query.wlHint);
         }
     };

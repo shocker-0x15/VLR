@@ -76,10 +76,6 @@ static constexpr uint32_t NumStrataForStorage = 16;
 
 #undef CUDA_DEVICE_FUNCTION
 #include "../utils/optixu_on_cudau.h"
-#if defined(VLR_Host)
-#   undef CUDA_DEVICE_FUNCTION
-#   define CUDA_DEVICE_FUNCTION inline
-#endif
 #include <vector_types.h>
 #include <vector_functions.h>
 
@@ -121,21 +117,21 @@ inline void* VLR_memalign(size_t size, size_t alignment) {
 
 namespace vlr {
     template <typename T, size_t size>
-    CUDA_DEVICE_FUNCTION constexpr size_t lengthof(const T(&array)[size]) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr size_t lengthof(const T(&array)[size]) {
         return size;
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType lerp(RealType a, RealType b, RealType t) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType lerp(RealType a, RealType b, RealType t) {
         return a * (1 - t) + b * t;
     }
 
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr T pow1(T x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr T pow1(T x) {
         return x;
     }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr T pow2(T x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr T pow2(T x) {
         if constexpr (std::is_same_v<T, int32_t>)
             VLRAssert(x >= -46340 && x <= 46340, "pow2(): int32_t Overflow.");
         if constexpr (std::is_same_v<T, uint32_t>)
@@ -143,7 +139,7 @@ namespace vlr {
         return x * x;
     }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr T pow3(T x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr T pow3(T x) {
         if constexpr (std::is_same_v<T, int32_t>)
             VLRAssert(x >= -1290 && x <= 1290, "pow3(): int32_t Overflow.");
         if constexpr (std::is_same_v<T, uint32_t>)
@@ -151,32 +147,32 @@ namespace vlr {
         return x * x * x;
     }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr T pow4(T x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr T pow4(T x) {
         return x * x * x * x;
     }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr T pow5(T x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr T pow5(T x) {
         return x * x * x * x * x;
     }
 
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr bool realEq(T a, T b, T epsilon) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr bool realEq(T a, T b, T epsilon) {
         bool forAbsolute = std::fabs(a - b) < epsilon;
         bool forRelative = std::fabs(a - b) < epsilon * std::fmax(std::fabs(a), std::fabs(b));
         return forAbsolute || forRelative;
     }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr bool realGE(T a, T b, T epsilon) { return a > b || realEq(a, b, epsilon); }
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr bool realGE(T a, T b, T epsilon) { return a > b || realEq(a, b, epsilon); }
     template <typename T>
-    CUDA_DEVICE_FUNCTION constexpr bool realLE(T a, T b, T epsilon) { return a < b || realEq(a, b, epsilon); }
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr bool realLE(T a, T b, T epsilon) { return a < b || realEq(a, b, epsilon); }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType saturate(RealType x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType saturate(RealType x) {
         return std::clamp<RealType>(x, 0, 1);
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType smoothstep(RealType edge0, RealType edge1, RealType x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType smoothstep(RealType edge0, RealType edge1, RealType x) {
         // Scale, bias and saturate x to 0..1 range
         x = saturate((x - edge0) / (edge1 - edge0));
         // Evaluate polynomial
@@ -184,12 +180,12 @@ namespace vlr {
     }
 
     template <typename RealType>
-    CUDA_DEVICE_FUNCTION constexpr RealType remap(RealType orgValue, RealType orgMin, RealType orgMax, RealType newMin, RealType newMax) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr RealType remap(RealType orgValue, RealType orgMin, RealType orgMax, RealType newMin, RealType newMax) {
         RealType percentage = (orgValue - orgMin) / (orgMax - orgMin);
         return newMin + percentage * (newMax - newMin);
     }
 
-    CUDA_DEVICE_FUNCTION uint32_t lzcnt(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t lzcnt(uint32_t x) {
 #if defined(VLR_Host)
         return _lzcnt_u32(x);
 #else
@@ -197,7 +193,7 @@ namespace vlr {
 #endif
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t lzcntConst(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t lzcntConst(uint32_t x) {
         uint32_t count = 0;
         for (int bit = 31; bit >= 0; --bit) {
             if ((x >> bit) & 0b1)
@@ -207,7 +203,7 @@ namespace vlr {
         return count;
     }
 
-    CUDA_DEVICE_FUNCTION uint32_t tzcnt(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t tzcnt(uint32_t x) {
 #if defined(VLR_Host)
         return _tzcnt_u32(x);
 #else
@@ -215,7 +211,7 @@ namespace vlr {
 #endif
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t tzcntConst(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t tzcntConst(uint32_t x) {
         uint32_t count = 0;
         for (int bit = 0; bit < 32; ++bit) {
             if ((x >> bit) & 0b1)
@@ -225,7 +221,7 @@ namespace vlr {
         return count;
     }
 
-    CUDA_DEVICE_FUNCTION int32_t popcnt(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE int32_t popcnt(uint32_t x) {
 #if defined(VLR_Host)
         return _mm_popcnt_u32(x);
 #else
@@ -233,7 +229,7 @@ namespace vlr {
 #endif
     }
 
-    CUDA_DEVICE_FUNCTION constexpr int32_t popcntConst(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr int32_t popcntConst(uint32_t x) {
         uint32_t count = 0;
         for (int bit = 0; bit < 32; ++bit) {
             if ((x >> bit) & 0b1)
@@ -242,7 +238,7 @@ namespace vlr {
         return count;
     }
 
-    CUDA_DEVICE_FUNCTION uint32_t nthSetBit(uint32_t value, int32_t n) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t nthSetBit(uint32_t value, int32_t n) {
         uint32_t idx = 0;
         int32_t count;
         if (n >= popcnt(value))
@@ -271,13 +267,13 @@ namespace vlr {
     //  8-15: 3
     // 16-31: 4
     // ...
-    CUDA_DEVICE_FUNCTION uint32_t prevPowOf2Exponent(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t prevPowOf2Exponent(uint32_t x) {
         if (x == 0)
             return 0;
         return 31 - lzcnt(x);
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t prevPowOf2ExponentConst(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t prevPowOf2ExponentConst(uint32_t x) {
         if (x == 0)
             return 0;
         return 31 - lzcntConst(x);
@@ -290,13 +286,13 @@ namespace vlr {
     // 5- 8: 3
     // 9-16: 4
     // ...
-    CUDA_DEVICE_FUNCTION uint32_t nextPowOf2Exponent(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t nextPowOf2Exponent(uint32_t x) {
         if (x == 0)
             return 0;
         return 32 - lzcnt(x - 1);
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t nextPowOf2ExponentConst(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t nextPowOf2ExponentConst(uint32_t x) {
         if (x == 0)
             return 0;
         return 32 - lzcntConst(x - 1);
@@ -309,13 +305,13 @@ namespace vlr {
     //  8-15: 8
     // 16-31: 16
     // ...
-    CUDA_DEVICE_FUNCTION uint32_t prevPowerOf2(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t prevPowerOf2(uint32_t x) {
         if (x == 0)
             return 0;
         return 1 << prevPowOf2Exponent(x);
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t prevPowerOf2Const(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t prevPowerOf2Const(uint32_t x) {
         if (x == 0)
             return 0;
         return 1 << prevPowOf2ExponentConst(x);
@@ -328,26 +324,26 @@ namespace vlr {
     // 5- 8: 8
     // 9-16: 16
     // ...
-    CUDA_DEVICE_FUNCTION uint32_t nextPowerOf2(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE uint32_t nextPowerOf2(uint32_t x) {
         if (x == 0)
             return 0;
         return 1 << nextPowOf2Exponent(x);
     }
 
-    CUDA_DEVICE_FUNCTION constexpr uint32_t nextPowerOf2Const(uint32_t x) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr uint32_t nextPowerOf2Const(uint32_t x) {
         if (x == 0)
             return 0;
         return 1 << nextPowOf2ExponentConst(x);
     }
 
     template <typename IntType>
-    CUDA_DEVICE_FUNCTION constexpr IntType nextMultiplesForPowOf2(IntType x, uint32_t exponent) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr IntType nextMultiplesForPowOf2(IntType x, uint32_t exponent) {
         IntType mask = (1 << exponent) - 1;
         return (x + mask) & ~mask;
     }
 
     template <typename IntType>
-    CUDA_DEVICE_FUNCTION constexpr IntType nextMultiplierForPowOf2(IntType x, uint32_t exponent) {
+    CUDA_DEVICE_FUNCTION CUDA_INLINE constexpr IntType nextMultiplierForPowOf2(IntType x, uint32_t exponent) {
         return nextMultiplesForPowOf2(x, exponent) >> exponent;
     }
 
@@ -355,20 +351,20 @@ namespace vlr {
     struct CompensatedSum {
         RealType result;
         RealType comp;
-        CUDA_DEVICE_FUNCTION CompensatedSum(const RealType &value) : result(value), comp(0.0) { }
-        CUDA_DEVICE_FUNCTION CompensatedSum &operator=(const RealType &value) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE CompensatedSum(const RealType &value) : result(value), comp(0.0) { }
+        CUDA_DEVICE_FUNCTION CUDA_INLINE CompensatedSum &operator=(const RealType &value) {
             result = value;
             comp = 0;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION CompensatedSum &operator+=(const RealType &value) {
+        CUDA_DEVICE_FUNCTION CUDA_INLINE CompensatedSum &operator+=(const RealType &value) {
             RealType cInput = value - comp;
             RealType sumTemp = result + cInput;
             comp = (sumTemp - result) - cInput;
             result = sumTemp;
             return *this;
         }
-        CUDA_DEVICE_FUNCTION operator RealType() const { return result; }
+        CUDA_DEVICE_FUNCTION CUDA_INLINE operator RealType() const { return result; }
     };
 
 #if defined(VLR_Host)

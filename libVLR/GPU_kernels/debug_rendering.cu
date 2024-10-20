@@ -4,7 +4,7 @@ namespace vlr {
     using namespace shared;
 
     // for debug rendering
-    CUDA_DEVICE_FUNCTION TripletSpectrum debugRenderingAttributeToSpectrum(
+    CUDA_DEVICE_FUNCTION CUDA_INLINE TripletSpectrum debugRenderingAttributeToSpectrum(
         const SurfacePoint &surfPt, const Vector3D &dirOut, DebugRenderingAttribute attribute) {
         TripletSpectrum value;
 
