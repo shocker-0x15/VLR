@@ -32,7 +32,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.5.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -107,6 +107,7 @@
     <ClCompile Include="..\ext\tinyexr\deps\miniz\miniz.c" />
     <ClCompile Include="..\ext\tinyexr\deps\nanozlib\wuffs-v0.3.c" />
     <ClCompile Include="..\ext\tinyexr\tinyexr.cc" />
+    <ClCompile Include="..\libVLR\utils\cuda_util.cpp" />
     <ClCompile Include="cpp_compile_test.cpp" />
     <ClCompile Include="c_compile_test.c" />
     <ClCompile Include="dds_loader.cpp" />
@@ -133,6 +134,7 @@
     <ClInclude Include="..\ext\tinyexr\deps\miniz\miniz.h" />
     <ClInclude Include="..\ext\tinyexr\deps\nanozlib\nanozlib.h" />
     <ClInclude Include="..\ext\tinyexr\tinyexr.h" />
+    <ClInclude Include="..\libVLR\utils\cuda_util.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="dds_loader.h" />
     <ClInclude Include="gl_util.h" />
@@ -165,6 +167,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.5.targets" />
   </ImportGroup>
 </Project>

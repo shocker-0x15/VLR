@@ -1,6 +1,6 @@
 ﻿/*
 
-   Copyright 2023 Shin Watanabe
+   Copyright 2024 Shin Watanabe
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,17 +28,17 @@
 #   undef near
 #   undef far
 #   undef RGB
-#endif
+#endif // if defined(OPTIXU_Platform_Windows_MSVC)
 
 #if defined(OPTIXU_Platform_Windows_MSVC)
 #   pragma warning(push)
 #   pragma warning(disable:4819)
-#endif
+#endif // if defined(OPTIXU_Platform_Windows_MSVC)
 #include <optix_function_table_definition.h>
 #include <cuda.h>
 #if defined(OPTIXU_Platform_Windows_MSVC)
 #   pragma warning(pop)
-#endif
+#endif // if defined(OPTIXU_Platform_Windows_MSVC)
 
 #include <sstream>
 #include <vector>
@@ -53,13 +53,13 @@
 #   else
 #       pragma message("Enabling the updated __cplusplus definition is recommended.")
 #   endif
-#endif
+#endif // if __cplusplus <= 199711L
 
 #if __cplusplus >= 202002L
 #include <bit>
-#else
+#else // if __cplusplus >= 202002L
 #include <intrin.h>
-#endif
+#endif // if __cplusplus >= 202002L
 
 #include <stdexcept>
 
@@ -126,9 +126,9 @@ namespace optixu {
     inline uint32_t countr_zero(uint32_t x) {
         return _tzcnt_u32(x);
     }
-#else
+#else // if __cplusplus < 202002L
     using std::countr_zero;
-#endif
+#endif // if __cplusplus < 202002L
 
 
 
@@ -158,7 +158,7 @@ namespace optixu {
         return PublicType::Priv::extract(obj);
     }
 
-#if defined(OPTIXU_ENABLE_RUNTIME_ERROR)
+#if OPTIXU_ENABLE_RUNTIME_ERROR
 #   define OPTIXU_DEFINE_THROW_RUNTIME_ERROR(TypeName) \
         template <typename... Types> \
         void throwRuntimeError(bool expr, const char* fmt, const Types &... args) const { \
@@ -169,11 +169,11 @@ namespace optixu {
             ss << TypeName ## " " << getName() << ": " << fmt; \
             optixu::_throwRuntimeError(ss.str().c_str(), args...); \
         }
-#else
+#else // if OPTIXU_ENABLE_RUNTIME_ERROR
 #   define OPTIXU_DEFINE_THROW_RUNTIME_ERROR(TypeName) \
         template <typename... Types> \
         void throwRuntimeError(bool, const char*, const Types &...) const {}
-#endif
+#endif // if OPTIXU_ENABLE_RUNTIME_ERROR
 
 
 
@@ -446,9 +446,7 @@ namespace optixu {
         uint32_t numSBTRecords;
         std::unordered_set<_Transform*> transforms;
         std::unordered_set<_InstanceAccelerationStructure*> instASs;
-        struct {
-            unsigned int sbtLayoutIsUpToDate : 1;
-        };
+        uint32_t sbtLayoutIsUpToDate : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(Scene);
@@ -494,7 +492,7 @@ namespace optixu {
         }
         void setupHitGroupSBT(CUstream stream, const _Pipeline* pipeline, const BufferView &sbt, void* hostMem);
 
-        bool isReady(bool* hasMotionAS);
+        bool isReady(bool* hasMotionGAS, bool* hasMotionIAS);
     };
 
 
@@ -512,11 +510,9 @@ namespace optixu {
         OptixOpacityMicromapArrayBuildInput buildInput;
         OptixMicromapBufferSizes memoryRequirement;
 
-        struct {
-            unsigned int memoryUsageComputed : 1;
-            unsigned int buffersSet : 1;
-            unsigned int available : 1;
-        };
+        uint32_t memoryUsageComputed : 1;
+        uint32_t buffersSet : 1;
+        uint32_t available : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(OpacityMicroMapArray);
@@ -563,11 +559,9 @@ namespace optixu {
         OptixDisplacementMicromapArrayBuildInput buildInput;
         OptixMicromapBufferSizes memoryRequirement;
 
-        struct {
-            unsigned int memoryUsageComputed : 1;
-            unsigned int buffersSet : 1;
-            unsigned int available : 1;
-        };
+        uint32_t memoryUsageComputed : 1;
+        uint32_t buffersSet : 1;
+        uint32_t available : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(DisplacementMicroMapArray);
@@ -632,9 +626,9 @@ namespace optixu {
             OptixDisplacementMicromapArrayIndexingMode displacementMicroMapIndexingMode;
             uint32_t displacementMicroMapIndexOffset;
 
-            unsigned int materialIndexSize : 3;
-            unsigned int opacityMicroMapIndexSize : 3;
-            unsigned int displacementMicroMapIndexSize : 3;
+            uint32_t materialIndexSize : 3;
+            uint32_t opacityMicroMapIndexSize : 3;
+            uint32_t displacementMicroMapIndexSize : 3;
         };
         struct CurveGeometry {
             CUdeviceptr* vertexBufferArray;
@@ -652,14 +646,14 @@ namespace optixu {
             BufferView* centerBuffers;
             BufferView* radiusBuffers;
             BufferView materialIndexBuffer;
-            unsigned int materialIndexSize : 3;
-            unsigned int useSingleRadius : 1;
+            uint32_t materialIndexSize : 3;
+            uint32_t useSingleRadius : 1;
         };
         struct CustomPrimitiveGeometry {
             CUdeviceptr* primitiveAabbBufferArray;
             BufferView* primitiveAabbBuffers;
             BufferView materialIndexBuffer;
-            unsigned int materialIndexSize : 3;
+            uint32_t materialIndexSize : 3;
         };
         std::variant<
             TriangleGeometry,
@@ -850,17 +844,16 @@ namespace optixu {
         BufferView accelBuffer;
         BufferView compactedAccelBuffer;
         ASTradeoff tradeoff;
-        struct {
-            unsigned int allowUpdate : 1;
-            unsigned int allowCompaction : 1;
-            unsigned int allowRandomVertexAccess : 1;
-            unsigned int allowOpacityMicroMapUpdate : 1;
-            unsigned int allowDisableOpacityMicroMaps : 1;
-            unsigned int readyToBuild : 1;
-            unsigned int available : 1;
-            unsigned int readyToCompact : 1;
-            unsigned int compactedAvailable : 1;
-        };
+
+        uint32_t allowUpdate : 1;
+        uint32_t allowCompaction : 1;
+        uint32_t allowRandomVertexAccess : 1;
+        uint32_t allowOpacityMicroMapUpdate : 1;
+        uint32_t allowDisableOpacityMicroMaps : 1;
+        uint32_t readyToBuild : 1;
+        uint32_t available : 1;
+        uint32_t readyToCompact : 1;
+        uint32_t compactedAvailable : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(GeometryAccelerationStructure);
@@ -959,9 +952,7 @@ namespace optixu {
         OptixMotionOptions options;
 
         OptixTraversableHandle handle;
-        struct {
-            unsigned int available : 1;
-        };
+        uint32_t available : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(Transform);
@@ -1086,15 +1077,13 @@ namespace optixu {
         BufferView accelBuffer;
         BufferView compactedAccelBuffer;
         ASTradeoff tradeoff;
-        struct {
-            unsigned int allowUpdate : 1;
-            unsigned int allowCompaction : 1;
-            unsigned int allowRandomInstanceAccess : 1;
-            unsigned int readyToBuild : 1;
-            unsigned int available : 1;
-            unsigned int readyToCompact : 1;
-            unsigned int compactedAvailable : 1;
-        };
+        uint32_t allowUpdate : 1;
+        uint32_t allowCompaction : 1;
+        uint32_t allowRandomInstanceAccess : 1;
+        uint32_t readyToBuild : 1;
+        uint32_t available : 1;
+        uint32_t readyToCompact : 1;
+        uint32_t compactedAvailable : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(InstanceAccelerationStructure);
@@ -1229,12 +1218,13 @@ namespace optixu {
         void* hitGroupSbtHostMem;
         OptixShaderBindingTable sbtParams;
 
-        struct {
-            unsigned int pipelineLinked : 1;
-            unsigned int sbtLayoutIsUpToDate : 1;
-            unsigned int sbtIsUpToDate : 1;
-            unsigned int hitGroupSbtIsUpToDate : 1;
-        };
+        uint32_t pipelineIsLinked : 1;
+        uint32_t sbtLayoutIsUpToDate : 1;
+        uint32_t sbtIsUpToDate : 1;
+        uint32_t hitGroupSbtIsUpToDate : 1;
+        uint32_t hasActiveDirectCallable : 1;
+        uint32_t hasActiveContinuationCallable : 1;
+        uint32_t stackSizeHasBeenSet : 1;
 
         Module createModule(
             const char* data, size_t size,
@@ -1260,8 +1250,10 @@ namespace optixu {
             sizeOfPipelineLaunchParams(0),
             scene(nullptr), numMissRayTypes(0), numCallablePrograms(0),
             currentRayGenProgram(nullptr), currentExceptionProgram(nullptr),
-            pipelineLinked(false), sbtLayoutIsUpToDate(false),
-            sbtIsUpToDate(false), hitGroupSbtIsUpToDate(false) {
+            pipelineIsLinked(false), sbtLayoutIsUpToDate(false),
+            sbtIsUpToDate(false), hitGroupSbtIsUpToDate(false),
+            hasActiveDirectCallable(false), hasActiveContinuationCallable(false),
+            stackSizeHasBeenSet(false) {
             sbtParams = {};
         }
         ~Priv();
@@ -1277,7 +1269,7 @@ namespace optixu {
 
 
 
-        bool isLinked() const { return pipelineLinked; }
+        bool isLinked() const { return pipelineIsLinked; }
         void markDirty();
 
         void destroyProgram(_Program* program);
@@ -1454,6 +1446,11 @@ namespace optixu {
             stackSizeCC = stackSizes.cssCC;
         }
 
+        void getStackSizes(uint32_t* _stackSizeDC, uint32_t* _stackSizeCC) const {
+            *_stackSizeDC = stackSizeDC;
+            *_stackSizeCC = stackSizeCC;
+        }
+
         void packHeader(uint8_t* record) const {
             OPTIX_CHECK(optixSbtRecordPackHeader(rawGroup, record));
         }
@@ -1525,15 +1522,14 @@ namespace optixu {
 
         BufferView stateBuffer;
         BufferView scratchBuffer;
-        struct {
-            unsigned int guideAlbedo : 1;
-            unsigned int guideNormal : 1;
 
-            unsigned int useTiling : 1;
-            unsigned int imageSizeSet : 1;
-            unsigned int tasksAreReady : 1;
-            unsigned int stateIsReady : 1;
-        };
+        uint32_t guideAlbedo : 1;
+        uint32_t guideNormal : 1;
+
+        uint32_t useTiling : 1;
+        uint32_t imageSizeSet : 1;
+        uint32_t tasksAreReady : 1;
+        uint32_t stateIsReady : 1;
 
     public:
         OPTIXU_OPAQUE_BRIDGE(Denoiser);

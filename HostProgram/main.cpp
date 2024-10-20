@@ -15,22 +15,6 @@
 
 
 
-#define CUDADRV_CHECK(call) \
-    do { \
-        CUresult error = call; \
-        if (error != CUDA_SUCCESS) { \
-            std::stringstream ss; \
-            const char* errMsg = "failed to get an error message."; \
-            cuGetErrorString(error, &errMsg); \
-            ss << "CUDA call (" << #call << " ) failed with error: '" \
-               << errMsg \
-               << "' (" __FILE__ << ":" << __LINE__ << ")\n"; \
-            throw std::runtime_error(ss.str().c_str()); \
-        } \
-    } while (0)
-
-
-
 static std::filesystem::path getExecutableDirectory() {
     static std::filesystem::path ret;
 

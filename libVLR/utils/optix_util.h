@@ -1,6 +1,6 @@
 ﻿/*
 
-   Copyright 2023 Shin Watanabe
+   Copyright 2024 Shin Watanabe
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,6 +31,9 @@ EN:
 - In Visual Studio, does the CUDA property "Use Fast Math" not work for ptx compilation??
 
 変更履歴 / Update History:
+- JP: - optixReportIntersection()に返り値があることを忘れていたのを修正。
+  EN: - fixed forgetting that optixReportIntersection has a return value.
+
 - JP: - 各プログラム(グループ)にsetActive()を追加。
   EN: - Added setActive() to programs (groups).
 
@@ -179,15 +182,20 @@ EN:
 
 ----------------------------------------------------------------
 TODO:
-- ユニットテスト。
-- Linux環境でのテスト。
-- ASのRelocationサポート。
+- 深いトラバーサルグラフにおけるインスタンスのSBTオフセットの累積サポート。
+- NVRTC環境のテスト。
+- フローベクターの信頼性についてテスト。
 - AOV Denoiserのサンプル作成。
+- Linux環境でのテスト。
+- モジュールの並列コンパイル。
+- ASのRelocationサポート。
+- OMMのRelocationサポート。
+- Multi GPUs?
+- ユニットテスト。
 - Instance Pointersサポート。
 - removeUncompacted再考。(compaction終了待ちとしてとらえる？)
 - 途中で各オブジェクトのパラメターを変更した際の処理。
   パイプラインのセットアップ順などが現状は暗黙的に固定されている。これを自由な順番で変えられるようにする。
-- Multi GPUs?
 - Assertとexceptionの整理。
 
 検討事項 (Items under author's consideration, ignore this :) ):
@@ -230,6 +238,13 @@ TODO:
 
 */
 
+
+
+#define OPTIXU_STRINGIFY(x) #x
+#define OPTIXU_TO_STRING(x) OPTIXU_STRINGIFY(x)
+
+
+
 // Platform defines
 #if defined(_WIN32) || defined(_WIN64)
 #   define OPTIXU_Platform_Windows
@@ -237,41 +252,55 @@ TODO:
 #       define OPTIXU_Platform_Windows_MSVC
 #       if defined(__INTELLISENSE__)
 #           define OPTIXU_Platform_CodeCompletion
-#       endif
-#   endif
+#       endif // if defined(__INTELLISENSE__)
+#   endif // if defined(_MSC_VER)
 #elif defined(__APPLE__)
 #   define OPTIXU_Platform_macOS
-#endif
+#endif // if defined(_WIN32) || defined(_WIN64)
+
+
 
 #if defined(__CUDACC_RTC__)
-// Defining things corresponding to cstdint and cfloat is left to the user.
-#else
+// JP: cstdintやcfloatに対応する定義はユーザーに任せられている。
+// EN: Defining things corresponding to cstdint and cfloat is left to the user.
+#else // if defined(__CUDACC_RTC__)
 #include <cstdint>
 #include <cfloat>
 #include <string>
 #include <vector>
 #include <initializer_list>
-#endif
+#   if __cplusplus >= 202002L
+#       include <concepts>
+#   endif // if __cplusplus >= 202002L
+#endif // if defined(__CUDACC_RTC__)
 
 #if defined(OPTIXU_Platform_Windows_MSVC)
 #   pragma warning(push)
 #   pragma warning(disable:4819)
-#endif
+#endif // if defined(OPTIXU_Platform_Windows_MSVC)
+// JP: NVRTCを使う場合でも「アプリケーション」ユーザーはOptiX SDKのインストールを必要とする。
+// EN: Even NVRTC requires the "application" user to install OptiX SDK.
 #include <optix.h>
 #if !defined(__CUDA_ARCH__)
-#include <optix_stubs.h>
-#endif
+#   include <optix_stubs.h>
+#endif // if !defined(__CUDA_ARCH__)
 #if defined(OPTIXU_Platform_Windows_MSVC)
 #   pragma warning(pop)
-#endif
+#endif // if defined(OPTIXU_Platform_Windows_MSVC)
 
-#ifdef _DEBUG
-#   define OPTIXU_ENABLE_ASSERT
-#endif
+
+
+#if !defined(OPTIXU_ENABLE_ASSERT)
+#   if defined(_DEBUG)
+#       define OPTIXU_ENABLE_ASSERT 1
+#   else
+#       define OPTIXU_ENABLE_ASSERT 0
+#   endif // if defined(_DEBUG)
+#endif // if !defined(OPTIXU_ENABLE_ASSERT)
+
 #if !defined(OPTIXU_DISABLE_RUNTIME_ERROR)
-#   define OPTIXU_ENABLE_RUNTIME_ERROR
-#endif
-
+#   define OPTIXU_ENABLE_RUNTIME_ERROR 1
+#endif // if !defined(OPTIXU_DISABLE_RUNTIME_ERROR)
 
 #if defined(__CUDACC__)
 #   define RT_CALLABLE_PROGRAM extern "C" __device__
@@ -281,13 +310,13 @@ TODO:
 #   if !defined(RT_PIPELINE_LAUNCH_PARAMETERS)
 #       define RT_PIPELINE_LAUNCH_PARAMETERS extern "C" __constant__
 #   endif
-#else
+#else // if defined(__CUDACC__)
 #   define RT_CALLABLE_PROGRAM
 #   define RT_INLINE inline
 #   define RT_DEVICE_FUNCTION
 #   define RT_COMMON_FUNCTION
 #   define RT_PIPELINE_LAUNCH_PARAMETERS
-#endif
+#endif // if defined(__CUDACC__)
 
 #define RT_RG_NAME(name) __raygen__ ## name
 #define RT_MS_NAME(name) __miss__ ## name
@@ -342,7 +371,7 @@ OPTIXU_DEFINE_OPERATORS_FOR_FLAGS(OptixPayloadTypeID);
 
 #if defined(OPTIXU_Platform_CodeCompletion)
 struct float3;
-#endif
+#endif // if defined(OPTIXU_Platform_CodeCompletion)
 
 
 
@@ -359,13 +388,13 @@ namespace optixu {
 #   define optixuPrintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #endif
 
-#if defined(OPTIXU_ENABLE_ASSERT)
+#if OPTIXU_ENABLE_ASSERT
 #   if defined(__CUDA_ARCH__)
 #       define optixuAssert(expr, fmt, ...) \
             do { \
                 if (!(expr)) { \
-                    printf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); \
-                    printf(fmt"\n", ##__VA_ARGS__); \
+                    ::printf("%s @%s: %u:\n", #expr, __FILE__, __LINE__); \
+                    ::printf(fmt"\n", ##__VA_ARGS__); \
                     assert(0); \
                 } \
             } while (0)
@@ -379,17 +408,37 @@ namespace optixu {
                 } \
             } while (0)
 #   endif
-#else
+#else // if OPTIXU_ENABLE_ASSERT
 #   define optixuAssert(expr, fmt, ...)
-#endif
+#endif // if OPTIXU_ENABLE_ASSERT
 
 #define optixuAssert_ShouldNotBeCalled() optixuAssert(false, "Should not be called!")
 #define optixuAssert_NotImplemented() optixuAssert(false, "Not implemented yet!")
 
-    namespace detail {
-        static constexpr uint32_t maxNumPayloadsInDwords = 32;
-#define OPTIXU_STR_MAX_NUM_PAYLOADS "32"
+    // JP: stdのメタ関数の抽象化定義。
+    // EN: Definitions to abstract std meta functions.
+#if defined(__CUDACC_RTC__)
+    // TODO
+#else // if defined(__CUDACC_RTC__)
+#   if __cplusplus >= 202002L
+    template <class _From, class _To>
+    concept convertible_to = std::convertible_to<_From, _To>;
+#   endif
 
+    template <class... _Type>
+    using tuple = std::tuple<_Type...>;
+
+    template <size_t _Index, class _Tuple>
+    using tuple_element_t = std::tuple_element_t<_Index, _Tuple>;
+
+    template <size_t... _Vals>
+    using index_sequence = std::index_sequence<_Vals...>;
+
+    template <size_t _Size>
+    using make_index_sequence = std::make_index_sequence<_Size>;
+#endif // if defined(__CUDACC_RTC__)
+
+    namespace detail {
         template <typename T>
         RT_DEVICE_FUNCTION constexpr size_t getNumDwords() {
             return (sizeof(T) + 3) / 4;
@@ -405,11 +454,11 @@ namespace optixu {
 
 #if !defined(__CUDA_ARCH__)
     struct PayloadType {
-        OptixPayloadSemantics semantics[detail::maxNumPayloadsInDwords];
+        OptixPayloadSemantics semantics[OPTIX_COMPILE_DEFAULT_MAX_PAYLOAD_VALUE_COUNT];
         uint32_t numDwords;
 
         PayloadType() : numDwords(0) {
-            for (uint32_t i = 0; i < detail::maxNumPayloadsInDwords; ++i)
+            for (uint32_t i = 0; i < OPTIX_COMPILE_DEFAULT_MAX_PAYLOAD_VALUE_COUNT; ++i)
                 semantics[i] = static_cast<OptixPayloadSemantics>(0);
         }
 
@@ -420,7 +469,7 @@ namespace optixu {
             return ret;
         }
     };
-#endif
+#endif // if !defined(__CUDA_ARCH__)
 
 
 
@@ -469,34 +518,65 @@ namespace optixu {
 
 
 
+#if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
+#   if __cplusplus >= 202002L
+    template <typename T>
+    concept Has3D = requires(T v) {
+        { v.x } -> convertible_to<float>;
+        { v.y } -> convertible_to<float>;
+        { v.z } -> convertible_to<float>;
+    };
+#       define OPTIXU_HAS3D_CONCEPT Has3D
+#   else // if __cplusplus >= 202002L
+#       define OPTIXU_HAS3D_CONCEPT typename
+#   endif // if __cplusplus >= 202002L
+
+    template <OPTIXU_HAS3D_CONCEPT T>
+    RT_DEVICE_FUNCTION RT_INLINE float3 toNative(const T &v) {
+        return make_float3(
+            static_cast<float>(v.x),
+            static_cast<float>(v.y),
+            static_cast<float>(v.z));
+    }
+#endif // if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
+
+
+
     template <typename... PayloadTypes>
     struct PayloadSignature {
-        using Types = std::tuple<PayloadTypes...>;
+        using Types = tuple<PayloadTypes...>;
         template <uint32_t index>
-        using TypeAt = std::tuple_element_t<index, Types>;
+        using TypeAt = tuple_element_t<index, Types>;
         static constexpr uint32_t numParameters = sizeof...(PayloadTypes);
         static constexpr uint32_t numDwords =
             static_cast<uint32_t>(detail::calcSumDwords<PayloadTypes...>());
-        static_assert(numDwords <= detail::maxNumPayloadsInDwords,
-                      "Maximum number of payloads is " OPTIXU_STR_MAX_NUM_PAYLOADS " in dwords.");
+        static_assert(
+            numDwords <= OPTIX_COMPILE_DEFAULT_MAX_PAYLOAD_VALUE_COUNT,
+            "Maximum number of payloads is "
+            OPTIXU_TO_STRING(OPTIX_COMPILE_DEFAULT_MAX_PAYLOAD_VALUE_COUNT)
+            " in dwords.");
         static constexpr uint32_t _arraySize = numParameters > 0 ? numParameters : 1u;
         static constexpr uint32_t sizesInDwords[_arraySize] = {
             static_cast<uint32_t>(detail::getNumDwords<PayloadTypes>())...
         };
 
 #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
-        template <OptixPayloadTypeID payloadTypeID = OPTIX_PAYLOAD_TYPE_DEFAULT>
+        template <
+            OptixPayloadTypeID payloadTypeID = OPTIX_PAYLOAD_TYPE_DEFAULT,
+            OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
         RT_DEVICE_FUNCTION RT_INLINE static void trace(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
             PayloadTypes &... payloads);
-        template <OptixPayloadTypeID payloadTypeID = OPTIX_PAYLOAD_TYPE_DEFAULT>
+        template <
+            OptixPayloadTypeID payloadTypeID = OPTIX_PAYLOAD_TYPE_DEFAULT,
+            OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
         RT_DEVICE_FUNCTION RT_INLINE static void traverse(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
@@ -547,9 +627,9 @@ namespace optixu {
 
     template <typename... AttributeTypes>
     struct AttributeSignature {
-        using Types = std::tuple<AttributeTypes...>;
+        using Types = tuple<AttributeTypes...>;
         template <uint32_t index>
-        using TypeAt = std::tuple_element_t<index, Types>;
+        using TypeAt = tuple_element_t<index, Types>;
         static constexpr uint32_t numParameters = sizeof...(AttributeTypes);
         static constexpr uint32_t numDwords =
             static_cast<uint32_t>(detail::calcSumDwords<AttributeTypes...>());
@@ -559,29 +639,32 @@ namespace optixu {
         };
 
 #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
-        RT_DEVICE_FUNCTION RT_INLINE static void reportIntersection(
+        RT_DEVICE_FUNCTION RT_INLINE static bool reportIntersection(
             float hitT, uint32_t hitKind,
             const AttributeTypes &... attributes);
         RT_DEVICE_FUNCTION RT_INLINE static void get(AttributeTypes*... attributes);
         RT_DEVICE_FUNCTION RT_INLINE static void getFromHitObject(AttributeTypes*... attributes);
+        template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
         RT_DEVICE_FUNCTION RT_INLINE static void makeHitObject(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t instIdx,
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
             const AttributeTypes &... attributes);
+        template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
         RT_DEVICE_FUNCTION RT_INLINE static void makeHitObject(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t instIdx,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
             const AttributeTypes &... attributes);
+        template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
         RT_DEVICE_FUNCTION RT_INLINE static void makeHitObjectWithRecord(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t sbtRecordIndex, uint32_t instIdx,
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
@@ -592,9 +675,9 @@ namespace optixu {
 
     template <typename... ExceptionDetailTypes>
     struct ExceptionDetailSignature {
-        using Types = std::tuple<ExceptionDetailTypes...>;
+        using Types = tuple<ExceptionDetailTypes...>;
         template <uint32_t index>
-        using TypeAt = std::tuple_element_t<index, Types>;
+        using TypeAt = tuple_element_t<index, Types>;
         static constexpr uint32_t numParameters = sizeof...(ExceptionDetailTypes);
         static constexpr uint32_t numDwords =
             static_cast<uint32_t>(detail::calcSumDwords<ExceptionDetailTypes...>());
@@ -633,7 +716,8 @@ namespace optixu {
 
         template <uint32_t start, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION RT_INLINE void packToUInts(
-            uint32_t* v, const HeadType &head, const TailTypes &... tails) {
+            uint32_t* v, const HeadType &head, const TailTypes &... tails)
+        {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Value type of size not multiple of Dword is not supported.");
             constexpr uint32_t numDwords = sizeof(HeadType) / sizeof(uint32_t);
@@ -646,7 +730,8 @@ namespace optixu {
 
         template <typename Func, typename Type, uint32_t offsetInDst, uint32_t srcSlot>
         RT_DEVICE_FUNCTION RT_INLINE void getValue(
-            Type* value) {
+            Type* value)
+        {
             if (!value) // hope calls for this function are removed when value is compile-time nullptr.
                 return;
             *(reinterpret_cast<uint32_t*>(value) + offsetInDst) = Func::template get<srcSlot>();
@@ -656,7 +741,8 @@ namespace optixu {
 
         template <typename Func, uint32_t srcStartSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION RT_INLINE void getValues(
-            HeadType* head, TailTypes*... tails) {
+            HeadType* head, TailTypes*... tails)
+        {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Value type of size not multiple of Dword is not supported.");
             getValue<Func, HeadType, 0, srcStartSlot>(head);
@@ -666,7 +752,8 @@ namespace optixu {
 
         template <typename Func, typename Type, uint32_t offsetInSrc, uint32_t dstSlot>
         RT_DEVICE_FUNCTION RT_INLINE void setValue(
-            const Type* value) {
+            const Type* value)
+        {
             if (!value) // hope calls for this function are removed when value is compile-time nullptr.
                 return;
             Func::set<dstSlot>(*(reinterpret_cast<const uint32_t*>(value) + offsetInSrc));
@@ -676,7 +763,8 @@ namespace optixu {
 
         template <typename Func, uint32_t dstStartSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION RT_INLINE void setValues(
-            const HeadType* head, const TailTypes*... tails) {
+            const HeadType* head, const TailTypes*... tails)
+        {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Value type of size not multiple of Dword is not supported.");
             setValue<Func, HeadType, 0, dstStartSlot>(head);
@@ -686,7 +774,8 @@ namespace optixu {
 
         template <uint32_t startSlot, typename HeadType, typename... TailTypes>
         RT_DEVICE_FUNCTION RT_INLINE void traceSetPayloads(
-            uint32_t** p, HeadType &headPayload, TailTypes &... tailPayloads) {
+            uint32_t** p, HeadType &headPayload, TailTypes &... tailPayloads)
+        {
             static_assert(sizeof(HeadType) % sizeof(uint32_t) == 0,
                           "Payload type of size not multiple of Dword is not supported.");
             constexpr uint32_t numDwords = getNumDwords<HeadType>();
@@ -705,7 +794,8 @@ namespace optixu {
             OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
             uint32_t* const* payloads,
-            std::index_sequence<I...>) {
+            index_sequence<I...>)
+        {
             if constexpr (withInvoke) {
                 optixTrace(
                     payloadTypeID,
@@ -730,15 +820,17 @@ namespace optixu {
 
         template <OptixPayloadTypeID payloadTypeID, size_t... I>
         RT_DEVICE_FUNCTION RT_INLINE void invoke(
-            uint32_t* const* payloads, std::index_sequence<I...>) {
+            uint32_t* const* payloads, index_sequence<I...>)
+        {
             optixInvoke(payloadTypeID, *payloads[I]...);
         }
 
         template <size_t... I>
-        RT_DEVICE_FUNCTION RT_INLINE void reportIntersection(
+        RT_DEVICE_FUNCTION RT_INLINE bool reportIntersection(
             float hitT, uint32_t hitKind, const uint32_t* attributes,
-            std::index_sequence<I...>) {
-            optixReportIntersection(hitT, hitKind, attributes[I]...);
+            index_sequence<I...>)
+        {
+            return optixReportIntersection(hitT, hitKind, attributes[I]...);
         }
 
         template <size_t... I>
@@ -750,7 +842,8 @@ namespace optixu {
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
             const uint32_t* attributes,
-            std::index_sequence<I...>) {
+            index_sequence<I...>)
+        {
             optixMakeHitObject(
                 handle,
                 origin, direction,
@@ -769,7 +862,8 @@ namespace optixu {
             uint32_t SBToffset, uint32_t SBTstride, uint32_t instIdx,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
             const uint32_t* attributes,
-            std::index_sequence<I...>) {
+            index_sequence<I...>)
+        {
             optixMakeHitObject(
                 handle,
                 origin, direction,
@@ -788,7 +882,8 @@ namespace optixu {
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
             const uint32_t* attributes,
-            std::index_sequence<I...>) {
+            index_sequence<I...>)
+        {
             optixMakeHitObjectWithRecord(
                 handle,
                 origin, direction,
@@ -802,7 +897,8 @@ namespace optixu {
         template <size_t... I>
         RT_DEVICE_FUNCTION RT_INLINE void throwException(
             int32_t exceptionCode, const uint32_t* exDetails,
-            std::index_sequence<I...>) {
+            index_sequence<I...>)
+        {
             optixThrowException(exceptionCode, exDetails[I]...);
         }
 
@@ -943,62 +1039,66 @@ namespace optixu {
     }
 
     template <typename... PayloadTypes>
-    template <OptixPayloadTypeID payloadTypeID>
+    template <OptixPayloadTypeID payloadTypeID, OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
         trace(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
-            PayloadTypes &... payloads) {
+            PayloadTypes &... payloads)
+    {
         uint32_t* p[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::traceSetPayloads<0>(p, payloads...);
         detail::traverse<true, payloadTypeID>(
             handle,
-            origin, direction,
+            toNative(origin), toNative(direction),
             tmin, tmax, rayTime,
             visibilityMask, rayFlags,
             SBToffset, SBTstride, missSBTIndex,
-            p, std::make_index_sequence<numDwords>{});
+            p, make_index_sequence<numDwords>{});
     }
 
     template <typename... PayloadTypes>
-    template <OptixPayloadTypeID payloadTypeID>
+    template <OptixPayloadTypeID payloadTypeID, OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
         traverse(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             OptixVisibilityMask visibilityMask, OptixRayFlags rayFlags,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t missSBTIndex,
-            PayloadTypes &... payloads) {
+            PayloadTypes &... payloads)
+    {
         uint32_t* p[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::traceSetPayloads<0>(p, payloads...);
         detail::traverse<false, payloadTypeID>(
             handle,
-            origin, direction,
+            toNative(origin), toNative(direction),
             tmin, tmax, rayTime,
             visibilityMask, rayFlags,
             SBToffset, SBTstride, missSBTIndex,
-            p, std::make_index_sequence<numDwords>{});
+            p, make_index_sequence<numDwords>{});
     }
 
     template <typename... PayloadTypes>
     template <OptixPayloadTypeID payloadTypeID>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
-        invoke(PayloadTypes &... payloads) {
+        invoke(PayloadTypes &... payloads)
+    {
         uint32_t* p[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::traceSetPayloads<0>(p, payloads...);
-        detail::invoke<payloadTypeID>(p, std::make_index_sequence<numDwords>{});
+        detail::invoke<payloadTypeID>(p, make_index_sequence<numDwords>{});
     }
 
     template <typename... PayloadTypes>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
-        get(PayloadTypes*... payloads) {
+        get(PayloadTypes*... payloads)
+    {
         static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::PayloadFunc, 0>(payloads...);
@@ -1006,7 +1106,8 @@ namespace optixu {
 
     template <typename... PayloadTypes>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
-        set(const PayloadTypes*... payloads) {
+        set(const PayloadTypes*... payloads)
+    {
         static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::setValues<detail::PayloadFunc, 0>(payloads...);
@@ -1015,7 +1116,8 @@ namespace optixu {
     template <typename... PayloadTypes>
     template <uint32_t index>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
-        getAt(TypeAt<index>* payload) {
+        getAt(TypeAt<index>* payload)
+    {
         constexpr uint32_t offsetInDwords = detail::calcOffset<index>(sizesInDwords);
         detail::getValue<detail::PayloadFunc, TypeAt<index>, 0, offsetInDwords>(payload);
     }
@@ -1023,7 +1125,8 @@ namespace optixu {
     template <typename... PayloadTypes>
     template <uint32_t index>
     RT_DEVICE_FUNCTION RT_INLINE void PayloadSignature<PayloadTypes...>::
-        setAt(const TypeAt<index> &payload) {
+        setAt(const TypeAt<index> &payload)
+    {
         constexpr uint32_t offsetInDwords = detail::calcOffset<index>(sizesInDwords);
         detail::setValue<detail::PayloadFunc, TypeAt<index>, 0, offsetInDwords>(&payload);
     }
@@ -1031,19 +1134,21 @@ namespace optixu {
 
 
     template <typename... AttributeTypes>
-    RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
+    RT_DEVICE_FUNCTION RT_INLINE bool AttributeSignature<AttributeTypes...>::
         reportIntersection(
             float hitT, uint32_t hitKind,
-            const AttributeTypes &... attributes) {
+            const AttributeTypes &... attributes)
+    {
         uint32_t a[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::packToUInts<0>(a, attributes...);
-        detail::reportIntersection(hitT, hitKind, a, std::make_index_sequence<numDwords>{});
+        return detail::reportIntersection(hitT, hitKind, a, make_index_sequence<numDwords>{});
     }
 
     template <typename... AttributeTypes>
     RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
-        get(AttributeTypes*... attributes) {
+        get(AttributeTypes*... attributes)
+    {
         static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::AttributeFunc, 0>(attributes...);
@@ -1051,22 +1156,25 @@ namespace optixu {
 
     template <typename... AttributeTypes>
     RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
-        getFromHitObject(AttributeTypes*... attributes) {
+        getFromHitObject(AttributeTypes*... attributes)
+    {
         static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::HitObjectAttributeFunc, 0>(attributes...);
     }
 
     template <typename... AttributeTypes>
+    template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
     RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
         makeHitObject(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t instIdx,
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
-            const AttributeTypes &... attributes) {
+            const AttributeTypes &... attributes)
+    {
         uint32_t a[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::packToUInts<0>(a, attributes...);
@@ -1077,18 +1185,20 @@ namespace optixu {
             SBToffset, SBTstride, instIdx,
             transforms, numTransforms,
             sbtGASIdx, primIdx, hitKind,
-            a, std::make_index_sequence<numDwords>{});
+            a, make_index_sequence<numDwords>{});
     }
 
     template <typename... AttributeTypes>
+    template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
     RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
         makeHitObject(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t SBToffset, uint32_t SBTstride, uint32_t instIdx,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
-            const AttributeTypes &... attributes) {
+            const AttributeTypes &... attributes)
+    {
         uint32_t a[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::packToUInts<0>(a, attributes...);
@@ -1098,19 +1208,21 @@ namespace optixu {
             tmin, tmax, rayTime,
             SBToffset, SBTstride, instIdx,
             sbtGASIdx, primIdx, hitKind,
-            a, std::make_index_sequence<numDwords>{});
+            a, make_index_sequence<numDwords>{});
     }
 
     template <typename... AttributeTypes>
+    template <OPTIXU_HAS3D_CONCEPT PosType, OPTIXU_HAS3D_CONCEPT DirType>
     RT_DEVICE_FUNCTION RT_INLINE void AttributeSignature<AttributeTypes...>::
         makeHitObjectWithRecord(
             OptixTraversableHandle handle,
-            const float3 &origin, const float3 &direction,
+            const PosType &origin, const DirType &direction,
             float tmin, float tmax, float rayTime,
             uint32_t sbtRecordIndex, uint32_t instIdx,
             const OptixTraversableHandle* transforms, uint32_t numTransforms,
             uint32_t sbtGASIdx, uint32_t primIdx, uint32_t hitKind,
-            const AttributeTypes &... attributes) {
+            const AttributeTypes &... attributes)
+    {
         uint32_t a[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::packToUInts<0>(a, attributes...);
@@ -1121,7 +1233,7 @@ namespace optixu {
             sbtRecordIndex, instIdx,
             transforms, numTransforms,
             sbtGASIdx, primIdx, hitKind,
-            a, std::make_index_sequence<numDwords>{});
+            a, make_index_sequence<numDwords>{});
     }
 
 
@@ -1130,20 +1242,24 @@ namespace optixu {
     RT_DEVICE_FUNCTION RT_INLINE void ExceptionDetailSignature<ExceptionDetailTypes...>::
         throwException(
             int32_t exceptionCode,
-            const ExceptionDetailTypes &... exDetails) {
+            const ExceptionDetailTypes &... exDetails)
+    {
         uint32_t ed[numDwords > 0 ? numDwords : 1];
         if constexpr (numDwords > 0)
             detail::packToUInts<0>(ed, exDetails...);
-        detail::throwException(exceptionCode, ed, std::make_index_sequence<numDwords>{});
+        detail::throwException(exceptionCode, ed, make_index_sequence<numDwords>{});
     }
 
     template <typename... ExceptionDetailTypes>
     RT_DEVICE_FUNCTION RT_INLINE void ExceptionDetailSignature<ExceptionDetailTypes...>::
-        get(ExceptionDetailTypes*... exDetails) {
+        get(ExceptionDetailTypes*... exDetails)
+    {
         static_assert(numDwords > 0, "Calling this function for this signature has no effect.");
         if constexpr (numDwords > 0)
             detail::getValues<detail::ExceptionDetailFunc, 0>(exDetails...);
     }
+
+#undef OPTIXU_HAS3D_CONCEPT
 
 #endif // #if defined(__CUDA_ARCH__) || defined(OPTIXU_Platform_CodeCompletion)
     // END: Device-side function wrappers
@@ -1652,6 +1768,7 @@ namespace optixu {
             setUserData(&data, sizeof(T), alignof(T));
         }
 
+        GeometryType getGeometryType() const;
         uint32_t getNumMotionSteps() const;
         OptixVertexFormat getVertexFormat() const;
         BufferView getVertexBuffer(uint32_t motionStep = 0);
@@ -1769,6 +1886,7 @@ namespace optixu {
         bool isReady() const;
         OptixTraversableHandle getHandle() const;
 
+        GeometryType getGeometryType() const;
         void getConfiguration(
             ASTradeoff* tradeOff, AllowUpdate* allowUpdate, AllowCompaction* allowCompaction,
             AllowRandomVertexAccess* allowRandomVertexAccess,
@@ -2072,6 +2190,10 @@ namespace optixu {
             CUstream stream, CUdeviceptr plpOnDevice,
             uint32_t dimX, uint32_t dimY, uint32_t dimZ) const;
 
+        Program getRayGenerationProgram() const;
+        Program getExceptionProgram() const;
+        Program getMissProgram(uint32_t rayType) const;
+        CallableProgramGroup getCallableProgram(uint32_t index) const;
         Scene getScene() const;
     };
 
@@ -2310,7 +2432,10 @@ float3 optixTransformVectorFromObjectToWorldSpace(float3 vec);
 float3 optixTransformVectorFromWorldToObjectSpace(float3 vec);
 unsigned int optixUndefinedValue();
 
-#endif
+#endif // if defined(OPTIXU_Platform_CodeCompletion)
 
 // END: Declarations for code completion
 // ----------------------------------------------------------------
+
+#undef OPTIXU_TO_STRING
+#undef OPTIXU_STRINGIFY
