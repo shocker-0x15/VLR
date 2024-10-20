@@ -183,17 +183,17 @@ namespace vlr {
             dstRGB[2] = srcTriplet[2];
             break;
         case ColorSpace::xyY: {
-            if (srcTriplet[1] == 0) {
-                dstRGB[0] = dstRGB[1] = dstRGB[2] = 0.0f;
-                break;
+                if (srcTriplet[1] == 0) {
+                    dstRGB[0] = dstRGB[1] = dstRGB[2] = 0.0f;
+                    break;
+                }
+                RealType z = 1 - (srcTriplet[0] + srcTriplet[1]);
+                RealType b = srcTriplet[2] / srcTriplet[1];
+                srcTriplet[0] = srcTriplet[0] * b;
+                srcTriplet[1] = srcTriplet[2];
+                srcTriplet[2] = z * b;
+                // pass to XYZ
             }
-            RealType z = 1 - (srcTriplet[0] + srcTriplet[1]);
-            RealType b = srcTriplet[2] / srcTriplet[1];
-            srcTriplet[0] = srcTriplet[0] * b;
-            srcTriplet[1] = srcTriplet[2];
-            srcTriplet[2] = z * b;
-            // pass to XYZ
-        }
         case ColorSpace::XYZ:
             switch (spectrumType) {
             case SpectrumType::Reflectance:
