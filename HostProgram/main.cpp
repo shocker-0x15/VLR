@@ -892,7 +892,7 @@ public:
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-        ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+        ImGui_ImplGlfw_InitForOpenGL(m_window, false);
         ImGui_ImplOpenGL3_Init(glsl_version);
 
         // Setup style
@@ -923,8 +923,8 @@ public:
         const std::filesystem::path exeDir = getExecutableDirectory();
 
         // JP: OptiXの出力を書き出すシェーダー。
-        m_drawOptiXResultShader.initializeVSPS(readTxtFile(exeDir / "shaders/drawOptiXResult.vert"),
-                                               readTxtFile(exeDir / "shaders/drawOptiXResult.frag"));
+        m_drawOptiXResultShader.initializeVSPS(readTxtFile(exeDir / "HostProgram/shaders/drawOptiXResult.vert"),
+                                               readTxtFile(exeDir / "HostProgram/shaders/drawOptiXResult.frag"));
 
         // JP: HiDPIディスプレイで過剰なレンダリング負荷になってしまうため低解像度フレームバッファーを作成する。
         GLenum colorFormats[] = { s_frameBufferColorFormat };
@@ -934,8 +934,8 @@ public:
                                  &depthFormat, false);
 
         // JP: アップスケール用のシェーダー。
-        m_scaleShader.initializeVSPS(readTxtFile(exeDir / "shaders/scale.vert"),
-                                     readTxtFile(exeDir / "shaders/scale.frag"));
+        m_scaleShader.initializeVSPS(readTxtFile(exeDir / "HostProgram/shaders/scale.vert"),
+                                     readTxtFile(exeDir / "HostProgram/shaders/scale.frag"));
 
         // JP: アップスケール用のサンプラー。
         //     texelFetch()を使う場合には設定値は無関係。だがバインドは必要な様子。

@@ -139,7 +139,8 @@ namespace vlr {
         m_optix.launchParams.materialDescriptorBuffer = 
             m_optix.surfaceMaterialDescriptorBuffer.optixBuffer.getDevicePointer();
 
-        m_optix.context = optixu::Context::create(cuContext/*, 4, true*/);
+        m_optix.context = optixu::Context::create(
+            cuContext/*, 4, optixu::EnableValidation::Yes*/);
 
         m_optix.materialDefault = m_optix.context.createMaterial();
         m_optix.materialWithAlpha = m_optix.context.createMaterial();
@@ -677,16 +678,40 @@ namespace vlr {
             OptiX::PathTracing &p = m_optix.pathTracing;
 
             p.pipeline.link(2);
+
+            constexpr uint32_t dcStackSizeFromTrav = 0;
+
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
-            for (int i = 0; i < p.callablePrograms.size(); ++i)
+            uint32_t dcStackSizeFromState = 0;
+            for (int i = 0; i < p.callablePrograms.size(); ++i) {
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+                dcStackSizeFromState =
+                    std::max(p.callablePrograms[i].getDCStackSize(), dcStackSizeFromState);
+            }
+            dcStackSizeFromState *= maxCallableDepth;
+
+            // Possible Program Paths:
+            // RG - CH+AH - AH
+            // RG - MS
+            uint32_t ccStackSize =
+                p.rayGeneration.getStackSize() +
+                std::max({
+                    std::max({
+                        p.hitGroupDefault.getCHStackSize(),
+                        p.hitGroupWithAlpha.getCHStackSize(),
+                        p.hitGroupWithAlpha.getAHStackSize()}) +
+                    std::max({
+                        p.hitGroupShadowDefault.getAHStackSize(),
+                        p.hitGroupShadowWithAlpha.getAHStackSize()}),
+                    p.miss.getStackSize() });
+            p.pipeline.setStackSize(dcStackSizeFromTrav, dcStackSizeFromState, ccStackSize, 1);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
             p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
-            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
-                                             p.shaderBindingTable.getMappedPointer());
+            p.pipeline.setShaderBindingTable(
+                p.shaderBindingTable, p.shaderBindingTable.getMappedPointer());
         }
 
         // Pipeline for Light Tracing
@@ -694,16 +719,40 @@ namespace vlr {
             OptiX::LightTracing &p = m_optix.lightTracing;
 
             p.pipeline.link(2);
+
+            constexpr uint32_t dcStackSizeFromTrav = 0;
+
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
-            for (int i = 0; i < p.callablePrograms.size(); ++i)
+            uint32_t dcStackSizeFromState = 0;
+            for (int i = 0; i < p.callablePrograms.size(); ++i) {
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+                dcStackSizeFromState =
+                    std::max(p.callablePrograms[i].getDCStackSize(), dcStackSizeFromState);
+            }
+            dcStackSizeFromState *= maxCallableDepth;
+
+            // Possible Program Paths:
+            // RG - CH+AH - AH
+            // RG - MS
+            uint32_t ccStackSize =
+                p.rayGeneration.getStackSize() +
+                std::max({
+                    std::max({
+                        p.hitGroupDefault.getCHStackSize(),
+                        p.hitGroupWithAlpha.getCHStackSize(),
+                        p.hitGroupWithAlpha.getAHStackSize()}) +
+                    std::max({
+                        p.hitGroupShadowDefault.getAHStackSize(),
+                        p.hitGroupShadowWithAlpha.getAHStackSize()}),
+                    p.miss.getStackSize() });
+            p.pipeline.setStackSize(dcStackSizeFromTrav, dcStackSizeFromState, ccStackSize, 1);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
             p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
-            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
-                                             p.shaderBindingTable.getMappedPointer());
+            p.pipeline.setShaderBindingTable(
+                p.shaderBindingTable, p.shaderBindingTable.getMappedPointer());
         }
 
         // Pipeline for LVC-BPT
@@ -711,16 +760,55 @@ namespace vlr {
             OptiX::LVCBPT &p = m_optix.lvcbpt;
 
             p.pipeline.link(2);
+
+            constexpr uint32_t dcStackSizeFromTrav = 0;
+
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
-            for (int i = 0; i < p.callablePrograms.size(); ++i)
+            uint32_t dcStackSizeFromState = 0;
+            for (int i = 0; i < p.callablePrograms.size(); ++i) {
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+                dcStackSizeFromState =
+                    std::max(p.callablePrograms[i].getDCStackSize(), dcStackSizeFromState);
+            }
+            dcStackSizeFromState *= maxCallableDepth;
+
+            // Possible Program Paths:
+            // RG - CH+AH
+            // RG - MS
+            uint32_t lightPathCcStackSize =
+                p.lightPathRayGen.getStackSize() +
+                std::max({
+                    std::max({
+                        p.lightPathHitGroupDefault.getCHStackSize(),
+                        p.lightPathHitGroupWithAlpha.getCHStackSize(),
+                        p.lightPathHitGroupWithAlpha.getAHStackSize()}),
+                    p.lightPathMiss.getStackSize() });
+
+            // Possible Program Paths:
+            // RG - CH+AH - AH
+            // RG - MS
+            uint32_t eyePathCcStackSize =
+                p.eyePathRayGen.getStackSize() +
+                std::max({
+                    std::max({
+                        p.eyePathHitGroupDefault.getCHStackSize(),
+                        p.eyePathHitGroupWithAlpha.getCHStackSize(),
+                        p.eyePathHitGroupWithAlpha.getAHStackSize()}) +
+                    std::max({
+                        p.connectionHitGroupDefault.getAHStackSize(),
+                        p.connectionHitGroupWithAlpha.getAHStackSize()}),
+                    p.eyePathMiss.getStackSize() });
+
+            p.pipeline.setStackSize(
+                dcStackSizeFromTrav, dcStackSizeFromState,
+                std::max(lightPathCcStackSize, eyePathCcStackSize), 1);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
             p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
-            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
-                                             p.shaderBindingTable.getMappedPointer());
+            p.pipeline.setShaderBindingTable(
+                p.shaderBindingTable, p.shaderBindingTable.getMappedPointer());
         }
 
         // Pipeline for Aux Buffer Generator
@@ -728,16 +816,37 @@ namespace vlr {
             OptiX::AuxBufferGenerator &p = m_optix.auxBufferGenerator;
 
             p.pipeline.link(1);
+
+            constexpr uint32_t dcStackSizeFromTrav = 0;
+
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
-            for (int i = 0; i < p.callablePrograms.size(); ++i)
+            uint32_t dcStackSizeFromState = 0;
+            for (int i = 0; i < p.callablePrograms.size(); ++i) {
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+                dcStackSizeFromState =
+                    std::max(p.callablePrograms[i].getDCStackSize(), dcStackSizeFromState);
+            }
+            dcStackSizeFromState *= maxCallableDepth;
+
+            // Possible Program Paths:
+            // RG - CH+AH
+            // RG - MS
+            uint32_t ccStackSize =
+                p.rayGeneration.getStackSize() +
+                std::max({
+                    std::max({
+                        p.hitGroupDefault.getCHStackSize(),
+                        p.hitGroupWithAlpha.getCHStackSize(),
+                        p.hitGroupWithAlpha.getAHStackSize()}),
+                    p.miss.getStackSize() });
+            p.pipeline.setStackSize(dcStackSizeFromTrav, dcStackSizeFromState, ccStackSize, 1);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
             p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
-            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
-                                             p.shaderBindingTable.getMappedPointer());
+            p.pipeline.setShaderBindingTable(
+                p.shaderBindingTable, p.shaderBindingTable.getMappedPointer());
         }
 
         // Pipeline for Debug Rendering
@@ -745,16 +854,37 @@ namespace vlr {
             OptiX::DebugRendering &p = m_optix.debugRendering;
 
             p.pipeline.link(1);
+
+            constexpr uint32_t dcStackSizeFromTrav = 0;
+
             p.pipeline.setNumCallablePrograms(static_cast<uint32_t>(p.callablePrograms.size()));
-            for (int i = 0; i < p.callablePrograms.size(); ++i)
+            uint32_t dcStackSizeFromState = 0;
+            for (int i = 0; i < p.callablePrograms.size(); ++i) {
                 p.pipeline.setCallableProgram(i, p.callablePrograms[i]);
+                dcStackSizeFromState =
+                    std::max(p.callablePrograms[i].getDCStackSize(), dcStackSizeFromState);
+            }
+            dcStackSizeFromState *= maxCallableDepth;
+
+            // Possible Program Paths:
+            // RG - CH+AH
+            // RG - MS
+            uint32_t ccStackSize =
+                p.rayGeneration.getStackSize() +
+                std::max({
+                    std::max({
+                        p.hitGroupDefault.getCHStackSize(),
+                        p.hitGroupWithAlpha.getCHStackSize(),
+                        p.hitGroupWithAlpha.getAHStackSize()}),
+                    p.miss.getStackSize() });
+            p.pipeline.setStackSize(dcStackSizeFromTrav, dcStackSizeFromState, ccStackSize, 1);
 
             size_t sbtSize;
             p.pipeline.generateShaderBindingTableLayout(&sbtSize);
             p.shaderBindingTable.initialize(m_cuContext, g_bufferType, static_cast<uint32_t>(sbtSize), 1);
             p.shaderBindingTable.setMappedMemoryPersistent(true);
-            p.pipeline.setShaderBindingTable(p.shaderBindingTable,
-                                             p.shaderBindingTable.getMappedPointer());
+            p.pipeline.setShaderBindingTable(
+                p.shaderBindingTable, p.shaderBindingTable.getMappedPointer());
         }
 
         m_renderer = VLRRenderer_PathTracing;
