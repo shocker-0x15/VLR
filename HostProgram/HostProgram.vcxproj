@@ -45,12 +45,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\half;C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\Users\shocker_0x15\repos\VLR\ext\half;C:\Users\shocker_0x15\repos\VLR\ext\stb;C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\include;C:\Users\shocker_0x15\repos\VLR\ext\imgui;C:\Users\shocker_0x15\repos\VLR\ext\glfw\include;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr\deps\miniz;C:\Users\shocker_0x15\repos\VLR\ext\tinyexr;$(SolutionDir)libVLR\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\Users\shocker_0x15\repos\VLR\ext\prebuilt\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

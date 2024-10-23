@@ -12,6 +12,8 @@
 #include "dds_loader.h"
 #include "tinyexr.h"
 
+#include "half/half.hpp"
+
 
 
 static std::map<std::tuple<std::string, std::string, std::string>, vlr::Image2DRef> s_image2DCache;
@@ -62,16 +64,33 @@ vlr::Image2DRef loadImage2D(const vlr::ContextRef &context, const std::string &f
 
     if (ext == "exr") {
         int32_t width, height;
-        float* textureData;
+        float* fp32Data;
         const char* errMsg = nullptr;
-        int exrRet = LoadEXR(&textureData, &width, &height, filepath.c_str(), &errMsg);
+        int exrRet;
+        EXRVersion exrVersion;
+        exrRet = ParseEXRVersionFromFile(&exrVersion, filepath.c_str());
+        VLRAssert(exrRet == TINYEXR_SUCCESS, "failed to parse the exr version.");
+        EXRHeader exrHeader;
+        exrRet = ParseEXRHeaderFromFile(&exrHeader, &exrVersion, filepath.c_str(), &errMsg);
+        VLRAssert(exrRet == TINYEXR_SUCCESS, "failed to parse the exr header.");
+        exrRet = LoadEXR(&fp32Data, &width, &height, filepath.c_str(), &errMsg);
         VLRAssert(exrRet == TINYEXR_SUCCESS, "failed to read the exr."); // TODO: error handling.
 
-        ret = context->createLinearImage2D(
-            reinterpret_cast<uint8_t*>(textureData), width, height, "RGBA16Fx4",
-            spectrumType.c_str(), colorSpace.c_str());
+        std::vector<half_float::half> fp16Data(width * height * 4);
+        for (uint32_t y = 0; y < height; ++y) {
+            for (uint32_t x = 0; x < width; ++x) {
+                uint32_t idx = y * width + x;
+                fp16Data[4 * idx + 0] = static_cast<half_float::half>(fp32Data[4 * idx + 0]);
+                fp16Data[4 * idx + 1] = static_cast<half_float::half>(fp32Data[4 * idx + 1]);
+                fp16Data[4 * idx + 2] = static_cast<half_float::half>(fp32Data[4 * idx + 2]);
+                fp16Data[4 * idx + 3] = static_cast<half_float::half>(fp32Data[4 * idx + 3]);
+            }
+        }
+        free(fp32Data);
 
-        free(textureData);
+        ret = context->createLinearImage2D(
+            reinterpret_cast<uint8_t*>(fp16Data.data()), width, height, "RGBA16Fx4",
+            spectrumType.c_str(), colorSpace.c_str());
     }
     else if (ext == "dds") {
         int32_t width, height, mipCount;
