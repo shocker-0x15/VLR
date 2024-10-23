@@ -1947,7 +1947,7 @@ void createRungholtScene(const vlr::ContextRef &context, Shot* shot) {
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    construct(context, ASSETS_DIR"rungholt/rungholt.obj", false, true, &modelNode, rungholtMaterialFunc);
+    construct(context, ASSETS_DIR"McguireCGArchive/rungholt/rungholt.obj", false, true, &modelNode, rungholtMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.04f)));
 
@@ -2218,8 +2218,8 @@ void createAmazonBistroExteriorScene(const vlr::ContextRef &context, Shot* shot)
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/exterior/exterior.obj", false, true,
-              &modelNode, grayMaterialFunc);
+    construct(context, ASSETS_DIR"McguireCGArchive/Amazon_Bistro/Exterior/exterior.obj", false, true,
+              &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 
@@ -2424,7 +2424,7 @@ void createAmazonBistroInteriorScene(const vlr::ContextRef &context, Shot* shot)
 
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
-    construct(context, ASSETS_DIR"Amazon_Bistro/Interior/interior.obj", false, true, &modelNode, bistroMaterialFunc);
+    construct(context, ASSETS_DIR"McguireCGArchive/Amazon_Bistro/Interior/interior.obj", false, true, &modelNode, bistroMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(0.001f)));
 
@@ -2565,7 +2565,7 @@ void createSanMiguelScene(const vlr::ContextRef& context, Shot* shot) {
         return SurfaceMaterialAttributeTuple(mat, plugNormal, plugTangent, plugAlpha);
     };
 
-    construct(context, ASSETS_DIR"San_Miguel/san-miguel.obj", false, true, &modelNode, sanMiguelMaterialFunc);
+    construct(context, ASSETS_DIR"McguireCGArchive/San_Miguel/san-miguel.obj", false, true, &modelNode, sanMiguelMaterialFunc);
     shot->scene->addChild(modelNode);
     modelNode->setTransform(context->createStaticTransform(translate<float>(0, 0, 0) * scale<float>(1.0f)));
 
