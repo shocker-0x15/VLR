@@ -94,7 +94,7 @@ void recursiveConstruct(const vlr::ContextRef &context, const aiScene* objSrc, c
     std::vector<uint32_t> meshIndices;
     for (int m = 0; m < nodeSrc->mNumMeshes; ++m) {
         const aiMesh* mesh = objSrc->mMeshes[nodeSrc->mMeshes[m]];
-        if (mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE) {
+        if ((mesh->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) == 0) {
             hpprintf("ignored non triangle mesh: %s.\n", mesh->mName.C_Str());
             continue;
         }
@@ -146,13 +146,11 @@ void recursiveConstruct(const vlr::ContextRef &context, const aiScene* objSrc, c
         (*nodeOut)->addChild(surfMesh);
     }
 
-    if (nodeSrc->mNumChildren) {
-        for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
-            InternalNodeRef subNode;
-            recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], matAttrTuples, meshFunc, &subNode);
-            if (subNode != nullptr)
-                (*nodeOut)->addChild(subNode);
-        }
+    for (int c = 0; c < nodeSrc->mNumChildren; ++c) {
+        InternalNodeRef subNode;
+        recursiveConstruct(context, objSrc, nodeSrc->mChildren[c], matAttrTuples, meshFunc, &subNode);
+        if (subNode != nullptr)
+            (*nodeOut)->addChild(subNode);
     }
 }
 
